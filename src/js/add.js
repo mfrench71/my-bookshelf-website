@@ -11,6 +11,10 @@ import { escapeHtml, escapeAttr, debounce, showToast, initIcons } from './utils.
 // Initialize icons once on load
 initIcons();
 
+// Cache key must match books.js
+const CACHE_VERSION = 7;
+const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
+
 // State
 let currentUser = null;
 let currentRating = 0;
@@ -583,6 +587,14 @@ bookForm.addEventListener('submit', async (e) => {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     await addDoc(booksRef, bookData);
     formDirty = false;
+
+    // Clear books cache so the new book appears on the list page
+    try {
+      localStorage.removeItem(`${CACHE_KEY}_${currentUser.uid}`);
+    } catch (e) {
+      // Ignore cache clear errors
+    }
+
     showToast('Book added!', { type: 'success' });
     setTimeout(() => {
       window.location.href = '/books/';

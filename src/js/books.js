@@ -7,7 +7,8 @@ import {
   orderBy,
   limit,
   startAfter,
-  getDocs
+  getDocs,
+  getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showToast, initIcons } from './utils.js';
 import { bookCard } from './book-card.js';
@@ -17,7 +18,8 @@ initIcons();
 
 // Constants
 const BOOKS_PER_PAGE = 20;
-const CACHE_KEY = 'mybookshelf_books_cache';
+const CACHE_VERSION = 7; // Increment to invalidate old cache with different data format
+const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // State
@@ -29,6 +31,7 @@ let displayLimit = BOOKS_PER_PAGE;
 let lastDoc = null;
 let hasMoreFromFirebase = true;
 let isLoading = false;
+let forceServerFetch = false;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -53,12 +56,12 @@ function getCachedBooks() {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
     if (!cached) return null;
 
-    const { books: cachedBooks, timestamp, sort } = JSON.parse(cached);
+    const { books: cachedBooks, timestamp, sort, hasMore } = JSON.parse(cached);
     const age = Date.now() - timestamp;
 
     // Return cache if fresh and same sort order
     if (age < CACHE_TTL && sort === currentSort) {
-      return cachedBooks;
+      return { books: cachedBooks, hasMore: hasMore ?? true };
     }
   } catch (e) {
     console.warn('Cache read error:', e);
@@ -66,12 +69,13 @@ function getCachedBooks() {
   return null;
 }
 
-function setCachedBooks(booksData) {
+function setCachedBooks(booksData, hasMore) {
   try {
     const cacheData = {
       books: booksData,
       timestamp: Date.now(),
-      sort: currentSort
+      sort: currentSort,
+      hasMore: hasMore
     };
     localStorage.setItem(`${CACHE_KEY}_${currentUser.uid}`, JSON.stringify(cacheData));
   } catch (e) {
@@ -90,11 +94,48 @@ function clearCache() {
 // Convert Firestore timestamp to serializable format
 function serializeBook(doc) {
   const data = doc.data();
+  const rawCreatedAt = data.createdAt;
+
+  let createdAt = null;
+  if (rawCreatedAt) {
+    if (typeof rawCreatedAt.toMillis === 'function') {
+      createdAt = rawCreatedAt.toMillis();
+    } else if (rawCreatedAt.seconds) {
+      createdAt = rawCreatedAt.seconds * 1000;
+    } else if (typeof rawCreatedAt === 'number') {
+      createdAt = rawCreatedAt;
+    } else if (typeof rawCreatedAt === 'string') {
+      // Handle ISO date strings (e.g., "2025-12-20T09:29:20.036460")
+      const date = new Date(rawCreatedAt);
+      if (!isNaN(date.getTime())) {
+        createdAt = date.getTime();
+      }
+    }
+  }
+
+  // Same logic for updatedAt
+  let updatedAt = null;
+  const rawUpdatedAt = data.updatedAt;
+  if (rawUpdatedAt) {
+    if (typeof rawUpdatedAt.toMillis === 'function') {
+      updatedAt = rawUpdatedAt.toMillis();
+    } else if (rawUpdatedAt.seconds) {
+      updatedAt = rawUpdatedAt.seconds * 1000;
+    } else if (typeof rawUpdatedAt === 'number') {
+      updatedAt = rawUpdatedAt;
+    } else if (typeof rawUpdatedAt === 'string') {
+      const date = new Date(rawUpdatedAt);
+      if (!isNaN(date.getTime())) {
+        updatedAt = date.getTime();
+      }
+    }
+  }
+
   return {
     id: doc.id,
     ...data,
-    createdAt: data.createdAt?.toMillis?.() || data.createdAt?.seconds * 1000 || null,
-    updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt?.seconds * 1000 || null
+    createdAt,
+    updatedAt
   };
 }
 
@@ -105,17 +146,18 @@ async function loadBooks(forceRefresh = false) {
   // Try cache first (unless forcing refresh)
   if (!forceRefresh) {
     const cached = getCachedBooks();
-    if (cached && cached.length > 0) {
-      books = cached;
+    if (cached && cached.books && cached.books.length > 0) {
+      books = cached.books;
+      // When loading from cache, we don't have lastDoc, so reset pagination state
+      lastDoc = null;
+      hasMoreFromFirebase = cached.hasMore;
       loadingState.classList.add('hidden');
       renderBooks();
-      console.log('Loaded from cache:', cached.length, 'books');
       return;
     }
   }
 
   // Fetch from Firebase
-  isLoading = true;
   loadingState.classList.remove('hidden');
   bookList.innerHTML = '';
 
@@ -123,23 +165,26 @@ async function loadBooks(forceRefresh = false) {
     books = [];
     lastDoc = null;
     hasMoreFromFirebase = true;
+    forceServerFetch = forceRefresh; // Force server fetch on manual refresh
 
     await fetchNextPage();
+
+    forceServerFetch = false; // Reset after initial fetch
 
     loadingState.classList.add('hidden');
     renderBooks();
   } catch (error) {
     console.error('Error loading books:', error);
     loadingState.classList.add('hidden');
-    showToast('Error loading books', { type: 'error' });
-  } finally {
-    isLoading = false;
+    showToast('Error loading books: ' + error.message, { type: 'error' });
   }
 }
 
 // Fetch next page from Firebase
 async function fetchNextPage() {
-  if (!hasMoreFromFirebase || isLoading) return;
+  if (!hasMoreFromFirebase || isLoading) {
+    return;
+  }
 
   isLoading = true;
   const [field, direction] = currentSort.split('-');
@@ -163,17 +208,26 @@ async function fetchNextPage() {
       );
     }
 
-    const snapshot = await getDocs(q);
+    // Use getDocsFromServer on manual refresh to bypass Firestore cache
+    const snapshot = forceServerFetch ? await getDocsFromServer(q) : await getDocs(q);
     const newBooks = snapshot.docs.map(serializeBook);
 
-    books = [...books, ...newBooks];
+    // Deduplicate - filter out books already in the array
+    const existingIds = new Set(books.map(b => b.id));
+    const uniqueNewBooks = newBooks.filter(b => !existingIds.has(b.id));
+
+    books = [...books, ...uniqueNewBooks];
     lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-    hasMoreFromFirebase = snapshot.docs.length === BOOKS_PER_PAGE;
+
+    // If we got a full page but no new unique books, we've caught up - no more to fetch
+    if (snapshot.docs.length === BOOKS_PER_PAGE && uniqueNewBooks.length === 0) {
+      hasMoreFromFirebase = false;
+    } else {
+      hasMoreFromFirebase = snapshot.docs.length === BOOKS_PER_PAGE;
+    }
 
     // Update cache with all loaded books
-    setCachedBooks(books);
-
-    console.log('Fetched from Firebase:', newBooks.length, 'books. Total:', books.length);
+    setCachedBooks(books, hasMoreFromFirebase);
   } catch (error) {
     console.error('Error fetching page:', error);
     throw error;

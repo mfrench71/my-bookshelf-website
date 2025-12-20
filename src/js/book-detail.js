@@ -13,6 +13,18 @@ import { renderStars, parseTimestamp, showToast, initIcons } from './utils.js';
 // Initialize icons once on load
 initIcons();
 
+// Cache key must match books.js
+const CACHE_VERSION = 7;
+const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
+
+function clearBooksCache(userId) {
+  try {
+    localStorage.removeItem(`${CACHE_KEY}_${userId}`);
+  } catch (e) {
+    // Ignore cache clear errors
+  }
+}
+
 // State
 let currentUser = null;
 let bookId = null;
@@ -157,6 +169,10 @@ editForm.addEventListener('submit', async (e) => {
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await updateDoc(bookRef, updates);
+
+    // Clear cache so changes appear on the list page
+    clearBooksCache(currentUser.uid);
+
     showToast('Changes saved!', { type: 'success' });
 
     // Update local data and re-render
@@ -193,6 +209,10 @@ confirmDeleteBtn.addEventListener('click', async () => {
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await deleteDoc(bookRef);
+
+    // Clear cache so the deleted book disappears from the list
+    clearBooksCache(currentUser.uid);
+
     showToast('Book deleted', { type: 'success' });
     setTimeout(() => window.location.href = '/books/', 1000);
   } catch (error) {

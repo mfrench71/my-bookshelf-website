@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { bookCard } from '../src/js/book-card.js';
-import { createMockBook } from './setup.js';
+import { createMockBook, createSerializedBook, createSerializedBooks } from './setup.js';
 
 describe('bookCard', () => {
   describe('basic rendering', () => {
@@ -114,6 +114,18 @@ describe('bookCard', () => {
       // Should not crash, may or may not show date depending on implementation
       expect(html).toContain(book.title);
     });
+
+    it('should show date with milliseconds format (serialized/cached data)', () => {
+      const milliseconds = 1686787200000; // 2023-06-15 00:00:00 UTC
+      const book = createMockBook({
+        createdAt: milliseconds
+      });
+
+      const html = bookCard(book, { showDate: true });
+
+      expect(html).toContain('Added');
+      expect(html).toContain('2023');
+    });
   });
 
   describe('rating display', () => {
@@ -166,6 +178,77 @@ describe('bookCard', () => {
       const html = bookCard(book);
 
       expect(html).toContain('loading="lazy"');
+    });
+  });
+
+  describe('book list rendering (integration)', () => {
+    it('should show date for ALL serialized books, not just the first one', () => {
+      const books = createSerializedBooks(5);
+
+      // Render all books like the book list does
+      const renderedCards = books.map(book => bookCard(book, { showDate: true }));
+
+      // EVERY card should contain "Added"
+      renderedCards.forEach((html, index) => {
+        expect(html, `Book ${index + 1} should have "Added" date`).toContain('Added');
+      });
+    });
+
+    it('should show unique dates for books with different createdAt values', () => {
+      // Create books with specific dates
+      const books = [
+        createSerializedBook({ id: '1', createdAt: new Date('2023-01-15').getTime() }),
+        createSerializedBook({ id: '2', createdAt: new Date('2023-06-20').getTime() }),
+        createSerializedBook({ id: '3', createdAt: new Date('2024-03-10').getTime() }),
+      ];
+
+      const renderedCards = books.map(book => bookCard(book, { showDate: true }));
+
+      // Each should have a date
+      expect(renderedCards[0]).toContain('2023');
+      expect(renderedCards[1]).toContain('2023');
+      expect(renderedCards[2]).toContain('2024');
+    });
+
+    it('should handle mixed format dates (for backwards compatibility)', () => {
+      const books = [
+        createSerializedBook({ id: '1', createdAt: 1686787200000 }), // milliseconds
+        createMockBook({ id: '2', createdAt: { seconds: 1686787200 } }), // Firestore format
+        createSerializedBook({ id: '3', createdAt: 1686787200000 }), // milliseconds
+      ];
+
+      const renderedCards = books.map(book => bookCard(book, { showDate: true }));
+
+      // ALL should have dates
+      renderedCards.forEach((html, index) => {
+        expect(html, `Book ${index + 1} should have date`).toContain('Added');
+        expect(html, `Book ${index + 1} should show year`).toContain('2023');
+      });
+    });
+
+    it('should gracefully handle books with missing createdAt (legacy data)', () => {
+      const books = [
+        createSerializedBook({ id: '1', createdAt: 1686787200000 }), // has date
+        { id: '2', title: 'Old Book', author: 'Author', createdAt: null }, // null
+        { id: '3', title: 'Legacy Book', author: 'Author', createdAt: undefined }, // undefined
+        { id: '4', title: 'No Date Book', author: 'Author' }, // missing field
+      ];
+
+      const renderedCards = books.map(book => bookCard(book, { showDate: true }));
+
+      // First book should have date
+      expect(renderedCards[0]).toContain('Added');
+      expect(renderedCards[0]).toContain('2023');
+
+      // Others should NOT crash, just not show date
+      expect(renderedCards[1]).toContain('Old Book');
+      expect(renderedCards[1]).not.toContain('Added');
+
+      expect(renderedCards[2]).toContain('Legacy Book');
+      expect(renderedCards[2]).not.toContain('Added');
+
+      expect(renderedCards[3]).toContain('No Date Book');
+      expect(renderedCards[3]).not.toContain('Added');
     });
   });
 });

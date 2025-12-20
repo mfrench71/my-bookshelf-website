@@ -56,7 +56,7 @@ export function resetMocks() {
   global.fetch.mockReset();
 }
 
-// Helper to create mock book data
+// Helper to create mock book data (Firestore format - for testing raw Firebase data)
 export function createMockBook(overrides = {}) {
   return {
     id: 'book-1',
@@ -72,7 +72,24 @@ export function createMockBook(overrides = {}) {
   };
 }
 
-// Helper to create multiple mock books
+// Helper to create serialized book data (milliseconds format - matches cached/production data)
+export function createSerializedBook(overrides = {}) {
+  const now = Date.now();
+  return {
+    id: 'book-1',
+    title: 'Test Book',
+    author: 'Test Author',
+    coverImageUrl: 'https://example.com/cover.jpg',
+    rating: 4,
+    notes: 'Great book!',
+    isbn: '1234567890',
+    createdAt: now,  // Plain milliseconds - as serialized by books.js
+    updatedAt: now,
+    ...overrides
+  };
+}
+
+// Helper to create multiple mock books (Firestore format)
 export function createMockBooks(count = 5) {
   return Array.from({ length: count }, (_, i) => createMockBook({
     id: `book-${i + 1}`,
@@ -80,6 +97,18 @@ export function createMockBooks(count = 5) {
     author: `Author ${i + 1}`,
     rating: (i % 5) + 1,
     createdAt: { seconds: (Date.now() / 1000) - (i * 86400) } // Each book 1 day older
+  }));
+}
+
+// Helper to create multiple serialized books (milliseconds format - matches production)
+export function createSerializedBooks(count = 5) {
+  const now = Date.now();
+  return Array.from({ length: count }, (_, i) => createSerializedBook({
+    id: `book-${i + 1}`,
+    title: `Book ${i + 1}`,
+    author: `Author ${i + 1}`,
+    rating: (i % 5) + 1,
+    createdAt: now - (i * 86400000) // Each book 1 day older (in milliseconds)
   }));
 }
 

@@ -14,7 +14,8 @@ import { bookCard } from './book-card.js';
 initIcons();
 
 // Constants
-const CACHE_KEY = 'mybookshelf_books_cache';
+const CACHE_VERSION = 7; // Must match books.js version
+const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
 
 // State
 let currentUser = null;
@@ -51,8 +52,9 @@ function getCachedBooks() {
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
     if (!cached) return null;
-    const { books: cachedBooks } = JSON.parse(cached);
-    return cachedBooks || null;
+    const parsed = JSON.parse(cached);
+    // Handle both old format (books array directly) and new format ({ books, hasMore })
+    return parsed.books || parsed || null;
   } catch (e) {
     return null;
   }
@@ -135,7 +137,7 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
     );
 
     searchResults.innerHTML = results.length
-      ? results.map(book => bookCard(book)).join('')
+      ? results.map(book => bookCard(book, { showDate: true })).join('')
       : '<p class="text-gray-500 text-center">No books found</p>';
     initIcons();
   }, 150);

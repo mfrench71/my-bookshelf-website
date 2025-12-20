@@ -48,6 +48,7 @@ export function parseTimestamp(timestamp) {
   if (typeof timestamp.toDate === 'function') return timestamp.toDate();
   if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
   if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp === 'number') return new Date(timestamp);
   if (typeof timestamp === 'string') {
     const date = new Date(timestamp);
     return isNaN(date.getTime()) ? null : date;

@@ -174,6 +174,27 @@ describe('parseTimestamp', () => {
     expect(parseTimestamp('not-a-date')).toBe(null);
     expect(parseTimestamp('invalid')).toBe(null);
   });
+
+  it('should handle plain numbers (milliseconds) - used by cached/serialized data', () => {
+    const milliseconds = 1686787200000; // 2023-06-15 00:00:00 UTC
+    const result = parseTimestamp(milliseconds);
+
+    expect(result).toBeInstanceOf(Date);
+    expect(result.getFullYear()).toBe(2023);
+    expect(result.getTime()).toBe(milliseconds);
+  });
+
+  it('should handle zero as a valid timestamp', () => {
+    const result = parseTimestamp(0);
+    // 0 is falsy, so should return null
+    expect(result).toBe(null);
+  });
+
+  it('should handle negative numbers (dates before 1970)', () => {
+    const result = parseTimestamp(-86400000); // 1969-12-31
+    expect(result).toBeInstanceOf(Date);
+    expect(result.getFullYear()).toBe(1969);
+  });
 });
 
 describe('formatDate', () => {
@@ -197,6 +218,15 @@ describe('formatDate', () => {
     const result = formatDate(date);
 
     expect(result).toBeTruthy();
+    expect(result).toContain('2023');
+  });
+
+  it('should format milliseconds (serialized/cached format)', () => {
+    const milliseconds = 1686787200000; // 2023-06-15 00:00:00 UTC
+    const result = formatDate(milliseconds);
+
+    expect(result).toBeTruthy();
+    expect(typeof result).toBe('string');
     expect(result).toContain('2023');
   });
 });
