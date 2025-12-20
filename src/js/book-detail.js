@@ -41,6 +41,7 @@ const bookTitle = document.getElementById('book-title');
 const bookAuthor = document.getElementById('book-author');
 const bookRating = document.getElementById('book-rating');
 const bookDates = document.getElementById('book-dates');
+const bookDetails = document.getElementById('book-details');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
@@ -160,6 +161,19 @@ function renderBook() {
   }
   bookDates.innerHTML = datesHtml;
 
+  // Book Details (publisher, published date, physical format)
+  let detailsHtml = '';
+  if (book.publisher) {
+    detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
+  }
+  if (book.publishedDate) {
+    detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
+  }
+  if (book.physicalFormat) {
+    detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
+  }
+  bookDetails.innerHTML = detailsHtml;
+
   // Form
   titleInput.value = book.title || '';
   authorInput.value = book.author || '';
@@ -217,6 +231,9 @@ editForm.addEventListener('submit', async (e) => {
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     genres: selectedGenres,
+    publisher: book.publisher || '',
+    publishedDate: book.publishedDate || '',
+    physicalFormat: book.physicalFormat || '',
     updatedAt: serverTimestamp()
   };
 
@@ -325,7 +342,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
-          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+          publisher: volumeInfo.publisher || '',
+          publishedDate: volumeInfo.publishedDate || '',
+          physicalFormat: ''
         };
       }
     } catch (e) {
@@ -344,7 +364,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
-          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+          publisher: volumeInfo.publisher || '',
+          publishedDate: volumeInfo.publishedDate || '',
+          physicalFormat: ''
         };
       }
     } catch (e) {
@@ -362,7 +385,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: bookData.title || '',
           author: bookData.authors?.[0]?.name || '',
-          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || ''
+          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
+          publisher: bookData.publishers?.[0]?.name || '',
+          publishedDate: bookData.publish_date || '',
+          physicalFormat: bookData.physical_format || ''
         };
       }
     } catch (e) {
@@ -395,6 +421,25 @@ refreshDataBtn.addEventListener('click', async () => {
       if (apiData.coverImageUrl) {
         coverUrlInput.value = apiData.coverImageUrl;
       }
+
+      // Update book object with new metadata for display
+      book.publisher = apiData.publisher || book.publisher || '';
+      book.publishedDate = apiData.publishedDate || book.publishedDate || '';
+      book.physicalFormat = apiData.physicalFormat || book.physicalFormat || '';
+
+      // Re-render book details section
+      let detailsHtml = '';
+      if (book.publisher) {
+        detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
+      }
+      if (book.publishedDate) {
+        detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
+      }
+      if (book.physicalFormat) {
+        detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
+      }
+      bookDetails.innerHTML = detailsHtml;
+
       formDirty = true;
       showToast('Book data refreshed from API', { type: 'success' });
     } else {

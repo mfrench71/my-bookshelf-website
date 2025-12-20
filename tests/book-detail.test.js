@@ -22,7 +22,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
-          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+          publisher: volumeInfo.publisher || '',
+          publishedDate: volumeInfo.publishedDate || '',
+          physicalFormat: ''
         };
       }
     } catch (e) {
@@ -41,7 +44,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
-          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+          publisher: volumeInfo.publisher || '',
+          publishedDate: volumeInfo.publishedDate || '',
+          physicalFormat: ''
         };
       }
     } catch (e) {
@@ -59,7 +65,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         return {
           title: bookData.title || '',
           author: bookData.authors?.[0]?.name || '',
-          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || ''
+          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
+          publisher: bookData.publishers?.[0]?.name || '',
+          publishedDate: bookData.publish_date || '',
+          physicalFormat: bookData.physical_format || ''
         };
       }
     } catch (e) {
@@ -155,6 +164,29 @@ describe('fetchBookDataFromAPI', () => {
       expect(result.title).toBe('Minimal Book');
       expect(result.author).toBe('');
       expect(result.coverImageUrl).toBe('');
+    });
+
+    it('should return publisher and publishedDate from Google Books', async () => {
+      const mockResponse = {
+        items: [{
+          volumeInfo: {
+            title: 'Test Book',
+            authors: ['Test Author'],
+            publisher: 'Test Publisher',
+            publishedDate: '2023-05-15'
+          }
+        }]
+      };
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Test Book', 'Test Author');
+
+      expect(result.publisher).toBe('Test Publisher');
+      expect(result.publishedDate).toBe('2023-05-15');
+      expect(result.physicalFormat).toBe('');
     });
   });
 
@@ -328,6 +360,33 @@ describe('fetchBookDataFromAPI', () => {
       const result = await fetchBookDataFromAPI('1234567890', 'Test', '');
 
       expect(result.coverImageUrl).toBe('https://covers.openlibrary.org/small.jpg');
+    });
+
+    it('should return publisher, publishedDate, and physicalFormat from Open Library', async () => {
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({ items: null })
+      });
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({ items: null })
+      });
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            title: 'Open Library Book',
+            publishers: [{ name: 'OL Publisher' }],
+            publish_date: 'January 2022',
+            physical_format: 'Hardcover'
+          }
+        })
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Some Title', '');
+
+      expect(result.publisher).toBe('OL Publisher');
+      expect(result.publishedDate).toBe('January 2022');
+      expect(result.physicalFormat).toBe('Hardcover');
     });
   });
 
