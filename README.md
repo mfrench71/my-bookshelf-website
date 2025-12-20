@@ -13,7 +13,9 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - Genre management with color-coded badges and API suggestions
 - Settings page for managing genres and exporting data
 - Export your library as JSON backup
-- Works offline (PWA with comprehensive caching)
+- Duplicate detection when adding books (by ISBN or title/author)
+- Pull-to-refresh on mobile devices
+- Works offline with cached books and offline indicator
 - Firestore offline persistence for reduced API calls
 
 ## Tech Stack

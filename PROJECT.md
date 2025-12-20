@@ -109,9 +109,9 @@ MyBookShelf/
 - [x] Firestore offline persistence for reduced API calls
 - [x] Service worker caching (static assets, cover images, API responses)
 - [x] Filter by genre
-- [ ] Check for duplicate book when adding (by ISBN or title/author match)
-- [ ] Offline support (cached books)
-- [ ] Pull-to-refresh on mobile
+- [x] Check for duplicate book when adding (by ISBN or title/author match)
+- [x] Offline support (cached books with offline banner indicator)
+- [x] Pull-to-refresh on mobile (touch gesture)
 
 ### Medium Priority
 - [ ] Book quick view modal from list/search results

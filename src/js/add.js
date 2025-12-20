@@ -4,14 +4,57 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import {
   collection,
   addDoc,
+  getDocs,
+  query,
+  where,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
+
+/**
+ * Check if a book with the same ISBN or title/author already exists
+ * @param {string} userId - The user's ID
+ * @param {string} isbn - ISBN to check (optional)
+ * @param {string} title - Title to check
+ * @param {string} author - Author to check
+ * @returns {Promise<{isDuplicate: boolean, matchType: string, existingBook: Object|null}>}
+ */
+async function checkForDuplicate(userId, isbn, title, author) {
+  const booksRef = collection(db, 'users', userId, 'books');
+
+  // Check by ISBN first (most reliable)
+  if (isbn) {
+    const isbnQuery = query(booksRef, where('isbn', '==', isbn));
+    const isbnSnapshot = await getDocs(isbnQuery);
+    if (!isbnSnapshot.empty) {
+      const existingBook = { id: isbnSnapshot.docs[0].id, ...isbnSnapshot.docs[0].data() };
+      return { isDuplicate: true, matchType: 'isbn', existingBook };
+    }
+  }
+
+  // Check by normalized title + author
+  const normalizedTitle = normalizeText(title);
+  const normalizedAuthor = normalizeText(author);
+
+  // Fetch all books and check client-side (Firestore doesn't support case-insensitive queries)
+  const allBooksSnapshot = await getDocs(booksRef);
+  for (const doc of allBooksSnapshot.docs) {
+    const bookData = doc.data();
+    const bookNormalizedTitle = normalizeText(bookData.title || '');
+    const bookNormalizedAuthor = normalizeText(bookData.author || '');
+
+    if (bookNormalizedTitle === normalizedTitle && bookNormalizedAuthor === normalizedAuthor) {
+      return { isDuplicate: true, matchType: 'title-author', existingBook: { id: doc.id, ...bookData } };
+    }
+  }
+
+  return { isDuplicate: false, matchType: null, existingBook: null };
+}
 
 // State
 let currentUser = null;
@@ -21,6 +64,7 @@ let formDirty = false;
 let fetchedBookData = {};
 let genrePicker = null;
 let apiGenreSuggestions = [];
+let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
 
 // DOM Elements
 const scanBtn = document.getElementById('scan-btn');
@@ -620,6 +664,7 @@ bookForm.addEventListener('submit', async (e) => {
 
   const title = titleInput.value.trim();
   const author = authorInput.value.trim();
+  const isbn = isbnInput.value.trim().replace(/-/g, '');
 
   if (!title || !author) {
     showToast('Title and author are required', { type: 'error' });
@@ -627,6 +672,33 @@ bookForm.addEventListener('submit', async (e) => {
   }
 
   submitBtn.disabled = true;
+  submitBtn.textContent = 'Checking...';
+
+  // Check for duplicates (unless already bypassed)
+  if (!duplicateCheckBypassed) {
+    try {
+      const { isDuplicate, matchType, existingBook } = await checkForDuplicate(
+        currentUser.uid, isbn, title, author
+      );
+
+      if (isDuplicate) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Anyway';
+        duplicateCheckBypassed = true;
+
+        const matchDesc = matchType === 'isbn'
+          ? `A book with ISBN "${isbn}" already exists`
+          : `"${existingBook.title}" by ${existingBook.author} already exists`;
+
+        showToast(`${matchDesc}. Click "Add Anyway" to add duplicate.`, { type: 'error', duration: 5000 });
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      // Continue with add if duplicate check fails
+    }
+  }
+
   submitBtn.textContent = 'Adding...';
 
   // Get selected genres from picker
@@ -638,7 +710,7 @@ bookForm.addEventListener('submit', async (e) => {
     coverImageUrl: coverUrlInput.value.trim(),
     rating: currentRating || null,
     notes: notesInput.value.trim(),
-    isbn: isbnInput.value.trim().replace(/-/g, ''),
+    isbn,
     genres: selectedGenres,
     publisher: fetchedBookData.publisher || '',
     publishedDate: fetchedBookData.publishedDate || '',
@@ -657,6 +729,7 @@ bookForm.addEventListener('submit', async (e) => {
     }
 
     formDirty = false;
+    duplicateCheckBypassed = false;
 
     // Clear caches so the new book appears on the list page
     clearBooksCache(currentUser.uid);
@@ -670,13 +743,22 @@ bookForm.addEventListener('submit', async (e) => {
     console.error('Error adding book:', error);
     showToast('Error adding book', { type: 'error' });
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Book';
+    submitBtn.textContent = duplicateCheckBypassed ? 'Add Anyway' : 'Add Book';
   }
 });
 
-// Track unsaved changes
+// Track unsaved changes and reset duplicate bypass when form changes
 document.querySelectorAll('#book-form input, #book-form textarea, #book-form select')
-  .forEach(el => el.addEventListener('input', () => formDirty = true));
+  .forEach(el => el.addEventListener('input', () => {
+    formDirty = true;
+    // Reset duplicate bypass if user changes title, author, or ISBN
+    if (['title', 'author', 'isbn-input'].includes(el.id)) {
+      if (duplicateCheckBypassed) {
+        duplicateCheckBypassed = false;
+        submitBtn.textContent = 'Add Book';
+      }
+    }
+  }));
 
 // Warn before leaving with unsaved changes
 window.addEventListener('beforeunload', (e) => {

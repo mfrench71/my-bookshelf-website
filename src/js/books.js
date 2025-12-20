@@ -147,14 +147,31 @@ async function loadBooks(forceRefresh = false) {
 
   // Try cache first (unless forcing refresh)
   // Only use cache if it's complete (hasMore = false), otherwise fetch fresh
-  if (!forceRefresh) {
-    const cached = getCachedBooks();
-    if (cached && cached.books && cached.books.length > 0 && !cached.hasMore) {
+  const cached = getCachedBooks();
+  const hasCachedBooks = cached && cached.books && cached.books.length > 0;
+
+  if (!forceRefresh && hasCachedBooks && !cached.hasMore) {
+    books = cached.books;
+    lastDoc = null;
+    hasMoreFromFirebase = false;
+    loadingState.classList.add('hidden');
+    renderBooks();
+    return;
+  }
+
+  // If offline, use any cached data we have
+  if (!navigator.onLine) {
+    if (hasCachedBooks) {
       books = cached.books;
       lastDoc = null;
       hasMoreFromFirebase = false;
       loadingState.classList.add('hidden');
       renderBooks();
+      showToast('Showing cached books (offline)', { type: 'info' });
+      return;
+    } else {
+      loadingState.classList.add('hidden');
+      showToast('No cached books available offline', { type: 'error' });
       return;
     }
   }
@@ -182,7 +199,17 @@ async function loadBooks(forceRefresh = false) {
   } catch (error) {
     console.error('Error loading books:', error);
     loadingState.classList.add('hidden');
-    showToast('Error loading books: ' + error.message, { type: 'error' });
+
+    // If Firebase fails and we have cached data, use it
+    if (hasCachedBooks) {
+      books = cached.books;
+      lastDoc = null;
+      hasMoreFromFirebase = false;
+      renderBooks();
+      showToast('Using cached books (connection error)', { type: 'info' });
+    } else {
+      showToast('Error loading books: ' + error.message, { type: 'error' });
+    }
   } finally {
     isLoading = false;
   }
@@ -433,3 +460,98 @@ resetFiltersBtn.addEventListener('click', async () => {
     renderBooks();
   }
 });
+
+// ==================== Pull to Refresh ====================
+
+const pullIndicator = document.getElementById('pull-indicator');
+const pullIcon = document.getElementById('pull-icon');
+const pullText = document.getElementById('pull-text');
+const mainContent = document.getElementById('main-content');
+
+// Pull-to-refresh state
+let pullStartY = 0;
+let pullCurrentY = 0;
+let isPulling = false;
+let pullThreshold = 80; // Pixels to pull before triggering refresh
+
+// Only enable on touch devices
+if ('ontouchstart' in window && pullIndicator && mainContent) {
+  document.addEventListener('touchstart', handleTouchStart, { passive: true });
+  document.addEventListener('touchmove', handleTouchMove, { passive: false });
+  document.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+function handleTouchStart(e) {
+  // Only start pull if at top of page
+  if (window.scrollY === 0 && !isLoading) {
+    pullStartY = e.touches[0].clientY;
+    isPulling = true;
+  }
+}
+
+function handleTouchMove(e) {
+  if (!isPulling || isLoading) return;
+
+  pullCurrentY = e.touches[0].clientY;
+  const pullDistance = pullCurrentY - pullStartY;
+
+  // Only activate when pulling down and at top of page
+  if (pullDistance > 0 && window.scrollY === 0) {
+    // Prevent default scrolling behavior when pulling
+    e.preventDefault();
+
+    // Calculate display height (with resistance)
+    const displayHeight = Math.min(pullDistance * 0.5, pullThreshold + 20);
+
+    // Show and size the indicator
+    pullIndicator.classList.remove('hidden');
+    pullIndicator.style.height = `${displayHeight}px`;
+
+    // Update icon rotation and text based on pull distance
+    if (pullDistance >= pullThreshold) {
+      pullIcon.style.transform = 'rotate(180deg)';
+      pullText.textContent = 'Release to refresh';
+      pullIcon.setAttribute('data-lucide', 'arrow-up');
+    } else {
+      pullIcon.style.transform = 'rotate(0deg)';
+      pullText.textContent = 'Pull to refresh';
+      pullIcon.setAttribute('data-lucide', 'arrow-down');
+    }
+    initIcons();
+  }
+}
+
+async function handleTouchEnd() {
+  if (!isPulling) return;
+
+  const pullDistance = pullCurrentY - pullStartY;
+  isPulling = false;
+
+  if (pullDistance >= pullThreshold && window.scrollY === 0 && !isLoading) {
+    // Show loading state
+    pullText.textContent = 'Refreshing...';
+    pullIcon.setAttribute('data-lucide', 'loader-2');
+    pullIcon.classList.add('animate-spin');
+    initIcons();
+
+    // Trigger refresh
+    await refreshBooks();
+
+    // Reset icon
+    pullIcon.classList.remove('animate-spin');
+  }
+
+  // Hide the indicator
+  pullIndicator.style.height = '0px';
+  setTimeout(() => {
+    pullIndicator.classList.add('hidden');
+    pullIndicator.style.height = '';
+    pullText.textContent = 'Pull to refresh';
+    pullIcon.setAttribute('data-lucide', 'arrow-down');
+    pullIcon.style.transform = '';
+    initIcons();
+  }, 200);
+
+  pullStartY = 0;
+  pullCurrentY = 0;
+}

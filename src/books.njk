@@ -50,8 +50,16 @@ scripts: '<script type="module" src="/js/books.js"></script>'
   </div>
 </div>
 
+<!-- Pull to Refresh Indicator -->
+<div id="pull-indicator" class="hidden overflow-hidden transition-all duration-200">
+  <div class="flex items-center justify-center py-3 text-gray-500">
+    <i id="pull-icon" data-lucide="arrow-down" class="w-5 h-5 mr-2 transition-transform"></i>
+    <span id="pull-text">Pull to refresh</span>
+  </div>
+</div>
+
 <!-- Main Content -->
-<main class="max-w-6xl mx-auto px-4 py-4 pb-24">
+<main id="main-content" class="max-w-6xl mx-auto px-4 py-4 pb-24">
   <!-- Loading State -->
   <div id="loading-state" class="py-12 text-center">
     <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>

@@ -35,6 +35,23 @@ const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
+const offlineBanner = document.getElementById('offline-banner');
+
+// Offline Detection
+function updateOnlineStatus() {
+  const isOffline = !navigator.onLine;
+  if (offlineBanner) {
+    offlineBanner.classList.toggle('hidden', !isOffline);
+    initIcons();
+  }
+}
+
+// Initial check
+updateOnlineStatus();
+
+// Listen for online/offline events
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
 // Auth State
 onAuthStateChanged(auth, (user) => {
