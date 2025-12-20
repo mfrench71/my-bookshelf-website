@@ -58,8 +58,13 @@
     <button id="close-search" class="p-2 hover:bg-gray-100 rounded-lg">
       <i data-lucide="arrow-left" class="w-5 h-5"></i>
     </button>
-    <input type="search" id="search-input" placeholder="Search books..."
-      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+    <div class="relative flex-1">
+      <input type="text" id="search-input" placeholder="Search books..."
+        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      <button type="button" id="clear-search-input" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
   </div>
   <div id="search-results" class="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 max-w-6xl mx-auto w-full"></div>
 </div>

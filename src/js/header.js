@@ -31,6 +31,7 @@ const searchBtn = document.getElementById('search-btn');
 const searchOverlay = document.getElementById('search-overlay');
 const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
+const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
 const exportBtn = document.getElementById('export-btn');
 
@@ -140,9 +141,23 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
   }, 150);
 
   searchInput.addEventListener('input', () => {
-    const queryText = normalizeText(searchInput.value.trim());
-    performSearch(queryText);
+    const query = searchInput.value.trim();
+    // Show/hide clear button
+    if (clearSearchInputBtn) {
+      clearSearchInputBtn.classList.toggle('hidden', !query);
+    }
+    performSearch(normalizeText(query));
   });
+
+  // Clear search button
+  if (clearSearchInputBtn) {
+    clearSearchInputBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+      clearSearchInputBtn.classList.add('hidden');
+      searchInput.focus();
+    });
+  }
 }
 
 function openSearch() {
@@ -157,6 +172,7 @@ function closeSearch() {
   document.body.style.overflow = ''; // Restore body scroll
   searchInput.value = '';
   searchResults.innerHTML = '';
+  if (clearSearchInputBtn) clearSearchInputBtn.classList.add('hidden');
 }
 
 // Export
