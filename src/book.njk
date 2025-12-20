@@ -10,10 +10,16 @@ scripts: '<script type="module" src="/js/book-detail.js"></script>'
       <i data-lucide="arrow-left" class="w-4 h-4"></i>
       <span class="text-sm">Back to Books</span>
     </a>
-    <button id="delete-btn" class="p-1 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1" title="Delete">
-      <i data-lucide="trash-2" class="w-4 h-4"></i>
-      <span class="text-sm">Delete</span>
-    </button>
+    <div class="flex items-center gap-2">
+      <button id="refresh-data-btn" class="p-1 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Refresh from API">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        <span class="text-sm">Refresh Data</span>
+      </button>
+      <button id="delete-btn" class="p-1 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1" title="Delete">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span class="text-sm">Delete</span>
+      </button>
+    </div>
   </div>
 </div>
 

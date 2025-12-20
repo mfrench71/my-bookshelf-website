@@ -111,6 +111,7 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `book-card.test.js` - Tests for book card component
 - `books.test.js` - Tests for sorting and filtering logic
 - `add.test.js` - Integration tests for book search and API interactions
+- `book-detail.test.js` - Tests for book detail page and API refresh
 - `genres.test.js` - Tests for genre CRUD operations and utilities
 - `header.test.js` - Tests for header menu and search functionality
 

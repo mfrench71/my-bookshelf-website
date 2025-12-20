@@ -88,12 +88,13 @@ MyBookShelf/
 - [x] PWA manifest and icons
 - [x] Service worker v4 (comprehensive caching)
 - [x] Netlify deployment with CI/CD
-- [x] Comprehensive test suite (241 tests)
+- [x] Comprehensive test suite (259 tests)
 - [x] Open Library fallback for book search
 - [x] Infinite scroll for search results
 - [x] Genre management system with color-coded badges
 - [x] Settings page with left-hand navigation
 - [x] Export books as JSON backup
+- [x] Refresh book data from APIs (repopulate title, author, cover from Google Books/Open Library)
 
 ### In Progress
 - None currently

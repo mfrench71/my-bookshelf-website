@@ -48,6 +48,7 @@ const coverUrlInput = document.getElementById('cover-url');
 const notesInput = document.getElementById('notes');
 const saveBtn = document.getElementById('save-btn');
 const deleteBtn = document.getElementById('delete-btn');
+const refreshDataBtn = document.getElementById('refresh-data-btn');
 const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
@@ -309,5 +310,102 @@ window.addEventListener('beforeunload', (e) => {
   if (formDirty) {
     e.preventDefault();
     e.returnValue = '';
+  }
+});
+
+// Refresh Data from APIs
+async function fetchBookDataFromAPI(isbn, title, author) {
+  // Try Google Books API first (by ISBN if available)
+  if (isbn) {
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const data = await response.json();
+      if (data.items?.length > 0) {
+        const volumeInfo = data.items[0].volumeInfo;
+        return {
+          title: volumeInfo.title || '',
+          author: volumeInfo.authors?.join(', ') || '',
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+        };
+      }
+    } catch (e) {
+      console.error('Google Books API error:', e);
+    }
+  }
+
+  // Try Google Books by title/author search
+  if (title) {
+    try {
+      const searchQuery = author ? `intitle:${title}+inauthor:${author}` : `intitle:${title}`;
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`);
+      const data = await response.json();
+      if (data.items?.length > 0) {
+        const volumeInfo = data.items[0].volumeInfo;
+        return {
+          title: volumeInfo.title || '',
+          author: volumeInfo.authors?.join(', ') || '',
+          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || ''
+        };
+      }
+    } catch (e) {
+      console.error('Google Books search error:', e);
+    }
+  }
+
+  // Try Open Library by ISBN
+  if (isbn) {
+    try {
+      const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+      const data = await response.json();
+      const bookData = data[`ISBN:${isbn}`];
+      if (bookData) {
+        return {
+          title: bookData.title || '',
+          author: bookData.authors?.[0]?.name || '',
+          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || ''
+        };
+      }
+    } catch (e) {
+      console.error('Open Library API error:', e);
+    }
+  }
+
+  return null;
+}
+
+refreshDataBtn.addEventListener('click', async () => {
+  refreshDataBtn.disabled = true;
+  const originalHtml = refreshDataBtn.innerHTML;
+  refreshDataBtn.innerHTML = `
+    <div class="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+    <span class="text-sm">Refreshing...</span>
+  `;
+
+  try {
+    const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
+
+    if (apiData) {
+      // Update form fields with API data
+      if (apiData.title) {
+        titleInput.value = apiData.title;
+      }
+      if (apiData.author) {
+        authorInput.value = apiData.author;
+      }
+      if (apiData.coverImageUrl) {
+        coverUrlInput.value = apiData.coverImageUrl;
+      }
+      formDirty = true;
+      showToast('Book data refreshed from API', { type: 'success' });
+    } else {
+      showToast('No data found from APIs', { type: 'info' });
+    }
+  } catch (error) {
+    console.error('Error refreshing book data:', error);
+    showToast('Error fetching book data', { type: 'error' });
+  } finally {
+    refreshDataBtn.disabled = false;
+    refreshDataBtn.innerHTML = originalHtml;
+    initIcons();
   }
 });
