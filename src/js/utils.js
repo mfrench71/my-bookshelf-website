@@ -153,6 +153,9 @@ export function renderStars(rating) {
  * @param {number} options.duration - Duration in ms (default: 3000)
  * @param {string} options.type - 'success', 'error', or 'info' (default: 'info')
  */
+// Track toast timeout to clear it when showing a new toast
+let toastTimeout = null;
+
 export function showToast(message, options = {}) {
   const { duration = 3000, type = 'info' } = typeof options === 'number'
     ? { duration: options }
@@ -163,6 +166,12 @@ export function showToast(message, options = {}) {
     toast = document.createElement('div');
     toast.id = 'toast';
     document.body.appendChild(toast);
+  }
+
+  // Clear any existing timeout to prevent premature hiding
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+    toastTimeout = null;
   }
 
   // Base classes
@@ -178,7 +187,10 @@ export function showToast(message, options = {}) {
   toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info}`;
   toast.textContent = message;
 
-  setTimeout(() => toast.classList.add('hidden'), duration);
+  toastTimeout = setTimeout(() => {
+    toast.classList.add('hidden');
+    toastTimeout = null;
+  }, duration);
 }
 
 /**
