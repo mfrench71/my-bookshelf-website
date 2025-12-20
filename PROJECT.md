@@ -119,6 +119,7 @@ MyBookShelf/
 - [ ] Book notes/reviews
 - [ ] Reading dates (start/finish)
 - [ ] Custom cover image upload
+- [ ] Cover image picker (select from multiple API sources: Google Books, Open Library)
 - [x] Export to JSON
 - [ ] Export to CSV
 - [ ] Import from Goodreads
