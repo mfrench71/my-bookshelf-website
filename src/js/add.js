@@ -176,7 +176,7 @@ function showStatus(message, type) {
   );
 }
 
-// Book Search by Title/Author
+// Book Search by Title/Author - tries Google Books, falls back to Open Library
 async function searchBooks(query) {
   if (!query || query.length < 2) {
     searchResultsDiv.classList.add('hidden');
@@ -187,59 +187,91 @@ async function searchBooks(query) {
   searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
   searchResultsDiv.classList.remove('hidden');
 
+  let books = [];
+
+  // Try Google Books first
   try {
     const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`);
-    const data = await response.json();
-
-    if (!data.items || data.items.length === 0) {
-      searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">No books found</p>';
-      return;
+    if (response.ok) {
+      const data = await response.json();
+      if (data.items?.length > 0) {
+        books = data.items.map(item => {
+          const book = item.volumeInfo;
+          return {
+            title: book.title || 'Unknown Title',
+            author: book.authors?.join(', ') || 'Unknown Author',
+            cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+            publisher: book.publisher || '',
+            publishedDate: book.publishedDate || '',
+            pageCount: book.pageCount || '',
+            isbn: book.industryIdentifiers?.[0]?.identifier || ''
+          };
+        });
+      }
+    } else {
+      console.warn('Google Books API error:', response.status);
     }
-
-    searchResultsDiv.innerHTML = data.items.map(item => {
-      const book = item.volumeInfo;
-      const cover = book.imageLinks?.thumbnail?.replace('http:', 'https:') || '';
-      const title = book.title || 'Unknown Title';
-      const author = book.authors?.join(', ') || 'Unknown Author';
-      const publisher = book.publisher || '';
-      const publishedDate = book.publishedDate || '';
-      const pageCount = book.pageCount || '';
-
-      return `
-        <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
-             data-title="${escapeAttr(title)}"
-             data-author="${escapeAttr(author)}"
-             data-cover="${escapeAttr(cover)}"
-             data-publisher="${escapeAttr(publisher)}"
-             data-published="${escapeAttr(publishedDate)}"
-             data-isbn="${escapeAttr(book.industryIdentifiers?.[0]?.identifier || '')}">
-          ${cover
-            ? `<img src="${cover}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0">`
-            : `<div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>`
-          }
-          <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-900 truncate">${escapeHtml(title)}</p>
-            <p class="text-sm text-gray-500 truncate">${escapeHtml(author)}</p>
-            <p class="text-xs text-gray-400 truncate">
-              ${[publisher, publishedDate, pageCount ? `${pageCount} pages` : ''].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    initIcons();
-
-    // Use event delegation for search results
-    searchResultsDiv.onclick = (e) => {
-      const result = e.target.closest('.search-result');
-      if (result) selectSearchResult(result);
-    };
-
   } catch (error) {
-    console.error('Search error:', error);
-    searchResultsDiv.innerHTML = '<p class="text-sm text-red-500">Search failed</p>';
+    console.warn('Google Books API failed:', error.message);
   }
+
+  // Fallback to Open Library if Google Books failed or returned no results
+  if (books.length === 0) {
+    try {
+      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.docs?.length > 0) {
+          books = data.docs.map(doc => ({
+            title: doc.title || 'Unknown Title',
+            author: doc.author_name?.join(', ') || 'Unknown Author',
+            cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '',
+            publisher: doc.publisher?.[0] || '',
+            publishedDate: doc.first_publish_year?.toString() || '',
+            pageCount: doc.number_of_pages_median || '',
+            isbn: doc.isbn?.[0] || ''
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Open Library API failed:', error.message);
+    }
+  }
+
+  if (books.length === 0) {
+    searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">No books found</p>';
+    return;
+  }
+
+  searchResultsDiv.innerHTML = books.map(book => `
+    <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
+         data-title="${escapeAttr(book.title)}"
+         data-author="${escapeAttr(book.author)}"
+         data-cover="${escapeAttr(book.cover)}"
+         data-publisher="${escapeAttr(book.publisher)}"
+         data-published="${escapeAttr(book.publishedDate)}"
+         data-isbn="${escapeAttr(book.isbn)}">
+      ${book.cover
+        ? `<img src="${book.cover}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0">`
+        : `<div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>`
+      }
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</p>
+        <p class="text-sm text-gray-500 truncate">${escapeHtml(book.author)}</p>
+        <p class="text-xs text-gray-400 truncate">
+          ${[book.publisher, book.publishedDate, book.pageCount ? `${book.pageCount} pages` : ''].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    </div>
+  `).join('');
+
+  initIcons();
+
+  // Use event delegation for search results
+  searchResultsDiv.onclick = (e) => {
+    const result = e.target.closest('.search-result');
+    if (result) selectSearchResult(result);
+  };
 }
 
 function selectSearchResult(el) {
