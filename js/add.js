@@ -170,6 +170,32 @@ function showStatus(message, type) {
 scanBtn.addEventListener('click', openScanner);
 closeScannerBtn.addEventListener('click', closeScanner);
 
+// Photo-based scanning (iOS fallback)
+const photoInput = document.getElementById('photo-input');
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  showToast('Scanning image...');
+
+  try {
+    const html5QrCode = new Html5Qrcode("scanner-container");
+    const result = await html5QrCode.scanFile(file, true);
+
+    if (result) {
+      isbnInput.value = result;
+      showToast('Barcode found: ' + result);
+      lookupISBN();
+    }
+  } catch (err) {
+    console.error('Photo scan error:', err);
+    showToast('No barcode found in image. Try again with better lighting.');
+  }
+
+  // Reset input so same file can be selected again
+  photoInput.value = '';
+});
+
 async function openScanner() {
   // Check if HTTPS (required for camera)
   if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {

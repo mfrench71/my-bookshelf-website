@@ -31,12 +31,19 @@
   </header>
 
   <main class="max-w-2xl mx-auto px-4 py-6">
-    <!-- Scan Button -->
-    <button id="scan-btn"
-      class="w-full flex items-center justify-center gap-3 py-4 px-4 bg-primary text-white rounded-xl mb-6 hover:bg-primary-dark transition-colors">
-      <i data-lucide="scan-line" class="w-6 h-6"></i>
-      <span class="font-medium">Scan ISBN Barcode</span>
-    </button>
+    <!-- Scan Buttons -->
+    <div class="flex gap-3 mb-6">
+      <button id="scan-btn"
+        class="flex-1 flex items-center justify-center gap-2 py-4 px-4 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors">
+        <i data-lucide="scan-line" class="w-5 h-5"></i>
+        <span class="font-medium">Live Scan</span>
+      </button>
+      <label class="flex-1 flex items-center justify-center gap-2 py-4 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer">
+        <i data-lucide="camera" class="w-5 h-5"></i>
+        <span class="font-medium">Take Photo</span>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
+      </label>
+    </div>
 
     <div class="relative mb-6">
       <div class="absolute inset-0 flex items-center">
