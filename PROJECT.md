@@ -50,13 +50,13 @@ MyBookShelf/
 - **Firestore**: User-scoped book collections at `/users/{userId}/books`
 
 ### Minimizing Firebase Usage/Costs
-- [ ] Implement local caching with IndexedDB (cache books locally, sync on changes)
+- [x] Implement local caching with localStorage (5-min TTL, per-user cache)
 - [x] Use Firestore offline persistence (built-in caching) - Enabled in firebase-config.js
 - [ ] Batch writes (combine multiple updates into single transaction)
-- [ ] Pagination with cursor-based queries (limit fetched docs)
+- [x] Pagination with cursor-based queries (limit/startAfter, 20 books per page)
 - [ ] Lazy load book details (only fetch full data when viewing)
-- [ ] Debounce real-time listeners (reduce snapshot frequency)
-- [ ] Consider moving to on-demand fetching vs real-time for lists
+- [x] Replaced real-time listeners with on-demand fetching (getDocs instead of onSnapshot)
+- [x] Manual refresh button instead of automatic sync
 - [ ] Compress stored data (shorter field names, remove unused fields)
 - [ ] Monitor usage in Firebase Console and set billing alerts
 

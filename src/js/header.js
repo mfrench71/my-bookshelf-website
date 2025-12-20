@@ -13,6 +13,9 @@ import { bookCard } from './book-card.js';
 // Initialize icons once on load
 initIcons();
 
+// Constants
+const CACHE_KEY = 'mybookshelf_books_cache';
+
 // State
 let currentUser = null;
 let books = [];
@@ -42,13 +45,43 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Load books for search (lightweight - just for search overlay)
+// Get cached books (shared with books.js)
+function getCachedBooks() {
+  try {
+    const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
+    if (!cached) return null;
+    const { books: cachedBooks } = JSON.parse(cached);
+    return cachedBooks || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Load books for search - uses cache first, falls back to Firebase
 async function loadBooksForSearch() {
+  // Try cache first
+  const cached = getCachedBooks();
+  if (cached && cached.length > 0) {
+    books = cached;
+    console.log('Search using cached books:', books.length);
+    return;
+  }
+
+  // Fallback to Firebase if no cache
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    books = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toMillis?.() || data.createdAt?.seconds * 1000 || null,
+        updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt?.seconds * 1000 || null
+      };
+    });
+    console.log('Search fetched from Firebase:', books.length);
   } catch (error) {
     console.error('Error loading books for search:', error);
   }
