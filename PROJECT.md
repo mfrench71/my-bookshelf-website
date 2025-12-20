@@ -66,8 +66,8 @@ MyBookShelf/
   - Cover images: Cache-first with background refresh (200 image limit)
   - API responses: Network-first with 15-min TTL cache fallback
   - Firebase requests: Skipped (Firestore handles its own caching)
-- **Firestore Offline**: `enableIndexedDbPersistence()` enabled in firebase-config.js
-- **Cover Image Sources**: books.google.com, covers.openlibrary.org, images-amazon.com
+- **Firestore Offline**: `persistentLocalCache()` enabled in firebase-config.js
+- **Cover Image Sources**: books.google.com, covers.openlibrary.org
 - **API Caching**: Google Books and Open Library responses cached with timestamp-based TTL
 
 ## Development Progress

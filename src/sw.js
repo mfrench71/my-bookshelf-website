@@ -88,8 +88,7 @@ self.addEventListener('fetch', (event) => {
 function isCoverImage(url) {
   return (
     url.hostname.includes('books.google.com') ||
-    url.hostname.includes('covers.openlibrary.org') ||
-    url.hostname.includes('images-amazon.com')
+    url.hostname.includes('covers.openlibrary.org')
   );
 }
 
