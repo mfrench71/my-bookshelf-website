@@ -186,15 +186,16 @@ async function openScanner() {
     await html5QrCode.start(
       { facingMode: "environment" },
       {
-        fps: 10,
-        qrbox: { width: 250, height: 150 },
-        aspectRatio: 1.0,
-        formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
+        fps: 15,
+        qrbox: { width: 300, height: 150 },
+        aspectRatio: 1.5
       },
       (decodedText) => {
-        // Success
+        // Success - vibrate if supported
+        if (navigator.vibrate) navigator.vibrate(100);
         closeScanner();
         isbnInput.value = decodedText;
+        showToast('Barcode scanned: ' + decodedText);
         lookupISBN();
       },
       () => {
