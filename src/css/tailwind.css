@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Custom Styles for MyBookShelf */
 
 /* Hide scrollbar but allow scrolling */
@@ -218,11 +222,6 @@
   #toast {
     bottom: calc(5rem + env(safe-area-inset-bottom));
   }
-}
-
-/* Dark mode support (optional) */
-@media (prefers-color-scheme: dark) {
-  /* Can add dark mode styles here if needed */
 }
 
 /* Prevent pull-to-refresh on iOS */

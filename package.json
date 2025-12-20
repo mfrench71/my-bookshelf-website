@@ -1,0 +1,33 @@
+{
+  "name": "my-bookshelf-website",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/css/tailwind.css -o ./_site/css/styles.css --minify",
+    "build:11ty": "npx eleventy",
+    "build": "npm run build:11ty && npm run build:css",
+    "watch:css": "npx tailwindcss -i ./src/css/tailwind.css -o ./_site/css/styles.css --watch",
+    "watch:11ty": "npx eleventy --serve",
+    "start": "npm run build:css && npm run watch:11ty"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mfrench71/my-bookshelf-website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mfrench71/my-bookshelf-website/issues"
+  },
+  "homepage": "https://github.com/mfrench71/my-bookshelf-website#readme",
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "@tailwindcss/cli": "^4.1.18",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  }
+}

@@ -333,7 +333,7 @@ bookForm.addEventListener('submit', async (e) => {
     await addDoc(booksRef, bookData);
     showToast('Book added!');
     setTimeout(() => {
-      window.location.href = '/books.html';
+      window.location.href = '/books/';
     }, 1000);
   } catch (error) {
     console.error('Error adding book:', error);

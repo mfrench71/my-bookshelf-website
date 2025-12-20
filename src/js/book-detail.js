@@ -23,7 +23,7 @@ const urlParams = new URLSearchParams(window.location.search);
 bookId = urlParams.get('id');
 
 if (!bookId) {
-  window.location.href = '/books.html';
+  window.location.href = '/books/';
 }
 
 // DOM Elements

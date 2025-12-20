@@ -13,7 +13,7 @@ lucide.createIcons();
 // Check auth state - redirect if already logged in
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    window.location.href = '/books.html';
+    window.location.href = '/books/';
   }
 });
 
