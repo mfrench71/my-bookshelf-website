@@ -1,8 +1,12 @@
 # Netlify Configuration
 
 [build]
-  command = "npm run build"
+  command = "npm test && npm run build"
   publish = "_site"
+
+# Environment variables for build
+[build.environment]
+  NODE_VERSION = "20"
 
 # Headers for caching and security
 [[headers]]

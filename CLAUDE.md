@@ -109,6 +109,11 @@ All tests must pass before deploying:
 npm test && npm run build
 ```
 
+### CI/CD
+- **GitHub Actions**: Runs on push/PR to main (`.github/workflows/ci.yml`)
+- **Netlify**: Build command includes tests (`npm test && npm run build`)
+- Deployment will fail if any tests fail
+
 ## Firebase Project
 
 - Project ID: `book-tracker-b786e`
