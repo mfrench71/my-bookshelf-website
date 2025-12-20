@@ -13,7 +13,7 @@ lucide.createIcons();
 // State
 let currentUser = null;
 let currentRating = 0;
-let html5QrCode = null;
+let scannerRunning = false;
 
 // DOM Elements
 const scanBtn = document.getElementById('scan-btn');
@@ -166,7 +166,7 @@ function showStatus(message, type) {
   );
 }
 
-// Barcode Scanner using html5-qrcode with iOS-optimized settings
+// Barcode Scanner using Quagga2 - optimized for iOS
 scanBtn.addEventListener('click', openScanner);
 closeScannerBtn.addEventListener('click', closeScanner);
 
@@ -181,69 +181,87 @@ async function openScanner() {
   lucide.createIcons();
 
   try {
-    // Initialize html5-qrcode with iOS-friendly settings
-    html5QrCode = new Html5Qrcode('scanner-container', {
-      verbose: false,
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: false // Disable native API for consistency
-      }
-    });
-
-    const config = {
-      fps: 10,
-      qrbox: { width: 280, height: 150 },
-      aspectRatio: 1.777778,
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128
-      ],
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: false
-      }
-    };
-
-    await html5QrCode.start(
-      { facingMode: 'environment' },
-      config,
-      (decodedText) => {
-        // Success callback
-        if (navigator.vibrate) navigator.vibrate(100);
-        closeScanner();
-        isbnInput.value = decodedText;
-        showToast('Scanned: ' + decodedText);
-        lookupISBN();
-      },
-      () => {
-        // Ignore scan failures (no code found in frame)
-      }
-    );
+    await startQuagga();
   } catch (err) {
     console.error('Scanner error:', err);
     closeScanner();
 
-    if (err.name === 'NotAllowedError' || err.includes?.('NotAllowedError')) {
+    if (err.name === 'NotAllowedError') {
       showToast('Camera permission denied. Allow camera access.');
-    } else if (err.name === 'NotFoundError' || err.includes?.('NotFoundError')) {
+    } else if (err.name === 'NotFoundError') {
       showToast('No camera found.');
     } else {
-      showToast('Scanner error. Try entering ISBN manually.');
+      showToast('Scanner error: ' + (err.message || 'Unknown error'));
     }
   }
 }
 
-async function closeScanner() {
+function startQuagga() {
+  return new Promise((resolve, reject) => {
+    Quagga.init({
+      inputStream: {
+        name: 'Live',
+        type: 'LiveStream',
+        target: scannerContainer,
+        constraints: {
+          facingMode: 'environment',
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 }
+        }
+      },
+      locator: {
+        patchSize: 'medium',
+        halfSample: true
+      },
+      numOfWorkers: navigator.hardwareConcurrency || 4,
+      frequency: 10,
+      decoder: {
+        readers: [
+          'ean_reader',
+          'ean_8_reader',
+          'upc_reader',
+          'upc_e_reader'
+        ]
+      },
+      locate: true
+    }, function(err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      Quagga.start();
+      scannerRunning = true;
+      resolve();
+    });
+
+    Quagga.onDetected(function(result) {
+      if (result && result.codeResult && result.codeResult.code) {
+        const code = result.codeResult.code;
+
+        // Vibrate on detection
+        if (navigator.vibrate) navigator.vibrate(100);
+
+        closeScanner();
+        isbnInput.value = code;
+        showToast('Scanned: ' + code);
+        lookupISBN();
+      }
+    });
+  });
+}
+
+function closeScanner() {
   scannerModal.classList.add('hidden');
 
-  if (html5QrCode) {
+  if (scannerRunning) {
     try {
-      await html5QrCode.stop();
+      Quagga.stop();
+      Quagga.offDetected();
     } catch (e) {
       // Ignore stop errors
     }
-    html5QrCode = null;
+    scannerRunning = false;
   }
 
   scannerContainer.innerHTML = '';
