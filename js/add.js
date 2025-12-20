@@ -204,16 +204,14 @@ function startQuagga() {
         type: 'LiveStream',
         target: scannerContainer,
         constraints: {
-          facingMode: 'environment',
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 }
+          facingMode: 'environment'
         }
       },
       locator: {
         patchSize: 'medium',
         halfSample: true
       },
-      numOfWorkers: navigator.hardwareConcurrency || 4,
+      numOfWorkers: 0, // Disable workers for iOS compatibility
       frequency: 10,
       decoder: {
         readers: [
