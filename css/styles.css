@@ -1,0 +1,240 @@
+/* Custom Styles for MyBookShelf */
+
+/* Hide scrollbar but allow scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Filter Chips */
+.filter-chip {
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  color: #4b5563;
+  transition: all 0.15s;
+}
+
+.filter-chip:hover {
+  background-color: #f3f4f6;
+}
+
+.filter-chip.active {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+/* Book Card */
+.book-card {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.book-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.book-card:active {
+  transform: scale(0.99);
+}
+
+.book-cover {
+  width: 60px;
+  height: 90px;
+  border-radius: 0.375rem;
+  object-fit: cover;
+  background-color: #f3f4f6;
+  flex-shrink: 0;
+}
+
+.book-cover-placeholder {
+  width: 60px;
+  height: 90px;
+  border-radius: 0.375rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.book-cover-placeholder svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+/* Star Rating */
+.star-btn {
+  padding: 0.25rem;
+  color: #d1d5db;
+  transition: color 0.15s;
+}
+
+.star-btn:hover,
+.star-btn.active {
+  color: #fbbf24;
+}
+
+.star-btn.active svg {
+  fill: #fbbf24;
+}
+
+/* Status Badge */
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+.status-badge.wantToRead {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge.reading {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.status-badge.finished {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+/* Rating Stars Display */
+.rating-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-stars svg {
+  width: 14px;
+  height: 14px;
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.rating-stars svg.empty {
+  color: #d1d5db;
+  fill: none;
+}
+
+/* Modal Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#add-book-modal > div,
+#menu-modal > div,
+#book-detail-modal > div {
+  animation: slideUp 0.2s ease-out;
+}
+
+#add-book-modal,
+#menu-modal,
+#book-detail-modal {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Scanner Overlay */
+#scanner-container {
+  position: relative;
+}
+
+#scanner-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Toast Animation */
+@keyframes toastIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+#toast:not(.hidden) {
+  animation: toastIn 0.2s ease-out;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Safe area padding for PWA */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #add-book-fab {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  #toast {
+    bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  /* Can add dark mode styles here if needed */
+}
+
+/* Prevent pull-to-refresh on iOS */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+/* Better touch handling */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  touch-action: manipulation;
+}
