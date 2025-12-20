@@ -7,6 +7,8 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
+import { GenrePicker } from './genre-picker.js';
+import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
@@ -17,6 +19,8 @@ let currentRating = 0;
 let scannerRunning = false;
 let formDirty = false;
 let fetchedBookData = {};
+let genrePicker = null;
+let apiGenreSuggestions = [];
 
 // DOM Elements
 const scanBtn = document.getElementById('scan-btn');
@@ -38,13 +42,53 @@ const coverImg = document.getElementById('cover-img');
 const notesInput = document.getElementById('notes');
 const submitBtn = document.getElementById('submit-btn');
 const starBtns = document.querySelectorAll('.star-btn');
+const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
+    initGenrePicker();
   }
 });
+
+// Initialize Genre Picker
+async function initGenrePicker() {
+  if (genrePicker) return;
+
+  genrePicker = new GenrePicker({
+    container: genrePickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      formDirty = true;
+    }
+  });
+
+  await genrePicker.init();
+}
+
+// Update genre suggestions from API responses
+function updateGenreSuggestions(genres) {
+  console.log('API returned genres:', genres);
+  if (!genres || !genres.length) return;
+
+  // Add new suggestions, avoiding duplicates
+  genres.forEach(genre => {
+    if (!apiGenreSuggestions.includes(genre)) {
+      apiGenreSuggestions.push(genre);
+    }
+  });
+
+  console.log('All API suggestions:', apiGenreSuggestions);
+
+  // Update picker with suggestions
+  if (genrePicker) {
+    genrePicker.setSuggestions(apiGenreSuggestions);
+    console.log('Suggestions set on picker');
+  } else {
+    console.log('Genre picker not ready yet');
+  }
+}
 
 // Rating Stars
 starBtns.forEach(btn => {
@@ -128,13 +172,18 @@ async function fetchBookByISBN(isbn) {
 
     if (data.items?.length > 0) {
       const book = data.items[0].volumeInfo;
+      // Extract genres from categories
+      const genres = book.categories || [];
+      updateGenreSuggestions(genres);
+
       return {
         title: book.title,
         author: book.authors?.join(', ') || '',
         coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
         publisher: book.publisher || '',
         publishedDate: book.publishedDate || '',
-        physicalFormat: ''
+        physicalFormat: '',
+        genres
       };
     }
   } catch (e) {
@@ -148,13 +197,18 @@ async function fetchBookByISBN(isbn) {
     const book = data[`ISBN:${isbn}`];
 
     if (book) {
+      // Extract genres from subjects
+      const genres = book.subjects?.map(s => s.name || s) || [];
+      updateGenreSuggestions(genres.slice(0, 5)); // Limit to top 5
+
       return {
         title: book.title,
         author: book.authors?.map(a => a.name).join(', ') || '',
         coverImageUrl: book.cover?.medium || '',
         publisher: book.publishers?.[0]?.name || '',
         publishedDate: book.publish_date || '',
-        physicalFormat: book.physical_format || ''
+        physicalFormat: book.physical_format || '',
+        genres
       };
     }
   } catch (e) {
@@ -257,7 +311,8 @@ async function fetchSearchResults() {
               publisher: book.publisher || '',
               publishedDate: book.publishedDate || '',
               pageCount: book.pageCount || '',
-              isbn: book.industryIdentifiers?.[0]?.identifier || ''
+              isbn: book.industryIdentifiers?.[0]?.identifier || '',
+              categories: book.categories || []
             };
           });
           hasMore = (startIndex + books.length) < searchState.totalItems;
@@ -290,7 +345,8 @@ async function fetchSearchResults() {
             publisher: doc.publisher?.[0] || '',
             publishedDate: doc.first_publish_year?.toString() || '',
             pageCount: doc.number_of_pages_median || '',
-            isbn: doc.isbn?.[0] || ''
+            isbn: doc.isbn?.[0] || '',
+            categories: doc.subject?.slice(0, 5) || []
           }));
           hasMore = (startIndex + books.length) < searchState.totalItems;
         }
@@ -333,7 +389,8 @@ function renderSearchResults(books, append = false) {
          data-cover="${escapeAttr(book.cover)}"
          data-publisher="${escapeAttr(book.publisher)}"
          data-published="${escapeAttr(book.publishedDate)}"
-         data-isbn="${escapeAttr(book.isbn)}">
+         data-isbn="${escapeAttr(book.isbn)}"
+         data-categories="${escapeAttr(JSON.stringify(book.categories || []))}">
       ${book.cover
         ? `<img src="${book.cover}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0">`
         : `<div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>`
@@ -381,7 +438,7 @@ function renderSearchResults(books, append = false) {
 }
 
 function selectSearchResult(el) {
-  const { title, author, cover, publisher, published, isbn } = el.dataset;
+  const { title, author, cover, publisher, published, isbn, categories } = el.dataset;
 
   titleInput.value = title;
   authorInput.value = author;
@@ -392,6 +449,18 @@ function selectSearchResult(el) {
   }
   if (isbn) {
     isbnInput.value = isbn;
+  }
+
+  // Extract and suggest genres from categories
+  if (categories) {
+    try {
+      const categoryList = JSON.parse(categories);
+      if (categoryList.length > 0) {
+        updateGenreSuggestions(categoryList);
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
   }
 
   fetchedBookData = {
@@ -560,6 +629,9 @@ bookForm.addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding...';
 
+  // Get selected genres from picker
+  const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
+
   const bookData = {
     title,
     author,
@@ -567,7 +639,7 @@ bookForm.addEventListener('submit', async (e) => {
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     isbn: isbnInput.value.trim().replace(/-/g, ''),
-    genres: [],
+    genres: selectedGenres,
     publisher: fetchedBookData.publisher || '',
     publishedDate: fetchedBookData.publishedDate || '',
     physicalFormat: fetchedBookData.physicalFormat || '',
@@ -578,10 +650,17 @@ bookForm.addEventListener('submit', async (e) => {
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     await addDoc(booksRef, bookData);
+
+    // Update genre book counts
+    if (selectedGenres.length > 0) {
+      await updateGenreBookCounts(currentUser.uid, selectedGenres, []);
+    }
+
     formDirty = false;
 
-    // Clear books cache so the new book appears on the list page
+    // Clear caches so the new book appears on the list page
     clearBooksCache(currentUser.uid);
+    clearGenresCache();
 
     showToast('Book added!', { type: 'success' });
     setTimeout(() => {

@@ -9,6 +9,8 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
+import { GenrePicker } from './genre-picker.js';
+import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
@@ -18,6 +20,10 @@ let currentUser = null;
 let bookId = null;
 let book = null;
 let currentRating = 0;
+let genrePicker = null;
+let originalGenres = [];
+let originalValues = {};
+let formDirty = false;
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -46,6 +52,7 @@ const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 const starBtns = document.querySelectorAll('.star-btn');
+const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just load book
 onAuthStateChanged(auth, (user) => {
@@ -54,6 +61,50 @@ onAuthStateChanged(auth, (user) => {
     loadBook();
   }
 });
+
+// Initialize Genre Picker
+async function initGenrePicker() {
+  if (genrePicker) return;
+
+  genrePicker = new GenrePicker({
+    container: genrePickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      formDirty = true;
+    }
+  });
+
+  await genrePicker.init();
+
+  // Set the book's existing genres
+  if (book && book.genres) {
+    originalGenres = [...book.genres];
+    genrePicker.setSelected(book.genres);
+  }
+
+  // Fetch genre suggestions from API if book has ISBN
+  if (book && book.isbn) {
+    fetchGenreSuggestions(book.isbn);
+  }
+}
+
+// Fetch genre suggestions from Google Books API
+async function fetchGenreSuggestions(isbn) {
+  try {
+    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const data = await response.json();
+
+    if (data.items?.length > 0) {
+      const categories = data.items[0].volumeInfo.categories || [];
+      if (categories.length > 0 && genrePicker) {
+        console.log('API genre suggestions for edit:', categories);
+        genrePicker.setSuggestions(categories);
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching genre suggestions:', e);
+  }
+}
 
 // Load Book
 async function loadBook() {
@@ -116,10 +167,23 @@ function renderBook() {
   currentRating = book.rating || 0;
   updateRatingStars();
 
+  // Store original values for dirty checking
+  originalValues = {
+    title: book.title || '',
+    author: book.author || '',
+    coverImageUrl: book.coverImageUrl || '',
+    notes: book.notes || '',
+    rating: book.rating || 0
+  };
+  formDirty = false;
+
   // Show content
   loading.classList.add('hidden');
   content.classList.remove('hidden');
   initIcons();
+
+  // Initialize genre picker after content is shown
+  initGenrePicker();
 }
 
 // Rating Stars
@@ -127,6 +191,7 @@ starBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     currentRating = parseInt(btn.dataset.rating);
     updateRatingStars();
+    formDirty = true;
   });
 });
 
@@ -141,12 +206,16 @@ editForm.addEventListener('submit', async (e) => {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
 
+  // Get selected genres from picker
+  const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
+
   const updates = {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
     coverImageUrl: coverUrlInput.value.trim(),
     rating: currentRating || null,
     notes: notesInput.value.trim(),
+    genres: selectedGenres,
     updatedAt: serverTimestamp()
   };
 
@@ -154,10 +223,23 @@ editForm.addEventListener('submit', async (e) => {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await updateDoc(bookRef, updates);
 
-    // Clear cache so changes appear on the list page
+    // Update genre book counts for changed genres
+    const addedGenres = selectedGenres.filter(g => !originalGenres.includes(g));
+    const removedGenres = originalGenres.filter(g => !selectedGenres.includes(g));
+
+    if (addedGenres.length > 0 || removedGenres.length > 0) {
+      await updateGenreBookCounts(currentUser.uid, addedGenres, removedGenres);
+      originalGenres = [...selectedGenres];
+    }
+
+    // Clear caches so changes appear on the list page
     clearBooksCache(currentUser.uid);
+    clearGenresCache();
 
     showToast('Changes saved!', { type: 'success' });
+
+    // Clear dirty state before re-render (renderBook will reset it)
+    formDirty = false;
 
     // Update local data and re-render
     book = { ...book, ...updates };
@@ -194,8 +276,15 @@ confirmDeleteBtn.addEventListener('click', async () => {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await deleteDoc(bookRef);
 
-    // Clear cache so the deleted book disappears from the list
+    // Decrement genre book counts for this book's genres
+    const bookGenres = book.genres || [];
+    if (bookGenres.length > 0) {
+      await updateGenreBookCounts(currentUser.uid, [], bookGenres);
+    }
+
+    // Clear caches so the deleted book disappears from the list
     clearBooksCache(currentUser.uid);
+    clearGenresCache();
 
     showToast('Book deleted', { type: 'success' });
     setTimeout(() => window.location.href = '/books/', 1000);
@@ -205,5 +294,20 @@ confirmDeleteBtn.addEventListener('click', async () => {
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = 'Delete';
     deleteModal.classList.add('hidden');
+  }
+});
+
+// Track unsaved changes on form inputs
+[titleInput, authorInput, coverUrlInput, notesInput].forEach(el => {
+  el.addEventListener('input', () => {
+    formDirty = true;
+  });
+});
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', (e) => {
+  if (formDirty) {
+    e.preventDefault();
+    e.returnValue = '';
   }
 });

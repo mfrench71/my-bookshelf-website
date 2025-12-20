@@ -12,6 +12,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache } from './utils.js';
 import { bookCard } from './book-card.js';
+import { loadUserGenres, createGenreLookup } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
@@ -30,6 +31,9 @@ let hasMoreFromFirebase = true;
 let isLoading = false;
 let forceServerFetch = false;
 let cachedFilteredBooks = null; // Cache for filtered/sorted results
+let genres = []; // All user genres
+let genreLookup = null; // Map of genreId -> genre object
+let genreFilter = ''; // Currently selected genre ID for filtering
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -37,16 +41,53 @@ const emptyState = document.getElementById('empty-state');
 const bookList = document.getElementById('book-list');
 const sortSelect = document.getElementById('sort-select');
 const ratingFilterSelect = document.getElementById('rating-filter');
+const genreFilterSelect = document.getElementById('genre-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
 const refreshBtn = document.getElementById('refresh-btn');
 
 // Auth State
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    loadBooks();
+    // Load genres and books in parallel
+    await Promise.all([
+      loadGenres(),
+      loadBooks()
+    ]);
   }
 });
+
+// Load user genres
+async function loadGenres() {
+  try {
+    genres = await loadUserGenres(currentUser.uid);
+    genreLookup = createGenreLookup(genres);
+    populateGenreFilter();
+  } catch (error) {
+    console.error('Error loading genres:', error);
+    genres = [];
+    genreLookup = new Map();
+  }
+}
+
+// Populate genre filter dropdown
+function populateGenreFilter() {
+  if (!genreFilterSelect) return;
+
+  // Keep the "All Genres" option
+  genreFilterSelect.innerHTML = '<option value="">All Genres</option>';
+
+  // Add options for each genre
+  genres.forEach(genre => {
+    const option = document.createElement('option');
+    option.value = genre.id;
+    option.textContent = genre.name;
+    if (genre.id === genreFilter) {
+      option.selected = true;
+    }
+    genreFilterSelect.appendChild(option);
+  });
+}
 
 // Cache functions
 function getCachedBooks() {
@@ -105,13 +146,13 @@ async function loadBooks(forceRefresh = false) {
   cachedFilteredBooks = null;
 
   // Try cache first (unless forcing refresh)
+  // Only use cache if it's complete (hasMore = false), otherwise fetch fresh
   if (!forceRefresh) {
     const cached = getCachedBooks();
-    if (cached && cached.books && cached.books.length > 0) {
+    if (cached && cached.books && cached.books.length > 0 && !cached.hasMore) {
       books = cached.books;
-      // When loading from cache, we don't have lastDoc, so reset pagination state
       lastDoc = null;
-      hasMoreFromFirebase = cached.hasMore;
+      hasMoreFromFirebase = false;
       loadingState.classList.add('hidden');
       renderBooks();
       return;
@@ -119,6 +160,7 @@ async function loadBooks(forceRefresh = false) {
   }
 
   // Fetch from Firebase
+  isLoading = true;
   loadingState.classList.remove('hidden');
   bookList.innerHTML = '';
 
@@ -128,9 +170,12 @@ async function loadBooks(forceRefresh = false) {
     hasMoreFromFirebase = true;
     forceServerFetch = forceRefresh; // Force server fetch on manual refresh
 
-    await fetchNextPage();
+    // Fetch all pages to get complete data
+    while (hasMoreFromFirebase) {
+      await fetchNextPage();
+    }
 
-    forceServerFetch = false; // Reset after initial fetch
+    forceServerFetch = false; // Reset after fetch
 
     loadingState.classList.add('hidden');
     renderBooks();
@@ -138,16 +183,16 @@ async function loadBooks(forceRefresh = false) {
     console.error('Error loading books:', error);
     loadingState.classList.add('hidden');
     showToast('Error loading books: ' + error.message, { type: 'error' });
+  } finally {
+    isLoading = false;
   }
 }
 
 // Fetch next page from Firebase
 async function fetchNextPage() {
-  if (!hasMoreFromFirebase || isLoading) {
+  if (!hasMoreFromFirebase) {
     return;
   }
-
-  isLoading = true;
   const [field, direction] = currentSort.split('-');
 
   try {
@@ -193,8 +238,6 @@ async function fetchNextPage() {
   } catch (error) {
     console.error('Error fetching page:', error);
     throw error;
-  } finally {
-    isLoading = false;
   }
 }
 
@@ -247,10 +290,17 @@ function filterByRating(booksArray, minRating) {
   return booksArray.filter(b => (b.rating || 0) >= minRating);
 }
 
+// Genre filter function
+function filterByGenre(booksArray, genreId) {
+  if (!genreId) return booksArray;
+  return booksArray.filter(b => b.genres && b.genres.includes(genreId));
+}
+
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   let filtered = filterByRating(books, ratingFilter);
+  filtered = filterByGenre(filtered, genreFilter);
   cachedFilteredBooks = sortBooks(filtered, currentSort);
   return cachedFilteredBooks;
 }
@@ -264,7 +314,7 @@ function invalidateFilteredCache() {
 function renderBooks() {
   const filtered = getFilteredBooks();
 
-  if (filtered.length === 0 && !hasMoreFromFirebase) {
+  if (filtered.length === 0) {
     emptyState.classList.remove('hidden');
     bookList.innerHTML = '';
     initIcons();
@@ -273,9 +323,9 @@ function renderBooks() {
 
   emptyState.classList.add('hidden');
   const visible = filtered.slice(0, displayLimit);
-  const hasMoreToDisplay = filtered.length > displayLimit || hasMoreFromFirebase;
+  const hasMoreToDisplay = filtered.length > displayLimit;
 
-  bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true })).join('');
+  bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup })).join('');
 
   if (hasMoreToDisplay) {
     bookList.innerHTML += `
@@ -290,20 +340,12 @@ function renderBooks() {
   initIcons();
 }
 
-// Load more - either from already loaded data or fetch from Firebase
-async function loadMore() {
+// Load more - display more of the already loaded books
+function loadMore() {
   const filtered = getFilteredBooks();
 
   // If we have more loaded data to display
   if (displayLimit < filtered.length) {
-    displayLimit += BOOKS_PER_PAGE;
-    renderBooks();
-    return;
-  }
-
-  // If we need to fetch more from Firebase
-  if (hasMoreFromFirebase && !isLoading) {
-    await fetchNextPage();
     displayLimit += BOOKS_PER_PAGE;
     renderBooks();
   }
@@ -316,7 +358,11 @@ async function refreshBooks() {
   try {
     clearCache();
     displayLimit = BOOKS_PER_PAGE;
-    await loadBooks(true);
+    // Reload both genres and books
+    await Promise.all([
+      loadGenres(),
+      loadBooks(true)
+    ]);
     showToast('Books refreshed');
   } finally {
     refreshBtn.classList.remove('animate-spin');
@@ -346,12 +392,23 @@ ratingFilterSelect.addEventListener('change', () => {
   renderBooks();
 });
 
+// Genre filter
+if (genreFilterSelect) {
+  genreFilterSelect.addEventListener('change', () => {
+    genreFilter = genreFilterSelect.value;
+    displayLimit = BOOKS_PER_PAGE;
+    invalidateFilteredCache(); // Re-filter with new genre
+    updateResetButton();
+    renderBooks();
+  });
+}
+
 // Refresh button
 refreshBtn.addEventListener('click', refreshBooks);
 
 // Show/hide reset button based on filter state
 function updateResetButton() {
-  const isDefault = currentSort === 'createdAt-desc' && ratingFilter === 0;
+  const isDefault = currentSort === 'createdAt-desc' && ratingFilter === 0 && genreFilter === '';
   resetFiltersBtn.classList.toggle('hidden', isDefault);
 }
 
@@ -361,8 +418,10 @@ resetFiltersBtn.addEventListener('click', async () => {
 
   currentSort = 'createdAt-desc';
   ratingFilter = 0;
+  genreFilter = '';
   sortSelect.value = 'createdAt-desc';
   ratingFilterSelect.value = '0';
+  if (genreFilterSelect) genreFilterSelect.value = '';
   displayLimit = BOOKS_PER_PAGE;
   invalidateFilteredCache(); // Re-filter with reset values
   updateResetButton();

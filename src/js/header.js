@@ -9,6 +9,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
 import { bookCard } from './book-card.js';
+import { loadUserGenres, createGenreLookup } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
@@ -18,6 +19,8 @@ let currentUser = null;
 let books = [];
 let allBooksLoaded = false;
 let isLoadingBooks = false;
+let genres = [];
+let genreLookup = null;
 
 // DOM Elements
 const menuBtn = document.getElementById('menu-btn');
@@ -32,7 +35,6 @@ const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
-const exportBtn = document.getElementById('export-btn');
 
 // Auth State
 onAuthStateChanged(auth, (user) => {
@@ -51,6 +53,16 @@ async function loadAllBooksForSearch() {
 
   isLoadingBooks = true;
 
+  // Load genres in parallel with books
+  const genresPromise = loadUserGenres(currentUser.uid).then(g => {
+    genres = g;
+    genreLookup = createGenreLookup(genres);
+  }).catch(e => {
+    console.error('Error loading genres for search:', e);
+    genres = [];
+    genreLookup = new Map();
+  });
+
   // Try cache first (check if it has all books via hasMore flag)
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
@@ -68,6 +80,7 @@ async function loadAllBooksForSearch() {
         }));
         if (!hasMore) {
           // Cache has all books
+          await genresPromise; // Wait for genres before returning
           allBooksLoaded = true;
           isLoadingBooks = false;
           return;
@@ -95,6 +108,7 @@ async function loadAllBooksForSearch() {
         _normalizedAuthor: normalizeText(data.author)
       };
     });
+    await genresPromise; // Wait for genres
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books for search:', error);
@@ -154,7 +168,7 @@ function performSearch(queryText) {
   );
 
   let html = results.length
-    ? results.map(book => bookCard(book, { showDate: true })).join('')
+    ? results.map(book => bookCard(book, { showDate: true, genreLookup })).join('')
     : '<p class="text-gray-500 text-center">No books found</p>';
 
   // Show loading indicator if still loading more books
@@ -226,36 +240,3 @@ function closeSearch() {
   if (clearSearchInputBtn) clearSearchInputBtn.classList.add('hidden');
 }
 
-// Export
-if (exportBtn) {
-  exportBtn.addEventListener('click', async () => {
-    closeMenu();
-    await exportBooks();
-  });
-}
-
-async function exportBooks() {
-  // Load all books if not already loaded
-  if (!allBooksLoaded) {
-    showToast('Loading books...');
-    await loadAllBooksForSearch();
-  }
-
-  if (books.length === 0) {
-    showToast('No books to export', { type: 'error' });
-    return;
-  }
-
-  const data = books.map(({ id, ...book }) => book);
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `mybookshelf-export-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-
-  URL.revokeObjectURL(url);
-  showToast('Books exported!');
-}

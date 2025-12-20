@@ -62,6 +62,39 @@ export function normalizeText(text) {
 }
 
 /**
+ * Normalize genre name for duplicate checking
+ * Lowercase, trim, collapse multiple spaces
+ */
+export function normalizeGenreName(name) {
+  return (name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Get contrasting text color (black or white) for a given background hex color
+ * Uses relative luminance formula for accessibility
+ */
+export function getContrastColor(hex) {
+  if (!hex || typeof hex !== 'string') return '#000000';
+
+  // Remove # if present
+  hex = hex.replace('#', '');
+
+  // Parse RGB values
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+  // Calculate relative luminance using sRGB formula
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+  // Return white for dark backgrounds, black for light
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
+/**
  * Debounce function calls
  */
 export function debounce(fn, delay) {

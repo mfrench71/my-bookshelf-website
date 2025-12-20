@@ -51,13 +51,17 @@ src/
 ├── books.njk             # Book list with sort/filter controls
 ├── add.njk               # Add book form with barcode scanner
 ├── book.njk              # Book detail/edit page
+├── settings.njk          # Settings page (genres, export)
 ├── js/
 │   ├── firebase-config.js  # Firebase initialization (exported: app, auth, db)
-│   ├── header.js           # Common header logic (auth, menu, search, export)
+│   ├── header.js           # Common header logic (auth, menu, search)
 │   ├── auth.js             # Login/register page logic
 │   ├── books.js            # Book list rendering, sorting, filtering
 │   ├── add.js              # Add book form, ISBN lookup, barcode scanner
-│   └── book-detail.js      # Book detail view and edit
+│   ├── book-detail.js      # Book detail view and edit
+│   ├── genres.js           # Genre CRUD operations and utilities
+│   ├── genre-picker.js     # Reusable genre picker component
+│   └── settings.js         # Settings page logic (genres, export)
 ├── css/tailwind.css      # Tailwind v4 with custom theme
 └── sw.js                 # Service worker for PWA
 ```
@@ -88,8 +92,10 @@ This project uses Tailwind v4 which has different syntax:
 ## Shared Modules
 
 Common utilities are consolidated in shared modules:
-- `utils.js` - escapeHtml, escapeAttr, normalizeText, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons
-- `book-card.js` - bookCard component for rendering book list items
+- `utils.js` - escapeHtml, escapeAttr, normalizeText, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor
+- `book-card.js` - bookCard component for rendering book list items with genre badges
+- `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, GENRE_COLORS, getUsedColors, getAvailableColors
+- `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead and suggestions
 
 Toast notifications support types: `showToast('message', { type: 'success' | 'error' | 'info' })`
 
@@ -105,6 +111,8 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `book-card.test.js` - Tests for book card component
 - `books.test.js` - Tests for sorting and filtering logic
 - `add.test.js` - Integration tests for book search and API interactions
+- `genres.test.js` - Tests for genre CRUD operations and utilities
+- `header.test.js` - Tests for header menu and search functionality
 
 ### Pre-Deployment
 All tests must pass before deploying:

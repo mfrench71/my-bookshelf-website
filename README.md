@@ -9,8 +9,10 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - Infinite scroll for search results
 - Track your personal book library
 - Rate and add notes to books
-- Sort and filter your collection
-- Export your library as JSON
+- Sort and filter your collection (by date, title, author, rating, genre)
+- Genre management with color-coded badges and API suggestions
+- Settings page for managing genres and exporting data
+- Export your library as JSON backup
 - Works offline (PWA with comprehensive caching)
 - Firestore offline persistence for reduced API calls
 
@@ -22,7 +24,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (106 tests)
+- **Testing**: Vitest with jsdom (241 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
@@ -81,9 +83,12 @@ src/
 │   ├── utils.js      # Shared utilities
 │   ├── book-card.js  # Book card component
 │   ├── header.js     # Common header logic
+│   ├── genres.js     # Genre CRUD and utilities
+│   ├── genre-picker.js # Genre picker component
+│   ├── settings.js   # Settings page logic
 │   └── ...           # Page-specific scripts
 ├── css/              # Tailwind CSS source
-└── *.njk             # Page templates
+└── *.njk             # Page templates (index, books, add, book, settings)
 ```
 
 ## Deployment

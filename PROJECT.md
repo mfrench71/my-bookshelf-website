@@ -24,6 +24,7 @@ MyBookShelf/
 │   ├── books.njk             # Book list (main view)
 │   ├── add.njk               # Add new book
 │   ├── book.njk              # Book detail/edit
+│   ├── settings.njk          # Settings page (genres, export)
 │   ├── css/tailwind.css      # Tailwind v4 config
 │   ├── js/
 │   │   ├── firebase-config.js  # Firebase init + offline persistence
@@ -33,7 +34,10 @@ MyBookShelf/
 │   │   ├── add.js              # Add book logic + barcode scanner
 │   │   ├── book-detail.js      # Detail/edit logic
 │   │   ├── utils.js            # Shared utilities
-│   │   └── book-card.js        # Book card component
+│   │   ├── book-card.js        # Book card component
+│   │   ├── genres.js           # Genre CRUD and utilities
+│   │   ├── genre-picker.js     # Genre picker component
+│   │   └── settings.js         # Settings page logic
 │   └── sw.js                   # Service worker (v4)
 ├── tests/                # Vitest test files
 ├── _site/                # Built output (11ty)
@@ -84,12 +88,15 @@ MyBookShelf/
 - [x] PWA manifest and icons
 - [x] Service worker v4 (comprehensive caching)
 - [x] Netlify deployment with CI/CD
-- [x] Comprehensive test suite (106 tests)
+- [x] Comprehensive test suite (241 tests)
 - [x] Open Library fallback for book search
 - [x] Infinite scroll for search results
+- [x] Genre management system with color-coded badges
+- [x] Settings page with left-hand navigation
+- [x] Export books as JSON backup
 
 ### In Progress
-- Enhancing book list with additional filters
+- None currently
 
 ## Future Development Ideas
 
@@ -101,8 +108,8 @@ MyBookShelf/
 - [x] Open Library fallback when Google Books API fails
 - [x] Firestore offline persistence for reduced API calls
 - [x] Service worker caching (static assets, cover images, API responses)
+- [x] Filter by genre
 - [ ] Check for duplicate book when adding (by ISBN or title/author match)
-- [ ] Filter by genre
 - [ ] Offline support (cached books)
 - [ ] Pull-to-refresh on mobile
 
@@ -111,7 +118,8 @@ MyBookShelf/
 - [ ] Book notes/reviews
 - [ ] Reading dates (start/finish)
 - [ ] Custom cover image upload
-- [ ] Export to CSV/JSON
+- [x] Export to JSON
+- [ ] Export to CSV
 - [ ] Import from Goodreads
 
 ### Nice to Have
@@ -133,13 +141,13 @@ MyBookShelf/
 - [ ] Bulk import from file (JSON/CSV upload)
 
 ### Genre Management
-- [ ] Genre CRUD (create, read, update, delete custom genres)
-- [ ] Manage genres page/modal
-- [ ] Assign multiple genres per book
-- [ ] Filter books by genre
-- [ ] Genre auto-suggestions from API data
+- [x] Genre CRUD (create, read, update, delete custom genres)
+- [x] Manage genres page (in Settings)
+- [x] Assign multiple genres per book
+- [x] Filter books by genre
+- [x] Genre auto-suggestions from API data (Google Books categories)
+- [x] Genre color coding (64-color palette, unique per genre)
 - [ ] Merge duplicate genres
-- [ ] Genre color coding/icons
 
 ### User Profile & Settings
 - [ ] User profile page/modal

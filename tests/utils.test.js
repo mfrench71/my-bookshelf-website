@@ -7,6 +7,8 @@ import {
   escapeHtml,
   escapeAttr,
   normalizeText,
+  normalizeGenreName,
+  getContrastColor,
   debounce,
   parseTimestamp,
   formatDate,
@@ -91,6 +93,60 @@ describe('normalizeText', () => {
 
   it('should handle combined normalization', () => {
     expect(normalizeText("HARRY'S CAFÉ")).toBe("harry's cafe");
+  });
+});
+
+describe('normalizeGenreName', () => {
+  it('should return empty string for null/undefined', () => {
+    expect(normalizeGenreName(null)).toBe('');
+    expect(normalizeGenreName(undefined)).toBe('');
+    expect(normalizeGenreName('')).toBe('');
+  });
+
+  it('should convert to lowercase', () => {
+    expect(normalizeGenreName('Science Fiction')).toBe('science fiction');
+    expect(normalizeGenreName('MYSTERY')).toBe('mystery');
+  });
+
+  it('should trim whitespace', () => {
+    expect(normalizeGenreName('  Fantasy  ')).toBe('fantasy');
+    expect(normalizeGenreName('\tRomance\n')).toBe('romance');
+  });
+
+  it('should collapse multiple spaces', () => {
+    expect(normalizeGenreName('Science   Fiction')).toBe('science fiction');
+    expect(normalizeGenreName('Young  Adult   Fiction')).toBe('young adult fiction');
+  });
+
+  it('should handle combined normalization', () => {
+    expect(normalizeGenreName('  Science   Fiction  ')).toBe('science fiction');
+  });
+});
+
+describe('getContrastColor', () => {
+  it('should return black for null/undefined/invalid input', () => {
+    expect(getContrastColor(null)).toBe('#000000');
+    expect(getContrastColor(undefined)).toBe('#000000');
+    expect(getContrastColor('')).toBe('#000000');
+    expect(getContrastColor(123)).toBe('#000000');
+  });
+
+  it('should return white for dark backgrounds', () => {
+    expect(getContrastColor('#000000')).toBe('#ffffff');
+    expect(getContrastColor('#333333')).toBe('#ffffff');
+    expect(getContrastColor('#3b82f6')).toBe('#ffffff'); // blue
+    expect(getContrastColor('#ef4444')).toBe('#ffffff'); // red
+  });
+
+  it('should return black for light backgrounds', () => {
+    expect(getContrastColor('#ffffff')).toBe('#000000');
+    expect(getContrastColor('#f3f4f6')).toBe('#000000');
+    expect(getContrastColor('#fbbf24')).toBe('#000000'); // amber
+  });
+
+  it('should handle hex without # prefix', () => {
+    expect(getContrastColor('000000')).toBe('#ffffff');
+    expect(getContrastColor('ffffff')).toBe('#000000');
   });
 });
 
