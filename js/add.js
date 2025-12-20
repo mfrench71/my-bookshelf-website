@@ -170,33 +170,49 @@ function showStatus(message, type) {
 scanBtn.addEventListener('click', openScanner);
 closeScannerBtn.addEventListener('click', closeScanner);
 
-function openScanner() {
+async function openScanner() {
+  // Check if HTTPS (required for camera)
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    showToast('Camera requires HTTPS. Use the deployed site.');
+    return;
+  }
+
   scannerModal.classList.remove('hidden');
   lucide.createIcons();
 
-  html5QrCode = new Html5Qrcode("scanner-container");
+  try {
+    html5QrCode = new Html5Qrcode("scanner-container");
 
-  html5QrCode.start(
-    { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: { width: 250, height: 150 },
-      aspectRatio: 1.0
-    },
-    (decodedText) => {
-      // Success
-      closeScanner();
-      isbnInput.value = decodedText;
-      lookupISBN();
-    },
-    () => {
-      // Ignore scan errors
-    }
-  ).catch((err) => {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 150 },
+        aspectRatio: 1.0,
+        formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
+      },
+      (decodedText) => {
+        // Success
+        closeScanner();
+        isbnInput.value = decodedText;
+        lookupISBN();
+      },
+      () => {
+        // Ignore scan errors (continuous scanning)
+      }
+    );
+  } catch (err) {
     console.error('Scanner error:', err);
     closeScanner();
-    showToast('Could not access camera. Check permissions.');
-  });
+
+    if (err.toString().includes('NotAllowedError')) {
+      showToast('Camera permission denied. Allow camera access and try again.');
+    } else if (err.toString().includes('NotFoundError')) {
+      showToast('No camera found on this device.');
+    } else {
+      showToast('Could not start camera: ' + err.message);
+    }
+  }
 }
 
 function closeScanner() {
