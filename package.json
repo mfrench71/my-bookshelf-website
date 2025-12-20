@@ -9,7 +9,11 @@
     "build": "npm run build:11ty && npm run build:css",
     "watch:css": "npx tailwindcss -i ./src/css/tailwind.css -o ./_site/css/styles.css --watch",
     "watch:11ty": "npx eleventy --serve",
-    "start": "npm run build:css && npm run watch:11ty"
+    "start": "npm run build:css && npm run watch:11ty",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "repository": {
     "type": "git",

@@ -25,6 +25,11 @@ npm run watch:css       # Tailwind with --watch
 
 # Local testing (after build)
 npx serve _site
+
+# Run tests
+npm test              # Run all tests once
+npm run test:watch    # Watch mode for development
+npm run test:coverage # Run with coverage report
 ```
 
 ## Architecture
@@ -84,6 +89,25 @@ Common utilities are consolidated in shared modules:
 - `book-card.js` - bookCard component for rendering book list items
 
 Toast notifications support types: `showToast('message', { type: 'success' | 'error' | 'info' })`
+
+## Testing
+
+### Test Framework
+- **Vitest** with jsdom environment for DOM testing
+- Tests located in `tests/` directory
+- Setup file with mocks in `tests/setup.js`
+
+### Test Files
+- `utils.test.js` - Unit tests for shared utilities
+- `book-card.test.js` - Tests for book card component
+- `books.test.js` - Tests for sorting and filtering logic
+- `add.test.js` - Integration tests for book search and API interactions
+
+### Pre-Deployment
+All tests must pass before deploying:
+```bash
+npm test && npm run build
+```
 
 ## Firebase Project
 

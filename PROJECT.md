@@ -40,6 +40,25 @@ MyBookShelf/
 - **Auth**: Email/password enabled
 - **Firestore**: User-scoped book collections at `/users/{userId}/books`
 
+### Minimizing Firebase Usage/Costs
+- [ ] Implement local caching with IndexedDB (cache books locally, sync on changes)
+- [ ] Use Firestore offline persistence (built-in caching)
+- [ ] Batch writes (combine multiple updates into single transaction)
+- [ ] Pagination with cursor-based queries (limit fetched docs)
+- [ ] Lazy load book details (only fetch full data when viewing)
+- [ ] Debounce real-time listeners (reduce snapshot frequency)
+- [ ] Consider moving to on-demand fetching vs real-time for lists
+- [ ] Compress stored data (shorter field names, remove unused fields)
+- [ ] Monitor usage in Firebase Console and set billing alerts
+
+### Caching Strategy
+- **Service Worker**: Currently caches static assets (HTML, CSS, JS, icons)
+- **Firestore Offline**: Enable `enablePersistence()` for automatic local caching
+- **IndexedDB for Books**: Store books locally, only fetch changes from Firebase
+- **Cover Image Caching**: Cache cover images via service worker or dedicated image cache
+- **API Response Caching**: Cache Google Books/Open Library responses (15 min TTL)
+- **Smart Sync**: Only sync when online, queue offline changes for later
+
 ## Development Progress
 
 ### Completed
@@ -104,6 +123,36 @@ MyBookShelf/
 - [ ] Merge duplicate genres
 - [ ] Genre color coding/icons
 
+### User Profile & Settings
+- [ ] User profile page/modal
+- [ ] Edit display name
+- [ ] Change password
+- [ ] Profile avatar/photo
+- [ ] Account deletion
+- [ ] Privacy settings
+- [ ] Manage lists from profile
+- [ ] View reading statistics from profile
+- [ ] Export/import data from profile
+
+### User Lists / Shelves
+- [ ] Custom user lists (e.g., "Want to Read", "Currently Reading", "Finished")
+- [ ] Default lists created for new users
+- [ ] Assign books to multiple lists
+- [ ] List CRUD (create, read, update, delete)
+- [ ] Drag and drop reordering within lists
+- [ ] List view page (all books in a list)
+- [ ] Filter books by list
+- [ ] Quick "move to list" action from book card
+
+### Book Series
+- [ ] Link books to a series (e.g., "Harry Potter #1")
+- [ ] Series CRUD (create, read, update, delete)
+- [ ] Series view page (all books in a series)
+- [ ] Auto-detect series from API data
+- [ ] Series reading order tracking
+- [ ] Series completion progress
+- [ ] Filter/sort by series
+
 ### Book Images
 - [ ] Upload custom cover image (not just URL)
 - [ ] Multiple book images (spine, back cover, pages)
@@ -113,11 +162,18 @@ MyBookShelf/
 
 ## Deployment
 
+### Pre-Deployment Checklist
+- [ ] All tests must pass (`npm test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] No console errors in browser
+- [ ] Manual testing on mobile device
+
 ### Netlify Setup
 1. Connect GitHub repo to Netlify
-2. Build command: (none - static files)
-3. Publish directory: `/`
+2. Build command: `npm run build`
+3. Publish directory: `_site`
 4. Add `_redirects` for SPA-style routing if needed
+5. Environment: Ensure tests pass before deploying
 
 ### Local Development
 ```bash
