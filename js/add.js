@@ -181,6 +181,16 @@ async function openScanner() {
   lucide.createIcons();
 
   try {
+    // Request camera permission explicitly first
+    console.log('Requesting camera permission...');
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    console.log('Camera permission granted');
+
+    // Stop the stream - Quagga will create its own
+    stream.getTracks().forEach(track => track.stop());
+
     await startQuagga();
   } catch (err) {
     console.error('Scanner error:', err);
@@ -190,8 +200,10 @@ async function openScanner() {
       showToast('Camera permission denied. Allow camera access.');
     } else if (err.name === 'NotFoundError') {
       showToast('No camera found.');
+    } else if (err.name === 'NotReadableError') {
+      showToast('Camera in use by another app.');
     } else {
-      showToast('Scanner error: ' + (err.message || 'Unknown error'));
+      showToast('Scanner error: ' + (err.message || err));
     }
   }
 }
