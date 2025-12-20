@@ -152,10 +152,10 @@ function renderBook() {
 
   let datesHtml = '';
   if (dateAdded) {
-    datesHtml += `Added ${dateAdded.toLocaleDateString(undefined, dateOptions)}`;
+    datesHtml += `<div>Added ${dateAdded.toLocaleDateString(undefined, dateOptions)}</div>`;
   }
   if (dateModified && dateModified.getTime() !== dateAdded?.getTime()) {
-    datesHtml += ` · Modified ${dateModified.toLocaleDateString(undefined, dateOptions)}`;
+    datesHtml += `<div>Modified ${dateModified.toLocaleDateString(undefined, dateOptions)}</div>`;
   }
   bookDates.innerHTML = datesHtml;
 
