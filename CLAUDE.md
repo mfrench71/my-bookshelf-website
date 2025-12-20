@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Guidelines
 
 - Do not automatically push commits to remote. Always wait for explicit user approval before pushing.
+- When adding or updating features, always write or update corresponding tests. Run `npm test` to verify all tests pass before committing.
 
 ## Build & Development Commands
 
