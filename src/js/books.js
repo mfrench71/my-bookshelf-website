@@ -16,6 +16,8 @@ let currentUser = null;
 let books = [];
 let currentFilter = 'all';
 let unsubscribeBooks = null;
+const BOOKS_PER_PAGE = 20;
+let displayLimit = BOOKS_PER_PAGE;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -67,6 +69,21 @@ function loadBooks() {
   });
 }
 
+// Intersection Observer for infinite scroll
+let scrollObserver = null;
+
+function setupScrollObserver() {
+  if (scrollObserver) scrollObserver.disconnect();
+
+  scrollObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      loadMore();
+    }
+  }, { rootMargin: '100px' });
+}
+
+setupScrollObserver();
+
 // Render Books
 function renderBooks() {
   const filtered = currentFilter === 'all'
@@ -81,8 +98,32 @@ function renderBooks() {
   }
 
   emptyState.classList.add('hidden');
-  bookList.innerHTML = filtered.map(book => bookCard(book)).join('');
+  const visible = filtered.slice(0, displayLimit);
+  const hasMore = filtered.length > displayLimit;
+
+  bookList.innerHTML = visible.map(book => bookCard(book)).join('');
+
+  if (hasMore) {
+    bookList.innerHTML += `
+      <div id="scroll-sentinel" class="py-6 flex justify-center">
+        <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    `;
+    scrollObserver.observe(document.getElementById('scroll-sentinel'));
+  }
+
   lucide.createIcons();
+}
+
+function loadMore() {
+  const filtered = currentFilter === 'all'
+    ? books
+    : books.filter(b => b.status === currentFilter);
+
+  if (displayLimit >= filtered.length) return;
+
+  displayLimit += BOOKS_PER_PAGE;
+  renderBooks();
 }
 
 function bookCard(book) {
@@ -129,6 +170,7 @@ filterChips.forEach(chip => {
     filterChips.forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     currentFilter = chip.dataset.filter;
+    displayLimit = BOOKS_PER_PAGE;
     renderBooks();
   });
 });

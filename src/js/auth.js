@@ -72,11 +72,18 @@ registerForm?.addEventListener('submit', async (e) => {
   const name = document.getElementById('register-name').value;
   const email = document.getElementById('register-email').value;
   const password = document.getElementById('register-password').value;
+  const passwordConfirm = document.getElementById('register-password-confirm').value;
   const submitBtn = registerForm.querySelector('button[type="submit"]');
+
+  authError.classList.add('hidden');
+
+  if (password !== passwordConfirm) {
+    showError('Passwords do not match');
+    return;
+  }
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Creating account...';
-  authError.classList.add('hidden');
 
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
