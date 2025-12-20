@@ -166,35 +166,9 @@ function showStatus(message, type) {
   );
 }
 
-// Barcode Scanner
+// Barcode Scanner using html5-qrcode with iOS-optimized settings
 scanBtn.addEventListener('click', openScanner);
 closeScannerBtn.addEventListener('click', closeScanner);
-
-// Photo-based scanning (iOS fallback)
-const photoInput = document.getElementById('photo-input');
-photoInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  showToast('Scanning image...');
-
-  try {
-    const html5QrCode = new Html5Qrcode("scanner-container");
-    const result = await html5QrCode.scanFile(file, true);
-
-    if (result) {
-      isbnInput.value = result;
-      showToast('Barcode found: ' + result);
-      lookupISBN();
-    }
-  } catch (err) {
-    console.error('Photo scan error:', err);
-    showToast('No barcode found in image. Try again with better lighting.');
-  }
-
-  // Reset input so same file can be selected again
-  photoInput.value = '';
-});
 
 async function openScanner() {
   // Check if HTTPS (required for camera)
@@ -207,47 +181,72 @@ async function openScanner() {
   lucide.createIcons();
 
   try {
-    html5QrCode = new Html5Qrcode("scanner-container");
+    // Initialize html5-qrcode with iOS-friendly settings
+    html5QrCode = new Html5Qrcode('scanner-container', {
+      verbose: false,
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: false // Disable native API for consistency
+      }
+    });
+
+    const config = {
+      fps: 10,
+      qrbox: { width: 280, height: 150 },
+      aspectRatio: 1.777778,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128
+      ],
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: false
+      }
+    };
 
     await html5QrCode.start(
-      { facingMode: "environment" },
-      {
-        fps: 15,
-        qrbox: { width: 300, height: 150 },
-        aspectRatio: 1.5
-      },
+      { facingMode: 'environment' },
+      config,
       (decodedText) => {
-        // Success - vibrate if supported
+        // Success callback
         if (navigator.vibrate) navigator.vibrate(100);
         closeScanner();
         isbnInput.value = decodedText;
-        showToast('Barcode scanned: ' + decodedText);
+        showToast('Scanned: ' + decodedText);
         lookupISBN();
       },
       () => {
-        // Ignore scan errors (continuous scanning)
+        // Ignore scan failures (no code found in frame)
       }
     );
   } catch (err) {
     console.error('Scanner error:', err);
     closeScanner();
 
-    if (err.toString().includes('NotAllowedError')) {
-      showToast('Camera permission denied. Allow camera access and try again.');
-    } else if (err.toString().includes('NotFoundError')) {
-      showToast('No camera found on this device.');
+    if (err.name === 'NotAllowedError' || err.includes?.('NotAllowedError')) {
+      showToast('Camera permission denied. Allow camera access.');
+    } else if (err.name === 'NotFoundError' || err.includes?.('NotFoundError')) {
+      showToast('No camera found.');
     } else {
-      showToast('Could not start camera: ' + err.message);
+      showToast('Scanner error. Try entering ISBN manually.');
     }
   }
 }
 
-function closeScanner() {
+async function closeScanner() {
   scannerModal.classList.add('hidden');
+
   if (html5QrCode) {
-    html5QrCode.stop().catch(() => {});
+    try {
+      await html5QrCode.stop();
+    } catch (e) {
+      // Ignore stop errors
+    }
     html5QrCode = null;
   }
+
+  scannerContainer.innerHTML = '';
 }
 
 // Form Submit
