@@ -8,9 +8,10 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { renderStars, parseTimestamp, showToast, initIcons } from './utils.js';
 
-// Initialize icons
-lucide.createIcons();
+// Initialize icons once on load
+initIcons();
 
 // State
 let currentUser = null;
@@ -32,13 +33,12 @@ const content = document.getElementById('content');
 const coverContainer = document.getElementById('cover-container');
 const bookTitle = document.getElementById('book-title');
 const bookAuthor = document.getElementById('book-author');
-const bookStatus = document.getElementById('book-status');
 const bookRating = document.getElementById('book-rating');
+const bookDates = document.getElementById('book-dates');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
-const statusSelect = document.getElementById('status');
 const notesInput = document.getElementById('notes');
 const saveBtn = document.getElementById('save-btn');
 const deleteBtn = document.getElementById('delete-btn');
@@ -46,15 +46,12 @@ const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 const starBtns = document.querySelectorAll('.star-btn');
-const toast = document.getElementById('toast');
 
-// Auth Check
+// Auth Check - header.js handles redirect, just load book
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
     loadBook();
-  } else {
-    window.location.href = '/';
   }
 });
 
@@ -65,8 +62,8 @@ async function loadBook() {
     const bookSnap = await getDoc(bookRef);
 
     if (!bookSnap.exists()) {
-      showToast('Book not found');
-      setTimeout(() => window.location.href = '/books.html', 1500);
+      showToast('Book not found', { type: 'error' });
+      setTimeout(() => window.location.href = '/books/', 1500);
       return;
     }
 
@@ -74,7 +71,7 @@ async function loadBook() {
     renderBook();
   } catch (error) {
     console.error('Error loading book:', error);
-    showToast('Error loading book');
+    showToast('Error loading book', { type: 'error' });
   }
 }
 
@@ -94,27 +91,27 @@ function renderBook() {
   bookTitle.textContent = book.title;
   bookAuthor.textContent = book.author || 'Unknown author';
 
-  // Status
-  const statusLabels = {
-    wantToRead: 'Want to Read',
-    reading: 'Reading',
-    finished: 'Finished'
-  };
-  bookStatus.textContent = statusLabels[book.status] || 'Unknown';
-  bookStatus.className = `status-badge ${book.status}`;
-
   // Rating
-  if (book.rating) {
-    bookRating.innerHTML = renderStars(book.rating);
-  } else {
-    bookRating.innerHTML = '';
+  bookRating.innerHTML = book.rating ? renderStars(book.rating) : '';
+
+  // Dates
+  const dateAdded = parseTimestamp(book.createdAt);
+  const dateModified = parseTimestamp(book.updatedAt);
+  const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+
+  let datesHtml = '';
+  if (dateAdded) {
+    datesHtml += `Added ${dateAdded.toLocaleDateString(undefined, dateOptions)}`;
   }
+  if (dateModified && dateModified.getTime() !== dateAdded?.getTime()) {
+    datesHtml += ` · Modified ${dateModified.toLocaleDateString(undefined, dateOptions)}`;
+  }
+  bookDates.innerHTML = datesHtml;
 
   // Form
   titleInput.value = book.title || '';
   authorInput.value = book.author || '';
   coverUrlInput.value = book.coverImageUrl || '';
-  statusSelect.value = book.status || 'wantToRead';
   notesInput.value = book.notes || '';
   currentRating = book.rating || 0;
   updateRatingStars();
@@ -122,15 +119,7 @@ function renderBook() {
   // Show content
   loading.classList.add('hidden');
   content.classList.remove('hidden');
-  lucide.createIcons();
-}
-
-function renderStars(rating) {
-  return Array.from({ length: 5 }, (_, i) =>
-    i < rating
-      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-      : '<svg class="empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-  ).join('');
+  initIcons();
 }
 
 // Rating Stars
@@ -144,13 +133,9 @@ starBtns.forEach(btn => {
 function updateRatingStars() {
   starBtns.forEach(btn => {
     const rating = parseInt(btn.dataset.rating);
-    if (rating <= currentRating) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
+    btn.classList.toggle('active', rating <= currentRating);
   });
-  lucide.createIcons();
+  initIcons();
 }
 
 // Save Changes
@@ -164,7 +149,6 @@ editForm.addEventListener('submit', async (e) => {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
     coverImageUrl: coverUrlInput.value.trim(),
-    status: statusSelect.value,
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     updatedAt: serverTimestamp()
@@ -173,14 +157,14 @@ editForm.addEventListener('submit', async (e) => {
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await updateDoc(bookRef, updates);
-    showToast('Changes saved!');
+    showToast('Changes saved!', { type: 'success' });
 
     // Update local data and re-render
     book = { ...book, ...updates };
     renderBook();
   } catch (error) {
     console.error('Error saving:', error);
-    showToast('Error saving changes');
+    showToast('Error saving changes', { type: 'error' });
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
@@ -209,20 +193,13 @@ confirmDeleteBtn.addEventListener('click', async () => {
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await deleteDoc(bookRef);
-    showToast('Book deleted');
-    setTimeout(() => window.location.href = '/books.html', 1000);
+    showToast('Book deleted', { type: 'success' });
+    setTimeout(() => window.location.href = '/books/', 1000);
   } catch (error) {
     console.error('Error deleting:', error);
-    showToast('Error deleting book');
+    showToast('Error deleting book', { type: 'error' });
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = 'Delete';
     deleteModal.classList.add('hidden');
   }
 });
-
-// Toast
-function showToast(message, duration = 3000) {
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), duration);
-}

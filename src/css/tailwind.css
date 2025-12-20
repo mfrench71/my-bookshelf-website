@@ -17,29 +17,6 @@
   scrollbar-width: none;
 }
 
-/* Filter Chips */
-.filter-chip {
-  white-space: nowrap;
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: 1px solid #e5e7eb;
-  background-color: white;
-  color: #4b5563;
-  transition: all 0.15s;
-}
-
-.filter-chip:hover {
-  background-color: #f3f4f6;
-}
-
-.filter-chip.active {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
-}
-
 /* Book Card */
 .book-card {
   background: white;
@@ -102,29 +79,6 @@
   fill: #fbbf24;
 }
 
-/* Status Badge */
-.status-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-weight: 500;
-}
-
-.status-badge.wantToRead {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-}
-
-.status-badge.reading {
-  background-color: #fef3c7;
-  color: #b45309;
-}
-
-.status-badge.finished {
-  background-color: #d1fae5;
-  color: #047857;
-}
-
 /* Rating Stars Display */
 .rating-stars {
   display: flex;
@@ -141,39 +95,6 @@
 .rating-stars svg.empty {
   color: #d1d5db;
   fill: none;
-}
-
-/* Modal Animations */
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-#add-book-modal > div,
-#menu-modal > div,
-#book-detail-modal > div {
-  animation: slideUp 0.2s ease-out;
-}
-
-#add-book-modal,
-#menu-modal,
-#book-detail-modal {
-  animation: fadeIn 0.15s ease-out;
 }
 
 /* Scanner Overlay */

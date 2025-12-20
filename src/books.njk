@@ -3,33 +3,45 @@ layout: base.njk
 title: My Books
 scripts: '<script type="module" src="/js/books.js"></script>'
 ---
-<!-- Header -->
-<header class="bg-white border-b border-gray-200 sticky top-0 z-40">
-  <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">My Books</h1>
-    <div class="flex items-center gap-1">
-      <button id="search-btn" class="p-2 hover:bg-gray-100 rounded-lg" title="Search">
-        <i data-lucide="search" class="w-5 h-5 text-gray-600"></i>
-      </button>
-      <button id="menu-btn" class="p-2 hover:bg-gray-100 rounded-lg" title="Menu">
-        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+<!-- Sort & Filter Controls -->
+<div class="bg-white border-b border-gray-200">
+  <div class="max-w-6xl mx-auto px-4 py-3">
+    <div class="flex items-center gap-3">
+      <div class="relative flex-1">
+        <select id="sort-select"
+          class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+          <option value="createdAt-desc">Date Added (Newest)</option>
+          <option value="createdAt-asc">Date Added (Oldest)</option>
+          <option value="title-asc">Title (A-Z)</option>
+          <option value="title-desc">Title (Z-A)</option>
+          <option value="author-asc">Author (A-Z)</option>
+          <option value="author-desc">Author (Z-A)</option>
+          <option value="rating-desc">Rating (High-Low)</option>
+          <option value="rating-asc">Rating (Low-High)</option>
+        </select>
+        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+      </div>
+      <div class="relative">
+        <select id="rating-filter"
+          class="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+          <option value="0">All Ratings</option>
+          <option value="5">5 Stars</option>
+          <option value="4">4+ Stars</option>
+          <option value="3">3+ Stars</option>
+          <option value="2">2+ Stars</option>
+          <option value="1">1+ Stars</option>
+        </select>
+        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+      </div>
+      <button id="reset-filters" class="hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Reset filters">
+        <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
   </div>
-
-  <!-- Filter Chips -->
-  <div class="max-w-2xl mx-auto px-4 pb-3">
-    <div class="flex gap-2 overflow-x-auto no-scrollbar">
-      <button class="filter-chip active" data-filter="all">All</button>
-      <button class="filter-chip" data-filter="wantToRead">Want to Read</button>
-      <button class="filter-chip" data-filter="reading">Reading</button>
-      <button class="filter-chip" data-filter="finished">Finished</button>
-    </div>
-  </div>
-</header>
+</div>
 
 <!-- Main Content -->
-<main class="max-w-2xl mx-auto px-4 py-4 pb-24">
+<main class="max-w-6xl mx-auto px-4 py-4 pb-24">
   <!-- Loading State -->
   <div id="loading-state" class="py-12 text-center">
     <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
@@ -49,66 +61,9 @@ scripts: '<script type="module" src="/js/books.js"></script>'
 
 <!-- FAB - Add Book -->
 <a href="/add/"
-  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-50">
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30">
   <i data-lucide="plus" class="w-6 h-6"></i>
 </a>
-
-<!-- Menu Overlay -->
-<div id="menu-overlay" class="hidden fixed inset-0 bg-black/50 z-50">
-  <div id="menu-panel" class="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl transform translate-x-full transition-transform">
-    <div class="p-4 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <span class="font-medium">Menu</span>
-        <button id="close-menu" class="p-1 hover:bg-gray-100 rounded">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <p id="user-email" class="text-sm text-gray-500 mt-1"></p>
-    </div>
-    <nav class="p-2">
-      <a href="/books/" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg">
-        <i data-lucide="library" class="w-5 h-5 text-gray-600"></i>
-        <span>My Books</span>
-      </a>
-      <button id="stats-btn" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg text-left">
-        <i data-lucide="bar-chart-3" class="w-5 h-5 text-gray-600"></i>
-        <span>Statistics</span>
-      </button>
-      <button id="export-btn" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg text-left">
-        <i data-lucide="download" class="w-5 h-5 text-gray-600"></i>
-        <span>Export Books</span>
-      </button>
-      <hr class="my-2">
-      <button id="logout-btn" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg text-left text-red-600">
-        <i data-lucide="log-out" class="w-5 h-5"></i>
-        <span>Sign Out</span>
-      </button>
-    </nav>
-  </div>
-</div>
-
-<!-- Search Overlay -->
-<div id="search-overlay" class="hidden fixed inset-0 bg-white z-50">
-  <div class="max-w-2xl mx-auto">
-    <div class="flex items-center gap-2 p-4 border-b border-gray-200">
-      <button id="close-search" class="p-2 hover:bg-gray-100 rounded-lg">
-        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-      </button>
-      <input type="search" id="search-input" placeholder="Search books..."
-        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-    </div>
-    <div id="search-results" class="p-4 space-y-3"></div>
-  </div>
-</div>
-
-<!-- Stats Modal -->
-<div id="stats-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-sm p-6">
-    <h3 class="text-lg font-semibold mb-4">Reading Statistics</h3>
-    <div id="stats-content" class="space-y-3"></div>
-    <button id="close-stats" class="w-full mt-4 py-2 text-gray-500">Close</button>
-  </div>
-</div>
 
 <!-- Toast -->
 <div id="toast" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

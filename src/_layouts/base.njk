@@ -18,9 +18,16 @@
   {{ headScripts | safe }}
 </head>
 <body class="bg-gray-50 min-h-screen">
+  {% if not hideHeader %}
+    {% include "header.njk" %}
+  {% endif %}
+
   {{ content | safe }}
 
   <script type="module" src="/js/firebase-config.js"></script>
+  {% if not hideHeader %}
+    <script type="module" src="/js/header.js"></script>
+  {% endif %}
   {{ scripts | safe }}
 </body>
 </html>

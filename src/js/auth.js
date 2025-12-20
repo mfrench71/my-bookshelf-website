@@ -6,9 +6,10 @@ import {
   updateProfile,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { initIcons } from './utils.js';
 
 // Initialize Lucide icons
-lucide.createIcons();
+initIcons();
 
 // Check auth state - redirect if already logged in
 onAuthStateChanged(auth, (user) => {

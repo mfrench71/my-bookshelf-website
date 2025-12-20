@@ -1,17 +1,19 @@
 // Service Worker for MyBookShelf PWA
-const CACHE_NAME = 'mybookshelf-v1';
+const CACHE_NAME = 'mybookshelf-v3';
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/books.html',
-  '/add.html',
-  '/book.html',
+  '/books/',
+  '/add/',
+  '/book/',
   '/css/styles.css',
   '/js/firebase-config.js',
+  '/js/utils.js',
+  '/js/book-card.js',
   '/js/auth.js',
   '/js/books.js',
   '/js/add.js',
   '/js/book-detail.js',
+  '/js/header.js',
   '/manifest.json'
 ];
 
@@ -75,9 +77,9 @@ self.addEventListener('fetch', (event) => {
           if (response) {
             return response;
           }
-          // For navigation, return index.html
+          // For navigation, return root
           if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
+            return caches.match('/');
           }
           return new Response('Offline', { status: 503 });
         });
