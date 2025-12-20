@@ -1,5 +1,9 @@
 // Service Worker for MyBookShelf PWA
-const CACHE_NAME = 'mybookshelf-v3';
+const CACHE_VERSION = 'v4';
+const STATIC_CACHE = `mybookshelf-static-${CACHE_VERSION}`;
+const IMAGE_CACHE = `mybookshelf-images-${CACHE_VERSION}`;
+const API_CACHE = `mybookshelf-api-${CACHE_VERSION}`;
+
 const STATIC_ASSETS = [
   '/',
   '/books/',
@@ -17,10 +21,15 @@ const STATIC_ASSETS = [
   '/manifest.json'
 ];
 
+// Cache durations
+const API_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes for API responses
+const IMAGE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days for images
+const IMAGE_CACHE_MAX_ITEMS = 200; // Limit cached images
+
 // Install - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(STATIC_CACHE).then((cache) => {
       console.log('Caching static assets');
       return cache.addAll(STATIC_ASSETS);
     })
@@ -30,59 +39,180 @@ self.addEventListener('install', (event) => {
 
 // Activate - clean old caches
 self.addEventListener('activate', (event) => {
+  const currentCaches = [STATIC_CACHE, IMAGE_CACHE, API_CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+          .filter((name) => !currentCaches.includes(name))
+          .map((name) => {
+            console.log('Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
     })
   );
   self.clients.claim();
 });
 
-// Fetch - network first, fallback to cache
+// Fetch handler with different strategies per resource type
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Firebase/external API requests
   const url = new URL(event.request.url);
-  if (
-    url.origin !== location.origin ||
-    url.pathname.startsWith('/api') ||
-    event.request.url.includes('firebase') ||
-    event.request.url.includes('googleapis') ||
-    event.request.url.includes('gstatic')
-  ) {
+
+  // Cover images - cache first, then network
+  if (isCoverImage(url)) {
+    event.respondWith(handleImageRequest(event.request));
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone and cache successful responses
-        if (response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache
-        return caches.match(event.request).then((response) => {
-          if (response) {
-            return response;
-          }
-          // For navigation, return root
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
-  );
+  // Book search APIs - network first with cache fallback and TTL
+  if (isBookApi(url)) {
+    event.respondWith(handleApiRequest(event.request));
+    return;
+  }
+
+  // Skip Firebase SDK requests (let Firestore handle its own caching)
+  if (isFirebaseRequest(url)) {
+    return;
+  }
+
+  // Static assets - network first, cache fallback
+  if (url.origin === location.origin) {
+    event.respondWith(handleStaticRequest(event.request));
+  }
 });
+
+// Check if URL is a cover image
+function isCoverImage(url) {
+  return (
+    url.hostname.includes('books.google.com') ||
+    url.hostname.includes('covers.openlibrary.org') ||
+    url.hostname.includes('images-amazon.com')
+  );
+}
+
+// Check if URL is a book API
+function isBookApi(url) {
+  return (
+    (url.hostname.includes('googleapis.com') && url.pathname.includes('/books/')) ||
+    (url.hostname.includes('openlibrary.org') && (url.pathname.includes('/search') || url.pathname.includes('/api/')))
+  );
+}
+
+// Check if URL is Firebase-related
+function isFirebaseRequest(url) {
+  return (
+    url.hostname.includes('firebase') ||
+    url.hostname.includes('firestore') ||
+    url.hostname.includes('gstatic.com')
+  );
+}
+
+// Handle cover image requests - cache first strategy
+async function handleImageRequest(request) {
+  const cache = await caches.open(IMAGE_CACHE);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    // Return cached image immediately, refresh in background
+    refreshImage(request, cache);
+    return cached;
+  }
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      // Clone and cache
+      cache.put(request, response.clone());
+      // Trim cache if too large
+      trimImageCache(cache);
+    }
+    return response;
+  } catch (error) {
+    // Return placeholder or transparent pixel
+    return new Response('', { status: 404 });
+  }
+}
+
+// Background refresh for images
+async function refreshImage(request, cache) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response);
+    }
+  } catch (e) {
+    // Ignore refresh errors
+  }
+}
+
+// Limit image cache size
+async function trimImageCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length > IMAGE_CACHE_MAX_ITEMS) {
+    // Delete oldest entries (first in list)
+    const toDelete = keys.slice(0, keys.length - IMAGE_CACHE_MAX_ITEMS);
+    await Promise.all(toDelete.map(key => cache.delete(key)));
+  }
+}
+
+// Handle API requests - network first with TTL cache
+async function handleApiRequest(request) {
+  const cache = await caches.open(API_CACHE);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      // Store with timestamp
+      const responseWithTime = response.clone();
+      const headers = new Headers(responseWithTime.headers);
+      headers.set('sw-cache-time', Date.now().toString());
+
+      const body = await responseWithTime.blob();
+      const cachedResponse = new Response(body, {
+        status: responseWithTime.status,
+        statusText: responseWithTime.statusText,
+        headers
+      });
+      cache.put(request, cachedResponse);
+    }
+    return response;
+  } catch (error) {
+    // Check cache with TTL
+    const cached = await cache.match(request);
+    if (cached) {
+      const cacheTime = parseInt(cached.headers.get('sw-cache-time') || '0');
+      const age = Date.now() - cacheTime;
+
+      if (age < API_CACHE_DURATION) {
+        console.log('Serving API from cache:', request.url);
+        return cached;
+      }
+    }
+    throw error;
+  }
+}
+
+// Handle static requests - network first, cache fallback
+async function handleStaticRequest(request) {
+  try {
+    const response = await fetch(request);
+    if (response.status === 200) {
+      const cache = await caches.open(STATIC_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) {
+      return cached;
+    }
+    // For navigation, return root page
+    if (request.mode === 'navigate') {
+      return caches.match('/');
+    }
+    return new Response('Offline', { status: 503 });
+  }
+}

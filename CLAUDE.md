@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Do not automatically push commits to remote. Always wait for explicit user approval before pushing.
 - When adding or updating features, always write or update corresponding tests. Run `npm test` to verify all tests pass before committing.
+- Keep PROJECT.md up to date as features are added or changed. Mark completed items, add new ideas, update architecture notes.
+- Keep README.md up to date with current features, tech stack, and setup instructions.
 
 ## Build & Development Commands
 

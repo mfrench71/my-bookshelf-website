@@ -65,12 +65,14 @@ if (menuBtn && menuOverlay && menuPanel && closeMenuBtn) {
 
 function openMenu() {
   menuOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // Prevent body scroll
   setTimeout(() => menuPanel.classList.remove('translate-x-full'), 10);
   initIcons();
 }
 
 function closeMenu() {
   menuPanel.classList.add('translate-x-full');
+  document.body.style.overflow = ''; // Restore body scroll
   setTimeout(() => menuOverlay.classList.add('hidden'), 200);
 }
 
@@ -112,12 +114,14 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
 
 function openSearch() {
   searchOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // Prevent body scroll
   searchInput.focus();
   initIcons();
 }
 
 function closeSearch() {
   searchOverlay.classList.add('hidden');
+  document.body.style.overflow = ''; // Restore body scroll
   searchInput.value = '';
   searchResults.innerHTML = '';
 }

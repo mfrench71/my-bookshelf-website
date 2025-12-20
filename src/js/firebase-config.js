@@ -1,7 +1,7 @@
 // Firebase Configuration and Initialization
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { initializeFirestore, persistentLocalCache } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCUXsgRk9htRXIAyvmC4SDfAche_5YQZZ0",
@@ -15,6 +15,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+// Initialize Firestore with offline persistence (caches data in IndexedDB)
+// This reduces Firebase reads by serving from cache when possible
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache()
+});
 
 export { app, auth, db };

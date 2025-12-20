@@ -4,35 +4,44 @@
 A mobile-friendly book tracking PWA with barcode scanning. Built with vanilla HTML/CSS/JS and Firebase.
 
 ## Tech Stack
-- **Frontend**: HTML, CSS (Tailwind via CDN), vanilla JavaScript (ES6 modules)
-- **Database**: Firebase Firestore
+- **Build**: 11ty (Eleventy) + Tailwind CSS v4
+- **Frontend**: HTML (Nunjucks templates), CSS (Tailwind), vanilla JavaScript (ES6 modules)
+- **Database**: Firebase Firestore (with offline persistence)
 - **Auth**: Firebase Authentication (email/password)
-- **Barcode**: html5-qrcode library
-- **Book Data**: Google Books API + Open Library API
-- **Hosting**: Netlify
-- **PWA**: Service worker + web manifest
+- **Barcode**: Quagga2 library
+- **Book Data**: Google Books API + Open Library API (fallback)
+- **Hosting**: Netlify (with CI/CD via GitHub Actions)
+- **PWA**: Service worker (v4) + web manifest
+- **Testing**: Vitest with jsdom
 
 ## Project Structure
 ```
 MyBookShelf/
-├── index.html          # Login/register page
-├── books.html          # Book list (main view)
-├── add.html            # Add new book
-├── book.html           # Book detail/edit
-├── css/
-│   └── styles.css      # Custom styles
-├── js/
-│   ├── firebase-config.js  # Firebase init
-│   ├── auth.js             # Authentication
-│   ├── books.js            # Book CRUD + listing
-│   ├── add.js              # Add book logic
-│   ├── book-detail.js      # Detail/edit logic
-│   └── api.js              # ISBN lookup
-├── icons/              # PWA icons
-├── manifest.json       # PWA manifest
-├── sw.js               # Service worker
-├── netlify.toml        # Deployment config
-└── PROJECT.md          # This file
+├── src/
+│   ├── _layouts/base.njk     # Base HTML template
+│   ├── _includes/header.njk  # Common header partial
+│   ├── index.njk             # Login/register page
+│   ├── books.njk             # Book list (main view)
+│   ├── add.njk               # Add new book
+│   ├── book.njk              # Book detail/edit
+│   ├── css/tailwind.css      # Tailwind v4 config
+│   ├── js/
+│   │   ├── firebase-config.js  # Firebase init + offline persistence
+│   │   ├── header.js           # Header auth, menu, search
+│   │   ├── auth.js             # Authentication
+│   │   ├── books.js            # Book CRUD + listing
+│   │   ├── add.js              # Add book logic + barcode scanner
+│   │   ├── book-detail.js      # Detail/edit logic
+│   │   ├── utils.js            # Shared utilities
+│   │   └── book-card.js        # Book card component
+│   └── sw.js                   # Service worker (v4)
+├── tests/                # Vitest test files
+├── _site/                # Built output (11ty)
+├── icons/                # PWA icons
+├── manifest.json         # PWA manifest
+├── eleventy.config.js    # 11ty config
+├── netlify.toml          # Deployment config
+└── PROJECT.md            # This file
 ```
 
 ## Firebase Configuration
@@ -42,7 +51,7 @@ MyBookShelf/
 
 ### Minimizing Firebase Usage/Costs
 - [ ] Implement local caching with IndexedDB (cache books locally, sync on changes)
-- [ ] Use Firestore offline persistence (built-in caching)
+- [x] Use Firestore offline persistence (built-in caching) - Enabled in firebase-config.js
 - [ ] Batch writes (combine multiple updates into single transaction)
 - [ ] Pagination with cursor-based queries (limit fetched docs)
 - [ ] Lazy load book details (only fetch full data when viewing)
@@ -51,31 +60,36 @@ MyBookShelf/
 - [ ] Compress stored data (shorter field names, remove unused fields)
 - [ ] Monitor usage in Firebase Console and set billing alerts
 
-### Caching Strategy
-- **Service Worker**: Currently caches static assets (HTML, CSS, JS, icons)
-- **Firestore Offline**: Enable `enablePersistence()` for automatic local caching
-- **IndexedDB for Books**: Store books locally, only fetch changes from Firebase
-- **Cover Image Caching**: Cache cover images via service worker or dedicated image cache
-- **API Response Caching**: Cache Google Books/Open Library responses (15 min TTL)
-- **Smart Sync**: Only sync when online, queue offline changes for later
+### Caching Strategy (Implemented)
+- **Service Worker** (sw.js v4): Comprehensive caching with separate cache stores
+  - Static assets: Network-first with cache fallback
+  - Cover images: Cache-first with background refresh (200 image limit)
+  - API responses: Network-first with 15-min TTL cache fallback
+  - Firebase requests: Skipped (Firestore handles its own caching)
+- **Firestore Offline**: `enableIndexedDbPersistence()` enabled in firebase-config.js
+- **Cover Image Sources**: books.google.com, covers.openlibrary.org, images-amazon.com
+- **API Caching**: Google Books and Open Library responses cached with timestamp-based TTL
 
 ## Development Progress
 
 ### Completed
-- [x] Project setup
-- [x] Firebase configuration
-- [x] Login page (index.html)
-- [ ] Authentication logic (auth.js)
-- [ ] Books list page (books.html)
-- [ ] Add book page (add.html)
-- [ ] Book detail page (book.html)
-- [ ] Barcode scanner integration
-- [ ] PWA manifest and icons
-- [ ] Service worker
-- [ ] Netlify deployment
+- [x] Project setup with 11ty + Tailwind v4
+- [x] Firebase configuration with offline persistence
+- [x] Login/register page (index.njk)
+- [x] Authentication logic (auth.js, header.js)
+- [x] Books list page with sort/filter (books.njk)
+- [x] Add book page with search/scanner (add.njk)
+- [x] Book detail page with edit (book.njk)
+- [x] Barcode scanner (Quagga2)
+- [x] PWA manifest and icons
+- [x] Service worker v4 (comprehensive caching)
+- [x] Netlify deployment with CI/CD
+- [x] Comprehensive test suite (106 tests)
+- [x] Open Library fallback for book search
+- [x] Infinite scroll for search results
 
 ### In Progress
-- Building core pages and functionality
+- Enhancing book list with additional filters
 
 ## Future Development Ideas
 
@@ -83,6 +97,10 @@ MyBookShelf/
 - [x] Search books in library
 - [x] Sort books (by title, author, date added, rating)
 - [x] Search for books by title/author when adding (live results with debounce)
+- [x] Infinite scroll / lazy loading for search results
+- [x] Open Library fallback when Google Books API fails
+- [x] Firestore offline persistence for reduced API calls
+- [x] Service worker caching (static assets, cover images, API responses)
 - [ ] Check for duplicate book when adding (by ISBN or title/author match)
 - [ ] Filter by genre
 - [ ] Offline support (cached books)
