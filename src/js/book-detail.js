@@ -420,6 +420,8 @@ refreshDataBtn.addEventListener('click', async () => {
       }
       if (apiData.coverImageUrl) {
         coverUrlInput.value = apiData.coverImageUrl;
+        // Update cover image display
+        coverContainer.innerHTML = `<img src="${apiData.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto">`;
       }
 
       // Update book object with new metadata for display
