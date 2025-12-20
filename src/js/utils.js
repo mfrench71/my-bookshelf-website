@@ -1,5 +1,37 @@
 // Shared Utilities Module
 
+// Cache Constants - shared across all modules
+export const CACHE_VERSION = 7;
+export const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
+export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Clear the books cache for a user
+ */
+export function clearBooksCache(userId) {
+  try {
+    localStorage.removeItem(`${CACHE_KEY}_${userId}`);
+  } catch (e) {
+    // Ignore cache clear errors
+  }
+}
+
+/**
+ * Serialize a Firestore timestamp to milliseconds
+ * Handles: toMillis(), seconds, number, ISO string
+ */
+export function serializeTimestamp(raw) {
+  if (!raw) return null;
+  if (typeof raw.toMillis === 'function') return raw.toMillis();
+  if (raw.seconds) return raw.seconds * 1000;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') {
+    const date = new Date(raw);
+    return isNaN(date.getTime()) ? null : date.getTime();
+  }
+  return null;
+}
+
 /**
  * Escape HTML entities to prevent XSS
  */
@@ -123,4 +155,17 @@ export function initIcons() {
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
+}
+
+/**
+ * Update rating star buttons to reflect current rating
+ * @param {NodeList|Array} starBtns - Star button elements with data-rating attribute
+ * @param {number} currentRating - Current rating value (1-5)
+ */
+export function updateRatingStars(starBtns, currentRating) {
+  starBtns.forEach(btn => {
+    const rating = parseInt(btn.dataset.rating);
+    btn.classList.toggle('active', rating <= currentRating);
+  });
+  initIcons();
 }

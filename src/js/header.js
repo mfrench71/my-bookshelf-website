@@ -7,15 +7,11 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { normalizeText, showToast, debounce, initIcons } from './utils.js';
+import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
 import { bookCard } from './book-card.js';
 
 // Initialize icons once on load
 initIcons();
-
-// Constants
-const CACHE_VERSION = 7; // Must match books.js version
-const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
 
 // State
 let currentUser = null;
@@ -64,7 +60,12 @@ async function loadAllBooksForSearch() {
       const hasMore = parsed.hasMore ?? true;
 
       if (cachedBooks.length > 0) {
-        books = cachedBooks;
+        // Add pre-normalized fields if not present (for cached data)
+        books = cachedBooks.map(b => ({
+          ...b,
+          _normalizedTitle: b._normalizedTitle || normalizeText(b.title),
+          _normalizedAuthor: b._normalizedAuthor || normalizeText(b.author)
+        }));
         if (!hasMore) {
           // Cache has all books
           allBooksLoaded = true;
@@ -87,8 +88,11 @@ async function loadAllBooksForSearch() {
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toMillis?.() || data.createdAt?.seconds * 1000 || null,
-        updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt?.seconds * 1000 || null
+        createdAt: serializeTimestamp(data.createdAt),
+        updatedAt: serializeTimestamp(data.updatedAt),
+        // Pre-normalize for faster search
+        _normalizedTitle: normalizeText(data.title),
+        _normalizedAuthor: normalizeText(data.author)
       };
     });
     allBooksLoaded = true;
@@ -143,9 +147,10 @@ function performSearch(queryText) {
     return;
   }
 
+  // Use pre-normalized fields for faster search
   const results = books.filter(b =>
-    normalizeText(b.title).includes(queryText) ||
-    normalizeText(b.author).includes(queryText)
+    (b._normalizedTitle || '').includes(queryText) ||
+    (b._normalizedAuthor || '').includes(queryText)
   );
 
   let html = results.length

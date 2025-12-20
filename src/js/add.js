@@ -6,14 +6,10 @@ import {
   addDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
 
 // Initialize icons once on load
 initIcons();
-
-// Cache key must match books.js
-const CACHE_VERSION = 7;
-const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
 
 // State
 let currentUser = null;
@@ -60,11 +56,7 @@ starBtns.forEach(btn => {
 });
 
 function updateRatingStars() {
-  starBtns.forEach(btn => {
-    const rating = parseInt(btn.dataset.rating);
-    btn.classList.toggle('active', rating <= currentRating);
-  });
-  initIcons();
+  updateStars(starBtns, currentRating);
 }
 
 // Cover Preview
@@ -589,11 +581,7 @@ bookForm.addEventListener('submit', async (e) => {
     formDirty = false;
 
     // Clear books cache so the new book appears on the list page
-    try {
-      localStorage.removeItem(`${CACHE_KEY}_${currentUser.uid}`);
-    } catch (e) {
-      // Ignore cache clear errors
-    }
+    clearBooksCache(currentUser.uid);
 
     showToast('Book added!', { type: 'success' });
     setTimeout(() => {

@@ -10,7 +10,7 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons } from './utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache } from './utils.js';
 import { bookCard } from './book-card.js';
 
 // Initialize icons once on load
@@ -18,9 +18,6 @@ initIcons();
 
 // Constants
 const BOOKS_PER_PAGE = 20;
-const CACHE_VERSION = 7; // Increment to invalidate old cache with different data format
-const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // State
 let currentUser = null;
@@ -32,6 +29,7 @@ let lastDoc = null;
 let hasMoreFromFirebase = true;
 let isLoading = false;
 let forceServerFetch = false;
+let cachedFilteredBooks = null; // Cache for filtered/sorted results
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -84,64 +82,27 @@ function setCachedBooks(booksData, hasMore) {
 }
 
 function clearCache() {
-  try {
-    localStorage.removeItem(`${CACHE_KEY}_${currentUser.uid}`);
-  } catch (e) {
-    console.warn('Cache clear error:', e);
-  }
+  clearBooksCache(currentUser.uid);
+  cachedFilteredBooks = null; // Also clear filtered cache
 }
 
-// Convert Firestore timestamp to serializable format
+// Convert Firestore document to serializable format
 function serializeBook(doc) {
   const data = doc.data();
-  const rawCreatedAt = data.createdAt;
-
-  let createdAt = null;
-  if (rawCreatedAt) {
-    if (typeof rawCreatedAt.toMillis === 'function') {
-      createdAt = rawCreatedAt.toMillis();
-    } else if (rawCreatedAt.seconds) {
-      createdAt = rawCreatedAt.seconds * 1000;
-    } else if (typeof rawCreatedAt === 'number') {
-      createdAt = rawCreatedAt;
-    } else if (typeof rawCreatedAt === 'string') {
-      // Handle ISO date strings (e.g., "2025-12-20T09:29:20.036460")
-      const date = new Date(rawCreatedAt);
-      if (!isNaN(date.getTime())) {
-        createdAt = date.getTime();
-      }
-    }
-  }
-
-  // Same logic for updatedAt
-  let updatedAt = null;
-  const rawUpdatedAt = data.updatedAt;
-  if (rawUpdatedAt) {
-    if (typeof rawUpdatedAt.toMillis === 'function') {
-      updatedAt = rawUpdatedAt.toMillis();
-    } else if (rawUpdatedAt.seconds) {
-      updatedAt = rawUpdatedAt.seconds * 1000;
-    } else if (typeof rawUpdatedAt === 'number') {
-      updatedAt = rawUpdatedAt;
-    } else if (typeof rawUpdatedAt === 'string') {
-      const date = new Date(rawUpdatedAt);
-      if (!isNaN(date.getTime())) {
-        updatedAt = date.getTime();
-      }
-    }
-  }
-
   return {
     id: doc.id,
     ...data,
-    createdAt,
-    updatedAt
+    createdAt: serializeTimestamp(data.createdAt),
+    updatedAt: serializeTimestamp(data.updatedAt)
   };
 }
 
 // Load Books - tries cache first, then Firebase
 async function loadBooks(forceRefresh = false) {
   if (isLoading) return;
+
+  // Invalidate filtered cache when loading new data
+  cachedFilteredBooks = null;
 
   // Try cache first (unless forcing refresh)
   if (!forceRefresh) {
@@ -217,6 +178,7 @@ async function fetchNextPage() {
     const uniqueNewBooks = newBooks.filter(b => !existingIds.has(b.id));
 
     books = [...books, ...uniqueNewBooks];
+    cachedFilteredBooks = null; // Invalidate filtered cache when books change
     lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
 
     // If we got a full page but no new unique books, we've caught up - no more to fetch
@@ -285,10 +247,22 @@ function filterByRating(booksArray, minRating) {
   return booksArray.filter(b => (b.rating || 0) >= minRating);
 }
 
+// Get filtered and sorted books (with caching)
+function getFilteredBooks() {
+  if (cachedFilteredBooks) return cachedFilteredBooks;
+  let filtered = filterByRating(books, ratingFilter);
+  cachedFilteredBooks = sortBooks(filtered, currentSort);
+  return cachedFilteredBooks;
+}
+
+// Invalidate filtered cache when filters change
+function invalidateFilteredCache() {
+  cachedFilteredBooks = null;
+}
+
 // Render Books
 function renderBooks() {
-  let filtered = filterByRating(books, ratingFilter);
-  filtered = sortBooks(filtered, currentSort);
+  const filtered = getFilteredBooks();
 
   if (filtered.length === 0 && !hasMoreFromFirebase) {
     emptyState.classList.remove('hidden');
@@ -318,8 +292,7 @@ function renderBooks() {
 
 // Load more - either from already loaded data or fetch from Firebase
 async function loadMore() {
-  let filtered = filterByRating(books, ratingFilter);
-  filtered = sortBooks(filtered, currentSort);
+  const filtered = getFilteredBooks();
 
   // If we have more loaded data to display
   if (displayLimit < filtered.length) {
@@ -368,6 +341,7 @@ sortSelect.addEventListener('change', async () => {
 ratingFilterSelect.addEventListener('change', () => {
   ratingFilter = parseInt(ratingFilterSelect.value) || 0;
   displayLimit = BOOKS_PER_PAGE;
+  invalidateFilteredCache(); // Re-filter with new rating
   updateResetButton();
   renderBooks();
 });
@@ -390,6 +364,7 @@ resetFiltersBtn.addEventListener('click', async () => {
   sortSelect.value = 'createdAt-desc';
   ratingFilterSelect.value = '0';
   displayLimit = BOOKS_PER_PAGE;
+  invalidateFilteredCache(); // Re-filter with reset values
   updateResetButton();
 
   if (needsRefetch) {

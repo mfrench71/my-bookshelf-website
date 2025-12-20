@@ -11,7 +11,13 @@ import {
   parseTimestamp,
   formatDate,
   renderStars,
-  showToast
+  showToast,
+  CACHE_VERSION,
+  CACHE_KEY,
+  CACHE_TTL,
+  clearBooksCache,
+  serializeTimestamp,
+  updateRatingStars
 } from '../src/js/utils.js';
 
 describe('escapeHtml', () => {
@@ -331,5 +337,138 @@ describe('showToast', () => {
 
     vi.advanceTimersByTime(1);
     expect(toast.classList.contains('hidden')).toBe(true);
+  });
+});
+
+describe('cache constants', () => {
+  it('should export CACHE_VERSION as a number', () => {
+    expect(typeof CACHE_VERSION).toBe('number');
+    expect(CACHE_VERSION).toBeGreaterThan(0);
+  });
+
+  it('should export CACHE_KEY with version embedded', () => {
+    expect(CACHE_KEY).toBe(`mybookshelf_books_cache_v${CACHE_VERSION}`);
+  });
+
+  it('should export CACHE_TTL as 5 minutes in milliseconds', () => {
+    expect(CACHE_TTL).toBe(5 * 60 * 1000);
+  });
+});
+
+describe('clearBooksCache', () => {
+  it('should not throw for any user id', () => {
+    expect(() => clearBooksCache('test-user-123')).not.toThrow();
+    expect(() => clearBooksCache('')).not.toThrow();
+    expect(() => clearBooksCache('non-existent-user')).not.toThrow();
+  });
+
+  it('should be a function that accepts a userId parameter', () => {
+    expect(typeof clearBooksCache).toBe('function');
+    expect(clearBooksCache.length).toBe(1);
+  });
+});
+
+describe('serializeTimestamp', () => {
+  it('should return null for null/undefined', () => {
+    expect(serializeTimestamp(null)).toBeNull();
+    expect(serializeTimestamp(undefined)).toBeNull();
+  });
+
+  it('should handle Firestore timestamp with toMillis method', () => {
+    const timestamp = { toMillis: () => 1686787200000 };
+    expect(serializeTimestamp(timestamp)).toBe(1686787200000);
+  });
+
+  it('should handle timestamp with seconds property', () => {
+    const timestamp = { seconds: 1686787200 };
+    expect(serializeTimestamp(timestamp)).toBe(1686787200000);
+  });
+
+  it('should return number as-is', () => {
+    expect(serializeTimestamp(1686787200000)).toBe(1686787200000);
+  });
+
+  it('should parse ISO date strings', () => {
+    const result = serializeTimestamp('2023-06-15T00:00:00.000Z');
+    expect(typeof result).toBe('number');
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it('should handle ISO date strings with microseconds', () => {
+    const result = serializeTimestamp('2025-12-20T09:29:20.036460');
+    expect(typeof result).toBe('number');
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it('should return null for invalid date strings', () => {
+    expect(serializeTimestamp('not-a-date')).toBeNull();
+    expect(serializeTimestamp('invalid')).toBeNull();
+  });
+
+  it('should prefer toMillis over seconds when both present', () => {
+    const timestamp = {
+      toMillis: () => 1000,
+      seconds: 2000
+    };
+    expect(serializeTimestamp(timestamp)).toBe(1000);
+  });
+});
+
+describe('updateRatingStars', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <button class="star-btn" data-rating="1"></button>
+      <button class="star-btn" data-rating="2"></button>
+      <button class="star-btn" data-rating="3"></button>
+      <button class="star-btn" data-rating="4"></button>
+      <button class="star-btn" data-rating="5"></button>
+    `;
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('should add active class to stars up to rating', () => {
+    const starBtns = document.querySelectorAll('.star-btn');
+    updateRatingStars(starBtns, 3);
+
+    expect(starBtns[0].classList.contains('active')).toBe(true);
+    expect(starBtns[1].classList.contains('active')).toBe(true);
+    expect(starBtns[2].classList.contains('active')).toBe(true);
+    expect(starBtns[3].classList.contains('active')).toBe(false);
+    expect(starBtns[4].classList.contains('active')).toBe(false);
+  });
+
+  it('should mark all stars active for rating 5', () => {
+    const starBtns = document.querySelectorAll('.star-btn');
+    updateRatingStars(starBtns, 5);
+
+    starBtns.forEach(btn => {
+      expect(btn.classList.contains('active')).toBe(true);
+    });
+  });
+
+  it('should mark no stars active for rating 0', () => {
+    const starBtns = document.querySelectorAll('.star-btn');
+    updateRatingStars(starBtns, 0);
+
+    starBtns.forEach(btn => {
+      expect(btn.classList.contains('active')).toBe(false);
+    });
+  });
+
+  it('should update stars when rating changes', () => {
+    const starBtns = document.querySelectorAll('.star-btn');
+
+    updateRatingStars(starBtns, 5);
+    expect(starBtns[4].classList.contains('active')).toBe(true);
+
+    updateRatingStars(starBtns, 2);
+    expect(starBtns[0].classList.contains('active')).toBe(true);
+    expect(starBtns[1].classList.contains('active')).toBe(true);
+    expect(starBtns[2].classList.contains('active')).toBe(false);
+    expect(starBtns[3].classList.contains('active')).toBe(false);
+    expect(starBtns[4].classList.contains('active')).toBe(false);
   });
 });

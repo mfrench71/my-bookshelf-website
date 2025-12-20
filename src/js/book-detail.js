@@ -8,22 +8,10 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons } from './utils.js';
+import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
 
 // Initialize icons once on load
 initIcons();
-
-// Cache key must match books.js
-const CACHE_VERSION = 7;
-const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
-
-function clearBooksCache(userId) {
-  try {
-    localStorage.removeItem(`${CACHE_KEY}_${userId}`);
-  } catch (e) {
-    // Ignore cache clear errors
-  }
-}
 
 // State
 let currentUser = null;
@@ -143,11 +131,7 @@ starBtns.forEach(btn => {
 });
 
 function updateRatingStars() {
-  starBtns.forEach(btn => {
-    const rating = parseInt(btn.dataset.rating);
-    btn.classList.toggle('active', rating <= currentRating);
-  });
-  initIcons();
+  updateStars(starBtns, currentRating);
 }
 
 // Save Changes
