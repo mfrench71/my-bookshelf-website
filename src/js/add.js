@@ -28,6 +28,7 @@ const lookupBtn = document.getElementById('lookup-btn');
 const lookupStatus = document.getElementById('lookup-status');
 const bookSearchInput = document.getElementById('book-search');
 const searchResultsDiv = document.getElementById('book-search-results');
+const clearSearchBtn = document.getElementById('clear-search');
 const bookForm = document.getElementById('book-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
@@ -176,6 +177,32 @@ function showStatus(message, type) {
   );
 }
 
+// Book Search State
+let searchState = {
+  query: '',
+  startIndex: 0,
+  useOpenLibrary: false,
+  hasMore: true,
+  loading: false,
+  totalItems: 0
+};
+const SEARCH_PAGE_SIZE = 10;
+
+// Intersection Observer for lazy loading search results
+let searchScrollObserver = null;
+
+function setupSearchScrollObserver() {
+  if (searchScrollObserver) searchScrollObserver.disconnect();
+
+  searchScrollObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !searchState.loading && searchState.hasMore) {
+      loadMoreSearchResults();
+    }
+  }, { root: searchResultsDiv, rootMargin: '50px' });
+}
+
+setupSearchScrollObserver();
+
 // Book Search by Title/Author - tries Google Books, falls back to Open Library
 async function searchBooks(query) {
   if (!query || query.length < 2) {
@@ -184,43 +211,81 @@ async function searchBooks(query) {
     return;
   }
 
+  // Reset search state for new query
+  searchState = {
+    query,
+    startIndex: 0,
+    useOpenLibrary: false,
+    hasMore: true,
+    loading: true,
+    totalItems: 0
+  };
+
   searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
   searchResultsDiv.classList.remove('hidden');
 
-  let books = [];
+  const result = await fetchSearchResults();
 
-  // Try Google Books first
-  try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.items?.length > 0) {
-        books = data.items.map(item => {
-          const book = item.volumeInfo;
-          return {
-            title: book.title || 'Unknown Title',
-            author: book.authors?.join(', ') || 'Unknown Author',
-            cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-            publisher: book.publisher || '',
-            publishedDate: book.publishedDate || '',
-            pageCount: book.pageCount || '',
-            isbn: book.industryIdentifiers?.[0]?.identifier || ''
-          };
-        });
-      }
-    } else {
-      console.warn('Google Books API error:', response.status);
-    }
-  } catch (error) {
-    console.warn('Google Books API failed:', error.message);
+  if (!result.books.length) {
+    searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">No books found</p>';
+    return;
   }
 
-  // Fallback to Open Library if Google Books failed or returned no results
-  if (books.length === 0) {
+  renderSearchResults(result.books, false);
+  searchState.startIndex = SEARCH_PAGE_SIZE;
+  searchState.hasMore = result.hasMore;
+  searchState.loading = false;
+}
+
+async function fetchSearchResults() {
+  const { query, startIndex, useOpenLibrary } = searchState;
+  let books = [];
+  let hasMore = false;
+
+  // Try Google Books first (unless we've fallen back to Open Library)
+  if (!useOpenLibrary) {
     try {
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`);
+      const response = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${startIndex}&maxResults=${SEARCH_PAGE_SIZE}`
+      );
       if (response.ok) {
         const data = await response.json();
+        searchState.totalItems = data.totalItems || 0;
+        if (data.items?.length > 0) {
+          books = data.items.map(item => {
+            const book = item.volumeInfo;
+            return {
+              title: book.title || 'Unknown Title',
+              author: book.authors?.join(', ') || 'Unknown Author',
+              cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+              publisher: book.publisher || '',
+              publishedDate: book.publishedDate || '',
+              pageCount: book.pageCount || '',
+              isbn: book.industryIdentifiers?.[0]?.identifier || ''
+            };
+          });
+          hasMore = (startIndex + books.length) < searchState.totalItems;
+        }
+      } else {
+        console.warn('Google Books API error:', response.status);
+        searchState.useOpenLibrary = true;
+      }
+    } catch (error) {
+      console.warn('Google Books API failed:', error.message);
+      searchState.useOpenLibrary = true;
+    }
+  }
+
+  // Fallback to Open Library
+  if (books.length === 0 && (useOpenLibrary || searchState.useOpenLibrary)) {
+    searchState.useOpenLibrary = true;
+    try {
+      const response = await fetch(
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&offset=${startIndex}&limit=${SEARCH_PAGE_SIZE}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        searchState.totalItems = data.numFound || 0;
         if (data.docs?.length > 0) {
           books = data.docs.map(doc => ({
             title: doc.title || 'Unknown Title',
@@ -231,6 +296,7 @@ async function searchBooks(query) {
             pageCount: doc.number_of_pages_median || '',
             isbn: doc.isbn?.[0] || ''
           }));
+          hasMore = (startIndex + books.length) < searchState.totalItems;
         }
       }
     } catch (error) {
@@ -238,12 +304,33 @@ async function searchBooks(query) {
     }
   }
 
-  if (books.length === 0) {
-    searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">No books found</p>';
-    return;
+  return { books, hasMore };
+}
+
+async function loadMoreSearchResults() {
+  if (searchState.loading || !searchState.hasMore) return;
+
+  searchState.loading = true;
+
+  // Add loading indicator
+  const sentinel = searchResultsDiv.querySelector('#search-sentinel');
+  if (sentinel) {
+    sentinel.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>';
   }
 
-  searchResultsDiv.innerHTML = books.map(book => `
+  const result = await fetchSearchResults();
+
+  if (result.books.length > 0) {
+    renderSearchResults(result.books, true);
+    searchState.startIndex += result.books.length;
+  }
+
+  searchState.hasMore = result.hasMore;
+  searchState.loading = false;
+}
+
+function renderSearchResults(books, append = false) {
+  const html = books.map(book => `
     <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
          data-title="${escapeAttr(book.title)}"
          data-author="${escapeAttr(book.author)}"
@@ -265,13 +352,36 @@ async function searchBooks(query) {
     </div>
   `).join('');
 
-  initIcons();
+  // Remove old sentinel if appending
+  if (append) {
+    const oldSentinel = searchResultsDiv.querySelector('#search-sentinel');
+    if (oldSentinel) oldSentinel.remove();
+  }
 
-  // Use event delegation for search results
-  searchResultsDiv.onclick = (e) => {
-    const result = e.target.closest('.search-result');
-    if (result) selectSearchResult(result);
-  };
+  if (append) {
+    searchResultsDiv.insertAdjacentHTML('beforeend', html);
+  } else {
+    searchResultsDiv.innerHTML = html;
+
+    // Set up click delegation once
+    searchResultsDiv.onclick = (e) => {
+      const result = e.target.closest('.search-result');
+      if (result) selectSearchResult(result);
+    };
+  }
+
+  // Add sentinel for infinite scroll if there are more results
+  if (searchState.hasMore) {
+    searchResultsDiv.insertAdjacentHTML('beforeend', `
+      <div id="search-sentinel" class="py-3 text-center text-xs text-gray-400">
+        Scroll for more...
+      </div>
+    `);
+    const sentinel = searchResultsDiv.querySelector('#search-sentinel');
+    if (sentinel) searchScrollObserver.observe(sentinel);
+  }
+
+  initIcons();
 }
 
 function selectSearchResult(el) {
@@ -305,7 +415,28 @@ function selectSearchResult(el) {
 // Debounced search
 const debouncedSearch = debounce(searchBooks, 300);
 bookSearchInput.addEventListener('input', () => {
-  debouncedSearch(bookSearchInput.value.trim());
+  const query = bookSearchInput.value.trim();
+  debouncedSearch(query);
+  // Show/hide clear button
+  clearSearchBtn.classList.toggle('hidden', !query);
+});
+
+// Clear search button
+clearSearchBtn.addEventListener('click', () => {
+  bookSearchInput.value = '';
+  searchResultsDiv.classList.add('hidden');
+  searchResultsDiv.innerHTML = '';
+  clearSearchBtn.classList.add('hidden');
+  // Reset search state
+  searchState = {
+    query: '',
+    startIndex: 0,
+    useOpenLibrary: false,
+    hasMore: true,
+    loading: false,
+    totalItems: 0
+  };
+  bookSearchInput.focus();
 });
 
 // Barcode Scanner using Quagga2 - optimized for iOS
