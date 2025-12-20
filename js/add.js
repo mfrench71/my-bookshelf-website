@@ -237,7 +237,25 @@ function startQuagga() {
 
     Quagga.onDetected(function(result) {
       if (result && result.codeResult && result.codeResult.code) {
+        // Check confidence - only accept high-confidence scans
+        const errors = result.codeResult.decodedCodes
+          .filter(x => x.error !== undefined)
+          .map(x => x.error);
+        const avgError = errors.reduce((a, b) => a + b, 0) / errors.length;
+
+        // Reject low-confidence reads (high error = bad read)
+        if (avgError > 0.1) {
+          console.log('Low confidence scan rejected:', result.codeResult.code, 'error:', avgError);
+          return;
+        }
+
         const code = result.codeResult.code;
+
+        // Validate ISBN format (10 or 13 digits, or UPC 12 digits)
+        if (!/^\d{10,13}$/.test(code)) {
+          console.log('Invalid ISBN format rejected:', code);
+          return;
+        }
 
         // Vibrate on detection
         if (navigator.vibrate) navigator.vibrate(100);
