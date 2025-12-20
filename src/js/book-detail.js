@@ -46,6 +46,9 @@ const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
+const publisherInput = document.getElementById('publisher');
+const publishedDateInput = document.getElementById('published-date');
+const physicalFormatInput = document.getElementById('physical-format');
 const notesInput = document.getElementById('notes');
 const saveBtn = document.getElementById('save-btn');
 const deleteBtn = document.getElementById('delete-btn');
@@ -178,6 +181,9 @@ function renderBook() {
   titleInput.value = book.title || '';
   authorInput.value = book.author || '';
   coverUrlInput.value = book.coverImageUrl || '';
+  publisherInput.value = book.publisher || '';
+  publishedDateInput.value = book.publishedDate || '';
+  physicalFormatInput.value = book.physicalFormat || '';
   notesInput.value = book.notes || '';
   currentRating = book.rating || 0;
   updateRatingStars();
@@ -228,12 +234,12 @@ editForm.addEventListener('submit', async (e) => {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
     coverImageUrl: coverUrlInput.value.trim(),
+    publisher: publisherInput.value.trim(),
+    publishedDate: publishedDateInput.value.trim(),
+    physicalFormat: physicalFormatInput.value.trim(),
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     genres: selectedGenres,
-    publisher: book.publisher || '',
-    publishedDate: book.publishedDate || '',
-    physicalFormat: book.physicalFormat || '',
     updatedAt: serverTimestamp()
   };
 
@@ -316,7 +322,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
 });
 
 // Track unsaved changes on form inputs
-[titleInput, authorInput, coverUrlInput, notesInput].forEach(el => {
+[titleInput, authorInput, coverUrlInput, publisherInput, publishedDateInput, physicalFormatInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
     formDirty = true;
   });
@@ -332,6 +338,8 @@ window.addEventListener('beforeunload', (e) => {
 
 // Refresh Data from APIs
 async function fetchBookDataFromAPI(isbn, title, author) {
+  let result = null;
+
   // Try Google Books API first (by ISBN if available)
   if (isbn) {
     try {
@@ -339,7 +347,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       const data = await response.json();
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
-        return {
+        result = {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -353,15 +361,15 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Google Books by title/author search
-  if (title) {
+  // Try Google Books by title/author search if no result yet
+  if (!result && title) {
     try {
       const searchQuery = author ? `intitle:${title}+inauthor:${author}` : `intitle:${title}`;
       const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
-        return {
+        result = {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -375,28 +383,34 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Open Library by ISBN
+  // Try Open Library by ISBN (as fallback, or to supplement with physical format)
   if (isbn) {
     try {
       const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
       const data = await response.json();
       const bookData = data[`ISBN:${isbn}`];
       if (bookData) {
-        return {
-          title: bookData.title || '',
-          author: bookData.authors?.[0]?.name || '',
-          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
-          publisher: bookData.publishers?.[0]?.name || '',
-          publishedDate: bookData.publish_date || '',
-          physicalFormat: bookData.physical_format || ''
-        };
+        if (result) {
+          // Supplement Google Books data with Open Library physical format
+          result.physicalFormat = bookData.physical_format || '';
+        } else {
+          // Use Open Library as primary source
+          result = {
+            title: bookData.title || '',
+            author: bookData.authors?.[0]?.name || '',
+            coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
+            publisher: bookData.publishers?.[0]?.name || '',
+            publishedDate: bookData.publish_date || '',
+            physicalFormat: bookData.physical_format || ''
+          };
+        }
       }
     } catch (e) {
       console.error('Open Library API error:', e);
     }
   }
 
-  return null;
+  return result;
 }
 
 refreshDataBtn.addEventListener('click', async () => {
@@ -424,12 +438,22 @@ refreshDataBtn.addEventListener('click', async () => {
         coverContainer.innerHTML = `<img src="${apiData.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto">`;
       }
 
-      // Update book object with new metadata for display
-      book.publisher = apiData.publisher || book.publisher || '';
-      book.publishedDate = apiData.publishedDate || book.publishedDate || '';
-      book.physicalFormat = apiData.physicalFormat || book.physicalFormat || '';
+      // Update form inputs with new metadata
+      if (apiData.publisher) {
+        publisherInput.value = apiData.publisher;
+      }
+      if (apiData.publishedDate) {
+        publishedDateInput.value = apiData.publishedDate;
+      }
+      if (apiData.physicalFormat) {
+        physicalFormatInput.value = apiData.physicalFormat;
+      }
 
-      // Re-render book details section
+      // Update book object and re-render details section
+      book.publisher = publisherInput.value;
+      book.publishedDate = publishedDateInput.value;
+      book.physicalFormat = physicalFormatInput.value;
+
       let detailsHtml = '';
       if (book.publisher) {
         detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;

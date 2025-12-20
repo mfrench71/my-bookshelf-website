@@ -12,6 +12,8 @@ import {
 
 // Replicate fetchBookDataFromAPI function for testing
 async function fetchBookDataFromAPI(isbn, title, author) {
+  let result = null;
+
   // Try Google Books API first (by ISBN if available)
   if (isbn) {
     try {
@@ -19,7 +21,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       const data = await response.json();
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
-        return {
+        result = {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -33,15 +35,15 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Google Books by title/author search
-  if (title) {
+  // Try Google Books by title/author search if no result yet
+  if (!result && title) {
     try {
       const searchQuery = author ? `intitle:${title}+inauthor:${author}` : `intitle:${title}`;
       const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
-        return {
+        result = {
           title: volumeInfo.title || '',
           author: volumeInfo.authors?.join(', ') || '',
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -55,28 +57,34 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Open Library by ISBN
+  // Try Open Library by ISBN (as fallback, or to supplement with physical format)
   if (isbn) {
     try {
       const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
       const data = await response.json();
       const bookData = data[`ISBN:${isbn}`];
       if (bookData) {
-        return {
-          title: bookData.title || '',
-          author: bookData.authors?.[0]?.name || '',
-          coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
-          publisher: bookData.publishers?.[0]?.name || '',
-          publishedDate: bookData.publish_date || '',
-          physicalFormat: bookData.physical_format || ''
-        };
+        if (result) {
+          // Supplement Google Books data with Open Library physical format
+          result.physicalFormat = bookData.physical_format || '';
+        } else {
+          // Use Open Library as primary source
+          result = {
+            title: bookData.title || '',
+            author: bookData.authors?.[0]?.name || '',
+            coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
+            publisher: bookData.publishers?.[0]?.name || '',
+            publishedDate: bookData.publish_date || '',
+            physicalFormat: bookData.physical_format || ''
+          };
+        }
       }
     } catch (e) {
       console.error('Open Library API error:', e);
     }
   }
 
-  return null;
+  return result;
 }
 
 describe('fetchBookDataFromAPI', () => {
@@ -85,15 +93,25 @@ describe('fetchBookDataFromAPI', () => {
   });
 
   describe('Google Books by ISBN', () => {
-    it('should fetch book data by ISBN from Google Books', async () => {
+    it('should fetch book data by ISBN from Google Books and supplement with Open Library', async () => {
       const mockBook = {
         title: 'The Great Gatsby',
         author: 'F. Scott Fitzgerald',
         coverImageUrl: 'https://books.google.com/cover.jpg'
       };
 
+      // Google Books response
       global.fetch.mockResolvedValueOnce({
         json: () => Promise.resolve(mockGoogleBooksResponse([mockBook]))
+      });
+
+      // Open Library response for physical format
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:9780743273565': {
+            physical_format: 'Paperback'
+          }
+        })
       });
 
       const result = await fetchBookDataFromAPI('9780743273565', 'The Great Gatsby', 'F. Scott Fitzgerald');
@@ -102,6 +120,7 @@ describe('fetchBookDataFromAPI', () => {
       expect(result.title).toBe('The Great Gatsby');
       expect(result.author).toBe('F. Scott Fitzgerald');
       expect(result.coverImageUrl).toBe('https://books.google.com/cover.jpg');
+      expect(result.physicalFormat).toBe('Paperback');
     });
 
     it('should convert http to https for cover images', async () => {
@@ -119,6 +138,11 @@ describe('fetchBookDataFromAPI', () => {
 
       global.fetch.mockResolvedValueOnce({
         json: () => Promise.resolve(mockResponse)
+      });
+
+      // Open Library response
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({})
       });
 
       const result = await fetchBookDataFromAPI('1234567890', 'Test Book', 'Test Author');
@@ -140,6 +164,11 @@ describe('fetchBookDataFromAPI', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
+      // Open Library response
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({})
+      });
+
       const result = await fetchBookDataFromAPI('1234567890', 'Collaborative Work', '');
 
       expect(result.author).toBe('Author One, Author Two, Author Three');
@@ -159,6 +188,11 @@ describe('fetchBookDataFromAPI', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
+      // Open Library response
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({})
+      });
+
       const result = await fetchBookDataFromAPI('1234567890', 'Minimal Book', '');
 
       expect(result.title).toBe('Minimal Book');
@@ -166,7 +200,7 @@ describe('fetchBookDataFromAPI', () => {
       expect(result.coverImageUrl).toBe('');
     });
 
-    it('should return publisher and publishedDate from Google Books', async () => {
+    it('should return publisher and publishedDate from Google Books with physicalFormat from Open Library', async () => {
       const mockResponse = {
         items: [{
           volumeInfo: {
@@ -182,11 +216,20 @@ describe('fetchBookDataFromAPI', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
+      // Open Library provides physical format
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            physical_format: 'Hardcover'
+          }
+        })
+      });
+
       const result = await fetchBookDataFromAPI('1234567890', 'Test Book', 'Test Author');
 
       expect(result.publisher).toBe('Test Publisher');
       expect(result.publishedDate).toBe('2023-05-15');
-      expect(result.physicalFormat).toBe('');
+      expect(result.physicalFormat).toBe('Hardcover');
     });
   });
 
@@ -276,11 +319,21 @@ describe('fetchBookDataFromAPI', () => {
         })
       });
 
+      // Open Library called for physical format (since we have ISBN)
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            physical_format: 'Paperback'
+          }
+        })
+      });
+
       const result = await fetchBookDataFromAPI('1234567890', 'Fallback Book', 'Fallback Author');
 
       expect(result.title).toBe('Fallback Book');
       expect(result.author).toBe('Fallback Author');
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(result.physicalFormat).toBe('Paperback');
+      expect(global.fetch).toHaveBeenCalledTimes(3);
     });
   });
 
