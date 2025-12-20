@@ -284,15 +284,16 @@ async function loadMore() {
 
 // Refresh - clear cache and reload from Firebase
 async function refreshBooks() {
-  const icon = refreshBtn.querySelector('svg') || refreshBtn.querySelector('i');
-  if (icon) icon.classList.add('animate-spin');
+  refreshBtn.classList.add('animate-spin');
 
-  clearCache();
-  displayLimit = BOOKS_PER_PAGE;
-  await loadBooks(true);
-
-  if (icon) icon.classList.remove('animate-spin');
-  showToast('Books refreshed');
+  try {
+    clearCache();
+    displayLimit = BOOKS_PER_PAGE;
+    await loadBooks(true);
+    showToast('Books refreshed');
+  } finally {
+    refreshBtn.classList.remove('animate-spin');
+  }
 }
 
 // Sort & Filter Controls
