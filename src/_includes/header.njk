@@ -31,17 +31,19 @@
   <div id="menu-panel" class="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl transform translate-x-full transition-transform">
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-            <i data-lucide="book-open" class="w-3 h-3 text-white"></i>
+        <div class="flex items-center gap-3">
+          <div id="menu-avatar" class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+            <!-- Populated by JS: photo, Gravatar, or initial -->
           </div>
-          <span class="text-sm font-bold text-gray-900">MyBookShelf</span>
+          <div>
+            <p id="user-email" class="text-sm font-medium text-gray-900"></p>
+            <p class="text-xs text-gray-500">MyBookShelf</p>
+          </div>
         </div>
         <button id="close-menu" class="p-1 hover:bg-gray-100 rounded">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <p id="user-email" class="text-sm text-gray-500 mt-1"></p>
     </div>
     <nav class="p-2">
       <a href="/settings/" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg">

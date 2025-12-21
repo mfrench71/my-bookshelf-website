@@ -5,11 +5,14 @@ import {
   collection,
   query,
   orderBy,
-  getDocs
+  getDocs,
+  doc,
+  getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
 import { bookCard } from './book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
+import { getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
 initIcons();
@@ -29,6 +32,7 @@ const menuPanel = document.getElementById('menu-panel');
 const closeMenuBtn = document.getElementById('close-menu');
 const logoutBtn = document.getElementById('logout-btn');
 const userEmail = document.getElementById('user-email');
+const menuAvatar = document.getElementById('menu-avatar');
 const searchBtn = document.getElementById('search-btn');
 const searchOverlay = document.getElementById('search-overlay');
 const closeSearchBtn = document.getElementById('close-search');
@@ -54,15 +58,52 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
 // Auth State
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     if (userEmail) userEmail.textContent = user.email;
+    // Update menu avatar
+    if (menuAvatar) {
+      await updateMenuAvatar(user);
+    }
     // Don't load all books upfront - load when search opens
   } else {
     window.location.href = '/';
   }
 });
+
+// Update menu avatar with user photo, Gravatar, or initial
+async function updateMenuAvatar(user) {
+  const initial = user.email ? user.email.charAt(0).toUpperCase() : '?';
+
+  // Try to load user profile photo from Firestore
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userData = userDoc.exists() ? userDoc.data() : {};
+
+    if (userData.photoUrl) {
+      menuAvatar.innerHTML = `<img src="${userData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+      return;
+    }
+  } catch (e) {
+    // Ignore errors, fall through to Gravatar/initial
+  }
+
+  // Try Gravatar
+  const gravatarUrl = getGravatarUrl(user.email, 80);
+  try {
+    const response = await fetch(gravatarUrl, { method: 'HEAD' });
+    if (response.ok) {
+      menuAvatar.innerHTML = `<img src="${gravatarUrl}" alt="Profile" class="w-full h-full object-cover">`;
+      return;
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+
+  // Fall back to initial
+  menuAvatar.textContent = initial;
+}
 
 // Load all books for search - called when search opens
 async function loadAllBooksForSearch() {
