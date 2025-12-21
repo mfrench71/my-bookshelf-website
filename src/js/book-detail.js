@@ -39,6 +39,7 @@ const content = document.getElementById('content');
 const coverContainer = document.getElementById('cover-container');
 const bookTitle = document.getElementById('book-title');
 const bookAuthor = document.getElementById('book-author');
+const bookIsbn = document.getElementById('book-isbn');
 const bookRating = document.getElementById('book-rating');
 const bookDates = document.getElementById('book-dates');
 const bookDetails = document.getElementById('book-details');
@@ -146,6 +147,7 @@ function renderBook() {
   // Info
   bookTitle.textContent = book.title;
   bookAuthor.textContent = book.author || 'Unknown author';
+  bookIsbn.textContent = book.isbn ? `ISBN: ${book.isbn}` : '';
 
   // Rating
   bookRating.innerHTML = book.rating ? renderStars(book.rating) : '';
