@@ -1,11 +1,22 @@
 // Settings Page Logic
 import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  onAuthStateChanged,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
   query,
   orderBy,
-  getDocs
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   loadUserGenres,
@@ -67,10 +78,61 @@ const recountGenresBtn = document.getElementById('recount-genres-btn');
 const recountResults = document.getElementById('recount-results');
 const recountResultsText = document.getElementById('recount-results-text');
 
+// DOM Elements - Profile
+const profileAvatar = document.getElementById('profile-avatar');
+const profileEmail = document.getElementById('profile-email');
+const profileCreated = document.getElementById('profile-created');
+const changePasswordBtn = document.getElementById('change-password-btn');
+const editAvatarBtn = document.getElementById('edit-avatar-btn');
+const privacySettingsBtn = document.getElementById('privacy-settings-btn');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
+
+// DOM Elements - Photo Modal
+const photoModal = document.getElementById('photo-modal');
+const photoPreview = document.getElementById('photo-preview');
+const photoInput = document.getElementById('photo-input');
+const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+const removePhotoBtn = document.getElementById('remove-photo-btn');
+const closePhotoModalBtn = document.getElementById('close-photo-modal');
+
+// Profile photo state
+let userProfileData = null;
+
+// DOM Elements - Password Modal
+const passwordModal = document.getElementById('password-modal');
+const passwordForm = document.getElementById('password-form');
+const currentPasswordInput = document.getElementById('current-password');
+const newPasswordInput = document.getElementById('new-password');
+const confirmPasswordInput = document.getElementById('confirm-password');
+const cancelPasswordBtn = document.getElementById('cancel-password');
+const savePasswordBtn = document.getElementById('save-password');
+
+// Password strength elements
+const newPasswordStrength = document.getElementById('new-password-strength');
+const newStrengthBars = [
+  document.getElementById('new-strength-bar-1'),
+  document.getElementById('new-strength-bar-2'),
+  document.getElementById('new-strength-bar-3'),
+  document.getElementById('new-strength-bar-4')
+];
+const newStrengthText = document.getElementById('new-strength-text');
+const newReqLength = document.getElementById('new-req-length');
+const newReqUppercase = document.getElementById('new-req-uppercase');
+const newReqNumber = document.getElementById('new-req-number');
+
+// DOM Elements - Delete Account Modal
+const deleteAccountModal = document.getElementById('delete-account-modal');
+const deleteAccountForm = document.getElementById('delete-account-form');
+const deleteConfirmPasswordInput = document.getElementById('delete-confirm-password');
+const deleteConfirmTextInput = document.getElementById('delete-confirm-text');
+const cancelDeleteAccountBtn = document.getElementById('cancel-delete-account');
+const confirmDeleteAccountBtn = document.getElementById('confirm-delete-account');
+
 // Auth Check
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
+    loadProfileInfo();
     loadGenres();
   }
 });
@@ -105,7 +167,533 @@ function switchSection(sectionId) {
 }
 
 // Initialize active state
-switchSection('genres');
+switchSection('profile');
+
+// ==================== Profile ====================
+
+// Simple MD5 implementation for Gravatar
+function md5(string) {
+  function rotateLeft(val, shift) {
+    return (val << shift) | (val >>> (32 - shift));
+  }
+  function addUnsigned(x, y) {
+    const x4 = x & 0x40000000, y4 = y & 0x40000000;
+    const x8 = x & 0x80000000, y8 = y & 0x80000000;
+    const result = (x & 0x3FFFFFFF) + (y & 0x3FFFFFFF);
+    if (x4 & y4) return result ^ 0x80000000 ^ x8 ^ y8;
+    if (x4 | y4) {
+      if (result & 0x40000000) return result ^ 0xC0000000 ^ x8 ^ y8;
+      return result ^ 0x40000000 ^ x8 ^ y8;
+    }
+    return result ^ x8 ^ y8;
+  }
+  function F(x, y, z) { return (x & y) | (~x & z); }
+  function G(x, y, z) { return (x & z) | (y & ~z); }
+  function H(x, y, z) { return x ^ y ^ z; }
+  function I(x, y, z) { return y ^ (x | ~z); }
+  function FF(a, b, c, d, x, s, ac) { return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(F(b, c, d), x), ac)), s), b); }
+  function GG(a, b, c, d, x, s, ac) { return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(G(b, c, d), x), ac)), s), b); }
+  function HH(a, b, c, d, x, s, ac) { return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(H(b, c, d), x), ac)), s), b); }
+  function II(a, b, c, d, x, s, ac) { return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(I(b, c, d), x), ac)), s), b); }
+  function convertToWordArray(str) {
+    const len = str.length, words = [];
+    for (let i = 0; i < len; i += 4) {
+      words.push((str.charCodeAt(i)) | (str.charCodeAt(i + 1) << 8) | (str.charCodeAt(i + 2) << 16) | (str.charCodeAt(i + 3) << 24));
+    }
+    return words;
+  }
+  function wordToHex(val) {
+    let hex = '', temp;
+    for (let i = 0; i <= 3; i++) {
+      temp = (val >>> (i * 8)) & 255;
+      hex += ('0' + temp.toString(16)).slice(-2);
+    }
+    return hex;
+  }
+  function utf8Encode(str) {
+    return unescape(encodeURIComponent(str));
+  }
+
+  let x = [], k, AA, BB, CC, DD, a, b, c, d;
+  const S11 = 7, S12 = 12, S13 = 17, S14 = 22, S21 = 5, S22 = 9, S23 = 14, S24 = 20;
+  const S31 = 4, S32 = 11, S33 = 16, S34 = 23, S41 = 6, S42 = 10, S43 = 15, S44 = 21;
+  string = utf8Encode(string);
+  const len = string.length;
+  string += String.fromCharCode(0x80);
+  while ((string.length % 64) !== 56) string += String.fromCharCode(0);
+  string += String.fromCharCode((len * 8) & 0xFF, ((len * 8) >>> 8) & 0xFF, ((len * 8) >>> 16) & 0xFF, ((len * 8) >>> 24) & 0xFF, 0, 0, 0, 0);
+  x = convertToWordArray(string);
+  a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
+  for (k = 0; k < x.length; k += 16) {
+    AA = a; BB = b; CC = c; DD = d;
+    a = FF(a, b, c, d, x[k], S11, 0xD76AA478); d = FF(d, a, b, c, x[k + 1], S12, 0xE8C7B756);
+    c = FF(c, d, a, b, x[k + 2], S13, 0x242070DB); b = FF(b, c, d, a, x[k + 3], S14, 0xC1BDCEEE);
+    a = FF(a, b, c, d, x[k + 4], S11, 0xF57C0FAF); d = FF(d, a, b, c, x[k + 5], S12, 0x4787C62A);
+    c = FF(c, d, a, b, x[k + 6], S13, 0xA8304613); b = FF(b, c, d, a, x[k + 7], S14, 0xFD469501);
+    a = FF(a, b, c, d, x[k + 8], S11, 0x698098D8); d = FF(d, a, b, c, x[k + 9], S12, 0x8B44F7AF);
+    c = FF(c, d, a, b, x[k + 10], S13, 0xFFFF5BB1); b = FF(b, c, d, a, x[k + 11], S14, 0x895CD7BE);
+    a = FF(a, b, c, d, x[k + 12], S11, 0x6B901122); d = FF(d, a, b, c, x[k + 13], S12, 0xFD987193);
+    c = FF(c, d, a, b, x[k + 14], S13, 0xA679438E); b = FF(b, c, d, a, x[k + 15], S14, 0x49B40821);
+    a = GG(a, b, c, d, x[k + 1], S21, 0xF61E2562); d = GG(d, a, b, c, x[k + 6], S22, 0xC040B340);
+    c = GG(c, d, a, b, x[k + 11], S23, 0x265E5A51); b = GG(b, c, d, a, x[k], S24, 0xE9B6C7AA);
+    a = GG(a, b, c, d, x[k + 5], S21, 0xD62F105D); d = GG(d, a, b, c, x[k + 10], S22, 0x2441453);
+    c = GG(c, d, a, b, x[k + 15], S23, 0xD8A1E681); b = GG(b, c, d, a, x[k + 4], S24, 0xE7D3FBC8);
+    a = GG(a, b, c, d, x[k + 9], S21, 0x21E1CDE6); d = GG(d, a, b, c, x[k + 14], S22, 0xC33707D6);
+    c = GG(c, d, a, b, x[k + 3], S23, 0xF4D50D87); b = GG(b, c, d, a, x[k + 8], S24, 0x455A14ED);
+    a = GG(a, b, c, d, x[k + 13], S21, 0xA9E3E905); d = GG(d, a, b, c, x[k + 2], S22, 0xFCEFA3F8);
+    c = GG(c, d, a, b, x[k + 7], S23, 0x676F02D9); b = GG(b, c, d, a, x[k + 12], S24, 0x8D2A4C8A);
+    a = HH(a, b, c, d, x[k + 5], S31, 0xFFFA3942); d = HH(d, a, b, c, x[k + 8], S32, 0x8771F681);
+    c = HH(c, d, a, b, x[k + 11], S33, 0x6D9D6122); b = HH(b, c, d, a, x[k + 14], S34, 0xFDE5380C);
+    a = HH(a, b, c, d, x[k + 1], S31, 0xA4BEEA44); d = HH(d, a, b, c, x[k + 4], S32, 0x4BDECFA9);
+    c = HH(c, d, a, b, x[k + 7], S33, 0xF6BB4B60); b = HH(b, c, d, a, x[k + 10], S34, 0xBEBFBC70);
+    a = HH(a, b, c, d, x[k + 13], S31, 0x289B7EC6); d = HH(d, a, b, c, x[k], S32, 0xEAA127FA);
+    c = HH(c, d, a, b, x[k + 3], S33, 0xD4EF3085); b = HH(b, c, d, a, x[k + 6], S34, 0x4881D05);
+    a = HH(a, b, c, d, x[k + 9], S31, 0xD9D4D039); d = HH(d, a, b, c, x[k + 12], S32, 0xE6DB99E5);
+    c = HH(c, d, a, b, x[k + 15], S33, 0x1FA27CF8); b = HH(b, c, d, a, x[k + 2], S34, 0xC4AC5665);
+    a = II(a, b, c, d, x[k], S41, 0xF4292244); d = II(d, a, b, c, x[k + 7], S42, 0x432AFF97);
+    c = II(c, d, a, b, x[k + 14], S43, 0xAB9423A7); b = II(b, c, d, a, x[k + 5], S44, 0xFC93A039);
+    a = II(a, b, c, d, x[k + 12], S41, 0x655B59C3); d = II(d, a, b, c, x[k + 3], S42, 0x8F0CCC92);
+    c = II(c, d, a, b, x[k + 10], S43, 0xFFEFF47D); b = II(b, c, d, a, x[k + 1], S44, 0x85845DD1);
+    a = II(a, b, c, d, x[k + 8], S41, 0x6FA87E4F); d = II(d, a, b, c, x[k + 15], S42, 0xFE2CE6E0);
+    c = II(c, d, a, b, x[k + 6], S43, 0xA3014314); b = II(b, c, d, a, x[k + 13], S44, 0x4E0811A1);
+    a = II(a, b, c, d, x[k + 4], S41, 0xF7537E82); d = II(d, a, b, c, x[k + 11], S42, 0xBD3AF235);
+    c = II(c, d, a, b, x[k + 2], S43, 0x2AD7D2BB); b = II(b, c, d, a, x[k + 9], S44, 0xEB86D391);
+    a = addUnsigned(a, AA); b = addUnsigned(b, BB); c = addUnsigned(c, CC); d = addUnsigned(d, DD);
+  }
+  return (wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d)).toLowerCase();
+}
+
+function getGravatarUrl(email, size = 80) {
+  const hash = md5(email.trim().toLowerCase());
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`;
+}
+
+async function loadProfileInfo() {
+  if (!currentUser) return;
+
+  // Display email
+  profileEmail.textContent = currentUser.email;
+
+  // Display member since date
+  const createdAt = currentUser.metadata?.creationTime;
+  if (createdAt) {
+    const date = new Date(createdAt);
+    profileCreated.textContent = date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } else {
+    profileCreated.textContent = 'Unknown';
+  }
+
+  // Load user profile data from Firestore
+  try {
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    userProfileData = userDoc.exists() ? userDoc.data() : {};
+  } catch (e) {
+    userProfileData = {};
+  }
+
+  // Update avatar display
+  await updateAvatarDisplay();
+}
+
+async function updateAvatarDisplay() {
+  const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : '?';
+
+  // Priority: uploaded photo > Gravatar > initial
+  if (userProfileData?.photoUrl) {
+    // User has uploaded photo
+    profileAvatar.innerHTML = `<img src="${userProfileData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+  } else {
+    // Try Gravatar
+    const gravatarUrl = getGravatarUrl(currentUser.email, 160);
+    try {
+      const response = await fetch(gravatarUrl, { method: 'HEAD' });
+      if (response.ok) {
+        profileAvatar.innerHTML = `<img src="${gravatarUrl}" alt="Profile" class="w-full h-full object-cover">`;
+      } else {
+        throw new Error('No Gravatar');
+      }
+    } catch (e) {
+      // Fall back to initial
+      profileAvatar.innerHTML = '';
+      profileAvatar.textContent = initial;
+    }
+  }
+}
+
+// Photo Upload
+const MAX_FILE_SIZE = 500 * 1024; // 500KB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+uploadPhotoBtn.addEventListener('click', () => {
+  photoInput.click();
+});
+
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    showToast('Please select a JPG, PNG, or WebP image', { type: 'error' });
+    photoInput.value = '';
+    return;
+  }
+
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    showToast('Image must be less than 500KB', { type: 'error' });
+    photoInput.value = '';
+    return;
+  }
+
+  uploadPhotoBtn.disabled = true;
+  uploadPhotoBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>';
+
+  try {
+    // Convert to base64
+    const base64 = await fileToBase64(file);
+
+    // Save to Firestore
+    await setDoc(doc(db, 'users', currentUser.uid), {
+      photoUrl: base64
+    }, { merge: true });
+
+    userProfileData = { ...userProfileData, photoUrl: base64 };
+    await updateAvatarDisplay();
+    updatePhotoPreview();
+
+    showToast('Profile photo updated!', { type: 'success' });
+    closePhotoModal();
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    showToast('Error uploading photo', { type: 'error' });
+  } finally {
+    uploadPhotoBtn.disabled = false;
+    uploadPhotoBtn.innerHTML = '<i data-lucide="upload" class="w-4 h-4"></i><span>Upload</span>';
+    initIcons();
+    photoInput.value = '';
+  }
+});
+
+removePhotoBtn.addEventListener('click', async () => {
+  removePhotoBtn.disabled = true;
+  removePhotoBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></span>';
+
+  try {
+    // Remove from Firestore
+    await setDoc(doc(db, 'users', currentUser.uid), {
+      photoUrl: null
+    }, { merge: true });
+
+    userProfileData = { ...userProfileData, photoUrl: null };
+    await updateAvatarDisplay();
+    updatePhotoPreview();
+
+    showToast('Profile photo removed', { type: 'success' });
+  } catch (error) {
+    console.error('Error removing photo:', error);
+    showToast('Error removing photo', { type: 'error' });
+  } finally {
+    removePhotoBtn.disabled = false;
+    removePhotoBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span>Remove</span>';
+    initIcons();
+  }
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Photo Modal
+function openPhotoModal() {
+  // Sync photo preview with current state
+  updatePhotoPreview();
+  photoModal.classList.remove('hidden');
+  initIcons();
+}
+
+function closePhotoModal() {
+  photoModal.classList.add('hidden');
+}
+
+function updatePhotoPreview() {
+  if (userProfileData?.photoUrl) {
+    photoPreview.innerHTML = `<img src="${userProfileData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+    removePhotoBtn.classList.remove('hidden');
+  } else if (currentUser) {
+    const gravatarUrl = getGravatarUrl(currentUser.email, 160);
+    // Check if we have a cached Gravatar response
+    fetch(gravatarUrl, { method: 'HEAD' })
+      .then(response => {
+        if (response.ok) {
+          photoPreview.innerHTML = `<img src="${gravatarUrl}" alt="Gravatar" class="w-full h-full object-cover">`;
+        } else {
+          photoPreview.innerHTML = '<i data-lucide="user" class="w-10 h-10 text-gray-400"></i>';
+          initIcons();
+        }
+      })
+      .catch(() => {
+        photoPreview.innerHTML = '<i data-lucide="user" class="w-10 h-10 text-gray-400"></i>';
+        initIcons();
+      });
+    removePhotoBtn.classList.add('hidden');
+  }
+}
+
+editAvatarBtn.addEventListener('click', openPhotoModal);
+closePhotoModalBtn.addEventListener('click', closePhotoModal);
+photoModal.addEventListener('click', (e) => {
+  if (e.target === photoModal) closePhotoModal();
+});
+
+// Change Password
+changePasswordBtn.addEventListener('click', () => {
+  currentPasswordInput.value = '';
+  newPasswordInput.value = '';
+  confirmPasswordInput.value = '';
+  // Reset password strength UI
+  updateNewPasswordUI('');
+  passwordModal.classList.remove('hidden');
+  currentPasswordInput.focus();
+});
+
+cancelPasswordBtn.addEventListener('click', () => {
+  passwordModal.classList.add('hidden');
+});
+
+passwordModal.addEventListener('click', (e) => {
+  if (e.target === passwordModal) {
+    passwordModal.classList.add('hidden');
+  }
+});
+
+// Password strength checking
+function checkPasswordStrength(password) {
+  const checks = {
+    length: password.length >= 6,
+    uppercase: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  };
+
+  let score = 0;
+  if (checks.length) score++;
+  if (checks.uppercase && checks.lowercase) score++;
+  if (checks.number) score++;
+  if (checks.special || password.length >= 10) score++;
+
+  return { checks, score };
+}
+
+function updateNewPasswordUI(password) {
+  if (!newPasswordStrength) return;
+
+  if (password.length === 0) {
+    newPasswordStrength.classList.add('hidden');
+    updateRequirement(newReqLength, false);
+    updateRequirement(newReqUppercase, false);
+    updateRequirement(newReqNumber, false);
+    return;
+  }
+
+  newPasswordStrength.classList.remove('hidden');
+  const { checks, score } = checkPasswordStrength(password);
+
+  updateRequirement(newReqLength, checks.length);
+  updateRequirement(newReqUppercase, checks.uppercase);
+  updateRequirement(newReqNumber, checks.number);
+
+  const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
+  const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+
+  newStrengthBars.forEach((bar, index) => {
+    bar.className = 'h-1 flex-1 rounded-full';
+    if (index < score) {
+      bar.classList.add(colors[Math.min(score - 1, 3)]);
+    } else {
+      bar.classList.add('bg-gray-200');
+    }
+  });
+
+  newStrengthText.textContent = labels[Math.min(score - 1, 3)] || '';
+  newStrengthText.className = 'text-xs';
+  if (score === 1) newStrengthText.classList.add('text-red-500');
+  else if (score === 2) newStrengthText.classList.add('text-orange-500');
+  else if (score === 3) newStrengthText.classList.add('text-yellow-600');
+  else if (score === 4) newStrengthText.classList.add('text-green-500');
+}
+
+function updateRequirement(element, met) {
+  if (!element) return;
+  const icon = element.querySelector('i');
+  if (met) {
+    element.classList.remove('text-gray-400');
+    element.classList.add('text-green-500');
+    if (icon) icon.setAttribute('data-lucide', 'check-circle');
+  } else {
+    element.classList.remove('text-green-500');
+    element.classList.add('text-gray-400');
+    if (icon) icon.setAttribute('data-lucide', 'circle');
+  }
+  initIcons();
+}
+
+newPasswordInput?.addEventListener('input', (e) => {
+  updateNewPasswordUI(e.target.value);
+});
+
+passwordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const currentPassword = currentPasswordInput.value;
+  const newPassword = newPasswordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
+
+  if (newPassword !== confirmPassword) {
+    showToast('New passwords do not match', { type: 'error' });
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showToast('Password must be at least 6 characters', { type: 'error' });
+    return;
+  }
+
+  savePasswordBtn.disabled = true;
+  savePasswordBtn.textContent = 'Updating...';
+
+  try {
+    // Re-authenticate user
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+
+    // Update password
+    await updatePassword(currentUser, newPassword);
+
+    showToast('Password updated successfully!', { type: 'success' });
+    passwordModal.classList.add('hidden');
+  } catch (error) {
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      showToast('Current password is incorrect', { type: 'error' });
+    } else if (error.code === 'auth/weak-password') {
+      showToast('New password is too weak', { type: 'error' });
+    } else {
+      console.error('Error updating password:', error);
+      showToast('Error updating password', { type: 'error' });
+    }
+  } finally {
+    savePasswordBtn.disabled = false;
+    savePasswordBtn.textContent = 'Update Password';
+  }
+});
+
+// Privacy Settings (placeholder)
+privacySettingsBtn.addEventListener('click', () => {
+  showToast('Privacy settings coming soon!', { type: 'info' });
+});
+
+// Delete Account
+deleteAccountBtn.addEventListener('click', () => {
+  deleteConfirmPasswordInput.value = '';
+  deleteConfirmTextInput.value = '';
+  deleteAccountModal.classList.remove('hidden');
+  deleteConfirmPasswordInput.focus();
+});
+
+cancelDeleteAccountBtn.addEventListener('click', () => {
+  deleteAccountModal.classList.add('hidden');
+});
+
+deleteAccountModal.addEventListener('click', (e) => {
+  if (e.target === deleteAccountModal) {
+    deleteAccountModal.classList.add('hidden');
+  }
+});
+
+deleteAccountForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const password = deleteConfirmPasswordInput.value;
+  const confirmText = deleteConfirmTextInput.value;
+
+  if (confirmText !== 'DELETE') {
+    showToast('Please type DELETE to confirm', { type: 'error' });
+    return;
+  }
+
+  confirmDeleteAccountBtn.disabled = true;
+  confirmDeleteAccountBtn.textContent = 'Deleting...';
+
+  try {
+    // Re-authenticate user
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+
+    // Delete all user data from Firestore
+    const userId = currentUser.uid;
+
+    // Delete all books
+    const booksRef = collection(db, 'users', userId, 'books');
+    const booksSnapshot = await getDocs(booksRef);
+    const batch1 = writeBatch(db);
+    booksSnapshot.docs.forEach(bookDoc => {
+      batch1.delete(bookDoc.ref);
+    });
+    if (booksSnapshot.docs.length > 0) {
+      await batch1.commit();
+    }
+
+    // Delete all genres
+    const genresRef = collection(db, 'users', userId, 'genres');
+    const genresSnapshot = await getDocs(genresRef);
+    const batch2 = writeBatch(db);
+    genresSnapshot.docs.forEach(genreDoc => {
+      batch2.delete(genreDoc.ref);
+    });
+    if (genresSnapshot.docs.length > 0) {
+      await batch2.commit();
+    }
+
+    // Delete the user document if it exists
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+    } catch (e) {
+      // User document may not exist, ignore error
+    }
+
+    // Delete the Firebase Auth user
+    await deleteUser(currentUser);
+
+    // Clear local storage
+    localStorage.clear();
+
+    showToast('Account deleted successfully', { type: 'success' });
+
+    // Redirect to login
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1500);
+  } catch (error) {
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      showToast('Incorrect password', { type: 'error' });
+    } else {
+      console.error('Error deleting account:', error);
+      showToast('Error deleting account', { type: 'error' });
+    }
+    confirmDeleteAccountBtn.disabled = false;
+    confirmDeleteAccountBtn.textContent = 'Delete Account';
+  }
+});
 
 // ==================== Genres ====================
 

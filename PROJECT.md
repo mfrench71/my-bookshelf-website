@@ -157,13 +157,22 @@ MyBookShelf/
 ### User Profile & Settings
 - [ ] User profile page/modal
 - [ ] Edit display name
-- [ ] Change password
+- [x] Change password
 - [ ] Profile avatar/photo
-- [ ] Account deletion
-- [ ] Privacy settings
+- [x] Account deletion
 - [ ] Manage lists from profile
 - [ ] View reading statistics from profile
 - [ ] Export/import data from profile
+
+### Privacy Settings
+- [ ] Profile visibility (public/private/friends only)
+- [ ] Show reading activity to others
+- [ ] Hide specific books from public view
+- [ ] Analytics opt-in/out
+- [ ] Download all my data (GDPR-style export)
+- [ ] Clear local cache/data
+- [ ] Email notification preferences
+- [ ] Marketing emails opt-in/out
 
 ### User Lists / Shelves
 - [ ] Custom user lists (e.g., "Want to Read", "Currently Reading", "Finished")
