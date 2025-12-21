@@ -6,56 +6,62 @@ scripts: '<script type="module" src="/js/books.js"></script>'
 <!-- Sort & Filter Controls -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-3">
-    <div class="flex items-center gap-3">
-      <div class="relative flex-1">
-        <select id="sort-select"
-          class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-          <option value="createdAt-desc">Date Added (Newest)</option>
-          <option value="createdAt-asc">Date Added (Oldest)</option>
-          <option value="title-asc">Title (A-Z)</option>
-          <option value="title-desc">Title (Z-A)</option>
-          <option value="author-asc">Author (A-Z)</option>
-          <option value="author-desc">Author (Z-A)</option>
-          <option value="rating-desc">Rating (High-Low)</option>
-          <option value="rating-asc">Rating (Low-High)</option>
-        </select>
-        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+      <!-- Row 1: Sort + Actions -->
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1 md:flex-none md:w-48">
+          <select id="sort-select"
+            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            <option value="createdAt-desc">Date Added (Newest)</option>
+            <option value="createdAt-asc">Date Added (Oldest)</option>
+            <option value="title-asc">Title (A-Z)</option>
+            <option value="title-desc">Title (Z-A)</option>
+            <option value="author-asc">Author (A-Z)</option>
+            <option value="author-desc">Author (Z-A)</option>
+            <option value="rating-desc">Rating (High-Low)</option>
+            <option value="rating-asc">Rating (Low-High)</option>
+          </select>
+          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+        </div>
+        <button id="reset-filters" class="hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Reset filters">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <button id="refresh-btn" class="hidden md:block p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Refresh">
+          <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+        </button>
       </div>
-      <div class="relative">
-        <select id="rating-filter"
-          class="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-          <option value="0">All Ratings</option>
-          <option value="5">5 Stars</option>
-          <option value="4">4+ Stars</option>
-          <option value="3">3+ Stars</option>
-          <option value="2">2+ Stars</option>
-          <option value="1">1+ Stars</option>
-        </select>
-        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+      <!-- Row 2: Filters -->
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1 md:flex-none">
+          <select id="rating-filter"
+            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            <option value="0">All Ratings</option>
+            <option value="5">5 Stars</option>
+            <option value="4">4+ Stars</option>
+            <option value="3">3+ Stars</option>
+            <option value="2">2+ Stars</option>
+            <option value="1">1+ Stars</option>
+          </select>
+          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+        </div>
+        <div class="relative flex-1 md:flex-none">
+          <select id="genre-filter"
+            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            <option value="">All Genres</option>
+          </select>
+          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+        </div>
+        <div class="relative flex-1 md:flex-none">
+          <select id="status-filter"
+            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            <option value="">All Status</option>
+            <option value="want-to-read">Want to Read</option>
+            <option value="reading">Reading</option>
+            <option value="finished">Finished</option>
+          </select>
+          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+        </div>
       </div>
-      <div class="relative">
-        <select id="genre-filter"
-          class="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-          <option value="">All Genres</option>
-        </select>
-        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
-      </div>
-      <div class="relative">
-        <select id="status-filter"
-          class="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-          <option value="">All Status</option>
-          <option value="want-to-read">Want to Read</option>
-          <option value="reading">Reading</option>
-          <option value="finished">Finished</option>
-        </select>
-        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
-      </div>
-      <button id="reset-filters" class="hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Reset filters">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-      <button id="refresh-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Refresh">
-        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-      </button>
     </div>
   </div>
 </div>
