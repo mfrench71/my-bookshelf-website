@@ -9,7 +9,7 @@ import {
   doc,
   getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
+import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile } from './utils.js';
 import { bookCard } from './book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { getGravatarUrl } from './md5.js';
@@ -280,7 +280,7 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
 async function openSearch() {
   searchOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden'; // Prevent body scroll
-  searchInput.focus();
+  if (!isMobile()) searchInput.focus();
   initIcons();
 
   // Start loading books in background if not already loaded

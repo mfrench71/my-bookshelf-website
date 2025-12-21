@@ -30,7 +30,7 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -496,7 +496,7 @@ changePasswordBtn.addEventListener('click', () => {
   updateNewPasswordUI('');
   passwordModal.classList.remove('hidden');
   lockBodyScroll();
-  currentPasswordInput.focus();
+  if (!isMobile()) currentPasswordInput.focus();
 });
 
 cancelPasswordBtn.addEventListener('click', () => {
@@ -627,7 +627,7 @@ deleteAccountBtn.addEventListener('click', () => {
   deleteConfirmTextInput.value = '';
   deleteAccountModal.classList.remove('hidden');
   lockBodyScroll();
-  deleteConfirmPasswordInput.focus();
+  if (!isMobile()) deleteConfirmPasswordInput.focus();
 });
 
 cancelDeleteAccountBtn.addEventListener('click', () => {
@@ -814,7 +814,7 @@ function openAddModal() {
   renderColorPicker();
   genreModal.classList.remove('hidden');
   lockBodyScroll();
-  genreNameInput.focus();
+  if (!isMobile()) genreNameInput.focus();
 }
 
 function openEditModal(genreId) {
@@ -829,7 +829,7 @@ function openEditModal(genreId) {
   renderColorPicker();
   genreModal.classList.remove('hidden');
   lockBodyScroll();
-  genreNameInput.focus();
+  if (!isMobile()) genreNameInput.focus();
 }
 
 function closeModal() {

@@ -377,6 +377,14 @@ export function isOnline() {
 }
 
 /**
+ * Check if viewport is mobile-sized (matches Tailwind's md breakpoint)
+ * @returns {boolean} True if mobile
+ */
+export function isMobile() {
+  return window.innerWidth < 768;
+}
+
+/**
  * Fetch with timeout
  * @param {string} url - URL to fetch
  * @param {Object} options - Fetch options
