@@ -982,6 +982,8 @@ async function runGenreCleanup() {
     if (results.booksUpdated === 0 && results.genresCreated === 0) {
       cleanupResultsText.textContent = 'No issues found. All genre references are valid.';
       showToast('Data is clean!', { type: 'success' });
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => cleanupResults.classList.add('hidden'), 5000);
     } else {
       const parts = [];
       if (results.booksUpdated > 0) {
@@ -1032,6 +1034,8 @@ async function runRecountGenres() {
     if (results.genresUpdated === 0) {
       recountResultsText.textContent = 'All genre counts are correct.';
       showToast('Counts verified!', { type: 'success' });
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => recountResults.classList.add('hidden'), 5000);
     } else {
       recountResultsText.textContent = `Updated ${results.genresUpdated} genre${results.genresUpdated !== 1 ? 's' : ''} after scanning ${results.totalBooks} books.`;
       showToast('Counts updated!', { type: 'success' });
