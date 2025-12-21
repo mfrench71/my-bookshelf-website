@@ -15,7 +15,9 @@ import {
   GENRE_COLORS,
   getUsedColors,
   getAvailableColors,
-  clearGenresCache
+  clearGenresCache,
+  migrateGenreData,
+  recalculateGenreBookCounts
 } from './genres.js';
 import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp } from './utils.js';
 
@@ -53,6 +55,17 @@ const confirmDeleteBtn = document.getElementById('confirm-delete');
 
 // DOM Elements - Export
 const exportBtn = document.getElementById('export-btn');
+
+// DOM Elements - Cleanup
+const cleanupGenresBtn = document.getElementById('cleanup-genres-btn');
+const cleanupProgress = document.getElementById('cleanup-progress');
+const cleanupStatus = document.getElementById('cleanup-status');
+const cleanupProgressBar = document.getElementById('cleanup-progress-bar');
+const cleanupResults = document.getElementById('cleanup-results');
+const cleanupResultsText = document.getElementById('cleanup-results-text');
+const recountGenresBtn = document.getElementById('recount-genres-btn');
+const recountResults = document.getElementById('recount-results');
+const recountResultsText = document.getElementById('recount-results-text');
 
 // Auth Check
 onAuthStateChanged(auth, (user) => {
@@ -376,3 +389,98 @@ async function exportBooks() {
 }
 
 exportBtn.addEventListener('click', exportBooks);
+
+// ==================== Data Cleanup ====================
+
+async function runGenreCleanup() {
+  cleanupGenresBtn.disabled = true;
+  cleanupGenresBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Processing...';
+  cleanupProgress.classList.remove('hidden');
+  cleanupResults.classList.add('hidden');
+  cleanupProgressBar.style.width = '0%';
+
+  try {
+    const results = await migrateGenreData(currentUser.uid, (processed, total) => {
+      const percent = Math.round((processed / total) * 100);
+      cleanupProgressBar.style.width = `${percent}%`;
+      cleanupStatus.textContent = `Processing book ${processed} of ${total}...`;
+    });
+
+    // Show results
+    cleanupProgress.classList.add('hidden');
+    cleanupResults.classList.remove('hidden');
+
+    if (results.booksUpdated === 0 && results.genresCreated === 0) {
+      cleanupResultsText.textContent = 'No issues found. All genre references are valid.';
+      showToast('Data is clean!', { type: 'success' });
+    } else {
+      const parts = [];
+      if (results.booksUpdated > 0) {
+        parts.push(`${results.booksUpdated} book${results.booksUpdated !== 1 ? 's' : ''} updated`);
+      }
+      if (results.genresCreated > 0) {
+        parts.push(`${results.genresCreated} genre${results.genresCreated !== 1 ? 's' : ''} created`);
+      }
+      cleanupResultsText.textContent = parts.join(', ') + '.';
+
+      if (results.errors.length > 0) {
+        cleanupResultsText.textContent += ` ${results.errors.length} error${results.errors.length !== 1 ? 's' : ''} occurred.`;
+        console.error('Cleanup errors:', results.errors);
+      }
+
+      showToast('Cleanup complete!', { type: 'success' });
+
+      // Clear caches and reload genres
+      clearBooksCache(currentUser.uid);
+      clearGenresCache();
+      await loadGenres();
+    }
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+    cleanupProgress.classList.add('hidden');
+    cleanupResults.classList.remove('hidden');
+    cleanupResultsText.textContent = `Error: ${error.message}`;
+    showToast('Cleanup failed', { type: 'error' });
+  } finally {
+    cleanupGenresBtn.disabled = false;
+    cleanupGenresBtn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>Run Cleanup</span>';
+    initIcons();
+  }
+}
+
+cleanupGenresBtn.addEventListener('click', runGenreCleanup);
+
+async function runRecountGenres() {
+  recountGenresBtn.disabled = true;
+  recountGenresBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Counting...';
+  recountResults.classList.add('hidden');
+
+  try {
+    const results = await recalculateGenreBookCounts(currentUser.uid);
+
+    recountResults.classList.remove('hidden');
+
+    if (results.genresUpdated === 0) {
+      recountResultsText.textContent = 'All genre counts are correct.';
+      showToast('Counts verified!', { type: 'success' });
+    } else {
+      recountResultsText.textContent = `Updated ${results.genresUpdated} genre${results.genresUpdated !== 1 ? 's' : ''} after scanning ${results.totalBooks} books.`;
+      showToast('Counts updated!', { type: 'success' });
+
+      // Reload genres to show updated counts
+      clearGenresCache();
+      await loadGenres();
+    }
+  } catch (error) {
+    console.error('Error recounting genres:', error);
+    recountResults.classList.remove('hidden');
+    recountResultsText.textContent = `Error: ${error.message}`;
+    showToast('Recount failed', { type: 'error' });
+  } finally {
+    recountGenresBtn.disabled = false;
+    recountGenresBtn.innerHTML = '<i data-lucide="calculator" class="w-4 h-4"></i><span>Recalculate Counts</span>';
+    initIcons();
+  }
+}
+
+recountGenresBtn.addEventListener('click', runRecountGenres);

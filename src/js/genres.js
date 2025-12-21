@@ -387,6 +387,179 @@ export function clearGenresCache() {
 }
 
 /**
+ * Migrate book genre data from names to IDs
+ * Finds books with genre names instead of IDs and updates them
+ * @param {string} userId - The user's ID
+ * @param {Function} onProgress - Optional callback for progress updates (booksProcessed, totalBooks)
+ * @returns {Promise<Object>} Migration results { booksUpdated, genresCreated, errors }
+ */
+export async function migrateGenreData(userId, onProgress = () => {}) {
+  const results = {
+    booksUpdated: 0,
+    genresCreated: 0,
+    errors: []
+  };
+
+  // Load all books
+  const booksRef = collection(db, 'users', userId, 'books');
+  const booksSnapshot = await getDocs(booksRef);
+  const totalBooks = booksSnapshot.docs.length;
+
+  // Load all genres
+  let genres = await loadUserGenres(userId, true);
+  const genreIdSet = new Set(genres.map(g => g.id));
+
+  // Track genre book counts (genreId -> count)
+  const genreBookCounts = new Map();
+
+  let processed = 0;
+
+  for (const bookDoc of booksSnapshot.docs) {
+    const bookData = bookDoc.data();
+    const bookGenres = bookData.genres || [];
+
+    // Check if any genre entries are names (not IDs)
+    const needsMigration = bookGenres.some(g => !genreIdSet.has(g) && typeof g === 'string' && g.length > 0);
+
+    if (needsMigration) {
+      const newGenreIds = [];
+
+      for (const genreEntry of bookGenres) {
+        if (genreIdSet.has(genreEntry)) {
+          // Already a valid ID
+          newGenreIds.push(genreEntry);
+        } else if (typeof genreEntry === 'string' && genreEntry.length > 0) {
+          // This is a genre name, find or create the genre
+          try {
+            const normalizedName = normalizeGenreName(genreEntry);
+            let matchingGenre = genres.find(g => g.normalizedName === normalizedName);
+
+            if (!matchingGenre) {
+              // Create the genre
+              matchingGenre = await createGenre(userId, genreEntry);
+              genres = await loadUserGenres(userId, true);
+              genreIdSet.add(matchingGenre.id);
+              results.genresCreated++;
+            }
+
+            if (!newGenreIds.includes(matchingGenre.id)) {
+              newGenreIds.push(matchingGenre.id);
+            }
+          } catch (error) {
+            results.errors.push(`Book "${bookData.title}": ${error.message}`);
+          }
+        }
+      }
+
+      // Update the book if genres changed
+      if (JSON.stringify(bookGenres.sort()) !== JSON.stringify(newGenreIds.sort())) {
+        try {
+          const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
+          await updateDoc(bookRef, {
+            genres: newGenreIds,
+            updatedAt: serverTimestamp()
+          });
+          results.booksUpdated++;
+
+          // Track counts for newly assigned genres (that weren't valid IDs before)
+          for (const genreId of newGenreIds) {
+            if (!bookGenres.includes(genreId)) {
+              genreBookCounts.set(genreId, (genreBookCounts.get(genreId) || 0) + 1);
+            }
+          }
+        } catch (error) {
+          results.errors.push(`Failed to update book "${bookData.title}": ${error.message}`);
+        }
+      }
+    }
+
+    processed++;
+    onProgress(processed, totalBooks);
+  }
+
+  // Update book counts for affected genres
+  if (genreBookCounts.size > 0) {
+    const batch = writeBatch(db);
+    for (const [genreId, count] of genreBookCounts) {
+      const genre = genres.find(g => g.id === genreId);
+      if (genre) {
+        const genreRef = doc(db, 'users', userId, 'genres', genreId);
+        batch.update(genreRef, {
+          bookCount: (genre.bookCount || 0) + count,
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
+    await batch.commit();
+  }
+
+  // Invalidate cache
+  genresCache = null;
+
+  return results;
+}
+
+/**
+ * Recalculate book counts for all genres
+ * Scans all books and updates the bookCount field on each genre
+ * @param {string} userId - The user's ID
+ * @returns {Promise<Object>} Results { genresUpdated, totalBooks }
+ */
+export async function recalculateGenreBookCounts(userId) {
+  // Load all books
+  const booksRef = collection(db, 'users', userId, 'books');
+  const booksSnapshot = await getDocs(booksRef);
+
+  // Load all genres
+  const genres = await loadUserGenres(userId, true);
+
+  // Count books per genre
+  const genreCounts = new Map();
+  for (const genre of genres) {
+    genreCounts.set(genre.id, 0);
+  }
+
+  for (const bookDoc of booksSnapshot.docs) {
+    const bookData = bookDoc.data();
+    const bookGenres = bookData.genres || [];
+
+    for (const genreId of bookGenres) {
+      if (genreCounts.has(genreId)) {
+        genreCounts.set(genreId, genreCounts.get(genreId) + 1);
+      }
+    }
+  }
+
+  // Update genres with new counts
+  const batch = writeBatch(db);
+  let genresUpdated = 0;
+
+  for (const genre of genres) {
+    const newCount = genreCounts.get(genre.id) || 0;
+    if (newCount !== (genre.bookCount || 0)) {
+      const genreRef = doc(db, 'users', userId, 'genres', genre.id);
+      batch.update(genreRef, {
+        bookCount: newCount,
+        updatedAt: serverTimestamp()
+      });
+      genresUpdated++;
+    }
+  }
+
+  if (genresUpdated > 0) {
+    await batch.commit();
+  }
+
+  // Invalidate cache
+  genresCache = null;
+
+  return {
+    genresUpdated,
+    totalBooks: booksSnapshot.docs.length
+  };
+}
+
+/**
  * Create a lookup map from genre IDs to genre objects
  * @param {Array} genres - Array of genre objects
  * @returns {Map} Map of genreId -> genre object

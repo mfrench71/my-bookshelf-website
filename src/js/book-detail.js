@@ -321,8 +321,8 @@ confirmDeleteBtn.addEventListener('click', async () => {
   }
 });
 
-// Track unsaved changes on form inputs
-[titleInput, authorInput, coverUrlInput, publisherInput, publishedDateInput, physicalFormatInput, notesInput].forEach(el => {
+// Track unsaved changes on form inputs (coverUrlInput excluded - read-only)
+[titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
     formDirty = true;
   });
@@ -383,7 +383,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Open Library by ISBN (as fallback, or to supplement with physical format)
+  // Try Open Library by ISBN (as fallback, or to supplement missing fields)
   if (isbn) {
     try {
       const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
@@ -391,8 +391,11 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       const bookData = data[`ISBN:${isbn}`];
       if (bookData) {
         if (result) {
-          // Supplement Google Books data with Open Library physical format
-          result.physicalFormat = bookData.physical_format || '';
+          // Supplement missing fields from Open Library
+          if (!result.publisher) result.publisher = bookData.publishers?.[0]?.name || '';
+          if (!result.publishedDate) result.publishedDate = bookData.publish_date || '';
+          if (!result.physicalFormat) result.physicalFormat = bookData.physical_format || '';
+          if (!result.coverImageUrl) result.coverImageUrl = bookData.cover?.medium || bookData.cover?.small || '';
         } else {
           // Use Open Library as primary source
           result = {
@@ -421,38 +424,55 @@ refreshDataBtn.addEventListener('click', async () => {
     <span class="text-sm">Refreshing...</span>
   `;
 
+  // Clear any existing highlights
+  document.querySelectorAll('.field-changed').forEach(el => {
+    el.classList.remove('field-changed');
+  });
+  document.querySelectorAll('.field-changed-cover').forEach(el => {
+    el.classList.remove('field-changed-cover');
+  });
+
   try {
     const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
 
     if (apiData) {
-      // Update form fields with API data
-      if (apiData.title) {
-        titleInput.value = apiData.title;
-      }
-      if (apiData.author) {
-        authorInput.value = apiData.author;
-      }
-      if (apiData.coverImageUrl) {
+      const changedFields = [];
+
+      // Helper to fill ONLY empty fields (preserve existing data)
+      const fillEmptyField = (input, newValue, fieldName) => {
+        if (newValue && !input.value.trim()) {
+          input.value = newValue;
+          input.classList.add('field-changed');
+          changedFields.push(fieldName);
+        }
+      };
+
+      // Fill only empty form fields with API data
+      fillEmptyField(titleInput, apiData.title, 'title');
+      fillEmptyField(authorInput, apiData.author, 'author');
+      fillEmptyField(publisherInput, apiData.publisher, 'publisher');
+      fillEmptyField(publishedDateInput, apiData.publishedDate, 'published date');
+      fillEmptyField(physicalFormatInput, apiData.physicalFormat, 'format');
+
+      // Cover image - only fill if empty
+      if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
         coverUrlInput.value = apiData.coverImageUrl;
-        // Update cover image display
-        coverContainer.innerHTML = `<img src="${apiData.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto">`;
+        coverUrlInput.classList.add('field-changed');
+        coverContainer.innerHTML = `<img src="${apiData.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto field-changed-cover">`;
+        changedFields.push('cover');
       }
 
-      // Update form inputs with new metadata
-      if (apiData.publisher) {
-        publisherInput.value = apiData.publisher;
-      }
-      if (apiData.publishedDate) {
-        publishedDateInput.value = apiData.publishedDate;
-      }
-      if (apiData.physicalFormat) {
-        physicalFormatInput.value = apiData.physicalFormat;
-      }
-
-      // Update book object and re-render details section
+      // Update book object with all refreshed values
+      book.title = titleInput.value;
+      book.author = authorInput.value;
+      book.coverImageUrl = coverUrlInput.value;
       book.publisher = publisherInput.value;
       book.publishedDate = publishedDateInput.value;
       book.physicalFormat = physicalFormatInput.value;
+
+      // Update header display
+      bookTitle.textContent = book.title;
+      bookAuthor.textContent = book.author || 'Unknown author';
 
       let detailsHtml = '';
       if (book.publisher) {
@@ -466,8 +486,25 @@ refreshDataBtn.addEventListener('click', async () => {
       }
       bookDetails.innerHTML = detailsHtml;
 
-      formDirty = true;
-      showToast('Book data refreshed from API', { type: 'success' });
+      // Remove highlights after 3 seconds
+      if (changedFields.length > 0) {
+        setTimeout(() => {
+          document.querySelectorAll('.field-changed').forEach(el => {
+            el.classList.remove('field-changed');
+          });
+          document.querySelectorAll('.field-changed-cover').forEach(el => {
+            el.classList.remove('field-changed-cover');
+          });
+        }, 3000);
+      }
+
+      // Show appropriate toast
+      if (changedFields.length > 0) {
+        formDirty = true;
+        showToast(`Updated: ${changedFields.join(', ')}`, { type: 'success' });
+      } else {
+        showToast('No new data found', { type: 'info' });
+      }
     } else {
       showToast('No data found from APIs', { type: 'info' });
     }

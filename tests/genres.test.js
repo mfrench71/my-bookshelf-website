@@ -8,7 +8,9 @@ import {
   loadUserGenres,
   createGenre,
   updateGenre,
-  deleteGenre
+  deleteGenre,
+  migrateGenreData,
+  recalculateGenreBookCounts
 } from '../src/js/genres.js';
 
 // Mock Firebase
@@ -438,5 +440,285 @@ describe('deleteGenre', () => {
     expect(count).toBe(0);
     expect(mockBatch.update).not.toHaveBeenCalled();
     expect(mockBatch.delete).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('migrateGenreData', () => {
+  beforeEach(() => {
+    clearGenresCache();
+    mockGetDocs.mockReset();
+    mockUpdateDoc.mockReset();
+    mockAddDoc.mockReset();
+  });
+
+  it('should return no changes when all genres are valid IDs', async () => {
+    // First call: load books
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['genreId1', 'genreId2'] }) }
+      ]
+    });
+    // Second call: load genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) },
+        { id: 'genreId2', data: () => ({ name: 'Mystery', normalizedName: 'mystery', color: '#00FF00' }) }
+      ]
+    });
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(0);
+    expect(results.genresCreated).toBe(0);
+    expect(results.errors).toHaveLength(0);
+  });
+
+  it('should migrate genre names to IDs when matching genre exists', async () => {
+    // First call: load books (with genre NAME instead of ID)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['Fiction'] }) }
+      ]
+    });
+    // Second call: load genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) }
+      ]
+    });
+    mockUpdateDoc.mockResolvedValue();
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(1);
+    expect(results.genresCreated).toBe(0);
+    expect(mockUpdateDoc).toHaveBeenCalled();
+  });
+
+  it('should create new genre when name does not match existing genre', async () => {
+    // First call: load books (with genre NAME that doesn't exist)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['Science Fiction'] }) }
+      ]
+    });
+    // Second call: load genres (empty - no genres exist)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: []
+    });
+    // Third call: reload genres after creation
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'newGenreId', data: () => ({ name: 'Science Fiction', normalizedName: 'science fiction', color: GENRE_COLORS[0] }) }
+      ]
+    });
+    mockAddDoc.mockResolvedValueOnce({ id: 'newGenreId' });
+    mockUpdateDoc.mockResolvedValue();
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(1);
+    expect(results.genresCreated).toBe(1);
+    expect(mockAddDoc).toHaveBeenCalled();
+  });
+
+  it('should handle mixed valid IDs and names in same book', async () => {
+    // First call: load books (with mix of ID and NAME)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['genreId1', 'Mystery'] }) }
+      ]
+    });
+    // Second call: load genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) },
+        { id: 'genreId2', data: () => ({ name: 'Mystery', normalizedName: 'mystery', color: '#00FF00' }) }
+      ]
+    });
+    mockUpdateDoc.mockResolvedValue();
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(1);
+    expect(results.genresCreated).toBe(0);
+  });
+
+  it('should handle books with no genres', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: [] }) },
+        { id: 'book2', data: () => ({ title: 'Book 2' }) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: []
+    });
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(0);
+    expect(results.genresCreated).toBe(0);
+  });
+
+  it('should call progress callback with correct values', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['genreId1'] }) },
+        { id: 'book2', data: () => ({ title: 'Book 2', genres: ['genreId1'] }) },
+        { id: 'book3', data: () => ({ title: 'Book 3', genres: [] }) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) }
+      ]
+    });
+
+    const progressCalls = [];
+    await migrateGenreData('user123', (processed, total) => {
+      progressCalls.push({ processed, total });
+    });
+
+    expect(progressCalls).toHaveLength(3);
+    expect(progressCalls[0]).toEqual({ processed: 1, total: 3 });
+    expect(progressCalls[1]).toEqual({ processed: 2, total: 3 });
+    expect(progressCalls[2]).toEqual({ processed: 3, total: 3 });
+  });
+
+  it('should not duplicate genre IDs in result', async () => {
+    // Book has same genre name twice
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ title: 'Book 1', genres: ['Fiction', 'fiction', 'FICTION'] }) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) }
+      ]
+    });
+    mockUpdateDoc.mockResolvedValue();
+
+    const results = await migrateGenreData('user123');
+
+    expect(results.booksUpdated).toBe(1);
+    // The update should only have the genre ID once
+    expect(mockUpdateDoc).toHaveBeenCalled();
+  });
+});
+
+describe('recalculateGenreBookCounts', () => {
+  beforeEach(() => {
+    clearGenresCache();
+    mockGetDocs.mockReset();
+    mockWriteBatch.mockReset();
+  });
+
+  it('should return no changes when counts are already correct', async () => {
+    // Load books
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['genreId1'] }) },
+        { id: 'book2', data: () => ({ genres: ['genreId1', 'genreId2'] }) }
+      ]
+    });
+    // Load genres (counts already correct)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', bookCount: 2 }) },
+        { id: 'genreId2', data: () => ({ name: 'Mystery', bookCount: 1 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const results = await recalculateGenreBookCounts('user123');
+
+    expect(results.genresUpdated).toBe(0);
+    expect(results.totalBooks).toBe(2);
+    expect(mockBatch.commit).not.toHaveBeenCalled();
+  });
+
+  it('should update counts when they are incorrect', async () => {
+    // Load books
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['genreId1'] }) },
+        { id: 'book2', data: () => ({ genres: ['genreId1'] }) },
+        { id: 'book3', data: () => ({ genres: ['genreId2'] }) }
+      ]
+    });
+    // Load genres (counts are wrong)
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', bookCount: 0 }) },
+        { id: 'genreId2', data: () => ({ name: 'Mystery', bookCount: 0 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const results = await recalculateGenreBookCounts('user123');
+
+    expect(results.genresUpdated).toBe(2);
+    expect(results.totalBooks).toBe(3);
+    expect(mockBatch.update).toHaveBeenCalledTimes(2);
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('should handle books with no genres', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: [] }) },
+        { id: 'book2', data: () => ({}) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', bookCount: 0 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const results = await recalculateGenreBookCounts('user123');
+
+    expect(results.genresUpdated).toBe(0);
+    expect(results.totalBooks).toBe(2);
+  });
+
+  it('should handle empty genre list', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['unknownGenre'] }) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: []
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const results = await recalculateGenreBookCounts('user123');
+
+    expect(results.genresUpdated).toBe(0);
+    expect(results.totalBooks).toBe(1);
   });
 });

@@ -11,8 +11,10 @@ import {
   createMockBook
 } from './setup.js';
 
-// Replicate fetchBookByISBN function for testing
+// Replicate fetchBookByISBN function for testing (always checks both APIs)
 async function fetchBookByISBN(isbn) {
+  let result = null;
+
   // Try Google Books first
   try {
     const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
@@ -20,7 +22,7 @@ async function fetchBookByISBN(isbn) {
 
     if (data.items?.length > 0) {
       const book = data.items[0].volumeInfo;
-      return {
+      result = {
         title: book.title,
         author: book.authors?.join(', ') || '',
         coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -33,27 +35,36 @@ async function fetchBookByISBN(isbn) {
     console.error('Google Books error:', e);
   }
 
-  // Fallback to Open Library
+  // Try Open Library (as fallback or to supplement missing fields)
   try {
     const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
     const data = await response.json();
     const book = data[`ISBN:${isbn}`];
 
     if (book) {
-      return {
-        title: book.title,
-        author: book.authors?.map(a => a.name).join(', ') || '',
-        coverImageUrl: book.cover?.medium || '',
-        publisher: book.publishers?.[0]?.name || '',
-        publishedDate: book.publish_date || '',
-        physicalFormat: book.physical_format || ''
-      };
+      if (result) {
+        // Supplement missing fields from Open Library
+        if (!result.publisher) result.publisher = book.publishers?.[0]?.name || '';
+        if (!result.publishedDate) result.publishedDate = book.publish_date || '';
+        if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
+        if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
+      } else {
+        // Use Open Library as primary source
+        result = {
+          title: book.title,
+          author: book.authors?.map(a => a.name).join(', ') || '',
+          coverImageUrl: book.cover?.medium || '',
+          publisher: book.publishers?.[0]?.name || '',
+          publishedDate: book.publish_date || '',
+          physicalFormat: book.physical_format || ''
+        };
+      }
     }
   } catch (e) {
     console.error('Open Library error:', e);
   }
 
-  return null;
+  return result;
 }
 
 // Replicate search function for testing
@@ -83,8 +94,8 @@ describe('fetchBookByISBN', () => {
     resetMocks();
   });
 
-  describe('Google Books API', () => {
-    it('should fetch book details from Google Books', async () => {
+  describe('Google Books API with Open Library supplement', () => {
+    it('should fetch book details from Google Books and supplement from Open Library', async () => {
       const mockBook = {
         title: 'The Great Gatsby',
         author: 'F. Scott Fitzgerald',
@@ -93,8 +104,18 @@ describe('fetchBookByISBN', () => {
         publishedDate: '1925'
       };
 
+      // Google Books response
       global.fetch.mockResolvedValueOnce({
         json: () => Promise.resolve(mockGoogleBooksResponse([mockBook]))
+      });
+
+      // Open Library response (for supplementing)
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:9780743273565': {
+            physical_format: 'Paperback'
+          }
+        })
       });
 
       const result = await fetchBookByISBN('9780743273565');
@@ -103,6 +124,7 @@ describe('fetchBookByISBN', () => {
       expect(result.title).toBe('The Great Gatsby');
       expect(result.author).toBe('F. Scott Fitzgerald');
       expect(result.publisher).toBe('Scribner');
+      expect(result.physicalFormat).toBe('Paperback');
     });
 
     it('should convert http to https for cover images', async () => {
@@ -119,6 +141,11 @@ describe('fetchBookByISBN', () => {
 
       global.fetch.mockResolvedValueOnce({
         json: () => Promise.resolve(mockResponse)
+      });
+
+      // Open Library response
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({})
       });
 
       const result = await fetchBookByISBN('1234567890');
@@ -140,12 +167,17 @@ describe('fetchBookByISBN', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
+      // Open Library response
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({})
+      });
+
       const result = await fetchBookByISBN('1234567890');
 
       expect(result.author).toBe('Author One, Author Two, Author Three');
     });
 
-    it('should handle missing fields gracefully', async () => {
+    it('should supplement missing fields from Open Library', async () => {
       const mockResponse = {
         items: [{
           volumeInfo: {
@@ -159,12 +191,65 @@ describe('fetchBookByISBN', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
+      // Open Library supplements missing fields
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            publishers: [{ name: 'OL Publisher' }],
+            publish_date: '2020',
+            physical_format: 'Hardcover',
+            cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+          }
+        })
+      });
+
       const result = await fetchBookByISBN('1234567890');
 
       expect(result.title).toBe('Minimal Book');
       expect(result.author).toBe('');
-      expect(result.coverImageUrl).toBe('');
-      expect(result.publisher).toBe('');
+      expect(result.publisher).toBe('OL Publisher');
+      expect(result.publishedDate).toBe('2020');
+      expect(result.physicalFormat).toBe('Hardcover');
+      expect(result.coverImageUrl).toBe('https://covers.openlibrary.org/cover.jpg');
+    });
+
+    it('should not overwrite existing Google Books data with Open Library data', async () => {
+      const mockResponse = {
+        items: [{
+          volumeInfo: {
+            title: 'Google Book',
+            authors: ['Google Author'],
+            publisher: 'Google Publisher',
+            publishedDate: '2021',
+            imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' }
+          }
+        }]
+      };
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      // Open Library has different data
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            publishers: [{ name: 'OL Publisher' }],
+            publish_date: '2020',
+            physical_format: 'Paperback',
+            cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+          }
+        })
+      });
+
+      const result = await fetchBookByISBN('1234567890');
+
+      // Google Books data should be preserved
+      expect(result.publisher).toBe('Google Publisher');
+      expect(result.publishedDate).toBe('2021');
+      expect(result.coverImageUrl).toBe('https://books.google.com/cover.jpg');
+      // Only physicalFormat comes from Open Library (Google doesn't have it)
+      expect(result.physicalFormat).toBe('Paperback');
     });
   });
 

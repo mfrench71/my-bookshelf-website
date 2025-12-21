@@ -57,7 +57,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Open Library by ISBN (as fallback, or to supplement with physical format)
+  // Try Open Library by ISBN (as fallback, or to supplement missing fields)
   if (isbn) {
     try {
       const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
@@ -65,8 +65,11 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       const bookData = data[`ISBN:${isbn}`];
       if (bookData) {
         if (result) {
-          // Supplement Google Books data with Open Library physical format
-          result.physicalFormat = bookData.physical_format || '';
+          // Supplement missing fields from Open Library
+          if (!result.publisher) result.publisher = bookData.publishers?.[0]?.name || '';
+          if (!result.publishedDate) result.publishedDate = bookData.publish_date || '';
+          if (!result.physicalFormat) result.physicalFormat = bookData.physical_format || '';
+          if (!result.coverImageUrl) result.coverImageUrl = bookData.cover?.medium || bookData.cover?.small || '';
         } else {
           // Use Open Library as primary source
           result = {
@@ -85,6 +88,15 @@ async function fetchBookDataFromAPI(isbn, title, author) {
   }
 
   return result;
+}
+
+// Replicate fillEmptyField helper for testing
+function fillEmptyField(currentValue, newValue) {
+  // Only fill if current value is empty and new value exists
+  if (newValue && !currentValue.trim()) {
+    return { updated: true, value: newValue };
+  }
+  return { updated: false, value: currentValue };
 }
 
 describe('fetchBookDataFromAPI', () => {
@@ -553,5 +565,160 @@ describe('fetchBookDataFromAPI', () => {
       // Should only have called title search, not Open Library
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
+  });
+
+  describe('supplement all missing fields from Open Library', () => {
+    it('should supplement missing publisher from Open Library', async () => {
+      // Google Books returns book without publisher
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          items: [{
+            volumeInfo: {
+              title: 'Test Book',
+              authors: ['Test Author']
+              // No publisher
+            }
+          }]
+        })
+      });
+
+      // Open Library has publisher
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            publishers: [{ name: 'Open Library Publisher' }]
+          }
+        })
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Test Book', 'Test Author');
+
+      expect(result.publisher).toBe('Open Library Publisher');
+    });
+
+    it('should supplement missing publishedDate from Open Library', async () => {
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          items: [{
+            volumeInfo: {
+              title: 'Test Book'
+              // No publishedDate
+            }
+          }]
+        })
+      });
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            publish_date: '2020'
+          }
+        })
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Test Book', '');
+
+      expect(result.publishedDate).toBe('2020');
+    });
+
+    it('should supplement missing coverImageUrl from Open Library', async () => {
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          items: [{
+            volumeInfo: {
+              title: 'Test Book'
+              // No imageLinks
+            }
+          }]
+        })
+      });
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+          }
+        })
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Test Book', '');
+
+      expect(result.coverImageUrl).toBe('https://covers.openlibrary.org/cover.jpg');
+    });
+
+    it('should not overwrite existing Google Books data with Open Library data', async () => {
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          items: [{
+            volumeInfo: {
+              title: 'Google Book',
+              publisher: 'Google Publisher',
+              publishedDate: '2021',
+              imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' }
+            }
+          }]
+        })
+      });
+
+      global.fetch.mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          'ISBN:1234567890': {
+            publishers: [{ name: 'OL Publisher' }],
+            publish_date: '2020',
+            cover: { medium: 'https://covers.openlibrary.org/cover.jpg' },
+            physical_format: 'Hardcover'
+          }
+        })
+      });
+
+      const result = await fetchBookDataFromAPI('1234567890', 'Google Book', '');
+
+      // Existing data preserved
+      expect(result.publisher).toBe('Google Publisher');
+      expect(result.publishedDate).toBe('2021');
+      expect(result.coverImageUrl).toBe('https://books.google.com/cover.jpg');
+      // Only physicalFormat comes from Open Library (Google doesn't have it)
+      expect(result.physicalFormat).toBe('Hardcover');
+    });
+  });
+});
+
+describe('fillEmptyField', () => {
+  it('should update when current value is empty and new value exists', () => {
+    const result = fillEmptyField('', 'New Value');
+    expect(result.updated).toBe(true);
+    expect(result.value).toBe('New Value');
+  });
+
+  it('should update when current value is only whitespace', () => {
+    const result = fillEmptyField('   ', 'New Value');
+    expect(result.updated).toBe(true);
+    expect(result.value).toBe('New Value');
+  });
+
+  it('should NOT update when current value already has content', () => {
+    const result = fillEmptyField('Existing Value', 'New Value');
+    expect(result.updated).toBe(false);
+    expect(result.value).toBe('Existing Value');
+  });
+
+  it('should NOT update when new value is empty', () => {
+    const result = fillEmptyField('', '');
+    expect(result.updated).toBe(false);
+    expect(result.value).toBe('');
+  });
+
+  it('should NOT update when new value is null/undefined', () => {
+    const result1 = fillEmptyField('', null);
+    expect(result1.updated).toBe(false);
+
+    const result2 = fillEmptyField('', undefined);
+    expect(result2.updated).toBe(false);
+  });
+
+  it('should preserve existing data even if new value is different', () => {
+    const result = fillEmptyField('Scribner', 'Charles Scribner\'s Sons');
+    expect(result.updated).toBe(false);
+    expect(result.value).toBe('Scribner');
   });
 });

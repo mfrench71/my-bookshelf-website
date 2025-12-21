@@ -207,3 +207,18 @@ button, a {
   background-color: #3b82f6;
   color: white;
 }
+
+/* Field Changed Highlight (API refresh) */
+.field-changed {
+  outline: 2px solid #4ade80;
+  outline-offset: -2px;
+  background-color: #f0fdf4;
+  transition: outline 0.3s, background-color 0.3s;
+}
+
+/* Cover Image Changed Highlight */
+.field-changed-cover {
+  outline: 3px solid #4ade80;
+  outline-offset: 2px;
+  transition: outline 0.3s;
+}

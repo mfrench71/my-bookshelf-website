@@ -209,6 +209,8 @@ async function lookupISBN() {
 }
 
 async function fetchBookByISBN(isbn) {
+  let result = null;
+
   // Try Google Books first
   try {
     const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
@@ -220,7 +222,7 @@ async function fetchBookByISBN(isbn) {
       const genres = book.categories || [];
       updateGenreSuggestions(genres);
 
-      return {
+      result = {
         title: book.title,
         author: book.authors?.join(', ') || '',
         coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -234,7 +236,7 @@ async function fetchBookByISBN(isbn) {
     console.error('Google Books error:', e);
   }
 
-  // Fallback to Open Library
+  // Try Open Library (as fallback or to supplement missing fields)
   try {
     const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
     const data = await response.json();
@@ -242,24 +244,35 @@ async function fetchBookByISBN(isbn) {
 
     if (book) {
       // Extract genres from subjects
-      const genres = book.subjects?.map(s => s.name || s) || [];
-      updateGenreSuggestions(genres.slice(0, 5)); // Limit to top 5
+      const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
 
-      return {
-        title: book.title,
-        author: book.authors?.map(a => a.name).join(', ') || '',
-        coverImageUrl: book.cover?.medium || '',
-        publisher: book.publishers?.[0]?.name || '',
-        publishedDate: book.publish_date || '',
-        physicalFormat: book.physical_format || '',
-        genres
-      };
+      if (result) {
+        // Supplement missing fields from Open Library
+        if (!result.publisher) result.publisher = book.publishers?.[0]?.name || '';
+        if (!result.publishedDate) result.publishedDate = book.publish_date || '';
+        if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
+        if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
+        // Add Open Library genres to suggestions
+        updateGenreSuggestions(genres);
+      } else {
+        // Use Open Library as primary source
+        updateGenreSuggestions(genres);
+        result = {
+          title: book.title,
+          author: book.authors?.map(a => a.name).join(', ') || '',
+          coverImageUrl: book.cover?.medium || '',
+          publisher: book.publishers?.[0]?.name || '',
+          publishedDate: book.publish_date || '',
+          physicalFormat: book.physical_format || '',
+          genres
+        };
+      }
     }
   } catch (e) {
     console.error('Open Library error:', e);
   }
 
-  return null;
+  return result;
 }
 
 function showStatus(message, type) {
@@ -481,7 +494,7 @@ function renderSearchResults(books, append = false) {
   initIcons();
 }
 
-function selectSearchResult(el) {
+async function selectSearchResult(el) {
   const { title, author, cover, publisher, published, isbn, categories } = el.dataset;
 
   titleInput.value = title;
@@ -512,6 +525,31 @@ function selectSearchResult(el) {
     publishedDate: published || '',
     physicalFormat: ''
   };
+
+  // Supplement missing data from Open Library if we have an ISBN
+  if (isbn) {
+    try {
+      const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+      const data = await response.json();
+      const book = data[`ISBN:${isbn}`];
+      if (book) {
+        // Supplement missing fields
+        if (!fetchedBookData.publisher) fetchedBookData.publisher = book.publishers?.[0]?.name || '';
+        if (!fetchedBookData.publishedDate) fetchedBookData.publishedDate = book.publish_date || '';
+        if (!fetchedBookData.physicalFormat) fetchedBookData.physicalFormat = book.physical_format || '';
+        if (!coverUrlInput.value && book.cover?.medium) {
+          coverUrlInput.value = book.cover.medium;
+          coverImg.src = book.cover.medium;
+          coverPreview.classList.remove('hidden');
+        }
+        // Add Open Library genres/subjects to suggestions
+        const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
+        updateGenreSuggestions(genres);
+      }
+    } catch (e) {
+      console.error('Open Library supplement error:', e);
+    }
+  }
 
   bookSearchInput.value = '';
   searchResultsDiv.classList.add('hidden');

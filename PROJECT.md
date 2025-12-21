@@ -88,13 +88,15 @@ MyBookShelf/
 - [x] PWA manifest and icons
 - [x] Service worker v4 (comprehensive caching)
 - [x] Netlify deployment with CI/CD
-- [x] Comprehensive test suite (261 tests)
+- [x] Comprehensive test suite (283 tests)
 - [x] Open Library fallback for book search
 - [x] Infinite scroll for search results
 - [x] Genre management system with color-coded badges
 - [x] Settings page with left-hand navigation
 - [x] Export books as JSON backup
 - [x] Refresh book data from APIs (repopulate title, author, cover from Google Books/Open Library)
+- [x] API data supplementation (fill missing fields from Open Library when Google Books data incomplete)
+- [x] Data cleanup utility (fix genre references from names to IDs)
 
 ### In Progress
 - None currently
@@ -123,6 +125,7 @@ MyBookShelf/
 - [x] Export to JSON
 - [ ] Export to CSV
 - [ ] Import from Goodreads
+- [ ] Scheduled backups (automatic periodic JSON export)
 
 ### Nice to Have
 - [ ] Reading statistics/charts
@@ -322,4 +325,4 @@ python3 -m http.server 8000
 - [Book Tracker App](https://booktrack.app/)
 
 ---
-**Last Updated**: 2025-12-20
+**Last Updated**: 2025-12-21
