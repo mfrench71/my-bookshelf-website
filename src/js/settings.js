@@ -197,9 +197,25 @@ function toggleAccordion(sectionId) {
     content.classList.add('hidden');
     icon?.classList.remove('rotate-180');
   } else {
+    // Close all other accordions first
+    sections.forEach(otherSection => {
+      if (otherSection.id !== `${sectionId}-section`) {
+        const otherContent = otherSection.querySelector('.accordion-content');
+        const otherSectionId = otherSection.id.replace('-section', '');
+        const otherIcon = document.querySelector(`[data-accordion="${otherSectionId}"] .accordion-icon`);
+        otherContent?.classList.add('hidden');
+        otherIcon?.classList.remove('rotate-180');
+      }
+    });
+
     // Expand this section
     content.classList.remove('hidden');
     icon?.classList.add('rotate-180');
+
+    // Scroll to the accordion header if needed
+    setTimeout(() => {
+      header?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   }
 
   initIcons();
