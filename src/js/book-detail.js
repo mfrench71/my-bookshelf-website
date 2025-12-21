@@ -236,8 +236,8 @@ function checkFormDirty() {
   if (notesInput.value.trim() !== originalValues.notes) return true;
   if (currentRating !== originalValues.rating) return true;
 
-  // Check genres
-  const currentGenres = genrePicker ? genrePicker.getSelected() : [];
+  // Check genres (if picker not ready yet, use original genres to avoid false positive)
+  const currentGenres = genrePicker ? genrePicker.getSelected() : originalValues.genres;
   if (currentGenres.length !== originalValues.genres.length) return true;
   if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
 

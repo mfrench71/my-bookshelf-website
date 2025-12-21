@@ -685,7 +685,8 @@ describe('fetchBookDataFromAPI', () => {
 
 describe('checkFormDirty', () => {
   // Replicate checkFormDirty helper for testing
-  function checkFormDirty(currentValues, originalValues) {
+  // genrePickerReady simulates whether the genre picker has been initialized
+  function checkFormDirty(currentValues, originalValues, genrePickerReady = true) {
     if (currentValues.title !== originalValues.title) return true;
     if (currentValues.author !== originalValues.author) return true;
     if (currentValues.coverImageUrl !== originalValues.coverImageUrl) return true;
@@ -694,8 +695,10 @@ describe('checkFormDirty', () => {
     if (currentValues.physicalFormat !== originalValues.physicalFormat) return true;
     if (currentValues.notes !== originalValues.notes) return true;
     if (currentValues.rating !== originalValues.rating) return true;
-    if (currentValues.genres.length !== originalValues.genres.length) return true;
-    if (!currentValues.genres.every(g => originalValues.genres.includes(g))) return true;
+    // If picker not ready, use original genres to avoid false positive
+    const currentGenres = genrePickerReady ? currentValues.genres : originalValues.genres;
+    if (currentGenres.length !== originalValues.genres.length) return true;
+    if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
     return false;
   }
 
@@ -744,6 +747,18 @@ describe('checkFormDirty', () => {
   it('should return true when publisher changes', () => {
     const current = { ...baseValues, publisher: 'New Publisher', genres: [...baseValues.genres] };
     expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return false when genre picker is not ready (avoids false positive)', () => {
+    // Simulates page load where genre picker hasn't initialized yet
+    // Current genres would be empty [], but we should use original genres instead
+    const current = { ...baseValues, genres: [] }; // Would be empty if picker not ready
+    expect(checkFormDirty(current, baseValues, false)).toBe(false);
+  });
+
+  it('should correctly detect genre changes when picker is ready', () => {
+    const current = { ...baseValues, genres: ['genre3'] };
+    expect(checkFormDirty(current, baseValues, true)).toBe(true);
   });
 });
 
