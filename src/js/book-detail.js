@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout } from './utils.js';
+import { parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -53,9 +53,7 @@ const coverContainer = document.getElementById('cover-container');
 const bookTitle = document.getElementById('book-title');
 const bookAuthor = document.getElementById('book-author');
 const bookIsbn = document.getElementById('book-isbn');
-const bookRating = document.getElementById('book-rating');
 const bookDates = document.getElementById('book-dates');
-const bookDetails = document.getElementById('book-details');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
@@ -148,21 +146,21 @@ async function loadBook() {
 function renderBook() {
   // Cover - use createElement to prevent XSS
   const fallbackHtml = `
-    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg mx-auto flex items-center justify-center">
+    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg flex items-center justify-center">
       <i data-lucide="book" class="w-16 h-16 text-white"></i>
     </div>
   `;
 
   if (book.coverImageUrl) {
-    // Create wrapper with fallback behind image
+    // Create wrapper with fallback behind image - explicit dimensions prevent collapse
     coverContainer.innerHTML = fallbackHtml;
     coverContainer.firstElementChild.classList.add('absolute', 'inset-0');
-    coverContainer.classList.add('relative');
+    coverContainer.classList.add('relative', 'w-40', 'h-60');
 
     const img = document.createElement('img');
     img.src = book.coverImageUrl;
     img.alt = '';
-    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto absolute inset-0';
+    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg absolute inset-0';
     img.onerror = () => { img.style.display = 'none'; };
     coverContainer.appendChild(img);
   } else {
@@ -173,9 +171,6 @@ function renderBook() {
   bookTitle.textContent = book.title;
   bookAuthor.textContent = book.author || 'Unknown author';
   bookIsbn.textContent = book.isbn ? `ISBN: ${book.isbn}` : '';
-
-  // Rating
-  bookRating.innerHTML = book.rating ? renderStars(book.rating) : '';
 
   // Dates
   const dateAdded = parseTimestamp(book.createdAt);
@@ -190,19 +185,6 @@ function renderBook() {
     datesHtml += `<div>Modified ${dateModified.toLocaleDateString(undefined, dateOptions)}</div>`;
   }
   bookDates.innerHTML = datesHtml;
-
-  // Book Details (publisher, published date, physical format)
-  let detailsHtml = '';
-  if (book.publisher) {
-    detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
-  }
-  if (book.publishedDate) {
-    detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
-  }
-  if (book.physicalFormat) {
-    detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
-  }
-  bookDetails.innerHTML = detailsHtml;
 
   // Form
   titleInput.value = book.title || '';
@@ -565,18 +547,6 @@ refreshDataBtn.addEventListener('click', async () => {
       bookTitle.textContent = book.title;
       bookAuthor.textContent = book.author || 'Unknown author';
 
-      let detailsHtml = '';
-      if (book.publisher) {
-        detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
-      }
-      if (book.publishedDate) {
-        detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
-      }
-      if (book.physicalFormat) {
-        detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
-      }
-      bookDetails.innerHTML = detailsHtml;
-
       // Remove highlights after 3 seconds
       if (changedFields.length > 0) {
         setTimeout(() => {
@@ -608,19 +578,6 @@ refreshDataBtn.addEventListener('click', async () => {
         // Update header display
         bookTitle.textContent = book.title;
         bookAuthor.textContent = book.author || 'Unknown author';
-
-        // Update book details display
-        let detailsHtml = '';
-        if (book.publisher) {
-          detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
-        }
-        if (book.publishedDate) {
-          detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
-        }
-        if (book.physicalFormat) {
-          detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
-        }
-        bookDetails.innerHTML = detailsHtml;
 
         // Remove highlights after 3 seconds
         setTimeout(() => {

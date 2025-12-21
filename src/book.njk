@@ -35,27 +35,19 @@ scripts: '<script type="module" src="/js/book-detail.js"></script>'
     <!-- Left Column: Book Info (mobile: full width, desktop: sticky sidebar) -->
     <div class="md:w-72 flex-shrink-0 mb-6 md:mb-0 md:sticky md:top-[8rem] md:self-start">
       <!-- Cover -->
-      <div class="flex justify-center md:justify-start mb-4">
+      <div class="mb-4">
         <div id="cover-container"></div>
       </div>
 
       <!-- Info -->
-      <div class="text-center md:text-left mb-4">
+      <div class="mb-4">
         <h2 id="book-title" class="text-2xl font-bold text-gray-900"></h2>
         <p id="book-author" class="text-gray-500 mt-1"></p>
         <p id="book-isbn" class="text-gray-400 text-sm mt-1"></p>
       </div>
 
-      <!-- Rating Display -->
-      <div class="flex justify-center md:justify-start items-center mb-3">
-        <div id="book-rating" class="rating-stars"></div>
-      </div>
-
       <!-- Dates -->
-      <div id="book-dates" class="text-center md:text-left text-sm text-gray-400 mb-4"></div>
-
-      <!-- Book Details -->
-      <div id="book-details" class="text-center md:text-left text-sm text-gray-500 space-y-1"></div>
+      <div id="book-dates" class="text-sm text-gray-400"></div>
     </div>
 
     <!-- Right Column: Edit Form -->
