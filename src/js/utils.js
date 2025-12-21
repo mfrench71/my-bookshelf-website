@@ -81,6 +81,14 @@ function isAllCaps(str) {
 }
 
 /**
+ * Check if a string is all lowercase (ignoring non-letters)
+ */
+function isAllLowercase(str) {
+  const letters = str.replace(/[^a-zA-Z]/g, '');
+  return letters.length > 0 && letters === letters.toLowerCase();
+}
+
+/**
  * Convert string to Title Case
  * Keeps small words lowercase unless they're the first word
  */
@@ -99,7 +107,7 @@ function toTitleCase(str) {
  * Normalize a book title
  * - Trims whitespace
  * - Removes trailing periods
- * - Converts ALL CAPS to Title Case
+ * - Converts ALL CAPS or all lowercase to Title Case
  */
 export function normalizeTitle(title) {
   if (!title) return '';
@@ -109,8 +117,8 @@ export function normalizeTitle(title) {
   // Remove trailing periods (but not ellipsis)
   normalized = normalized.replace(/\.+$/, '');
 
-  // Convert ALL CAPS to Title Case
-  if (isAllCaps(normalized)) {
+  // Convert ALL CAPS or all lowercase to Title Case
+  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 
@@ -120,14 +128,14 @@ export function normalizeTitle(title) {
 /**
  * Normalize an author name
  * - Trims whitespace
- * - Converts ALL CAPS to Title Case
+ * - Converts ALL CAPS or all lowercase to Title Case
  */
 export function normalizeAuthor(author) {
   if (!author) return '';
 
   let normalized = author.trim();
 
-  if (isAllCaps(normalized)) {
+  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 
@@ -137,14 +145,14 @@ export function normalizeAuthor(author) {
 /**
  * Normalize a publisher name
  * - Trims whitespace
- * - Converts ALL CAPS to Title Case
+ * - Converts ALL CAPS or all lowercase to Title Case
  */
 export function normalizePublisher(publisher) {
   if (!publisher) return '';
 
   let normalized = publisher.trim();
 
-  if (isAllCaps(normalized)) {
+  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 

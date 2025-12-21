@@ -176,6 +176,17 @@ describe('normalizeTitle', () => {
     expect(normalizeTitle('THE GREAT GATSBY.')).toBe('The Great Gatsby');
     expect(normalizeTitle('  HELLO WORLD.  ')).toBe('Hello World');
   });
+
+  it('should convert all lowercase to Title Case', () => {
+    expect(normalizeTitle('the great gatsby')).toBe('The Great Gatsby');
+    expect(normalizeTitle('hello world')).toBe('Hello World');
+  });
+
+  it('should keep small words lowercase in all lowercase titles (except first word)', () => {
+    expect(normalizeTitle('the lord of the rings')).toBe('The Lord of the Rings');
+    expect(normalizeTitle('war and peace')).toBe('War and Peace');
+    expect(normalizeTitle('of mice and men')).toBe('Of Mice and Men');
+  });
 });
 
 describe('normalizeAuthor', () => {
@@ -210,6 +221,15 @@ describe('normalizeAuthor', () => {
   it('should handle multiple authors joined by comma', () => {
     expect(normalizeAuthor('JOHN DOE, JANE SMITH')).toBe('John Doe, Jane Smith');
   });
+
+  it('should convert all lowercase to Title Case', () => {
+    expect(normalizeAuthor('stephen king')).toBe('Stephen King');
+    expect(normalizeAuthor('john doe')).toBe('John Doe');
+  });
+
+  it('should handle lowercase multiple authors', () => {
+    expect(normalizeAuthor('john doe, jane smith')).toBe('John Doe, Jane Smith');
+  });
 });
 
 describe('normalizePublisher', () => {
@@ -239,6 +259,11 @@ describe('normalizePublisher', () => {
   it('should handle publishers with abbreviations', () => {
     expect(normalizePublisher('MIT PRESS')).toBe('Mit Press');
     expect(normalizePublisher('MIT Press')).toBe('MIT Press');
+  });
+
+  it('should convert all lowercase to Title Case', () => {
+    expect(normalizePublisher('penguin books')).toBe('Penguin Books');
+    expect(normalizePublisher('random house')).toBe('Random House');
   });
 });
 
