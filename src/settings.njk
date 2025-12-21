@@ -42,9 +42,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
     <!-- Content Area -->
     <div class="flex-1 min-w-0 space-y-4 md:space-y-0">
       <!-- Profile Section -->
-      <section id="profile-section" class="settings-section">
+      <section id="profile-section" class="settings-section bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="profile" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+        <button data-accordion="profile" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="user" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Profile</span>
@@ -52,11 +52,11 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
         </button>
         <!-- Section Content -->
-        <div class="accordion-content">
+        <div class="accordion-content p-4 md:p-0">
           <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Profile</h2>
 
-        <!-- User Info -->
-        <div class="bg-gray-50 rounded-xl p-6 mb-6">
+          <!-- User Info -->
+          <div class="bg-gray-50 rounded-xl p-6 mb-6">
           <div class="flex items-center gap-4">
             <button id="edit-avatar-btn" class="relative group cursor-pointer">
               <div id="profile-avatar" class="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
@@ -115,14 +115,14 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               </button>
             </div>
           </div>
-        </div>
+          </div>
         </div>
       </section>
 
       <!-- Genres Section -->
-      <section id="genres-section" class="settings-section hidden">
+      <section id="genres-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="genres" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+        <button data-accordion="genres" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="tags" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Manage Genres</span>
@@ -130,9 +130,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
         </button>
         <!-- Section Content -->
-        <div class="accordion-content">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="hidden md:block text-lg font-semibold text-gray-900">Manage Genres</h2>
+        <div class="accordion-content p-4 md:p-0">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="hidden md:block text-lg font-semibold text-gray-900">Manage Genres</h2>
           <button id="add-genre-btn" class="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span>Add</span>
@@ -152,15 +152,15 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <p class="text-gray-400 text-sm mt-1">Create your first genre to organize books</p>
         </div>
 
-        <!-- Genre List -->
-        <div id="genre-list" class="space-y-2"></div>
+          <!-- Genre List -->
+          <div id="genre-list" class="space-y-2"></div>
         </div>
       </section>
 
       <!-- Export Section -->
-      <section id="export-section" class="settings-section hidden">
+      <section id="export-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+        <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="download" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Export Books</span>
@@ -168,22 +168,22 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
         </button>
         <!-- Section Content -->
-        <div class="accordion-content">
-        <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Export Books</h2>
-        <div class="bg-gray-50 rounded-xl p-6">
-          <p class="text-gray-600 mb-4">Download all your books as a JSON file. This backup includes titles, authors, ratings, notes, and genres.</p>
-          <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            <span>Download Backup</span>
-          </button>
-        </div>
+        <div class="accordion-content p-4 md:p-0">
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Export Books</h2>
+          <div class="bg-gray-50 rounded-xl p-6">
+            <p class="text-gray-600 mb-4">Download all your books as a JSON file. This backup includes titles, authors, ratings, notes, and genres.</p>
+            <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Download Backup</span>
+            </button>
+          </div>
         </div>
       </section>
 
       <!-- Data Cleanup Section -->
-      <section id="cleanup-section" class="settings-section hidden">
+      <section id="cleanup-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="cleanup" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+        <button data-accordion="cleanup" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="wrench" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Data Cleanup</span>
@@ -191,9 +191,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
         </button>
         <!-- Section Content -->
-        <div class="accordion-content">
-        <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Data Cleanup</h2>
-        <div class="space-y-6">
+        <div class="accordion-content p-4 md:p-0">
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Data Cleanup</h2>
+          <div class="space-y-6">
           <!-- Genre Migration -->
           <div class="bg-gray-50 rounded-xl p-6">
             <h3 class="font-medium text-gray-900 mb-2">Fix Genre References</h3>
@@ -228,7 +228,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               <span>Recalculate Counts</span>
             </button>
           </div>
-        </div>
+          </div>
         </div>
       </section>
     </div>
