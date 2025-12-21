@@ -68,7 +68,7 @@ onAuthStateChanged(auth, async (user) => {
     }
     // Don't load all books upfront - load when search opens
   } else {
-    window.location.href = '/';
+    window.location.href = '/login/';
   }
 });
 

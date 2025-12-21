@@ -34,14 +34,19 @@ let cachedFilteredBooks = null; // Cache for filtered/sorted results
 let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
 let genreFilter = ''; // Currently selected genre ID for filtering
+let statusFilter = ''; // Currently selected status for filtering
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
+const noResultsState = document.getElementById('no-results-state');
+const noResultsTitle = document.getElementById('no-results-title');
+const clearFiltersLink = document.getElementById('clear-filters-link');
 const bookList = document.getElementById('book-list');
 const sortSelect = document.getElementById('sort-select');
 const ratingFilterSelect = document.getElementById('rating-filter');
 const genreFilterSelect = document.getElementById('genre-filter');
+const statusFilterSelect = document.getElementById('status-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
 const refreshBtn = document.getElementById('refresh-btn');
 
@@ -321,11 +326,18 @@ function filterByGenre(booksArray, genreId) {
   return booksArray.filter(b => b.genres && b.genres.includes(genreId));
 }
 
+// Status filter function
+function filterByStatus(booksArray, status) {
+  if (!status) return booksArray;
+  return booksArray.filter(b => b.status === status);
+}
+
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   let filtered = filterByRating(books, ratingFilter);
   filtered = filterByGenre(filtered, genreFilter);
+  filtered = filterByStatus(filtered, statusFilter);
   cachedFilteredBooks = sortBooks(filtered, currentSort);
   return cachedFilteredBooks;
 }
@@ -340,13 +352,30 @@ function renderBooks() {
   const filtered = getFilteredBooks();
 
   if (filtered.length === 0) {
-    emptyState.classList.remove('hidden');
     bookList.innerHTML = '';
+
+    // Check if we have books but filters don't match
+    if (books.length > 0 && hasActiveFilters()) {
+      // Show "no results" state with filter context
+      emptyState.classList.add('hidden');
+      if (noResultsState) {
+        noResultsState.classList.remove('hidden');
+        if (noResultsTitle) {
+          noResultsTitle.textContent = `No books match ${getActiveFilterDescription()}`;
+        }
+      }
+    } else {
+      // Show "no books yet" empty state
+      if (noResultsState) noResultsState.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+    }
+
     initIcons();
     return;
   }
 
   emptyState.classList.add('hidden');
+  if (noResultsState) noResultsState.classList.add('hidden');
   const visible = filtered.slice(0, displayLimit);
   const hasMoreToDisplay = filtered.length > displayLimit;
 
@@ -428,25 +457,72 @@ if (genreFilterSelect) {
   });
 }
 
+// Status filter
+if (statusFilterSelect) {
+  statusFilterSelect.addEventListener('change', () => {
+    statusFilter = statusFilterSelect.value;
+    displayLimit = BOOKS_PER_PAGE;
+    invalidateFilteredCache(); // Re-filter with new status
+    updateResetButton();
+    renderBooks();
+  });
+}
+
 // Refresh button
 refreshBtn.addEventListener('click', refreshBooks);
 
+// Check if any filters are active
+function hasActiveFilters() {
+  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '';
+}
+
 // Show/hide reset button based on filter state
 function updateResetButton() {
-  const isDefault = currentSort === 'createdAt-desc' && ratingFilter === 0 && genreFilter === '';
+  const isDefault = currentSort === 'createdAt-desc' && !hasActiveFilters();
   resetFiltersBtn.classList.toggle('hidden', isDefault);
 }
 
-// Reset filters to defaults
-resetFiltersBtn.addEventListener('click', async () => {
+// Get a human-readable description of active filters
+function getActiveFilterDescription() {
+  const parts = [];
+
+  if (statusFilter) {
+    const statusLabels = {
+      'want-to-read': 'Want to Read',
+      'reading': 'Reading',
+      'finished': 'Finished'
+    };
+    parts.push(statusLabels[statusFilter] || statusFilter);
+  }
+
+  if (ratingFilter) {
+    parts.push(`${ratingFilter}+ stars`);
+  }
+
+  if (genreFilter && genreLookup) {
+    const genre = genreLookup.get(genreFilter);
+    if (genre) {
+      parts.push(genre.name);
+    }
+  }
+
+  if (parts.length === 0) return 'your filters';
+  if (parts.length === 1) return `"${parts[0]}"`;
+  return parts.map(p => `"${p}"`).join(' and ');
+}
+
+// Helper to reset all filters
+async function resetAllFilters() {
   const needsRefetch = currentSort !== 'createdAt-desc';
 
   currentSort = 'createdAt-desc';
   ratingFilter = 0;
   genreFilter = '';
+  statusFilter = '';
   sortSelect.value = 'createdAt-desc';
   ratingFilterSelect.value = '0';
   if (genreFilterSelect) genreFilterSelect.value = '';
+  if (statusFilterSelect) statusFilterSelect.value = '';
   displayLimit = BOOKS_PER_PAGE;
   invalidateFilteredCache(); // Re-filter with reset values
   updateResetButton();
@@ -457,7 +533,14 @@ resetFiltersBtn.addEventListener('click', async () => {
   } else {
     renderBooks();
   }
-});
+}
+
+resetFiltersBtn.addEventListener('click', resetAllFilters);
+
+// Clear filters link in no-results state
+if (clearFiltersLink) {
+  clearFiltersLink.addEventListener('click', resetAllFilters);
+}
 
 // ==================== Pull to Refresh ====================
 

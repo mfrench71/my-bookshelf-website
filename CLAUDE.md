@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Keep PROJECT.md up to date as features are added or changed. Mark completed items, add new ideas, update architecture notes.
 - Keep README.md up to date with current features, tech stack, and setup instructions.
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
+- Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 
 ## Build & Development Commands
 

@@ -684,7 +684,7 @@ describe('fetchBookDataFromAPI', () => {
 });
 
 describe('checkFormDirty', () => {
-  // Replicate checkFormDirty helper for testing
+  // Replicate checkFormDirty helper for testing (includes status field)
   // genrePickerReady simulates whether the genre picker has been initialized
   function checkFormDirty(currentValues, originalValues, genrePickerReady = true) {
     if (currentValues.title !== originalValues.title) return true;
@@ -695,6 +695,7 @@ describe('checkFormDirty', () => {
     if (currentValues.physicalFormat !== originalValues.physicalFormat) return true;
     if (currentValues.notes !== originalValues.notes) return true;
     if (currentValues.rating !== originalValues.rating) return true;
+    if (currentValues.status !== originalValues.status) return true;
     // If picker not ready, use original genres to avoid false positive
     const currentGenres = genrePickerReady ? currentValues.genres : originalValues.genres;
     if (currentGenres.length !== originalValues.genres.length) return true;
@@ -711,6 +712,7 @@ describe('checkFormDirty', () => {
     physicalFormat: 'Hardcover',
     notes: 'Some notes',
     rating: 4,
+    status: null,
     genres: ['genre1', 'genre2']
   };
 
@@ -749,6 +751,34 @@ describe('checkFormDirty', () => {
     expect(checkFormDirty(current, baseValues)).toBe(true);
   });
 
+  it('should return true when status changes from null to reading', () => {
+    const current = { ...baseValues, status: 'reading', genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when status changes from reading to finished', () => {
+    const originalWithReading = { ...baseValues, status: 'reading' };
+    const current = { ...originalWithReading, status: 'finished', genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, originalWithReading)).toBe(true);
+  });
+
+  it('should return true when status changes to want-to-read', () => {
+    const current = { ...baseValues, status: 'want-to-read', genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return false when status remains the same', () => {
+    const originalWithReading = { ...baseValues, status: 'reading', genres: [...baseValues.genres] };
+    const current = { ...originalWithReading };
+    expect(checkFormDirty(current, originalWithReading)).toBe(false);
+  });
+
+  it('should return true when status is cleared (set to null)', () => {
+    const originalWithReading = { ...baseValues, status: 'reading' };
+    const current = { ...originalWithReading, status: null, genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, originalWithReading)).toBe(true);
+  });
+
   it('should return false when genre picker is not ready (avoids false positive)', () => {
     // Simulates page load where genre picker hasn't initialized yet
     // Current genres would be empty [], but we should use original genres instead
@@ -759,6 +789,80 @@ describe('checkFormDirty', () => {
   it('should correctly detect genre changes when picker is ready', () => {
     const current = { ...baseValues, genres: ['genre3'] };
     expect(checkFormDirty(current, baseValues, true)).toBe(true);
+  });
+});
+
+describe('Status Timestamp Logic', () => {
+  // Replicate the auto-timestamp logic from book-detail.js
+  function getStatusUpdates(currentStatus, originalStatus) {
+    const updates = {};
+
+    // Auto-set startedAt when status changes to 'reading'
+    if (currentStatus === 'reading' && originalStatus !== 'reading') {
+      updates.startedAt = 'SERVER_TIMESTAMP';
+    }
+
+    // Auto-set finishedAt when status changes to 'finished'
+    if (currentStatus === 'finished' && originalStatus !== 'finished') {
+      updates.finishedAt = 'SERVER_TIMESTAMP';
+    }
+
+    return updates;
+  }
+
+  it('should set startedAt when status changes to reading', () => {
+    const updates = getStatusUpdates('reading', null);
+    expect(updates.startedAt).toBe('SERVER_TIMESTAMP');
+  });
+
+  it('should set startedAt when status changes from want-to-read to reading', () => {
+    const updates = getStatusUpdates('reading', 'want-to-read');
+    expect(updates.startedAt).toBe('SERVER_TIMESTAMP');
+  });
+
+  it('should NOT set startedAt when status is already reading', () => {
+    const updates = getStatusUpdates('reading', 'reading');
+    expect(updates.startedAt).toBeUndefined();
+  });
+
+  it('should set finishedAt when status changes to finished', () => {
+    const updates = getStatusUpdates('finished', null);
+    expect(updates.finishedAt).toBe('SERVER_TIMESTAMP');
+  });
+
+  it('should set finishedAt when status changes from reading to finished', () => {
+    const updates = getStatusUpdates('finished', 'reading');
+    expect(updates.finishedAt).toBe('SERVER_TIMESTAMP');
+  });
+
+  it('should NOT set finishedAt when status is already finished', () => {
+    const updates = getStatusUpdates('finished', 'finished');
+    expect(updates.finishedAt).toBeUndefined();
+  });
+
+  it('should not set timestamps when status changes to want-to-read', () => {
+    const updates = getStatusUpdates('want-to-read', null);
+    expect(updates.startedAt).toBeUndefined();
+    expect(updates.finishedAt).toBeUndefined();
+  });
+
+  it('should not set timestamps when status is cleared (set to null)', () => {
+    const updates = getStatusUpdates(null, 'reading');
+    expect(updates.startedAt).toBeUndefined();
+    expect(updates.finishedAt).toBeUndefined();
+  });
+
+  it('should set both startedAt when going directly to reading', () => {
+    const updates = getStatusUpdates('reading', null);
+    expect(updates.startedAt).toBe('SERVER_TIMESTAMP');
+    expect(updates.finishedAt).toBeUndefined();
+  });
+
+  it('should only set finishedAt when going from reading to finished', () => {
+    // This is the typical flow: reading -> finished
+    const updates = getStatusUpdates('finished', 'reading');
+    expect(updates.finishedAt).toBe('SERVER_TIMESTAMP');
+    expect(updates.startedAt).toBeUndefined();
   });
 });
 

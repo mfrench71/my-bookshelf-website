@@ -333,6 +333,97 @@ describe('filterByRating', () => {
   });
 });
 
+// Replicate status filter function from books.js for testing
+function filterByStatus(booksArray, status) {
+  if (!status) return booksArray;
+  return booksArray.filter(b => b.status === status);
+}
+
+describe('filterByStatus', () => {
+  const books = [
+    { id: '1', title: 'Book 1', status: 'want-to-read' },
+    { id: '2', title: 'Book 2', status: 'reading' },
+    { id: '3', title: 'Book 3', status: 'finished' },
+    { id: '4', title: 'Book 4', status: 'reading' },
+    { id: '5', title: 'Book 5', status: null },
+    { id: '6', title: 'Book 6' } // no status property
+  ];
+
+  it('should return all books when status is empty string', () => {
+    const result = filterByStatus(books, '');
+    expect(result).toHaveLength(6);
+  });
+
+  it('should return all books when status is null', () => {
+    const result = filterByStatus(books, null);
+    expect(result).toHaveLength(6);
+  });
+
+  it('should return all books when status is undefined', () => {
+    const result = filterByStatus(books, undefined);
+    expect(result).toHaveLength(6);
+  });
+
+  it('should filter want-to-read books', () => {
+    const result = filterByStatus(books, 'want-to-read');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
+  });
+
+  it('should filter reading books', () => {
+    const result = filterByStatus(books, 'reading');
+    expect(result).toHaveLength(2);
+    expect(result.map(b => b.id)).toContain('2');
+    expect(result.map(b => b.id)).toContain('4');
+  });
+
+  it('should filter finished books', () => {
+    const result = filterByStatus(books, 'finished');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('3');
+  });
+
+  it('should return empty array for non-existent status', () => {
+    const result = filterByStatus(books, 'invalid-status');
+    expect(result).toHaveLength(0);
+  });
+
+  it('should not match null status when filtering', () => {
+    // Filtering by a status value should not match books with null status
+    const result = filterByStatus(books, 'reading');
+    expect(result.some(b => b.status === null)).toBe(false);
+  });
+});
+
+describe('combined status and rating filtering', () => {
+  const books = [
+    { id: '1', title: 'Book 1', status: 'reading', rating: 5 },
+    { id: '2', title: 'Book 2', status: 'reading', rating: 3 },
+    { id: '3', title: 'Book 3', status: 'finished', rating: 5 },
+    { id: '4', title: 'Book 4', status: 'want-to-read', rating: 4 },
+    { id: '5', title: 'Book 5', status: 'finished', rating: 2 }
+  ];
+
+  it('should filter by both status and rating', () => {
+    // Filter to reading books with 4+ stars
+    const byStatus = filterByStatus(books, 'reading');
+    const byRating = filterByRating(byStatus, 4);
+
+    expect(byRating).toHaveLength(1);
+    expect(byRating[0].id).toBe('1');
+    expect(byRating[0].status).toBe('reading');
+    expect(byRating[0].rating).toBe(5);
+  });
+
+  it('should work with status filter first, then rating filter', () => {
+    const byStatus = filterByStatus(books, 'finished');
+    const byRating = filterByRating(byStatus, 4);
+
+    expect(byRating).toHaveLength(1);
+    expect(byRating[0].id).toBe('3');
+  });
+});
+
 describe('combined sorting and filtering', () => {
   it('should work together correctly', () => {
     const books = [

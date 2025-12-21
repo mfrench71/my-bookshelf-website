@@ -20,6 +20,7 @@ let currentUser = null;
 let bookId = null;
 let book = null;
 let currentRating = 0;
+let currentStatus = null;
 let genrePicker = null;
 let originalGenres = [];
 let originalValues = {};
@@ -58,6 +59,7 @@ const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 const starBtns = document.querySelectorAll('.star-btn');
+const statusBtns = document.querySelectorAll('.status-btn');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just load book
@@ -192,7 +194,9 @@ function renderBook() {
   physicalFormatInput.value = book.physicalFormat || '';
   notesInput.value = book.notes || '';
   currentRating = book.rating || 0;
+  currentStatus = book.status || null;
   updateRatingStars();
+  updateStatusButtons();
 
   // Store original values for dirty checking
   originalValues = {
@@ -204,6 +208,7 @@ function renderBook() {
     physicalFormat: book.physicalFormat || '',
     notes: book.notes || '',
     rating: book.rating || 0,
+    status: book.status || null,
     genres: book.genres ? [...book.genres] : []
   };
   formDirty = false;
@@ -233,6 +238,28 @@ function updateRatingStars() {
   updateStars(starBtns, currentRating);
 }
 
+// Status Buttons
+statusBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const clickedStatus = btn.dataset.status;
+    // Toggle off if clicking the same status (allows clearing)
+    currentStatus = currentStatus === clickedStatus ? null : clickedStatus;
+    updateStatusButtons();
+    updateSaveButtonState();
+  });
+});
+
+function updateStatusButtons() {
+  statusBtns.forEach(btn => {
+    const isSelected = btn.dataset.status === currentStatus;
+    btn.classList.toggle('bg-primary', isSelected);
+    btn.classList.toggle('text-white', isSelected);
+    btn.classList.toggle('border-primary', isSelected);
+    btn.classList.toggle('border-gray-300', !isSelected);
+    btn.classList.toggle('text-gray-700', !isSelected);
+  });
+}
+
 // Check if form has actual changes
 function checkFormDirty() {
   if (titleInput.value.trim() !== originalValues.title) return true;
@@ -243,6 +270,7 @@ function checkFormDirty() {
   if (physicalFormatInput.value.trim() !== originalValues.physicalFormat) return true;
   if (notesInput.value.trim() !== originalValues.notes) return true;
   if (currentRating !== originalValues.rating) return true;
+  if (currentStatus !== originalValues.status) return true;
 
   // Check genres (if picker not ready yet, use original genres to avoid false positive)
   const currentGenres = genrePicker ? genrePicker.getSelected() : originalValues.genres;
@@ -278,10 +306,21 @@ editForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     rating: currentRating || null,
+    status: currentStatus,
     notes: notesInput.value.trim(),
     genres: selectedGenres,
     updatedAt: serverTimestamp()
   };
+
+  // Auto-set startedAt when status changes to 'reading'
+  if (currentStatus === 'reading' && originalValues.status !== 'reading') {
+    updates.startedAt = serverTimestamp();
+  }
+
+  // Auto-set finishedAt when status changes to 'finished'
+  if (currentStatus === 'finished' && originalValues.status !== 'finished') {
+    updates.finishedAt = serverTimestamp();
+  }
 
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);

@@ -916,6 +916,132 @@ describe('Settings Page', () => {
     });
   });
 
+  describe('Content Settings (Home Page)', () => {
+    const HOME_SETTINGS_KEY = 'homeSettings';
+    const DEFAULT_HOME_SETTINGS = {
+      currentlyReading: { enabled: true, count: 6 },
+      recentlyAdded: { enabled: true, count: 6 },
+      topRated: { enabled: true, count: 6 },
+      recentlyFinished: { enabled: true, count: 6 },
+      recommendations: { enabled: true, count: 6 }
+    };
+
+    function loadHomeSettings() {
+      try {
+        const stored = localStorage.getItem(HOME_SETTINGS_KEY);
+        if (stored) {
+          return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+      return { ...DEFAULT_HOME_SETTINGS };
+    }
+
+    function saveHomeSettings(settings) {
+      try {
+        localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('should return default settings when nothing is stored', () => {
+      const settings = loadHomeSettings();
+
+      expect(settings).toEqual(DEFAULT_HOME_SETTINGS);
+      expect(settings.currentlyReading.enabled).toBe(true);
+      expect(settings.currentlyReading.count).toBe(6);
+    });
+
+    it('should persist settings to localStorage', () => {
+      const customSettings = {
+        currentlyReading: { enabled: false, count: 3 }
+      };
+
+      saveHomeSettings(customSettings);
+
+      const stored = localStorage.getItem(HOME_SETTINGS_KEY);
+      expect(stored).toBeTruthy();
+      expect(JSON.parse(stored)).toEqual(customSettings);
+    });
+
+    it('should merge stored settings with defaults', () => {
+      const partialSettings = {
+        recommendations: { enabled: false, count: 12 }
+      };
+      localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(partialSettings));
+
+      const settings = loadHomeSettings();
+
+      expect(settings.recommendations.enabled).toBe(false);
+      expect(settings.recommendations.count).toBe(12);
+      // Other sections should have defaults
+      expect(settings.currentlyReading.enabled).toBe(true);
+      expect(settings.currentlyReading.count).toBe(6);
+    });
+
+    it('should support all valid count values', () => {
+      [3, 6, 9, 12].forEach(count => {
+        const settings = {
+          recentlyAdded: { enabled: true, count }
+        };
+        saveHomeSettings(settings);
+
+        const loaded = loadHomeSettings();
+        expect(loaded.recentlyAdded.count).toBe(count);
+      });
+    });
+
+    it('should handle toggling section enabled state', () => {
+      // Disable a section
+      saveHomeSettings({
+        topRated: { enabled: false, count: 6 }
+      });
+
+      let settings = loadHomeSettings();
+      expect(settings.topRated.enabled).toBe(false);
+
+      // Re-enable the section
+      saveHomeSettings({
+        topRated: { enabled: true, count: 6 }
+      });
+
+      settings = loadHomeSettings();
+      expect(settings.topRated.enabled).toBe(true);
+    });
+
+    it('should handle all five sections', () => {
+      const allSectionsDisabled = {
+        currentlyReading: { enabled: false, count: 3 },
+        recentlyAdded: { enabled: false, count: 3 },
+        topRated: { enabled: false, count: 3 },
+        recentlyFinished: { enabled: false, count: 3 },
+        recommendations: { enabled: false, count: 3 }
+      };
+
+      saveHomeSettings(allSectionsDisabled);
+      const settings = loadHomeSettings();
+
+      Object.keys(DEFAULT_HOME_SETTINGS).forEach(key => {
+        expect(settings[key].enabled).toBe(false);
+        expect(settings[key].count).toBe(3);
+      });
+    });
+
+    it('should handle invalid JSON gracefully', () => {
+      localStorage.setItem(HOME_SETTINGS_KEY, 'not valid json');
+
+      const settings = loadHomeSettings();
+
+      expect(settings).toEqual(DEFAULT_HOME_SETTINGS);
+    });
+  });
+
   describe('Recount Results', () => {
     it('should show verified message when counts correct', () => {
       const resultsText = document.getElementById('recount-results-text');

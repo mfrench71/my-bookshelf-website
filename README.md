@@ -4,15 +4,23 @@ A mobile-friendly book tracking PWA with barcode scanning.
 
 ## Features
 
+- **Home Dashboard** with configurable sections:
+  - Currently Reading, Recently Added, Top Rated, Recently Finished
+  - Book recommendations based on your highly-rated authors
+  - Configurable via Settings > Content (visibility + item count)
+- **Reading Status** tracking (Want to Read, Reading, Finished)
+  - Auto-tracks start and finish dates
+  - Status badges on book cards
+  - Filter books by status
 - Scan ISBN barcodes to add books (Quagga2)
 - Search books by title/author (Google Books + Open Library fallback)
 - Infinite scroll for search results
 - Track your personal book library
 - Rate and add notes to books
-- Sort and filter your collection (by date, title, author, rating, genre)
+- Sort and filter your collection (by date, title, author, rating, genre, status)
 - Automatic title/author normalization from API data
 - Genre management with color-coded badges and API suggestions
-- Settings page for managing genres and exporting data
+- Settings page for managing genres, content preferences, and exporting data
 - Export your library as JSON backup
 - Duplicate detection when adding books (by ISBN or title/author)
 - Pull-to-refresh on mobile devices
@@ -27,7 +35,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (509 tests)
+- **Testing**: Vitest with jsdom (588 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
@@ -86,12 +94,13 @@ src/
 │   ├── utils.js      # Shared utilities
 │   ├── book-card.js  # Book card component
 │   ├── header.js     # Common header logic
+│   ├── home.js       # Home dashboard logic
 │   ├── genres.js     # Genre CRUD and utilities
 │   ├── genre-picker.js # Genre picker component
 │   ├── settings.js   # Settings page logic
 │   └── ...           # Page-specific scripts
 ├── css/              # Tailwind CSS source
-└── *.njk             # Page templates (index, books, add, book, settings)
+└── *.njk             # Page templates (index, home, books, add, book, settings)
 ```
 
 ## Deployment

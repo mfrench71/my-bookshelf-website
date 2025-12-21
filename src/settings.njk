@@ -36,6 +36,10 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="wrench" class="w-4 h-4"></i>
           <span>Data Cleanup</span>
         </button>
+        <button data-section="content" class="settings-nav-btn flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Home Content</span>
+        </button>
       </div>
     </nav>
 
@@ -154,7 +158,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
         <div id="genres-empty" class="hidden py-8 text-center bg-gray-50 rounded-xl">
           <i data-lucide="tags" class="w-12 h-12 text-gray-300 mx-auto"></i>
           <h3 class="text-base font-medium text-gray-600 mt-3">No genres yet</h3>
-          <p class="text-gray-400 text-sm mt-1">Create your first genre to organize books</p>
+          <p class="text-gray-400 text-sm mt-1">Create your first genre to organise books</p>
         </div>
 
           <!-- Genre List -->
@@ -236,6 +240,145 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           </div>
         </div>
       </section>
+
+      <!-- Content Settings Section -->
+      <section id="content-section" class="settings-section hidden bg-white md:bg-transparent border-x border-b border-gray-200 md:border-0 rounded-b-xl md:rounded-none overflow-hidden">
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="content" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
+          <div class="flex items-center gap-3">
+            <i data-lucide="layout-dashboard" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Home Content</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content p-4 md:p-0">
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Home Page Sections</h2>
+          <p class="text-gray-600 text-sm mb-4">Choose which sections appear on your home page and how many items to show in each.</p>
+
+          <div class="space-y-4" id="home-sections-config">
+            <!-- Currently Reading -->
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="book-open" class="w-5 h-5 text-blue-600"></i>
+                  <span class="font-medium text-gray-900">Currently Reading</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-currentlyReading" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <p class="text-gray-500 text-sm mb-3">Books you're currently reading</p>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Items to show:</label>
+                <select id="count-currentlyReading" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                  <option value="3">3</option>
+                  <option value="6" selected>6</option>
+                  <option value="9">9</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Recently Added -->
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+                  <span class="font-medium text-gray-900">Recently Added</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-recentlyAdded" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <p class="text-gray-500 text-sm mb-3">Latest books in your library</p>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Items to show:</label>
+                <select id="count-recentlyAdded" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                  <option value="3">3</option>
+                  <option value="6" selected>6</option>
+                  <option value="9">9</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Top Rated -->
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="star" class="w-5 h-5 text-amber-500"></i>
+                  <span class="font-medium text-gray-900">Top Rated</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-topRated" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <p class="text-gray-500 text-sm mb-3">Your highest-rated books</p>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Items to show:</label>
+                <select id="count-topRated" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                  <option value="3">3</option>
+                  <option value="6" selected>6</option>
+                  <option value="9">9</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Recently Finished -->
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                  <span class="font-medium text-gray-900">Recently Finished</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-recentlyFinished" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <p class="text-gray-500 text-sm mb-3">Books you've recently completed</p>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Items to show:</label>
+                <select id="count-recentlyFinished" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                  <option value="3">3</option>
+                  <option value="6" selected>6</option>
+                  <option value="9">9</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="lightbulb" class="w-5 h-5 text-orange-500"></i>
+                  <span class="font-medium text-gray-900">Recommendations</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-recommendations" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              <p class="text-gray-500 text-sm mb-3">Books by authors you love</p>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Items to show:</label>
+                <select id="count-recommendations" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                  <option value="3">3</option>
+                  <option value="6" selected>6</option>
+                  <option value="9">9</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </main>
@@ -251,7 +394,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
       </div>
       <div>
-        <label class="block font-semibold text-gray-700 mb-2">Color</label>
+        <label class="block font-semibold text-gray-700 mb-2">Colour</label>
         <div id="color-picker" class="flex flex-wrap gap-2"></div>
       </div>
       <div class="flex gap-3 pt-2">

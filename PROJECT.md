@@ -21,15 +21,17 @@ MyBookShelf/
 │   ├── _layouts/base.njk     # Base HTML template
 │   ├── _includes/header.njk  # Common header partial
 │   ├── index.njk             # Login/register page
-│   ├── books.njk             # Book list (main view)
+│   ├── home.njk              # Home/dashboard page
+│   ├── books.njk             # Book list (library view)
 │   ├── add.njk               # Add new book
 │   ├── book.njk              # Book detail/edit
-│   ├── settings.njk          # Settings page (genres, export)
+│   ├── settings.njk          # Settings page (genres, content, backup)
 │   ├── css/tailwind.css      # Tailwind v4 config
 │   ├── js/
 │   │   ├── firebase-config.js  # Firebase init + offline persistence
 │   │   ├── header.js           # Header auth, menu, search
 │   │   ├── auth.js             # Authentication
+│   │   ├── home.js             # Home/dashboard logic
 │   │   ├── books.js            # Book CRUD + listing
 │   │   ├── add.js              # Add book logic + barcode scanner
 │   │   ├── book-detail.js      # Detail/edit logic
@@ -88,7 +90,7 @@ MyBookShelf/
 - [x] PWA manifest and icons
 - [x] Service worker v4 (comprehensive caching)
 - [x] Netlify deployment with CI/CD
-- [x] Comprehensive test suite (509 tests)
+- [x] Comprehensive test suite (588 tests)
 - [x] Open Library fallback for book search
 - [x] Infinite scroll for search results
 - [x] Genre management system with color-coded badges
@@ -98,6 +100,12 @@ MyBookShelf/
 - [x] API data supplementation (fill missing fields from Open Library when Google Books data incomplete)
 - [x] Data cleanup utility (fix genre references from names to IDs)
 - [x] Codebase audit and fixes (XSS vulnerabilities, debug code removal, Firebase optimization, code consolidation)
+- [x] Home page dashboard with configurable sections
+- [x] Reading status tracking (Want to Read, Reading, Finished)
+- [x] Auto-timestamps (startedAt when reading, finishedAt when finished)
+- [x] Book recommendations based on highly-rated authors (Google Books + Open Library)
+- [x] Content settings to configure home page sections (visibility + item count)
+- [x] Status filter on book list page
 
 ### In Progress
 - None currently
@@ -120,7 +128,7 @@ MyBookShelf/
 ### Medium Priority
 - [ ] Book quick view modal from list/search results
 - [ ] Book notes/reviews
-- [ ] Reading dates (start/finish)
+- [x] Reading dates (start/finish) - Auto-tracked via status changes
 - [ ] Custom cover image upload
 - [ ] Cover image picker (select from multiple API sources: Google Books, Open Library)
 - [x] Export to JSON
@@ -132,7 +140,7 @@ MyBookShelf/
 - [ ] Reading statistics/charts
 - [ ] Dark mode
 - [ ] Social sharing
-- [ ] Book recommendations
+- [x] Book recommendations - Based on highly-rated authors
 - [ ] Reading goals/challenges
 - [ ] Multiple shelves/lists
 
@@ -176,13 +184,15 @@ MyBookShelf/
 - [ ] Marketing emails opt-in/out
 
 ### User Lists / Shelves
-- [ ] Custom user lists (e.g., "Want to Read", "Currently Reading", "Finished")
-- [ ] Default lists created for new users
+- [x] Built-in reading statuses: "Want to Read", "Reading", "Finished"
+- [x] Status selector on book detail page
+- [x] Filter books by status on library page
+- [x] Status badges on book cards
+- [ ] Custom user lists (beyond built-in statuses)
 - [ ] Assign books to multiple lists
 - [ ] List CRUD (create, read, update, delete)
 - [ ] Drag and drop reordering within lists
 - [ ] List view page (all books in a list)
-- [ ] Filter books by list
 - [ ] Quick "move to list" action from book card
 
 ### Book Series
@@ -313,7 +323,7 @@ python3 -m http.server 8000
 
 #### Enhanced Book Data
 - [ ] Half-star or quarter-star ratings
-- [ ] Start/finish reading dates
+- [x] Start/finish reading dates (startedAt, finishedAt auto-tracked)
 - [ ] Re-read tracking (read count)
 - [ ] DNF (did not finish) status
 - [ ] Loaned to / borrowed from tracking

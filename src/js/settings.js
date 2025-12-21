@@ -698,7 +698,7 @@ deleteAccountForm.addEventListener('submit', async (e) => {
 
     // Redirect to login
     setTimeout(() => {
-      window.location.href = '/';
+      window.location.href = '/login/';
     }, 1500);
   } catch (error) {
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -1098,3 +1098,83 @@ async function runRecountGenres() {
 }
 
 recountGenresBtn.addEventListener('click', runRecountGenres);
+
+// ==================== Home Content Settings ====================
+
+const HOME_SETTINGS_KEY = 'homeSettings';
+
+// Default home settings
+const DEFAULT_HOME_SETTINGS = {
+  currentlyReading: { enabled: true, count: 6 },
+  recentlyAdded: { enabled: true, count: 6 },
+  topRated: { enabled: true, count: 6 },
+  recentlyFinished: { enabled: true, count: 6 },
+  recommendations: { enabled: true, count: 6 }
+};
+
+// Load home settings from localStorage
+function loadHomeSettings() {
+  try {
+    const stored = localStorage.getItem(HOME_SETTINGS_KEY);
+    if (stored) {
+      return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.warn('Error loading home settings:', e);
+  }
+  return { ...DEFAULT_HOME_SETTINGS };
+}
+
+// Save home settings to localStorage
+function saveHomeSettings(settings) {
+  try {
+    localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('Error saving home settings:', e);
+  }
+}
+
+// Export for home.js to use
+export function getHomeSettings() {
+  return loadHomeSettings();
+}
+
+// Initialize content settings UI
+function initContentSettings() {
+  const settings = loadHomeSettings();
+  const sections = ['currentlyReading', 'recentlyAdded', 'topRated', 'recentlyFinished', 'recommendations'];
+
+  sections.forEach(section => {
+    const toggle = document.getElementById(`toggle-${section}`);
+    const countSelect = document.getElementById(`count-${section}`);
+
+    if (toggle) {
+      toggle.checked = settings[section]?.enabled ?? true;
+      toggle.addEventListener('change', () => {
+        const currentSettings = loadHomeSettings();
+        currentSettings[section] = {
+          ...currentSettings[section],
+          enabled: toggle.checked
+        };
+        saveHomeSettings(currentSettings);
+        showToast('Settings saved', { type: 'success' });
+      });
+    }
+
+    if (countSelect) {
+      countSelect.value = String(settings[section]?.count ?? 6);
+      countSelect.addEventListener('change', () => {
+        const currentSettings = loadHomeSettings();
+        currentSettings[section] = {
+          ...currentSettings[section],
+          count: parseInt(countSelect.value, 10)
+        };
+        saveHomeSettings(currentSettings);
+        showToast('Settings saved', { type: 'success' });
+      });
+    }
+  });
+}
+
+// Initialize content settings on load
+initContentSettings();

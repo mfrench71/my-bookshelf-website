@@ -1,0 +1,110 @@
+---
+layout: base.njk
+title: Home
+permalink: /
+scripts: '<script type="module" src="/js/home.js"></script>'
+bodyClass: bg-gray-100
+---
+<main class="max-w-6xl mx-auto px-4 py-6 pb-24">
+  <!-- Welcome Header -->
+  <div id="welcome-section" class="bg-white rounded-xl p-4 mb-4 shadow-sm">
+    <h1 id="welcome-text" class="text-xl font-bold text-gray-900">Welcome back!</h1>
+    <p id="stats-text" class="text-gray-500 text-sm mt-1">Loading your library...</p>
+    <a href="/books/" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors">
+      <i data-lucide="library" class="w-4 h-4"></i>
+      <span>View My Library</span>
+    </a>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading-state" class="bg-white rounded-xl p-6 text-center shadow-sm">
+    <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+    <p class="text-gray-500 mt-3">Loading your dashboard...</p>
+  </div>
+
+  <!-- Dashboard Sections -->
+  <div id="dashboard-sections" class="hidden space-y-4">
+
+    <!-- Currently Reading Section -->
+    <section id="section-currentlyReading" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-blue-600"></i>
+          Currently Reading
+          <span id="count-currentlyReading" class="text-sm font-normal text-gray-500">(0)</span>
+        </h2>
+        <a href="/books/?status=reading" class="text-sm text-primary hover:underline">See all</a>
+      </div>
+      <div id="books-currentlyReading" class="carousel-scroll"></div>
+      <p id="empty-currentlyReading" class="hidden text-gray-400 text-sm py-2 px-4">No books currently being read</p>
+    </section>
+
+    <!-- Recently Added Section -->
+    <section id="section-recentlyAdded" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+          Recently Added
+          <span id="count-recentlyAdded" class="text-sm font-normal text-gray-500">(0)</span>
+        </h2>
+        <a href="/books/" class="text-sm text-primary hover:underline">See all</a>
+      </div>
+      <div id="books-recentlyAdded" class="carousel-scroll"></div>
+      <p id="empty-recentlyAdded" class="hidden text-gray-400 text-sm py-2 px-4">No books in your library yet</p>
+    </section>
+
+    <!-- Top Rated Section -->
+    <section id="section-topRated" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <i data-lucide="star" class="w-5 h-5 text-amber-500"></i>
+          Top Rated
+          <span id="count-topRated" class="text-sm font-normal text-gray-500">(0)</span>
+        </h2>
+        <a href="/books/?rating=5" class="text-sm text-primary hover:underline">See all</a>
+      </div>
+      <div id="books-topRated" class="carousel-scroll"></div>
+      <p id="empty-topRated" class="hidden text-gray-400 text-sm py-2 px-4">Rate some books to see your favourites</p>
+    </section>
+
+    <!-- Recently Finished Section -->
+    <section id="section-recentlyFinished" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+          Recently Finished
+          <span id="count-recentlyFinished" class="text-sm font-normal text-gray-500">(0)</span>
+        </h2>
+        <a href="/books/?status=finished" class="text-sm text-primary hover:underline">See all</a>
+      </div>
+      <div id="books-recentlyFinished" class="carousel-scroll"></div>
+      <p id="empty-recentlyFinished" class="hidden text-gray-400 text-sm py-2 px-4">No finished books yet</p>
+    </section>
+
+    <!-- Recommendations Section -->
+    <section id="section-recommendations" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <i data-lucide="lightbulb" class="w-5 h-5 text-orange-500"></i>
+          Recommended For You
+        </h2>
+      </div>
+      <div id="books-recommendations" class="carousel-scroll"></div>
+      <div id="loading-recommendations" class="hidden py-4 text-center px-4">
+        <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+        <p class="text-gray-500 text-sm mt-2">Finding recommendations...</p>
+      </div>
+      <p id="empty-recommendations" class="hidden text-gray-400 text-sm py-2 px-4">Rate some books 5 stars to get personalised recommendations</p>
+    </section>
+
+  </div>
+</main>
+
+<!-- FAB - Add Book -->
+<a href="/add/"
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30">
+  <i data-lucide="plus" class="w-6 h-6"></i>
+</a>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

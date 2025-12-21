@@ -222,3 +222,49 @@ button, a {
   outline-offset: 2px;
   transition: outline 0.3s;
 }
+
+/* Horizontal Scroll Carousel */
+.carousel-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+}
+
+.carousel-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Carousel spacer elements */
+.carousel-spacer {
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+/* Thin scrollbar for carousel */
+.carousel-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.carousel-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.carousel-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+
+.carousel-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.carousel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f1f1f1;
+}

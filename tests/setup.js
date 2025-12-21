@@ -13,6 +13,32 @@ global.lucide = {
 // Mock navigator.vibrate
 global.navigator.vibrate = vi.fn();
 
+// Mock localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: vi.fn((key) => store[key] || null),
+    setItem: vi.fn((key, value) => {
+      store[key] = String(value);
+    }),
+    removeItem: vi.fn((key) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: vi.fn((index) => Object.keys(store)[index] || null),
+    // For resetting in tests
+    _reset: () => {
+      store = {};
+    }
+  };
+})();
+global.localStorage = localStorageMock;
+
 // Mock fetch for API tests
 global.fetch = vi.fn();
 
@@ -153,6 +179,10 @@ export function setupDOM() {
     <div id="toast" class="hidden"></div>
     <div id="loading-state"></div>
     <div id="empty-state" class="hidden"></div>
+    <div id="no-results-state" class="hidden">
+      <h3 id="no-results-title">No books match your filters</h3>
+      <button id="clear-filters-link">clear all filters</button>
+    </div>
     <div id="book-list"></div>
     <select id="sort-select">
       <option value="createdAt-desc">Date Added (Newest)</option>
@@ -169,6 +199,12 @@ export function setupDOM() {
       <option value="5">5 Stars</option>
       <option value="4">4+ Stars</option>
       <option value="3">3+ Stars</option>
+    </select>
+    <select id="status-filter">
+      <option value="">All Status</option>
+      <option value="want-to-read">Want to Read</option>
+      <option value="reading">Reading</option>
+      <option value="finished">Finished</option>
     </select>
     <button id="reset-filters" class="hidden"></button>
   `;

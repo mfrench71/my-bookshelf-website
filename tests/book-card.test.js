@@ -181,6 +181,66 @@ describe('bookCard', () => {
     });
   });
 
+  describe('status badge', () => {
+    it('should render "Want to Read" badge for want-to-read status', () => {
+      const book = createMockBook({ status: 'want-to-read' });
+      const html = bookCard(book);
+
+      expect(html).toContain('Want to Read');
+      expect(html).toContain('bg-amber-100');
+      expect(html).toContain('text-amber-700');
+      expect(html).toContain('data-lucide="bookmark"');
+    });
+
+    it('should render "Reading" badge for reading status', () => {
+      const book = createMockBook({ status: 'reading' });
+      const html = bookCard(book);
+
+      expect(html).toContain('Reading');
+      expect(html).toContain('bg-blue-100');
+      expect(html).toContain('text-blue-700');
+      expect(html).toContain('data-lucide="book-open"');
+    });
+
+    it('should render "Finished" badge for finished status', () => {
+      const book = createMockBook({ status: 'finished' });
+      const html = bookCard(book);
+
+      expect(html).toContain('Finished');
+      expect(html).toContain('bg-green-100');
+      expect(html).toContain('text-green-700');
+      expect(html).toContain('data-lucide="check-circle"');
+    });
+
+    it('should not render status badge for null status', () => {
+      const book = createMockBook({ status: null });
+      const html = bookCard(book);
+
+      expect(html).not.toContain('Want to Read');
+      expect(html).not.toContain('Reading');
+      expect(html).not.toContain('Finished');
+    });
+
+    it('should not render status badge for undefined status', () => {
+      const book = createMockBook({ status: undefined });
+      const html = bookCard(book);
+
+      expect(html).not.toContain('Want to Read');
+      expect(html).not.toContain('Reading');
+      expect(html).not.toContain('Finished');
+    });
+
+    it('should not render status badge for unknown status value', () => {
+      const book = createMockBook({ status: 'invalid-status' });
+      const html = bookCard(book);
+
+      expect(html).not.toContain('invalid-status');
+      expect(html).not.toContain('bg-amber-100');
+      expect(html).not.toContain('bg-blue-100');
+      expect(html).not.toContain('bg-green-100');
+    });
+  });
+
   describe('book list rendering (integration)', () => {
     it('should show date for ALL serialized books, not just the first one', () => {
       const books = createSerializedBooks(5);
