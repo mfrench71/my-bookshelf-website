@@ -187,6 +187,18 @@ describe('normalizeTitle', () => {
     expect(normalizeTitle('war and peace')).toBe('War and Peace');
     expect(normalizeTitle('of mice and men')).toBe('Of Mice and Men');
   });
+
+  it('should normalize titles that start with lowercase letter', () => {
+    expect(normalizeTitle('the Great Gatsby')).toBe('The Great Gatsby');
+    expect(normalizeTitle('harry Potter')).toBe('Harry Potter');
+    expect(normalizeTitle('a tale of Two Cities')).toBe('A Tale of Two Cities');
+  });
+
+  it('should normalize titles with lowercase significant words in the middle', () => {
+    expect(normalizeTitle('The Ionian mission')).toBe('The Ionian Mission');
+    expect(normalizeTitle('Harry Potter and the chamber of secrets')).toBe('Harry Potter and the Chamber of Secrets');
+    expect(normalizeTitle('The Lord of the rings')).toBe('The Lord of the Rings');
+  });
 });
 
 describe('normalizeAuthor', () => {
@@ -230,6 +242,11 @@ describe('normalizeAuthor', () => {
   it('should handle lowercase multiple authors', () => {
     expect(normalizeAuthor('john doe, jane smith')).toBe('John Doe, Jane Smith');
   });
+
+  it('should normalize authors that start with lowercase letter', () => {
+    expect(normalizeAuthor('stephen King')).toBe('Stephen King');
+    expect(normalizeAuthor('j.k. Rowling')).toBe('J.k. Rowling');
+  });
 });
 
 describe('normalizePublisher', () => {
@@ -264,6 +281,11 @@ describe('normalizePublisher', () => {
   it('should convert all lowercase to Title Case', () => {
     expect(normalizePublisher('penguin books')).toBe('Penguin Books');
     expect(normalizePublisher('random house')).toBe('Random House');
+  });
+
+  it('should normalize publishers that start with lowercase letter', () => {
+    expect(normalizePublisher('penguin Books')).toBe('Penguin Books');
+    expect(normalizePublisher('random House')).toBe('Random House');
   });
 });
 

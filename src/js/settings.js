@@ -30,7 +30,7 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -438,11 +438,13 @@ function openPhotoModal() {
   // Sync photo preview with current state
   updatePhotoPreview();
   photoModal.classList.remove('hidden');
+  lockBodyScroll();
   initIcons();
 }
 
 function closePhotoModal() {
   photoModal.classList.add('hidden');
+  unlockBodyScroll();
 }
 
 function updatePhotoPreview() {
@@ -493,16 +495,19 @@ changePasswordBtn.addEventListener('click', () => {
   // Reset password strength UI
   updateNewPasswordUI('');
   passwordModal.classList.remove('hidden');
+  lockBodyScroll();
   currentPasswordInput.focus();
 });
 
 cancelPasswordBtn.addEventListener('click', () => {
   passwordModal.classList.add('hidden');
+  unlockBodyScroll();
 });
 
 passwordModal.addEventListener('click', (e) => {
   if (e.target === passwordModal) {
     passwordModal.classList.add('hidden');
+    unlockBodyScroll();
   }
 });
 
@@ -595,6 +600,7 @@ passwordForm.addEventListener('submit', async (e) => {
 
     showToast('Password updated successfully!', { type: 'success' });
     passwordModal.classList.add('hidden');
+    unlockBodyScroll();
   } catch (error) {
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       showToast('Current password is incorrect', { type: 'error' });
@@ -620,16 +626,19 @@ deleteAccountBtn.addEventListener('click', () => {
   deleteConfirmPasswordInput.value = '';
   deleteConfirmTextInput.value = '';
   deleteAccountModal.classList.remove('hidden');
+  lockBodyScroll();
   deleteConfirmPasswordInput.focus();
 });
 
 cancelDeleteAccountBtn.addEventListener('click', () => {
   deleteAccountModal.classList.add('hidden');
+  unlockBodyScroll();
 });
 
 deleteAccountModal.addEventListener('click', (e) => {
   if (e.target === deleteAccountModal) {
     deleteAccountModal.classList.add('hidden');
+    unlockBodyScroll();
   }
 });
 
@@ -804,6 +813,7 @@ function openAddModal() {
   saveGenreBtn.textContent = 'Add';
   renderColorPicker();
   genreModal.classList.remove('hidden');
+  lockBodyScroll();
   genreNameInput.focus();
 }
 
@@ -818,11 +828,13 @@ function openEditModal(genreId) {
   saveGenreBtn.textContent = 'Save';
   renderColorPicker();
   genreModal.classList.remove('hidden');
+  lockBodyScroll();
   genreNameInput.focus();
 }
 
 function closeModal() {
   genreModal.classList.add('hidden');
+  unlockBodyScroll();
   editingGenreId = null;
 }
 
@@ -834,10 +846,12 @@ function openDeleteModal(genreId, name, bookCount) {
     ? `This will remove "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
     : `Are you sure you want to delete "${name}"?`;
   deleteModal.classList.remove('hidden');
+  lockBodyScroll();
 }
 
 function closeDeleteModal() {
   deleteModal.classList.add('hidden');
+  unlockBodyScroll();
   deletingGenreId = null;
 }
 

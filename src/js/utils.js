@@ -6,6 +6,20 @@ export const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
 export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Lock body scroll (for modals)
+ */
+export function lockBodyScroll() {
+  document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Unlock body scroll (when modal closes)
+ */
+export function unlockBodyScroll() {
+  document.body.style.overflow = '';
+}
+
+/**
  * Clear the books cache for a user
  */
 export function clearBooksCache(userId) {
@@ -89,6 +103,43 @@ function isAllLowercase(str) {
 }
 
 /**
+ * Check if a title/name needs Title Case normalization
+ * Returns true if: ALL CAPS, all lowercase, or any significant word starts lowercase
+ */
+function needsTitleCase(str) {
+  if (!str || str.length === 0) return false;
+
+  // Check for ALL CAPS or all lowercase
+  if (isAllCaps(str) || isAllLowercase(str)) {
+    return true;
+  }
+
+  // Check if any significant word starts with lowercase
+  // (words that should be capitalized but aren't)
+  const lowercaseWords = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'];
+  const words = str.split(' ');
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (!word) continue;
+
+    const firstLetter = word.match(/[a-zA-Z]/);
+    if (!firstLetter) continue;
+
+    const startsLowercase = firstLetter[0] === firstLetter[0].toLowerCase();
+    const isSmallWord = lowercaseWords.includes(word.toLowerCase());
+
+    // First word should always be capitalized
+    // Other words should be capitalized unless they're small words
+    if (startsLowercase && (i === 0 || !isSmallWord)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Convert string to Title Case
  * Keeps small words lowercase unless they're the first word
  */
@@ -107,7 +158,7 @@ function toTitleCase(str) {
  * Normalize a book title
  * - Trims whitespace
  * - Removes trailing periods
- * - Converts ALL CAPS or all lowercase to Title Case
+ * - Converts to Title Case if improperly formatted
  */
 export function normalizeTitle(title) {
   if (!title) return '';
@@ -117,8 +168,8 @@ export function normalizeTitle(title) {
   // Remove trailing periods (but not ellipsis)
   normalized = normalized.replace(/\.+$/, '');
 
-  // Convert ALL CAPS or all lowercase to Title Case
-  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
+  // Convert to Title Case if needed (ALL CAPS, all lowercase, or starts with lowercase)
+  if (needsTitleCase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 
@@ -128,14 +179,14 @@ export function normalizeTitle(title) {
 /**
  * Normalize an author name
  * - Trims whitespace
- * - Converts ALL CAPS or all lowercase to Title Case
+ * - Converts to Title Case if improperly formatted
  */
 export function normalizeAuthor(author) {
   if (!author) return '';
 
   let normalized = author.trim();
 
-  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
+  if (needsTitleCase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 
@@ -145,14 +196,14 @@ export function normalizeAuthor(author) {
 /**
  * Normalize a publisher name
  * - Trims whitespace
- * - Converts ALL CAPS or all lowercase to Title Case
+ * - Converts to Title Case if improperly formatted
  */
 export function normalizePublisher(publisher) {
   if (!publisher) return '';
 
   let normalized = publisher.trim();
 
-  if (isAllCaps(normalized) || isAllLowercase(normalized)) {
+  if (needsTitleCase(normalized)) {
     normalized = toTitleCase(normalized);
   }
 

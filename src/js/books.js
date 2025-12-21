@@ -49,11 +49,9 @@ const refreshBtn = document.getElementById('refresh-btn');
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    // Load genres and books in parallel
-    await Promise.all([
-      loadGenres(),
-      loadBooks()
-    ]);
+    // Load genres first (needed for genre indicators), then books
+    await loadGenres();
+    await loadBooks();
   }
 });
 

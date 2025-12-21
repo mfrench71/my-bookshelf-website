@@ -49,12 +49,13 @@ export function bookCard(book, options = {}) {
     ? `<div class="rating-stars">${renderStars(book.rating)}</div>`
     : '';
 
-  // Resolve genre IDs to genre objects
+  // Resolve genre IDs to genre objects (sorted alphabetically)
   let genreBadges = '';
   if (book.genres && book.genres.length > 0 && genreLookup) {
     const genreDetails = book.genres
       .map(gId => genreLookup.get(gId))
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
     genreBadges = renderGenreBadges(genreDetails);
   }
 

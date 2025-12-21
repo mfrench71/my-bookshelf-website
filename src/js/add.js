@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -608,6 +608,7 @@ async function openScanner() {
   }
 
   scannerModal.classList.remove('hidden');
+  lockBodyScroll();
   initIcons();
 
   try {
@@ -684,6 +685,7 @@ function startQuagga() {
 
 function closeScanner() {
   scannerModal.classList.add('hidden');
+  unlockBodyScroll();
 
   if (scannerRunning) {
     try {

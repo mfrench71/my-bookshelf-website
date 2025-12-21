@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate } from './utils.js';
+import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -320,15 +320,18 @@ editForm.addEventListener('submit', async (e) => {
 // Delete
 deleteBtn.addEventListener('click', () => {
   deleteModal.classList.remove('hidden');
+  lockBodyScroll();
 });
 
 cancelDeleteBtn.addEventListener('click', () => {
   deleteModal.classList.add('hidden');
+  unlockBodyScroll();
 });
 
 deleteModal.addEventListener('click', (e) => {
   if (e.target === deleteModal) {
     deleteModal.classList.add('hidden');
+    unlockBodyScroll();
   }
 });
 
@@ -358,6 +361,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = 'Delete';
     deleteModal.classList.add('hidden');
+    unlockBodyScroll();
   }
 });
 

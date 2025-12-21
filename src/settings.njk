@@ -62,8 +62,13 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               <div id="profile-avatar" class="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                 <!-- Initial, Gravatar, or uploaded photo -->
               </div>
+              <!-- Hover overlay for desktop -->
               <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <i data-lucide="camera" class="w-5 h-5 text-white"></i>
+              </div>
+              <!-- Edit badge for mobile (hidden on desktop where hover works) -->
+              <div class="absolute -bottom-0.5 -right-0.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md md:hidden">
+                <i data-lucide="pencil" class="w-3 h-3 text-white"></i>
               </div>
             </button>
             <div>

@@ -100,7 +100,8 @@ export class GenrePicker {
 
     const selectedGenres = this.selected
       .map(id => this.genres.find(g => g.id === id))
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     const filteredGenres = this._getFilteredGenres();
     const filteredSuggestions = this._getFilteredSuggestions();
@@ -137,6 +138,14 @@ export class GenrePicker {
           <!-- Dropdown -->
           ${this.isOpen ? `
             <div class="genre-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+                <span class="text-xs text-gray-500">Select genres</span>
+                <button type="button" class="genre-picker-close p-1 hover:bg-gray-200 rounded" title="Close">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
               ${this._renderDropdownContent(filteredGenres, filteredSuggestions, showCreateOption)}
             </div>
           ` : ''}
@@ -349,6 +358,19 @@ export class GenrePicker {
         await this._createAndSelect(name);
       });
     });
+
+    // Close button
+    const closeBtn = this.container.querySelector('.genre-picker-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.isOpen = false;
+        this.searchQuery = '';
+        this.focusedIndex = -1;
+        this.render();
+      });
+    }
   }
 
   /**
@@ -412,15 +434,19 @@ export class GenrePicker {
    */
   _toggleGenre(genreId) {
     const index = this.selected.indexOf(genreId);
-    if (index === -1) {
+    const isAdding = index === -1;
+
+    if (isAdding) {
       this.selected.push(genreId);
     } else {
       this.selected.splice(index, 1);
     }
 
+    // Update UI incrementally to avoid flash
+    this._updateSelectionUI(genreId, isAdding);
+
     this.searchQuery = '';
     this.focusedIndex = -1;
-    this.render();
     this.onChange(this.selected);
 
     // Refocus input
@@ -428,6 +454,68 @@ export class GenrePicker {
       const input = this.container.querySelector('.genre-picker-input');
       if (input) input.focus();
     }, 0);
+  }
+
+  /**
+   * Update UI incrementally when toggling a genre (avoids full re-render flash)
+   */
+  _updateSelectionUI(genreId, isAdding) {
+    // Update checkmark in dropdown
+    const btn = this.container.querySelector(`[data-genre-id="${genreId}"]`);
+    if (btn) {
+      const existingCheck = btn.querySelector('svg.text-primary');
+      if (isAdding && !existingCheck) {
+        const checkmark = document.createElement('span');
+        checkmark.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
+        btn.appendChild(checkmark.firstChild);
+      } else if (!isAdding && existingCheck) {
+        existingCheck.remove();
+      }
+    }
+
+    // Update selected badges
+    const badgesContainer = this.container.querySelector('.genre-picker-selected');
+    if (badgesContainer) {
+      const genre = this.genres.find(g => g.id === genreId);
+      if (genre) {
+        if (isAdding) {
+          // Add badge
+          const badge = document.createElement('span');
+          badge.className = 'genre-badge';
+          badge.style.backgroundColor = genre.color;
+          badge.style.color = getContrastColor(genre.color);
+          badge.innerHTML = `
+            ${escapeHtml(genre.name)}
+            <button type="button" class="ml-1 hover:opacity-75" data-remove-genre="${genre.id}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          `;
+          badge.querySelector('[data-remove-genre]').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this._removeGenre(genreId);
+          });
+          badgesContainer.appendChild(badge);
+          // Re-sort badges alphabetically
+          this._sortBadges(badgesContainer);
+        } else {
+          // Remove badge
+          const badge = badgesContainer.querySelector(`[data-remove-genre="${genreId}"]`)?.closest('.genre-badge');
+          if (badge) badge.remove();
+        }
+      }
+    }
+  }
+
+  /**
+   * Sort badge elements alphabetically
+   */
+  _sortBadges(container) {
+    const badges = Array.from(container.querySelectorAll('.genre-badge'));
+    badges.sort((a, b) => a.textContent.trim().localeCompare(b.textContent.trim()));
+    badges.forEach(badge => container.appendChild(badge));
   }
 
   /**
