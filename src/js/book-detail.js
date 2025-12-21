@@ -75,7 +75,7 @@ async function initGenrePicker() {
     container: genrePickerContainer,
     userId: currentUser.uid,
     onChange: () => {
-      formDirty = true;
+      updateSaveButtonState();
     }
   });
 
@@ -193,10 +193,15 @@ function renderBook() {
     title: book.title || '',
     author: book.author || '',
     coverImageUrl: book.coverImageUrl || '',
+    publisher: book.publisher || '',
+    publishedDate: book.publishedDate || '',
+    physicalFormat: book.physicalFormat || '',
     notes: book.notes || '',
-    rating: book.rating || 0
+    rating: book.rating || 0,
+    genres: book.genres ? [...book.genres] : []
   };
   formDirty = false;
+  updateSaveButtonState();
 
   // Show content
   loading.classList.add('hidden');
@@ -212,12 +217,39 @@ starBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     currentRating = parseInt(btn.dataset.rating);
     updateRatingStars();
-    formDirty = true;
+    updateSaveButtonState();
   });
 });
 
 function updateRatingStars() {
   updateStars(starBtns, currentRating);
+}
+
+// Check if form has actual changes
+function checkFormDirty() {
+  if (titleInput.value.trim() !== originalValues.title) return true;
+  if (authorInput.value.trim() !== originalValues.author) return true;
+  if (coverUrlInput.value.trim() !== originalValues.coverImageUrl) return true;
+  if (publisherInput.value.trim() !== originalValues.publisher) return true;
+  if (publishedDateInput.value.trim() !== originalValues.publishedDate) return true;
+  if (physicalFormatInput.value.trim() !== originalValues.physicalFormat) return true;
+  if (notesInput.value.trim() !== originalValues.notes) return true;
+  if (currentRating !== originalValues.rating) return true;
+
+  // Check genres
+  const currentGenres = genrePicker ? genrePicker.getSelected() : [];
+  if (currentGenres.length !== originalValues.genres.length) return true;
+  if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
+
+  return false;
+}
+
+// Update save button state based on form changes
+function updateSaveButtonState() {
+  formDirty = checkFormDirty();
+  saveBtn.disabled = !formDirty;
+  saveBtn.classList.toggle('opacity-50', !formDirty);
+  saveBtn.classList.toggle('cursor-not-allowed', !formDirty);
 }
 
 // Save Changes
@@ -324,7 +356,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
 // Track unsaved changes on form inputs (coverUrlInput excluded - read-only)
 [titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
-    formDirty = true;
+    updateSaveButtonState();
   });
 });
 
@@ -500,7 +532,7 @@ refreshDataBtn.addEventListener('click', async () => {
 
       // Show appropriate toast
       if (changedFields.length > 0) {
-        formDirty = true;
+        updateSaveButtonState();
         showToast(`Updated: ${changedFields.join(', ')}`, { type: 'success' });
       } else {
         showToast('No new data found', { type: 'info' });

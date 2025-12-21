@@ -683,6 +683,70 @@ describe('fetchBookDataFromAPI', () => {
   });
 });
 
+describe('checkFormDirty', () => {
+  // Replicate checkFormDirty helper for testing
+  function checkFormDirty(currentValues, originalValues) {
+    if (currentValues.title !== originalValues.title) return true;
+    if (currentValues.author !== originalValues.author) return true;
+    if (currentValues.coverImageUrl !== originalValues.coverImageUrl) return true;
+    if (currentValues.publisher !== originalValues.publisher) return true;
+    if (currentValues.publishedDate !== originalValues.publishedDate) return true;
+    if (currentValues.physicalFormat !== originalValues.physicalFormat) return true;
+    if (currentValues.notes !== originalValues.notes) return true;
+    if (currentValues.rating !== originalValues.rating) return true;
+    if (currentValues.genres.length !== originalValues.genres.length) return true;
+    if (!currentValues.genres.every(g => originalValues.genres.includes(g))) return true;
+    return false;
+  }
+
+  const baseValues = {
+    title: 'Test Book',
+    author: 'Test Author',
+    coverImageUrl: 'http://example.com/cover.jpg',
+    publisher: 'Test Publisher',
+    publishedDate: '2020',
+    physicalFormat: 'Hardcover',
+    notes: 'Some notes',
+    rating: 4,
+    genres: ['genre1', 'genre2']
+  };
+
+  it('should return false when no values have changed', () => {
+    const current = { ...baseValues, genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(false);
+  });
+
+  it('should return true when title changes', () => {
+    const current = { ...baseValues, title: 'Different Title', genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when rating changes', () => {
+    const current = { ...baseValues, rating: 5, genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when a genre is added', () => {
+    const current = { ...baseValues, genres: ['genre1', 'genre2', 'genre3'] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when a genre is removed', () => {
+    const current = { ...baseValues, genres: ['genre1'] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when genres are completely different', () => {
+    const current = { ...baseValues, genres: ['genre3', 'genre4'] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+
+  it('should return true when publisher changes', () => {
+    const current = { ...baseValues, publisher: 'New Publisher', genres: [...baseValues.genres] };
+    expect(checkFormDirty(current, baseValues)).toBe(true);
+  });
+});
+
 describe('fillEmptyField', () => {
   it('should update when current value is empty and new value exists', () => {
     const result = fillEmptyField('', 'New Value');
