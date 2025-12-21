@@ -5,7 +5,8 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  deleteUser
+  deleteUser,
+  sendEmailVerification
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -113,6 +114,12 @@ const changePasswordBtn = document.getElementById('change-password-btn');
 const editAvatarBtn = document.getElementById('edit-avatar-btn');
 const privacySettingsBtn = document.getElementById('privacy-settings-btn');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
+
+// DOM Elements - Email Verification
+const emailVerificationSection = document.getElementById('email-verification-section');
+const verificationIcon = document.getElementById('verification-icon');
+const verificationStatus = document.getElementById('verification-status');
+const resendVerificationSettingsBtn = document.getElementById('resend-verification-settings-btn');
 
 // DOM Elements - Photo Modal
 const photoModal = document.getElementById('photo-modal');
@@ -325,7 +332,57 @@ async function loadProfileInfo() {
 
   // Update avatar display
   await updateAvatarDisplay();
+
+  // Update email verification status
+  updateVerificationStatus();
 }
+
+function updateVerificationStatus() {
+  if (!emailVerificationSection) return;
+
+  emailVerificationSection.classList.remove('hidden');
+
+  if (currentUser.emailVerified) {
+    verificationIcon.setAttribute('data-lucide', 'mail-check');
+    verificationIcon.setAttribute('class', 'w-5 h-5 text-green-600');
+    verificationStatus.textContent = 'Your email is verified';
+    resendVerificationSettingsBtn.classList.add('hidden');
+  } else {
+    verificationIcon.setAttribute('data-lucide', 'mail-warning');
+    verificationIcon.setAttribute('class', 'w-5 h-5 text-amber-600');
+    verificationStatus.textContent = 'Not verified - check your inbox';
+    resendVerificationSettingsBtn.classList.remove('hidden');
+  }
+  initIcons();
+}
+
+// Resend verification email from settings
+resendVerificationSettingsBtn?.addEventListener('click', async () => {
+  if (!currentUser) return;
+
+  const btnText = resendVerificationSettingsBtn.querySelector('span');
+  resendVerificationSettingsBtn.disabled = true;
+  if (btnText) btnText.textContent = 'Sending...';
+
+  try {
+    await sendEmailVerification(currentUser);
+    if (btnText) btnText.textContent = 'Sent!';
+    showToast('Verification email sent!', { type: 'success' });
+    setTimeout(() => {
+      if (btnText) btnText.textContent = 'Resend';
+      resendVerificationSettingsBtn.disabled = false;
+    }, 3000);
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    if (error.code === 'auth/too-many-requests') {
+      showToast('Please wait before resending', { type: 'error' });
+    } else {
+      showToast('Error sending email', { type: 'error' });
+    }
+    if (btnText) btnText.textContent = 'Resend';
+    resendVerificationSettingsBtn.disabled = false;
+  }
+});
 
 async function updateAvatarDisplay() {
   const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : '?';

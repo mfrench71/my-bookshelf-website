@@ -83,6 +83,23 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
         </div>
 
         <div class="space-y-4">
+          <!-- Email Verification Status -->
+          <div id="email-verification-section" class="hidden bg-gray-50 rounded-xl p-6">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <i id="verification-icon" data-lucide="mail-check" class="w-5 h-5 text-green-600"></i>
+                <div>
+                  <h3 class="font-medium text-gray-900">Email Verification</h3>
+                  <p id="verification-status" class="text-gray-500 text-sm mt-0.5">Verified</p>
+                </div>
+              </div>
+              <button id="resend-verification-settings-btn" class="hidden flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Resend</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Change Password -->
           <div class="bg-gray-50 rounded-xl p-6">
             <div class="flex items-center justify-between">

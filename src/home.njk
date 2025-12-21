@@ -6,6 +6,23 @@ scripts: '<script type="module" src="/js/home.js"></script>'
 bodyClass: bg-gray-100
 ---
 <main class="max-w-6xl mx-auto px-4 py-6 pb-24">
+  <!-- Email Verification Banner -->
+  <div id="verify-email-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+    <i data-lucide="mail" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm text-amber-800">
+        <strong>Please verify your email address.</strong>
+        Check your inbox for a verification link.
+      </p>
+      <button id="resend-verification-btn" class="text-sm text-amber-700 hover:text-amber-900 underline mt-1">
+        Resend verification email
+      </button>
+    </div>
+    <button id="dismiss-verify-banner" class="p-1 hover:bg-amber-100 rounded text-amber-600" title="Dismiss">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+
   <!-- Top Row: Welcome + Currently Reading -->
   <div class="flex flex-col md:flex-row gap-4 mb-4">
     <!-- Welcome Header -->

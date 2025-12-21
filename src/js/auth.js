@@ -3,6 +3,7 @@ import { auth } from './firebase-config.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons, checkPasswordStrength } from './utils.js';
@@ -156,7 +157,13 @@ registerForm?.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Creating account...';
 
   try {
-    await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Send verification email
+    try {
+      await sendEmailVerification(userCredential.user);
+    } catch (e) {
+      console.warn('Could not send verification email:', e);
+    }
     // Redirect happens via onAuthStateChanged
   } catch (error) {
     showError(getErrorMessage(error.code));

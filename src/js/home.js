@@ -1,6 +1,6 @@
 // Home Page Logic
 import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
   query,
@@ -39,11 +39,67 @@ const statsText = document.getElementById('stats-text');
 const loadingState = document.getElementById('loading-state');
 const dashboardSections = document.getElementById('dashboard-sections');
 
+// Email Verification Elements
+const verifyEmailBanner = document.getElementById('verify-email-banner');
+const resendVerificationBtn = document.getElementById('resend-verification-btn');
+const dismissVerifyBanner = document.getElementById('dismiss-verify-banner');
+const VERIFY_BANNER_DISMISSED_KEY = 'verifyBannerDismissed';
+
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
+    checkEmailVerification();
     await loadDashboard();
+  }
+});
+
+// Email Verification Banner
+function checkEmailVerification() {
+  if (!currentUser || !verifyEmailBanner) return;
+
+  // Check if email is verified or banner was dismissed this session
+  const dismissed = sessionStorage.getItem(VERIFY_BANNER_DISMISSED_KEY);
+
+  if (!currentUser.emailVerified && !dismissed) {
+    verifyEmailBanner.classList.remove('hidden');
+    initIcons();
+  } else {
+    verifyEmailBanner.classList.add('hidden');
+  }
+}
+
+// Dismiss banner (for this session only)
+dismissVerifyBanner?.addEventListener('click', () => {
+  sessionStorage.setItem(VERIFY_BANNER_DISMISSED_KEY, 'true');
+  verifyEmailBanner.classList.add('hidden');
+});
+
+// Resend verification email
+resendVerificationBtn?.addEventListener('click', async () => {
+  if (!currentUser) return;
+
+  resendVerificationBtn.disabled = true;
+  resendVerificationBtn.textContent = 'Sending...';
+
+  try {
+    await sendEmailVerification(currentUser);
+    resendVerificationBtn.textContent = 'Email sent!';
+    setTimeout(() => {
+      resendVerificationBtn.textContent = 'Resend verification email';
+      resendVerificationBtn.disabled = false;
+    }, 3000);
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    if (error.code === 'auth/too-many-requests') {
+      resendVerificationBtn.textContent = 'Please wait before resending';
+    } else {
+      resendVerificationBtn.textContent = 'Error sending email';
+    }
+    setTimeout(() => {
+      resendVerificationBtn.textContent = 'Resend verification email';
+      resendVerificationBtn.disabled = false;
+    }, 3000);
   }
 });
 
