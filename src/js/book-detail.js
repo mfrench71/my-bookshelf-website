@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars } from './utils.js';
+import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -384,10 +384,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
         result = {
-          title: volumeInfo.title || '',
-          author: volumeInfo.authors?.join(', ') || '',
+          title: normalizeTitle(volumeInfo.title || ''),
+          author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-          publisher: volumeInfo.publisher || '',
+          publisher: normalizePublisher(volumeInfo.publisher || ''),
           publishedDate: volumeInfo.publishedDate || '',
           physicalFormat: ''
         };
@@ -406,10 +406,10 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
         result = {
-          title: volumeInfo.title || '',
-          author: volumeInfo.authors?.join(', ') || '',
+          title: normalizeTitle(volumeInfo.title || ''),
+          author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-          publisher: volumeInfo.publisher || '',
+          publisher: normalizePublisher(volumeInfo.publisher || ''),
           publishedDate: volumeInfo.publishedDate || '',
           physicalFormat: ''
         };
@@ -428,17 +428,17 @@ async function fetchBookDataFromAPI(isbn, title, author) {
       if (bookData) {
         if (result) {
           // Supplement missing fields from Open Library
-          if (!result.publisher) result.publisher = bookData.publishers?.[0]?.name || '';
+          if (!result.publisher) result.publisher = normalizePublisher(bookData.publishers?.[0]?.name || '');
           if (!result.publishedDate) result.publishedDate = bookData.publish_date || '';
           if (!result.physicalFormat) result.physicalFormat = bookData.physical_format || '';
           if (!result.coverImageUrl) result.coverImageUrl = bookData.cover?.medium || bookData.cover?.small || '';
         } else {
           // Use Open Library as primary source
           result = {
-            title: bookData.title || '',
-            author: bookData.authors?.[0]?.name || '',
+            title: normalizeTitle(bookData.title || ''),
+            author: normalizeAuthor(bookData.authors?.[0]?.name || ''),
             coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
-            publisher: bookData.publishers?.[0]?.name || '',
+            publisher: normalizePublisher(bookData.publishers?.[0]?.name || ''),
             publishedDate: bookData.publish_date || '',
             physicalFormat: bookData.physical_format || ''
           };
@@ -469,17 +469,37 @@ refreshDataBtn.addEventListener('click', async () => {
   });
 
   try {
+    const changedFields = [];
+
+    // Helper to normalize existing field value
+    const normalizeField = (input, normalizeFn, fieldName) => {
+      const currentValue = input.value.trim();
+      if (currentValue) {
+        const normalized = normalizeFn(currentValue);
+        if (normalized !== currentValue) {
+          input.value = normalized;
+          input.classList.add('field-changed');
+          changedFields.push(fieldName);
+        }
+      }
+    };
+
+    // Normalize existing values first
+    normalizeField(titleInput, normalizeTitle, 'title');
+    normalizeField(authorInput, normalizeAuthor, 'author');
+    normalizeField(publisherInput, normalizePublisher, 'publisher');
+
     const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
 
     if (apiData) {
-      const changedFields = [];
-
       // Helper to fill ONLY empty fields (preserve existing data)
       const fillEmptyField = (input, newValue, fieldName) => {
         if (newValue && !input.value.trim()) {
           input.value = newValue;
           input.classList.add('field-changed');
-          changedFields.push(fieldName);
+          if (!changedFields.includes(fieldName)) {
+            changedFields.push(fieldName);
+          }
         }
       };
 
@@ -542,7 +562,29 @@ refreshDataBtn.addEventListener('click', async () => {
         showToast('No new data found', { type: 'info' });
       }
     } else {
-      showToast('No data found from APIs', { type: 'info' });
+      // Even without API data, normalization may have changed fields
+      if (changedFields.length > 0) {
+        // Update book object with normalized values
+        book.title = titleInput.value;
+        book.author = authorInput.value;
+        book.publisher = publisherInput.value;
+
+        // Update header display
+        bookTitle.textContent = book.title;
+        bookAuthor.textContent = book.author || 'Unknown author';
+
+        // Remove highlights after 3 seconds
+        setTimeout(() => {
+          document.querySelectorAll('.field-changed').forEach(el => {
+            el.classList.remove('field-changed');
+          });
+        }, 3000);
+
+        updateSaveButtonState();
+        showToast(`Normalized: ${changedFields.join(', ')}`, { type: 'success' });
+      } else {
+        showToast('No data found from APIs', { type: 'info' });
+      }
     }
   } catch (error) {
     console.error('Error refreshing book data:', error);

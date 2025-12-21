@@ -8,6 +8,9 @@ import {
   escapeAttr,
   normalizeText,
   normalizeGenreName,
+  normalizeTitle,
+  normalizeAuthor,
+  normalizePublisher,
   getContrastColor,
   debounce,
   parseTimestamp,
@@ -120,6 +123,121 @@ describe('normalizeGenreName', () => {
 
   it('should handle combined normalization', () => {
     expect(normalizeGenreName('  Science   Fiction  ')).toBe('science fiction');
+  });
+});
+
+describe('normalizeTitle', () => {
+  it('should return empty string for null/undefined', () => {
+    expect(normalizeTitle(null)).toBe('');
+    expect(normalizeTitle(undefined)).toBe('');
+    expect(normalizeTitle('')).toBe('');
+  });
+
+  it('should trim whitespace', () => {
+    expect(normalizeTitle('  Hello World  ')).toBe('Hello World');
+    expect(normalizeTitle('\tThe Great Gatsby\n')).toBe('The Great Gatsby');
+  });
+
+  it('should remove trailing periods', () => {
+    expect(normalizeTitle('The Great Gatsby.')).toBe('The Great Gatsby');
+    expect(normalizeTitle('Hello World...')).toBe('Hello World');
+  });
+
+  it('should convert ALL CAPS to Title Case', () => {
+    expect(normalizeTitle('THE GREAT GATSBY')).toBe('The Great Gatsby');
+    expect(normalizeTitle('HELLO WORLD')).toBe('Hello World');
+  });
+
+  it('should keep small words lowercase in Title Case (except first word)', () => {
+    expect(normalizeTitle('THE LORD OF THE RINGS')).toBe('The Lord of the Rings');
+    expect(normalizeTitle('WAR AND PEACE')).toBe('War and Peace');
+    expect(normalizeTitle('OF MICE AND MEN')).toBe('Of Mice and Men');
+    expect(normalizeTitle('A TALE OF TWO CITIES')).toBe('A Tale of Two Cities');
+  });
+
+  it('should preserve mixed case titles (not all caps)', () => {
+    expect(normalizeTitle('The Great Gatsby')).toBe('The Great Gatsby');
+    expect(normalizeTitle('Harry Potter and the Sorcerer\'s Stone')).toBe('Harry Potter and the Sorcerer\'s Stone');
+    expect(normalizeTitle('A Tale of Two Cities')).toBe('A Tale of Two Cities');
+  });
+
+  it('should handle single word titles', () => {
+    expect(normalizeTitle('DUNE')).toBe('Dune');
+    expect(normalizeTitle('Dune')).toBe('Dune');
+  });
+
+  it('should handle titles with numbers and special characters', () => {
+    expect(normalizeTitle('1984')).toBe('1984');
+    expect(normalizeTitle('CATCH-22')).toBe('Catch-22');
+  });
+
+  it('should handle combined issues (caps + trailing period)', () => {
+    expect(normalizeTitle('THE GREAT GATSBY.')).toBe('The Great Gatsby');
+    expect(normalizeTitle('  HELLO WORLD.  ')).toBe('Hello World');
+  });
+});
+
+describe('normalizeAuthor', () => {
+  it('should return empty string for null/undefined', () => {
+    expect(normalizeAuthor(null)).toBe('');
+    expect(normalizeAuthor(undefined)).toBe('');
+    expect(normalizeAuthor('')).toBe('');
+  });
+
+  it('should trim whitespace', () => {
+    expect(normalizeAuthor('  John Smith  ')).toBe('John Smith');
+    expect(normalizeAuthor('\tStephen King\n')).toBe('Stephen King');
+  });
+
+  it('should convert ALL CAPS to Title Case', () => {
+    expect(normalizeAuthor('STEPHEN KING')).toBe('Stephen King');
+    expect(normalizeAuthor('J.K. ROWLING')).toBe('J.k. Rowling');
+    expect(normalizeAuthor('GEORGE R.R. MARTIN')).toBe('George R.r. Martin');
+  });
+
+  it('should preserve mixed case names', () => {
+    expect(normalizeAuthor('Stephen King')).toBe('Stephen King');
+    expect(normalizeAuthor('J.K. Rowling')).toBe('J.K. Rowling');
+    expect(normalizeAuthor('George R.R. Martin')).toBe('George R.R. Martin');
+  });
+
+  it('should handle single names', () => {
+    expect(normalizeAuthor('HOMER')).toBe('Homer');
+    expect(normalizeAuthor('Plato')).toBe('Plato');
+  });
+
+  it('should handle multiple authors joined by comma', () => {
+    expect(normalizeAuthor('JOHN DOE, JANE SMITH')).toBe('John Doe, Jane Smith');
+  });
+});
+
+describe('normalizePublisher', () => {
+  it('should return empty string for null/undefined', () => {
+    expect(normalizePublisher(null)).toBe('');
+    expect(normalizePublisher(undefined)).toBe('');
+    expect(normalizePublisher('')).toBe('');
+  });
+
+  it('should trim whitespace', () => {
+    expect(normalizePublisher('  Penguin Books  ')).toBe('Penguin Books');
+    expect(normalizePublisher('\tRandom House\n')).toBe('Random House');
+  });
+
+  it('should convert ALL CAPS to Title Case', () => {
+    expect(normalizePublisher('PENGUIN BOOKS')).toBe('Penguin Books');
+    expect(normalizePublisher('RANDOM HOUSE')).toBe('Random House');
+    expect(normalizePublisher('SIMON & SCHUSTER')).toBe('Simon & Schuster');
+  });
+
+  it('should preserve mixed case publishers', () => {
+    expect(normalizePublisher('Penguin Books')).toBe('Penguin Books');
+    expect(normalizePublisher('Random House')).toBe('Random House');
+    expect(normalizePublisher('HarperCollins')).toBe('HarperCollins');
+  });
+
+  it('should handle publishers with abbreviations', () => {
+    expect(normalizePublisher('MIT PRESS')).toBe('Mit Press');
+    expect(normalizePublisher('MIT Press')).toBe('MIT Press');
   });
 });
 

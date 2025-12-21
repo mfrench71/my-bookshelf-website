@@ -73,6 +73,85 @@ export function normalizeGenreName(name) {
 }
 
 /**
+ * Check if a string is all uppercase (ignoring non-letters)
+ */
+function isAllCaps(str) {
+  const letters = str.replace(/[^a-zA-Z]/g, '');
+  return letters.length > 0 && letters === letters.toUpperCase();
+}
+
+/**
+ * Convert string to Title Case
+ * Keeps small words lowercase unless they're the first word
+ */
+function toTitleCase(str) {
+  const lowercaseWords = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'];
+
+  return str.toLowerCase().split(' ').map((word, index) => {
+    if (index === 0 || !lowercaseWords.includes(word)) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+    return word;
+  }).join(' ');
+}
+
+/**
+ * Normalize a book title
+ * - Trims whitespace
+ * - Removes trailing periods
+ * - Converts ALL CAPS to Title Case
+ */
+export function normalizeTitle(title) {
+  if (!title) return '';
+
+  let normalized = title.trim();
+
+  // Remove trailing periods (but not ellipsis)
+  normalized = normalized.replace(/\.+$/, '');
+
+  // Convert ALL CAPS to Title Case
+  if (isAllCaps(normalized)) {
+    normalized = toTitleCase(normalized);
+  }
+
+  return normalized;
+}
+
+/**
+ * Normalize an author name
+ * - Trims whitespace
+ * - Converts ALL CAPS to Title Case
+ */
+export function normalizeAuthor(author) {
+  if (!author) return '';
+
+  let normalized = author.trim();
+
+  if (isAllCaps(normalized)) {
+    normalized = toTitleCase(normalized);
+  }
+
+  return normalized;
+}
+
+/**
+ * Normalize a publisher name
+ * - Trims whitespace
+ * - Converts ALL CAPS to Title Case
+ */
+export function normalizePublisher(publisher) {
+  if (!publisher) return '';
+
+  let normalized = publisher.trim();
+
+  if (isAllCaps(normalized)) {
+    normalized = toTitleCase(normalized);
+  }
+
+  return normalized;
+}
+
+/**
  * Get contrasting text color (black or white) for a given background hex color
  * Uses relative luminance formula for accessibility
  */

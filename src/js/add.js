@@ -9,7 +9,7 @@ import {
   where,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -225,10 +225,10 @@ async function fetchBookByISBN(isbn) {
       updateGenreSuggestions(genres);
 
       result = {
-        title: book.title,
-        author: book.authors?.join(', ') || '',
+        title: normalizeTitle(book.title),
+        author: normalizeAuthor(book.authors?.join(', ') || ''),
         coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-        publisher: book.publisher || '',
+        publisher: normalizePublisher(book.publisher || ''),
         publishedDate: book.publishedDate || '',
         physicalFormat: '',
         genres
@@ -250,7 +250,7 @@ async function fetchBookByISBN(isbn) {
 
       if (result) {
         // Supplement missing fields from Open Library
-        if (!result.publisher) result.publisher = book.publishers?.[0]?.name || '';
+        if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
         if (!result.publishedDate) result.publishedDate = book.publish_date || '';
         if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
         if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
@@ -260,10 +260,10 @@ async function fetchBookByISBN(isbn) {
         // Use Open Library as primary source
         updateGenreSuggestions(genres);
         result = {
-          title: book.title,
-          author: book.authors?.map(a => a.name).join(', ') || '',
+          title: normalizeTitle(book.title),
+          author: normalizeAuthor(book.authors?.map(a => a.name).join(', ') || ''),
           coverImageUrl: book.cover?.medium || '',
-          publisher: book.publishers?.[0]?.name || '',
+          publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
           publishedDate: book.publish_date || '',
           physicalFormat: book.physical_format || '',
           genres
@@ -364,10 +364,10 @@ async function fetchSearchResults() {
           books = data.items.map(item => {
             const book = item.volumeInfo;
             return {
-              title: book.title || 'Unknown Title',
-              author: book.authors?.join(', ') || 'Unknown Author',
+              title: normalizeTitle(book.title) || 'Unknown Title',
+              author: normalizeAuthor(book.authors?.join(', ') || '') || 'Unknown Author',
               cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-              publisher: book.publisher || '',
+              publisher: normalizePublisher(book.publisher || ''),
               publishedDate: book.publishedDate || '',
               pageCount: book.pageCount || '',
               isbn: book.industryIdentifiers?.[0]?.identifier || '',
@@ -398,10 +398,10 @@ async function fetchSearchResults() {
         searchState.totalItems = data.numFound || 0;
         if (data.docs?.length > 0) {
           books = data.docs.map(doc => ({
-            title: doc.title || 'Unknown Title',
-            author: doc.author_name?.join(', ') || 'Unknown Author',
+            title: normalizeTitle(doc.title) || 'Unknown Title',
+            author: normalizeAuthor(doc.author_name?.join(', ') || '') || 'Unknown Author',
             cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '',
-            publisher: doc.publisher?.[0] || '',
+            publisher: normalizePublisher(doc.publisher?.[0] || ''),
             publishedDate: doc.first_publish_year?.toString() || '',
             pageCount: doc.number_of_pages_median || '',
             isbn: doc.isbn?.[0] || '',
