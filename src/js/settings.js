@@ -212,9 +212,15 @@ function toggleAccordion(sectionId) {
     content.classList.remove('hidden');
     icon?.classList.add('rotate-180');
 
-    // Scroll to the accordion header if needed
+    // Scroll to the accordion header, accounting for sticky header
     setTimeout(() => {
-      header?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (header) {
+        const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+        const subNavHeight = document.querySelector('.bg-white.border-b')?.offsetHeight || 0;
+        const offset = headerHeight + subNavHeight + 16; // 16px extra padding
+        const elementTop = header.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementTop - offset, behavior: 'smooth' });
+      }
     }, 50);
   }
 
