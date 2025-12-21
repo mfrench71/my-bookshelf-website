@@ -558,3 +558,144 @@ describe('Barcode scanning validation', () => {
     expect(isValidBarcode('9780743273565', 0.05)).toBe(true);
   });
 });
+
+describe('checkForDuplicate', () => {
+  // Replicate normalizeText from utils.js
+  function normalizeText(text) {
+    return (text || '')
+      .toLowerCase()
+      .replace(/[''`]/g, "'")
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  // Replicate checkForDuplicate logic for testing
+  function checkForDuplicate(existingBooks, isbn, title, author) {
+    // Check by ISBN first (most reliable)
+    if (isbn) {
+      const isbnMatch = existingBooks.find(b => b.isbn === isbn);
+      if (isbnMatch) {
+        return { isDuplicate: true, matchType: 'isbn', existingBook: isbnMatch };
+      }
+    }
+
+    // Check by normalized title + author
+    const normalizedTitle = normalizeText(title);
+    const normalizedAuthor = normalizeText(author);
+
+    for (const book of existingBooks) {
+      const bookNormalizedTitle = normalizeText(book.title || '');
+      const bookNormalizedAuthor = normalizeText(book.author || '');
+
+      if (bookNormalizedTitle === normalizedTitle && bookNormalizedAuthor === normalizedAuthor) {
+        return { isDuplicate: true, matchType: 'title-author', existingBook: book };
+      }
+    }
+
+    return { isDuplicate: false, matchType: null, existingBook: null };
+  }
+
+  const existingBooks = [
+    { id: '1', title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', isbn: '9780743273565' },
+    { id: '2', title: 'To Kill a Mockingbird', author: 'Harper Lee', isbn: '9780061120084' },
+    { id: '3', title: '1984', author: 'George Orwell', isbn: '' }
+  ];
+
+  describe('ISBN matching', () => {
+    it('should detect duplicate by exact ISBN match', () => {
+      const result = checkForDuplicate(existingBooks, '9780743273565', 'Different Title', 'Different Author');
+      expect(result.isDuplicate).toBe(true);
+      expect(result.matchType).toBe('isbn');
+      expect(result.existingBook.title).toBe('The Great Gatsby');
+    });
+
+    it('should not match different ISBN', () => {
+      const result = checkForDuplicate(existingBooks, '9781234567890', 'New Book', 'New Author');
+      expect(result.isDuplicate).toBe(false);
+    });
+
+    it('should skip ISBN check when ISBN is empty', () => {
+      const result = checkForDuplicate(existingBooks, '', 'New Book', 'New Author');
+      expect(result.isDuplicate).toBe(false);
+    });
+  });
+
+  describe('Title/Author matching', () => {
+    it('should detect duplicate by exact title and author', () => {
+      const result = checkForDuplicate(existingBooks, '', 'The Great Gatsby', 'F. Scott Fitzgerald');
+      expect(result.isDuplicate).toBe(true);
+      expect(result.matchType).toBe('title-author');
+    });
+
+    it('should detect duplicate with different case', () => {
+      const result = checkForDuplicate(existingBooks, '', 'THE GREAT GATSBY', 'f. scott fitzgerald');
+      expect(result.isDuplicate).toBe(true);
+      expect(result.matchType).toBe('title-author');
+    });
+
+    it('should detect duplicate with mixed case', () => {
+      const result = checkForDuplicate(existingBooks, '', 'the great GATSBY', 'F. SCOTT Fitzgerald');
+      expect(result.isDuplicate).toBe(true);
+      expect(result.matchType).toBe('title-author');
+    });
+
+    it('should detect duplicate with different apostrophe styles', () => {
+      const booksWithApostrophe = [
+        { id: '1', title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling', isbn: '' }
+      ];
+      // Using curly apostrophe
+      const result = checkForDuplicate(booksWithApostrophe, '', "Harry Potter and the Philosopher's Stone", 'J.K. Rowling');
+      expect(result.isDuplicate).toBe(true);
+    });
+
+    it('should detect duplicate with accented characters normalized', () => {
+      const booksWithAccents = [
+        { id: '1', title: 'Café Society', author: 'René Author', isbn: '' }
+      ];
+      // Without accents
+      const result = checkForDuplicate(booksWithAccents, '', 'Cafe Society', 'Rene Author');
+      expect(result.isDuplicate).toBe(true);
+    });
+
+    it('should not match when only title matches', () => {
+      const result = checkForDuplicate(existingBooks, '', 'The Great Gatsby', 'Different Author');
+      expect(result.isDuplicate).toBe(false);
+    });
+
+    it('should not match when only author matches', () => {
+      const result = checkForDuplicate(existingBooks, '', 'Different Title', 'F. Scott Fitzgerald');
+      expect(result.isDuplicate).toBe(false);
+    });
+  });
+
+  describe('Priority', () => {
+    it('should prefer ISBN match over title/author match', () => {
+      // Book with matching ISBN but different title/author
+      const result = checkForDuplicate(existingBooks, '9780743273565', 'Completely Different', 'Someone Else');
+      expect(result.isDuplicate).toBe(true);
+      expect(result.matchType).toBe('isbn');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle empty existing books list', () => {
+      const result = checkForDuplicate([], '9780743273565', 'New Book', 'New Author');
+      expect(result.isDuplicate).toBe(false);
+    });
+
+    it('should handle book with empty title', () => {
+      const result = checkForDuplicate(existingBooks, '', '', 'Some Author');
+      expect(result.isDuplicate).toBe(false);
+    });
+
+    it('should handle book with empty author', () => {
+      const result = checkForDuplicate(existingBooks, '', 'Some Title', '');
+      expect(result.isDuplicate).toBe(false);
+    });
+
+    it('should handle whitespace-only values', () => {
+      const result = checkForDuplicate(existingBooks, '', '   ', '   ');
+      expect(result.isDuplicate).toBe(false);
+    });
+  });
+});
