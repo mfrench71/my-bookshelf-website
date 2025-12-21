@@ -215,7 +215,9 @@ function renderBook() {
 // Rating Stars
 starBtns.forEach(btn => {
   btn.addEventListener('click', () => {
-    currentRating = parseInt(btn.dataset.rating);
+    const clickedRating = parseInt(btn.dataset.rating);
+    // Toggle off if clicking the same rating (allows clearing)
+    currentRating = currentRating === clickedRating ? 0 : clickedRating;
     updateRatingStars();
     updateSaveButtonState();
   });
