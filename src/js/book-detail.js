@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher } from './utils.js';
+import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -388,7 +388,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
           author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
           publisher: normalizePublisher(volumeInfo.publisher || ''),
-          publishedDate: volumeInfo.publishedDate || '',
+          publishedDate: normalizePublishedDate(volumeInfo.publishedDate),
           physicalFormat: ''
         };
       }
@@ -410,7 +410,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
           author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
           publisher: normalizePublisher(volumeInfo.publisher || ''),
-          publishedDate: volumeInfo.publishedDate || '',
+          publishedDate: normalizePublishedDate(volumeInfo.publishedDate),
           physicalFormat: ''
         };
       }
@@ -429,7 +429,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
         if (result) {
           // Supplement missing fields from Open Library
           if (!result.publisher) result.publisher = normalizePublisher(bookData.publishers?.[0]?.name || '');
-          if (!result.publishedDate) result.publishedDate = bookData.publish_date || '';
+          if (!result.publishedDate) result.publishedDate = normalizePublishedDate(bookData.publish_date);
           if (!result.physicalFormat) result.physicalFormat = bookData.physical_format || '';
           if (!result.coverImageUrl) result.coverImageUrl = bookData.cover?.medium || bookData.cover?.small || '';
         } else {
@@ -439,7 +439,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
             author: normalizeAuthor(bookData.authors?.[0]?.name || ''),
             coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
             publisher: normalizePublisher(bookData.publishers?.[0]?.name || ''),
-            publishedDate: bookData.publish_date || '',
+            publishedDate: normalizePublishedDate(bookData.publish_date),
             physicalFormat: bookData.physical_format || ''
           };
         }
@@ -488,6 +488,7 @@ refreshDataBtn.addEventListener('click', async () => {
     normalizeField(titleInput, normalizeTitle, 'title');
     normalizeField(authorInput, normalizeAuthor, 'author');
     normalizeField(publisherInput, normalizePublisher, 'publisher');
+    normalizeField(publishedDateInput, normalizePublishedDate, 'published date');
 
     const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
 
@@ -568,10 +569,24 @@ refreshDataBtn.addEventListener('click', async () => {
         book.title = titleInput.value;
         book.author = authorInput.value;
         book.publisher = publisherInput.value;
+        book.publishedDate = publishedDateInput.value;
 
         // Update header display
         bookTitle.textContent = book.title;
         bookAuthor.textContent = book.author || 'Unknown author';
+
+        // Update book details display
+        let detailsHtml = '';
+        if (book.publisher) {
+          detailsHtml += `<div><span class="text-gray-400">Publisher:</span> ${book.publisher}</div>`;
+        }
+        if (book.publishedDate) {
+          detailsHtml += `<div><span class="text-gray-400">Published:</span> ${book.publishedDate}</div>`;
+        }
+        if (book.physicalFormat) {
+          detailsHtml += `<div><span class="text-gray-400">Format:</span> ${book.physicalFormat}</div>`;
+        }
+        bookDetails.innerHTML = detailsHtml;
 
         // Remove highlights after 3 seconds
         setTimeout(() => {

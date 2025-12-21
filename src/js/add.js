@@ -9,7 +9,7 @@ import {
   where,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -229,7 +229,7 @@ async function fetchBookByISBN(isbn) {
         author: normalizeAuthor(book.authors?.join(', ') || ''),
         coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
         publisher: normalizePublisher(book.publisher || ''),
-        publishedDate: book.publishedDate || '',
+        publishedDate: normalizePublishedDate(book.publishedDate),
         physicalFormat: '',
         genres
       };
@@ -251,7 +251,7 @@ async function fetchBookByISBN(isbn) {
       if (result) {
         // Supplement missing fields from Open Library
         if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
-        if (!result.publishedDate) result.publishedDate = book.publish_date || '';
+        if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
         if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
         if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
         // Add Open Library genres to suggestions
@@ -264,7 +264,7 @@ async function fetchBookByISBN(isbn) {
           author: normalizeAuthor(book.authors?.map(a => a.name).join(', ') || ''),
           coverImageUrl: book.cover?.medium || '',
           publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
-          publishedDate: book.publish_date || '',
+          publishedDate: normalizePublishedDate(book.publish_date),
           physicalFormat: book.physical_format || '',
           genres
         };
@@ -368,7 +368,7 @@ async function fetchSearchResults() {
               author: normalizeAuthor(book.authors?.join(', ') || '') || 'Unknown Author',
               cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
               publisher: normalizePublisher(book.publisher || ''),
-              publishedDate: book.publishedDate || '',
+              publishedDate: normalizePublishedDate(book.publishedDate),
               pageCount: book.pageCount || '',
               isbn: book.industryIdentifiers?.[0]?.identifier || '',
               categories: book.categories || []
@@ -402,7 +402,7 @@ async function fetchSearchResults() {
             author: normalizeAuthor(doc.author_name?.join(', ') || '') || 'Unknown Author',
             cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '',
             publisher: normalizePublisher(doc.publisher?.[0] || ''),
-            publishedDate: doc.first_publish_year?.toString() || '',
+            publishedDate: normalizePublishedDate(doc.first_publish_year),
             pageCount: doc.number_of_pages_median || '',
             isbn: doc.isbn?.[0] || '',
             categories: doc.subject?.slice(0, 5) || []

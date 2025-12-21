@@ -11,6 +11,7 @@ import {
   normalizeTitle,
   normalizeAuthor,
   normalizePublisher,
+  normalizePublishedDate,
   getContrastColor,
   debounce,
   parseTimestamp,
@@ -238,6 +239,56 @@ describe('normalizePublisher', () => {
   it('should handle publishers with abbreviations', () => {
     expect(normalizePublisher('MIT PRESS')).toBe('Mit Press');
     expect(normalizePublisher('MIT Press')).toBe('MIT Press');
+  });
+});
+
+describe('normalizePublishedDate', () => {
+  it('should return empty string for null/undefined', () => {
+    expect(normalizePublishedDate(null)).toBe('');
+    expect(normalizePublishedDate(undefined)).toBe('');
+    expect(normalizePublishedDate('')).toBe('');
+  });
+
+  it('should extract year from ISO date formats', () => {
+    expect(normalizePublishedDate('2023-05-15')).toBe('2023');
+    expect(normalizePublishedDate('2023-05')).toBe('2023');
+    expect(normalizePublishedDate('2023')).toBe('2023');
+  });
+
+  it('should extract year from written date formats', () => {
+    expect(normalizePublishedDate('May 15, 2023')).toBe('2023');
+    expect(normalizePublishedDate('15 May 2023')).toBe('2023');
+    expect(normalizePublishedDate('May 2023')).toBe('2023');
+  });
+
+  it('should handle approximate dates', () => {
+    expect(normalizePublishedDate('c. 1985')).toBe('1985');
+    expect(normalizePublishedDate('circa 1920')).toBe('1920');
+  });
+
+  it('should handle year-only strings', () => {
+    expect(normalizePublishedDate('1999')).toBe('1999');
+    expect(normalizePublishedDate('2001')).toBe('2001');
+  });
+
+  it('should handle number input', () => {
+    expect(normalizePublishedDate(2023)).toBe('2023');
+    expect(normalizePublishedDate(1984)).toBe('1984');
+  });
+
+  it('should preserve string if no year found', () => {
+    expect(normalizePublishedDate('Unknown')).toBe('Unknown');
+    expect(normalizePublishedDate('N/A')).toBe('N/A');
+  });
+
+  it('should trim whitespace', () => {
+    expect(normalizePublishedDate('  2023  ')).toBe('2023');
+    expect(normalizePublishedDate('\t1999\n')).toBe('1999');
+  });
+
+  it('should handle edge case years', () => {
+    expect(normalizePublishedDate('1000')).toBe('1000');
+    expect(normalizePublishedDate('2999')).toBe('2999');
   });
 });
 

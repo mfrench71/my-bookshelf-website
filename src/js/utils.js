@@ -152,6 +152,21 @@ export function normalizePublisher(publisher) {
 }
 
 /**
+ * Normalize a published date to year only
+ * Extracts 4-digit year from various formats
+ */
+export function normalizePublishedDate(date) {
+  if (!date) return '';
+
+  const str = String(date).trim();
+
+  // Match 4-digit year (1000-2999)
+  const yearMatch = str.match(/\b(1\d{3}|2\d{3})\b/);
+
+  return yearMatch ? yearMatch[1] : str;
+}
+
+/**
  * Get contrasting text color (black or white) for a given background hex color
  * Uses relative luminance formula for accessibility
  */
