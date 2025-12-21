@@ -6,7 +6,7 @@ import {
   updateProfile,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { initIcons } from './utils.js';
+import { initIcons, checkPasswordStrength } from './utils.js';
 
 // Initialize Lucide icons
 initIcons();
@@ -58,25 +58,7 @@ showLoginBtn?.addEventListener('click', () => {
   authError.classList.add('hidden');
 });
 
-// Password strength checking
-function checkPasswordStrength(password) {
-  const checks = {
-    length: password.length >= 6,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  };
-
-  // Calculate strength score (0-4)
-  let score = 0;
-  if (checks.length) score++;
-  if (checks.uppercase && checks.lowercase) score++;
-  if (checks.number) score++;
-  if (checks.special || password.length >= 10) score++;
-
-  return { checks, score };
-}
+// checkPasswordStrength imported from utils.js
 
 function updatePasswordUI(password) {
   if (!passwordStrength) return;

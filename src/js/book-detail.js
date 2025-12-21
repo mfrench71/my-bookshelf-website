@@ -103,7 +103,6 @@ async function fetchGenreSuggestions(isbn) {
     if (data.items?.length > 0) {
       const categories = data.items[0].volumeInfo.categories || [];
       if (categories.length > 0 && genrePicker) {
-        console.log('API genre suggestions for edit:', categories);
         genrePicker.setSuggestions(categories);
       }
     }
@@ -133,9 +132,14 @@ async function loadBook() {
 }
 
 function renderBook() {
-  // Cover
+  // Cover - use createElement to prevent XSS
   if (book.coverImageUrl) {
-    coverContainer.innerHTML = `<img src="${book.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto">`;
+    const img = document.createElement('img');
+    img.src = book.coverImageUrl;
+    img.alt = '';
+    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto';
+    coverContainer.innerHTML = '';
+    coverContainer.appendChild(img);
   } else {
     coverContainer.innerHTML = `
       <div class="w-40 h-60 bg-primary rounded-xl shadow-lg mx-auto flex items-center justify-center">
@@ -374,6 +378,11 @@ window.addEventListener('beforeunload', (e) => {
 
 // Refresh Data from APIs
 async function fetchBookDataFromAPI(isbn, title, author) {
+  // Validate parameters - need at least ISBN or title+author to search
+  if (!isbn && !title) {
+    return null;
+  }
+
   let result = null;
 
   // Try Google Books API first (by ISBN if available)
@@ -515,7 +524,13 @@ refreshDataBtn.addEventListener('click', async () => {
       if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
         coverUrlInput.value = apiData.coverImageUrl;
         coverUrlInput.classList.add('field-changed');
-        coverContainer.innerHTML = `<img src="${apiData.coverImageUrl}" alt="" class="w-40 h-60 object-cover rounded-xl shadow-lg mx-auto field-changed-cover">`;
+        // Use createElement to prevent XSS
+        const img = document.createElement('img');
+        img.src = apiData.coverImageUrl;
+        img.alt = '';
+        img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto field-changed-cover';
+        coverContainer.innerHTML = '';
+        coverContainer.appendChild(img);
         changedFields.push('cover');
       }
 

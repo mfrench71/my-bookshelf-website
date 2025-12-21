@@ -82,7 +82,13 @@ async function updateMenuAvatar(user) {
     const userData = userDoc.exists() ? userDoc.data() : {};
 
     if (userData.photoUrl) {
-      menuAvatar.innerHTML = `<img src="${userData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+      // Use createElement to prevent XSS
+      const img = document.createElement('img');
+      img.src = userData.photoUrl;
+      img.alt = 'Profile';
+      img.className = 'w-full h-full object-cover';
+      menuAvatar.innerHTML = '';
+      menuAvatar.appendChild(img);
       return;
     }
   } catch (e) {
@@ -94,7 +100,13 @@ async function updateMenuAvatar(user) {
   try {
     const response = await fetch(gravatarUrl, { method: 'HEAD' });
     if (response.ok) {
-      menuAvatar.innerHTML = `<img src="${gravatarUrl}" alt="Profile" class="w-full h-full object-cover">`;
+      // Use createElement to prevent XSS
+      const img = document.createElement('img');
+      img.src = gravatarUrl;
+      img.alt = 'Profile';
+      img.className = 'w-full h-full object-cover';
+      menuAvatar.innerHTML = '';
+      menuAvatar.appendChild(img);
       return;
     }
   } catch (e) {

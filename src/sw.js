@@ -30,7 +30,6 @@ const IMAGE_CACHE_MAX_ITEMS = 200; // Limit cached images
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      console.log('Caching static assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -45,10 +44,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames
           .filter((name) => !currentCaches.includes(name))
-          .map((name) => {
-            console.log('Deleting old cache:', name);
-            return caches.delete(name);
-          })
+          .map((name) => caches.delete(name))
       );
     })
   );
@@ -186,7 +182,6 @@ async function handleApiRequest(request) {
       const age = Date.now() - cacheTime;
 
       if (age < API_CACHE_DURATION) {
-        console.log('Serving API from cache:', request.url);
         return cached;
       }
     }

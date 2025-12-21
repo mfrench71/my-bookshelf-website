@@ -308,3 +308,98 @@ export function updateRatingStars(starBtns, currentRating) {
   });
   initIcons();
 }
+
+/**
+ * Check if the browser is online
+ * @returns {boolean} True if online
+ */
+export function isOnline() {
+  return navigator.onLine;
+}
+
+/**
+ * Fetch with timeout
+ * @param {string} url - URL to fetch
+ * @param {Object} options - Fetch options
+ * @param {number} timeout - Timeout in milliseconds (default: 10000)
+ * @returns {Promise<Response>}
+ */
+export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Check password strength
+ * @param {string} password - Password to check
+ * @returns {{checks: Object, score: number}} Strength checks and score (0-4)
+ */
+export function checkPasswordStrength(password) {
+  const checks = {
+    length: password.length >= 6,
+    uppercase: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  };
+
+  let score = 0;
+  if (checks.length) score++;
+  if (checks.uppercase && checks.lowercase) score++;
+  if (checks.number) score++;
+  if (checks.special || password.length >= 10) score++;
+
+  return { checks, score };
+}
+
+// User profile cache
+let userProfileCache = null;
+let userProfileCacheUserId = null;
+const USER_PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let userProfileCacheTime = 0;
+
+/**
+ * Get cached user profile or fetch from Firestore
+ * @param {Function} fetchFn - Function to fetch profile from Firestore
+ * @param {string} userId - User ID
+ * @param {boolean} forceRefresh - Force refresh from Firestore
+ * @returns {Promise<Object>} User profile data
+ */
+export async function getCachedUserProfile(fetchFn, userId, forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh &&
+      userProfileCache &&
+      userProfileCacheUserId === userId &&
+      now - userProfileCacheTime < USER_PROFILE_CACHE_TTL) {
+    return userProfileCache;
+  }
+
+  userProfileCache = await fetchFn();
+  userProfileCacheUserId = userId;
+  userProfileCacheTime = now;
+  return userProfileCache;
+}
+
+/**
+ * Clear the user profile cache
+ */
+export function clearUserProfileCache() {
+  userProfileCache = null;
+  userProfileCacheUserId = null;
+  userProfileCacheTime = 0;
+}

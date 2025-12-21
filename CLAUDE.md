@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - When adding or updating features, always write or update corresponding tests. Run `npm test` to verify all tests pass before committing.
 - Keep PROJECT.md up to date as features are added or changed. Mark completed items, add new ideas, update architecture notes.
 - Keep README.md up to date with current features, tech stack, and setup instructions.
+- For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
 
 ## Build & Development Commands
 
@@ -92,7 +93,7 @@ This project uses Tailwind v4 which has different syntax:
 ## Shared Modules
 
 Common utilities are consolidated in shared modules:
-- `utils.js` - escapeHtml, escapeAttr, normalizeText, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor
+- `utils.js` - escapeHtml, escapeAttr, normalizeText, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache
 - `book-card.js` - bookCard component for rendering book list items with genre badges
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, GENRE_COLORS, getUsedColors, getAvailableColors
 - `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead and suggestions
@@ -114,6 +115,9 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `book-detail.test.js` - Tests for book detail page and API refresh
 - `genres.test.js` - Tests for genre CRUD operations and utilities
 - `header.test.js` - Tests for header menu and search functionality
+- `auth.test.js` - Tests for authentication page (login, register, password strength)
+- `settings.test.js` - Tests for settings page (profile, genres, export, cleanup)
+- `genre-picker.test.js` - Tests for genre picker component (filtering, selection, keyboard nav)
 
 ### Pre-Deployment
 All tests must pass before deploying:

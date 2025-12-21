@@ -7,14 +7,18 @@ import {
   getDocs,
   query,
   where,
+  limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
 // Initialize icons once on load
 initIcons();
+
+// Max books to check for title/author duplicates (prevents excessive reads on large libraries)
+const DUPLICATE_CHECK_LIMIT = 500;
 
 /**
  * Check if a book with the same ISBN or title/author already exists
@@ -27,9 +31,9 @@ initIcons();
 async function checkForDuplicate(userId, isbn, title, author) {
   const booksRef = collection(db, 'users', userId, 'books');
 
-  // Check by ISBN first (most reliable)
+  // Check by ISBN first (most reliable - uses indexed query)
   if (isbn) {
-    const isbnQuery = query(booksRef, where('isbn', '==', isbn));
+    const isbnQuery = query(booksRef, where('isbn', '==', isbn), limit(1));
     const isbnSnapshot = await getDocs(isbnQuery);
     if (!isbnSnapshot.empty) {
       const existingBook = { id: isbnSnapshot.docs[0].id, ...isbnSnapshot.docs[0].data() };
@@ -37,13 +41,14 @@ async function checkForDuplicate(userId, isbn, title, author) {
     }
   }
 
-  // Check by normalized title + author
+  // Check by normalized title + author (limited to prevent excessive reads)
   const normalizedTitle = normalizeText(title);
   const normalizedAuthor = normalizeText(author);
 
-  // Fetch all books and check client-side (Firestore doesn't support case-insensitive queries)
-  const allBooksSnapshot = await getDocs(booksRef);
-  for (const doc of allBooksSnapshot.docs) {
+  // Fetch limited books and check client-side (Firestore doesn't support case-insensitive queries)
+  const limitedQuery = query(booksRef, limit(DUPLICATE_CHECK_LIMIT));
+  const booksSnapshot = await getDocs(limitedQuery);
+  for (const doc of booksSnapshot.docs) {
     const bookData = doc.data();
     const bookNormalizedTitle = normalizeText(bookData.title || '');
     const bookNormalizedAuthor = normalizeText(bookData.author || '');
@@ -113,7 +118,6 @@ async function initGenrePicker() {
 
 // Update genre suggestions from API responses
 function updateGenreSuggestions(genres) {
-  console.log('API returned genres:', genres);
   if (!genres || !genres.length) return;
 
   // Add new suggestions, avoiding duplicates
@@ -123,14 +127,9 @@ function updateGenreSuggestions(genres) {
     }
   });
 
-  console.log('All API suggestions:', apiGenreSuggestions);
-
   // Update picker with suggestions
   if (genrePicker) {
     genrePicker.setSuggestions(apiGenreSuggestions);
-    console.log('Suggestions set on picker');
-  } else {
-    console.log('Genre picker not ready yet');
   }
 }
 
@@ -329,6 +328,9 @@ async function searchBooks(query) {
     loading: true,
     totalItems: 0
   };
+
+  // Clear accumulated genre suggestions from previous searches
+  apiGenreSuggestions = [];
 
   searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
   searchResultsDiv.classList.remove('hidden');
@@ -561,8 +563,15 @@ async function selectSearchResult(el) {
   formDirty = true;
 }
 
-// Debounced search
-const debouncedSearch = debounce(searchBooks, 300);
+// Debounced search with error handling
+const debouncedSearch = debounce(async (query) => {
+  try {
+    await searchBooks(query);
+  } catch (error) {
+    console.error('Search error:', error);
+    searchResultsDiv.innerHTML = '<p class="text-sm text-red-500">Search failed. Please try again.</p>';
+  }
+}, 300);
 bookSearchInput.addEventListener('input', () => {
   const query = bookSearchInput.value.trim();
   debouncedSearch(query);
@@ -602,11 +611,9 @@ async function openScanner() {
   initIcons();
 
   try {
-    console.log('Requesting camera permission...');
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }
     });
-    console.log('Camera permission granted');
     stream.getTracks().forEach(track => track.stop());
     await startQuagga();
   } catch (err) {
@@ -657,13 +664,11 @@ function startQuagga() {
       const avgError = errors.reduce((a, b) => a + b, 0) / errors.length;
 
       if (avgError > 0.1) {
-        console.log('Low confidence scan rejected:', result.codeResult.code, 'error:', avgError);
         return;
       }
 
       const code = result.codeResult.code;
       if (!/^\d{10,13}$/.test(code)) {
-        console.log('Invalid ISBN format rejected:', code);
         return;
       }
 
@@ -696,6 +701,12 @@ function closeScanner() {
 // Form Submit
 bookForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // Check for offline before attempting Firebase operation
+  if (!isOnline()) {
+    showToast('You are offline. Please check your connection.', { type: 'error' });
+    return;
+  }
 
   if (!currentUser) {
     showToast('Please sign in first', { type: 'error' });

@@ -30,7 +30,7 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -290,10 +290,15 @@ async function loadProfileInfo() {
     profileCreated.textContent = 'Unknown';
   }
 
-  // Load user profile data from Firestore
+  // Load user profile data from Firestore (with caching)
   try {
-    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-    userProfileData = userDoc.exists() ? userDoc.data() : {};
+    userProfileData = await getCachedUserProfile(
+      async () => {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        return userDoc.exists() ? userDoc.data() : {};
+      },
+      currentUser.uid
+    );
   } catch (e) {
     userProfileData = {};
   }
@@ -305,17 +310,27 @@ async function loadProfileInfo() {
 async function updateAvatarDisplay() {
   const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : '?';
 
+  // Helper to safely set avatar image
+  const setAvatarImage = (container, url, alt) => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = alt;
+    img.className = 'w-full h-full object-cover';
+    container.innerHTML = '';
+    container.appendChild(img);
+  };
+
   // Priority: uploaded photo > Gravatar > initial
   if (userProfileData?.photoUrl) {
     // User has uploaded photo
-    profileAvatar.innerHTML = `<img src="${userProfileData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+    setAvatarImage(profileAvatar, userProfileData.photoUrl, 'Profile');
   } else {
     // Try Gravatar
     const gravatarUrl = getGravatarUrl(currentUser.email, 160);
     try {
       const response = await fetch(gravatarUrl, { method: 'HEAD' });
       if (response.ok) {
-        profileAvatar.innerHTML = `<img src="${gravatarUrl}" alt="Profile" class="w-full h-full object-cover">`;
+        setAvatarImage(profileAvatar, gravatarUrl, 'Profile');
       } else {
         throw new Error('No Gravatar');
       }
@@ -366,6 +381,7 @@ photoInput.addEventListener('change', async (e) => {
     }, { merge: true });
 
     userProfileData = { ...userProfileData, photoUrl: base64 };
+    clearUserProfileCache(); // Clear cache so header will refetch
     await updateAvatarDisplay();
     updatePhotoPreview();
 
@@ -393,6 +409,7 @@ removePhotoBtn.addEventListener('click', async () => {
     }, { merge: true });
 
     userProfileData = { ...userProfileData, photoUrl: null };
+    clearUserProfileCache(); // Clear cache so header will refetch
     await updateAvatarDisplay();
     updatePhotoPreview();
 
@@ -429,8 +446,18 @@ function closePhotoModal() {
 }
 
 function updatePhotoPreview() {
+  // Helper to safely set preview image
+  const setPreviewImage = (url, alt) => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = alt;
+    img.className = 'w-full h-full object-cover';
+    photoPreview.innerHTML = '';
+    photoPreview.appendChild(img);
+  };
+
   if (userProfileData?.photoUrl) {
-    photoPreview.innerHTML = `<img src="${userProfileData.photoUrl}" alt="Profile" class="w-full h-full object-cover">`;
+    setPreviewImage(userProfileData.photoUrl, 'Profile');
     removePhotoBtn.classList.remove('hidden');
   } else if (currentUser) {
     const gravatarUrl = getGravatarUrl(currentUser.email, 160);
@@ -438,7 +465,7 @@ function updatePhotoPreview() {
     fetch(gravatarUrl, { method: 'HEAD' })
       .then(response => {
         if (response.ok) {
-          photoPreview.innerHTML = `<img src="${gravatarUrl}" alt="Gravatar" class="w-full h-full object-cover">`;
+          setPreviewImage(gravatarUrl, 'Gravatar');
         } else {
           photoPreview.innerHTML = '<i data-lucide="user" class="w-10 h-10 text-gray-400"></i>';
           initIcons();
@@ -479,24 +506,7 @@ passwordModal.addEventListener('click', (e) => {
   }
 });
 
-// Password strength checking
-function checkPasswordStrength(password) {
-  const checks = {
-    length: password.length >= 6,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  };
-
-  let score = 0;
-  if (checks.length) score++;
-  if (checks.uppercase && checks.lowercase) score++;
-  if (checks.number) score++;
-  if (checks.special || password.length >= 10) score++;
-
-  return { checks, score };
-}
+// checkPasswordStrength imported from utils.js
 
 function updateNewPasswordUI(password) {
   if (!newPasswordStrength) return;

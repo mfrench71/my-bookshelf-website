@@ -2,7 +2,7 @@
 // A reusable multi-select component for picking genres
 
 import { loadUserGenres, createGenre, GENRE_COLORS } from './genres.js';
-import { getContrastColor, normalizeGenreName, escapeHtml, debounce } from './utils.js';
+import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from './utils.js';
 
 /**
  * GenrePicker - Multi-select genre picker with typeahead and create option
@@ -30,7 +30,7 @@ export class GenrePicker {
     this._restoringFocus = false;
 
     // Bind methods
-    this.handleInputChange = debounce(this._handleInputChange.bind(this), 150);
+    this.handleInputChange = debounce(this._handleInputChange.bind(this), 300);
     this.handleKeyDown = this._handleKeyDown.bind(this);
     this.handleClickOutside = this._handleClickOutside.bind(this);
   }
@@ -465,6 +465,7 @@ export class GenrePicker {
       this.onChange(this.selected);
     } catch (error) {
       console.error('Error adding suggestion:', error);
+      showToast('Failed to add genre. Please try again.', { type: 'error' });
     }
   }
 
@@ -482,7 +483,7 @@ export class GenrePicker {
       this.onChange(this.selected);
     } catch (error) {
       console.error('Error creating genre:', error);
-      // Could show error toast here
+      showToast('Failed to create genre. Please try again.', { type: 'error' });
     }
   }
 }
