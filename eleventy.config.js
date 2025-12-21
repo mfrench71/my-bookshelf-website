@@ -2,6 +2,7 @@ module.exports = function(eleventyConfig) {
   // Pass through static files
   eleventyConfig.addPassthroughCopy("src/js");
   eleventyConfig.addPassthroughCopy("src/icons");
+  eleventyConfig.addPassthroughCopy("src/favicon-32.png");
   eleventyConfig.addPassthroughCopy("src/manifest.json");
   eleventyConfig.addPassthroughCopy("src/sw.js");
 
