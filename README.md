@@ -10,6 +10,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - Track your personal book library
 - Rate and add notes to books
 - Sort and filter your collection (by date, title, author, rating, genre)
+- Automatic title/author normalization from API data
 - Genre management with color-coded badges and API suggestions
 - Settings page for managing genres and exporting data
 - Export your library as JSON backup
@@ -26,7 +27,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (500 tests)
+- **Testing**: Vitest with jsdom (509 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 

@@ -141,11 +141,6 @@ onAuthStateChanged(auth, (user) => {
 
 // ==================== Section Navigation ====================
 
-// Check if we're on mobile (accordion mode)
-function isMobile() {
-  return window.innerWidth < 768; // md breakpoint
-}
-
 // Desktop nav button clicks
 navBtns.forEach(btn => {
   btn.addEventListener('click', () => {

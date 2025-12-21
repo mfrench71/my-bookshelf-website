@@ -93,7 +93,7 @@ This project uses Tailwind v4 which has different syntax:
 ## Shared Modules
 
 Common utilities are consolidated in shared modules:
-- `utils.js` - escapeHtml, escapeAttr, normalizeText, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache
+- `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll
 - `book-card.js` - bookCard component for rendering book list items with genre badges
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, GENRE_COLORS, getUsedColors, getAvailableColors
 - `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead and suggestions
