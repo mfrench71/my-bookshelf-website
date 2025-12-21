@@ -223,7 +223,12 @@ function initializeAccordions() {
       }
     });
   } else {
-    // On desktop: use sidebar navigation, show only active section
+    // On desktop: ensure all accordion content is visible (not collapsed from mobile)
+    sections.forEach(section => {
+      const content = section.querySelector('.accordion-content');
+      content?.classList.remove('hidden');
+    });
+    // Then use sidebar navigation to show only active section
     switchSection('profile');
   }
   initIcons();
