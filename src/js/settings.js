@@ -998,8 +998,13 @@ confirmDeleteBtn.addEventListener('click', async () => {
   }
 });
 
-// ==================== Export ====================
+// ==================== Backup & Restore ====================
 
+/**
+ * Load all books from cache or Firebase for export/import operations.
+ * Uses the existing books cache if available, otherwise fetches from Firestore.
+ * @returns {Promise<void>} Populates the module-level `books` array
+ */
 async function loadAllBooks() {
   if (allBooksLoaded) return;
 
@@ -1042,6 +1047,20 @@ async function loadAllBooks() {
   }
 }
 
+/**
+ * Export all user data (books and genres) as a JSON backup file.
+ * Creates a versioned backup format with genre ID mappings for cross-account restoration.
+ *
+ * Export format:
+ * {
+ *   version: 1,
+ *   exportedAt: ISO timestamp,
+ *   genres: [...genre objects with _exportId],
+ *   books: [...book objects]
+ * }
+ *
+ * @returns {Promise<void>} Downloads a JSON file named mybookshelf-backup-{date}.json
+ */
 async function exportBackup() {
   exportBtn.disabled = true;
   exportBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
@@ -1085,8 +1104,20 @@ async function exportBackup() {
 
 exportBtn.addEventListener('click', exportBackup);
 
-// ==================== Import Backup ====================
-
+/**
+ * Import a backup file and restore books and genres to the current user's account.
+ *
+ * Import process:
+ * 1. Parse and validate JSON (must be version 1 format)
+ * 2. Import genres first (skip existing by name, create new with ID mapping)
+ * 3. Import books with remapped genre IDs
+ * 4. Skip duplicate books (by ISBN or title+author match)
+ * 5. Recalculate genre book counts
+ *
+ * @param {File} file - The JSON backup file to import
+ * @returns {Promise<void>} Reloads the page on success
+ * @throws {Error} If file is invalid, empty, or has unrecognized format
+ */
 async function importBackup(file) {
   importBtn.disabled = true;
   importProgress.classList.remove('hidden');

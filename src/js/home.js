@@ -500,12 +500,15 @@ function filterOwnedBooks(recommendations) {
 // Recommendations cache
 function getRecommendationsCache() {
   try {
-    const cached = localStorage.getItem(`${RECOMMENDATIONS_CACHE_KEY}_${currentUser.uid}`);
+    const cacheKey = `${RECOMMENDATIONS_CACHE_KEY}_${currentUser.uid}`;
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < RECOMMENDATIONS_CACHE_TTL) {
         return data;
       }
+      // Remove stale cache entry
+      localStorage.removeItem(cacheKey);
     }
   } catch (e) {
     // Ignore cache errors

@@ -39,7 +39,8 @@ MyBookShelf/
 │   │   ├── book-card.js        # Book card component
 │   │   ├── genres.js           # Genre CRUD and utilities
 │   │   ├── genre-picker.js     # Genre picker component
-│   │   └── settings.js         # Settings page logic
+│   │   ├── settings.js         # Settings page logic
+│   │   └── md5.js              # MD5 hash for Gravatar
 │   └── sw.js                   # Service worker (v4)
 ├── tests/                # Vitest test files
 ├── _site/                # Built output (11ty)
@@ -106,6 +107,12 @@ MyBookShelf/
 - [x] Book recommendations based on highly-rated authors (Google Books + Open Library)
 - [x] Content settings to configure home page sections (visibility + item count)
 - [x] Status filter on book list page
+- [x] Full backup & restore (books + genres with ID remapping for cross-account transfer)
+- [x] Email verification (soft enforcement with banner on home page)
+- [x] Password confirmation on signup
+- [x] Cover image fallbacks (placeholder shown on broken image URLs)
+- [x] Shared ISBN lookup utility (consolidated Google Books + Open Library)
+- [x] Smart back button navigation (history-aware)
 
 ### In Progress
 - None currently
@@ -131,7 +138,8 @@ MyBookShelf/
 - [x] Reading dates (start/finish) - Auto-tracked via status changes
 - [ ] Custom cover image upload
 - [ ] Cover image picker (select from multiple API sources: Google Books, Open Library)
-- [x] Export to JSON
+- [x] Export to JSON (full backup with genres)
+- [x] Import from JSON backup (cross-account restore with duplicate detection)
 - [ ] Export to CSV
 - [ ] Import from Goodreads
 - [ ] Scheduled backups (automatic periodic JSON export)
@@ -164,11 +172,12 @@ MyBookShelf/
 - [ ] Merge duplicate genres
 
 ### User Profile & Settings
-- [ ] User profile page/modal
+- [x] User profile section in Settings
 - [ ] Edit display name
 - [x] Change password
 - [x] Profile avatar/photo (upload or Gravatar fallback)
 - [x] Account deletion
+- [x] Email verification status (resend from Settings)
 - [ ] Manage lists from profile
 - [ ] View reading statistics from profile
 - [ ] Export/import data from profile

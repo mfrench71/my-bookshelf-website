@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll } from './utils.js';
+import { renderStars, parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -445,38 +445,25 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     return null;
   }
 
-  let result = null;
-
-  // Try Google Books API first (by ISBN if available)
+  // Try ISBN lookup first (uses shared utility with both Google Books and Open Library)
   if (isbn) {
-    try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-      const data = await response.json();
-      if (data.items?.length > 0) {
-        const volumeInfo = data.items[0].volumeInfo;
-        result = {
-          title: normalizeTitle(volumeInfo.title || ''),
-          author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
-          coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-          publisher: normalizePublisher(volumeInfo.publisher || ''),
-          publishedDate: normalizePublishedDate(volumeInfo.publishedDate),
-          physicalFormat: ''
-        };
-      }
-    } catch (e) {
-      console.error('Google Books API error:', e);
+    const result = await lookupISBN(isbn);
+    if (result) {
+      return result;
     }
   }
 
-  // Try Google Books by title/author search if no result yet
-  if (!result && title) {
+  // Fallback to title/author search via Google Books
+  if (title) {
     try {
       const searchQuery = author ? `intitle:${title}+inauthor:${author}` : `intitle:${title}`;
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetchWithTimeout(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`
+      );
       const data = await response.json();
       if (data.items?.length > 0) {
         const volumeInfo = data.items[0].volumeInfo;
-        result = {
+        return {
           title: normalizeTitle(volumeInfo.title || ''),
           author: normalizeAuthor(volumeInfo.authors?.join(', ') || ''),
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
@@ -490,37 +477,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Try Open Library by ISBN (as fallback, or to supplement missing fields)
-  if (isbn) {
-    try {
-      const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const data = await response.json();
-      const bookData = data[`ISBN:${isbn}`];
-      if (bookData) {
-        if (result) {
-          // Supplement missing fields from Open Library
-          if (!result.publisher) result.publisher = normalizePublisher(bookData.publishers?.[0]?.name || '');
-          if (!result.publishedDate) result.publishedDate = normalizePublishedDate(bookData.publish_date);
-          if (!result.physicalFormat) result.physicalFormat = bookData.physical_format || '';
-          if (!result.coverImageUrl) result.coverImageUrl = bookData.cover?.medium || bookData.cover?.small || '';
-        } else {
-          // Use Open Library as primary source
-          result = {
-            title: normalizeTitle(bookData.title || ''),
-            author: normalizeAuthor(bookData.authors?.[0]?.name || ''),
-            coverImageUrl: bookData.cover?.medium || bookData.cover?.small || '',
-            publisher: normalizePublisher(bookData.publishers?.[0]?.name || ''),
-            publishedDate: normalizePublishedDate(bookData.publish_date),
-            physicalFormat: bookData.physical_format || ''
-          };
-        }
-      }
-    } catch (e) {
-      console.error('Open Library API error:', e);
-    }
-  }
-
-  return result;
+  return null;
 }
 
 refreshDataBtn.addEventListener('click', async () => {

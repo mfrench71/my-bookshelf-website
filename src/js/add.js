@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -210,69 +210,10 @@ async function lookupISBN() {
 }
 
 async function fetchBookByISBN(isbn) {
-  let result = null;
-
-  // Try Google Books first
-  try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-    const data = await response.json();
-
-    if (data.items?.length > 0) {
-      const book = data.items[0].volumeInfo;
-      // Extract genres from categories
-      const genres = book.categories || [];
-      updateGenreSuggestions(genres);
-
-      result = {
-        title: normalizeTitle(book.title),
-        author: normalizeAuthor(book.authors?.join(', ') || ''),
-        coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-        publisher: normalizePublisher(book.publisher || ''),
-        publishedDate: normalizePublishedDate(book.publishedDate),
-        physicalFormat: '',
-        genres
-      };
-    }
-  } catch (e) {
-    console.error('Google Books error:', e);
+  const result = await lookupISBN(isbn);
+  if (result && result.genres) {
+    updateGenreSuggestions(result.genres);
   }
-
-  // Try Open Library (as fallback or to supplement missing fields)
-  try {
-    const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-    const data = await response.json();
-    const book = data[`ISBN:${isbn}`];
-
-    if (book) {
-      // Extract genres from subjects
-      const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
-
-      if (result) {
-        // Supplement missing fields from Open Library
-        if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
-        if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
-        if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
-        if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
-        // Add Open Library genres to suggestions
-        updateGenreSuggestions(genres);
-      } else {
-        // Use Open Library as primary source
-        updateGenreSuggestions(genres);
-        result = {
-          title: normalizeTitle(book.title),
-          author: normalizeAuthor(book.authors?.map(a => a.name).join(', ') || ''),
-          coverImageUrl: book.cover?.medium || '',
-          publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
-          publishedDate: normalizePublishedDate(book.publish_date),
-          physicalFormat: book.physical_format || '',
-          genres
-        };
-      }
-    }
-  } catch (e) {
-    console.error('Open Library error:', e);
-  }
-
   return result;
 }
 
@@ -350,74 +291,18 @@ async function searchBooks(query) {
 
 async function fetchSearchResults() {
   const { query, startIndex, useOpenLibrary } = searchState;
-  let books = [];
-  let hasMore = false;
 
-  // Try Google Books first (unless we've fallen back to Open Library)
-  if (!useOpenLibrary) {
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${startIndex}&maxResults=${SEARCH_PAGE_SIZE}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        searchState.totalItems = data.totalItems || 0;
-        if (data.items?.length > 0) {
-          books = data.items.map(item => {
-            const book = item.volumeInfo;
-            return {
-              title: normalizeTitle(book.title) || 'Unknown Title',
-              author: normalizeAuthor(book.authors?.join(', ') || '') || 'Unknown Author',
-              cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-              publisher: normalizePublisher(book.publisher || ''),
-              publishedDate: normalizePublishedDate(book.publishedDate),
-              pageCount: book.pageCount || '',
-              isbn: book.industryIdentifiers?.[0]?.identifier || '',
-              categories: book.categories || []
-            };
-          });
-          hasMore = (startIndex + books.length) < searchState.totalItems;
-        }
-      } else {
-        console.warn('Google Books API error:', response.status);
-        searchState.useOpenLibrary = true;
-      }
-    } catch (error) {
-      console.warn('Google Books API failed:', error.message);
-      searchState.useOpenLibrary = true;
-    }
-  }
+  const result = await searchBooksAPI(query, {
+    startIndex,
+    maxResults: SEARCH_PAGE_SIZE,
+    useOpenLibrary
+  });
 
-  // Fallback to Open Library
-  if (books.length === 0 && (useOpenLibrary || searchState.useOpenLibrary)) {
-    searchState.useOpenLibrary = true;
-    try {
-      const response = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&offset=${startIndex}&limit=${SEARCH_PAGE_SIZE}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        searchState.totalItems = data.numFound || 0;
-        if (data.docs?.length > 0) {
-          books = data.docs.map(doc => ({
-            title: normalizeTitle(doc.title) || 'Unknown Title',
-            author: normalizeAuthor(doc.author_name?.join(', ') || '') || 'Unknown Author',
-            cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '',
-            publisher: normalizePublisher(doc.publisher?.[0] || ''),
-            publishedDate: normalizePublishedDate(doc.first_publish_year),
-            pageCount: doc.number_of_pages_median || '',
-            isbn: doc.isbn?.[0] || '',
-            categories: doc.subject?.slice(0, 5) || []
-          }));
-          hasMore = (startIndex + books.length) < searchState.totalItems;
-        }
-      }
-    } catch (error) {
-      console.error('Open Library API failed:', error.message);
-    }
-  }
+  // Update search state with API results
+  searchState.totalItems = result.totalItems;
+  searchState.useOpenLibrary = result.useOpenLibrary;
 
-  return { books, hasMore };
+  return { books: result.books, hasMore: result.hasMore };
 }
 
 async function loadMoreSearchResults() {
@@ -612,9 +497,14 @@ async function openScanner() {
   initIcons();
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    // Add 10s timeout for camera access to prevent indefinite waiting
+    const cameraPromise = navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }
     });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Camera access timed out')), 10000)
+    );
+    const stream = await Promise.race([cameraPromise, timeoutPromise]);
     stream.getTracks().forEach(track => track.stop());
     await startQuagga();
   } catch (err) {
@@ -664,7 +554,8 @@ function startQuagga() {
         .map(x => x.error);
       const avgError = errors.reduce((a, b) => a + b, 0) / errors.length;
 
-      if (avgError > 0.1) {
+      // Reject scans with high error rate (lower is better, 0.1 is acceptable threshold)
+      if (avgError >= 0.1) {
         return;
       }
 
