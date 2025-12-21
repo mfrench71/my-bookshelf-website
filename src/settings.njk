@@ -40,9 +40,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
     </nav>
 
     <!-- Content Area -->
-    <div class="flex-1 min-w-0 space-y-4 md:space-y-0">
+    <div class="flex-1 min-w-0">
       <!-- Profile Section -->
-      <section id="profile-section" class="settings-section bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
+      <section id="profile-section" class="settings-section bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-t-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
         <button data-accordion="profile" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
@@ -120,9 +120,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
       </section>
 
       <!-- Genres Section -->
-      <section id="genres-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
+      <section id="genres-section" class="settings-section hidden bg-white md:bg-transparent border-x border-gray-200 md:border-0 overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="genres" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
+        <button data-accordion="genres" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="tags" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Manage Genres</span>
@@ -158,9 +158,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
       </section>
 
       <!-- Export Section -->
-      <section id="export-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
+      <section id="export-section" class="settings-section hidden bg-white md:bg-transparent border-x border-gray-200 md:border-0 overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
+        <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="download" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Export Books</span>
@@ -181,9 +181,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
       </section>
 
       <!-- Data Cleanup Section -->
-      <section id="cleanup-section" class="settings-section hidden bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-xl md:rounded-none overflow-hidden">
+      <section id="cleanup-section" class="settings-section hidden bg-white md:bg-transparent border-x border-b border-gray-200 md:border-0 rounded-b-xl md:rounded-none overflow-hidden">
         <!-- Mobile Accordion Header -->
-        <button data-accordion="cleanup" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-b border-gray-200">
+        <button data-accordion="cleanup" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
           <div class="flex items-center gap-3">
             <i data-lucide="wrench" class="w-5 h-5 text-primary"></i>
             <span class="font-medium text-gray-900">Data Cleanup</span>
