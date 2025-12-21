@@ -108,7 +108,7 @@ export class GenrePicker {
 
     this.container.innerHTML = `
       <div class="genre-picker">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Genres</label>
+        <label class="block font-semibold text-gray-700 mb-1">Genres</label>
 
         <!-- Selected genres -->
         <div class="genre-picker-selected flex flex-wrap gap-1.5 mb-2">
