@@ -17,9 +17,9 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
   <h1 class="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
 
   <div class="flex flex-col md:flex-row gap-6">
-    <!-- Left Navigation -->
-    <nav class="md:w-48 flex-shrink-0">
-      <div class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+    <!-- Left Navigation (Desktop only) -->
+    <nav class="hidden md:block md:w-48 flex-shrink-0">
+      <div class="flex flex-col gap-2">
         <button data-section="profile" class="settings-nav-btn active flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
           <i data-lucide="user" class="w-4 h-4"></i>
           <span>Profile</span>
@@ -40,10 +40,20 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
     </nav>
 
     <!-- Content Area -->
-    <div class="flex-1 min-w-0">
+    <div class="flex-1 min-w-0 space-y-4 md:space-y-0">
       <!-- Profile Section -->
       <section id="profile-section" class="settings-section">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="profile" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+          <div class="flex items-center gap-3">
+            <i data-lucide="user" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Profile</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content">
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Profile</h2>
 
         <!-- User Info -->
         <div class="bg-gray-50 rounded-xl p-6 mb-6">
@@ -106,12 +116,23 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       <!-- Genres Section -->
       <section id="genres-section" class="settings-section hidden">
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="genres" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+          <div class="flex items-center gap-3">
+            <i data-lucide="tags" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Manage Genres</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">Manage Genres</h2>
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900">Manage Genres</h2>
           <button id="add-genre-btn" class="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span>Add</span>
@@ -133,11 +154,22 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
 
         <!-- Genre List -->
         <div id="genre-list" class="space-y-2"></div>
+        </div>
       </section>
 
       <!-- Export Section -->
       <section id="export-section" class="settings-section hidden">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Export Books</h2>
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+          <div class="flex items-center gap-3">
+            <i data-lucide="download" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Export Books</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content">
+        <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Export Books</h2>
         <div class="bg-gray-50 rounded-xl p-6">
           <p class="text-gray-600 mb-4">Download all your books as a JSON file. This backup includes titles, authors, ratings, notes, and genres.</p>
           <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors">
@@ -145,11 +177,22 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
             <span>Download Backup</span>
           </button>
         </div>
+        </div>
       </section>
 
       <!-- Data Cleanup Section -->
       <section id="cleanup-section" class="settings-section hidden">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Cleanup</h2>
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="cleanup" class="accordion-header md:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl mb-2">
+          <div class="flex items-center gap-3">
+            <i data-lucide="wrench" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Data Cleanup</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content">
+        <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Data Cleanup</h2>
         <div class="space-y-6">
           <!-- Genre Migration -->
           <div class="bg-gray-50 rounded-xl p-6">
@@ -185,6 +228,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               <span>Recalculate Counts</span>
             </button>
           </div>
+        </div>
         </div>
       </section>
     </div>

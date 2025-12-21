@@ -47,6 +47,7 @@ let allBooksLoaded = false;
 // DOM Elements - Navigation
 const navBtns = document.querySelectorAll('.settings-nav-btn');
 const sections = document.querySelectorAll('.settings-section');
+const accordionHeaders = document.querySelectorAll('.accordion-header');
 
 // DOM Elements - Genres
 const genresLoading = document.getElementById('genres-loading');
@@ -140,6 +141,12 @@ onAuthStateChanged(auth, (user) => {
 
 // ==================== Section Navigation ====================
 
+// Check if we're on mobile (accordion mode)
+function isMobile() {
+  return window.innerWidth < 768; // md breakpoint
+}
+
+// Desktop nav button clicks
 navBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     const sectionId = btn.dataset.section;
@@ -147,8 +154,16 @@ navBtns.forEach(btn => {
   });
 });
 
+// Mobile accordion header clicks
+accordionHeaders.forEach(header => {
+  header.addEventListener('click', () => {
+    const sectionId = header.dataset.accordion;
+    toggleAccordion(sectionId);
+  });
+});
+
 function switchSection(sectionId) {
-  // Update nav buttons
+  // Update nav buttons (desktop)
   navBtns.forEach(btn => {
     const isActive = btn.dataset.section === sectionId;
     btn.classList.toggle('active', isActive);
@@ -158,7 +173,7 @@ function switchSection(sectionId) {
     btn.classList.toggle('hover:bg-gray-100', !isActive);
   });
 
-  // Show/hide sections
+  // Show/hide sections (desktop mode - only one visible)
   sections.forEach(section => {
     const isActive = section.id === `${sectionId}-section`;
     section.classList.toggle('hidden', !isActive);
@@ -167,8 +182,65 @@ function switchSection(sectionId) {
   initIcons();
 }
 
-// Initialize active state
-switchSection('profile');
+function toggleAccordion(sectionId) {
+  const section = document.getElementById(`${sectionId}-section`);
+  const header = document.querySelector(`[data-accordion="${sectionId}"]`);
+  const content = section?.querySelector('.accordion-content');
+  const icon = header?.querySelector('.accordion-icon');
+
+  if (!section || !content) return;
+
+  const isExpanded = !content.classList.contains('hidden');
+
+  if (isExpanded) {
+    // Collapse this section
+    content.classList.add('hidden');
+    icon?.classList.remove('rotate-180');
+  } else {
+    // Expand this section
+    content.classList.remove('hidden');
+    icon?.classList.add('rotate-180');
+  }
+
+  initIcons();
+}
+
+function initializeAccordions() {
+  if (isMobile()) {
+    // On mobile: show all sections (for accordion headers), but collapse content except profile
+    sections.forEach(section => {
+      section.classList.remove('hidden');
+      const content = section.querySelector('.accordion-content');
+      const sectionId = section.id.replace('-section', '');
+      const icon = document.querySelector(`[data-accordion="${sectionId}"] .accordion-icon`);
+
+      if (sectionId === 'profile') {
+        content?.classList.remove('hidden');
+        icon?.classList.add('rotate-180');
+      } else {
+        content?.classList.add('hidden');
+        icon?.classList.remove('rotate-180');
+      }
+    });
+  } else {
+    // On desktop: use sidebar navigation, show only active section
+    switchSection('profile');
+  }
+  initIcons();
+}
+
+// Handle window resize
+let lastIsMobile = isMobile();
+window.addEventListener('resize', () => {
+  const currentIsMobile = isMobile();
+  if (currentIsMobile !== lastIsMobile) {
+    lastIsMobile = currentIsMobile;
+    initializeAccordions();
+  }
+});
+
+// Initialize on load
+initializeAccordions();
 
 // ==================== Profile ====================
 
