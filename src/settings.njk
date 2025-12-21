@@ -18,7 +18,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
 
   <div class="flex flex-col md:flex-row gap-6">
     <!-- Left Navigation (Desktop only) -->
-    <nav class="hidden md:block md:w-48 flex-shrink-0">
+    <nav class="hidden md:block w-fit max-w-64 flex-shrink-0">
       <div class="bg-gray-100 rounded-xl p-3 flex flex-col gap-1">
         <button data-section="profile" class="settings-nav-btn active flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
           <i data-lucide="user" class="w-4 h-4"></i>
@@ -29,8 +29,8 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <span>Manage Genres</span>
         </button>
         <button data-section="export" class="settings-nav-btn flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span>Export Books</span>
+          <i data-lucide="archive" class="w-4 h-4"></i>
+          <span>Backup & Restore</span>
         </button>
         <button data-section="cleanup" class="settings-nav-btn flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
           <i data-lucide="wrench" class="w-4 h-4"></i>
@@ -166,25 +166,45 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
         </div>
       </section>
 
-      <!-- Export Section -->
+      <!-- Backup & Restore Section -->
       <section id="export-section" class="settings-section hidden bg-white md:bg-transparent border-x border-gray-200 md:border-0 overflow-hidden">
         <!-- Mobile Accordion Header -->
         <button data-accordion="export" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
           <div class="flex items-center gap-3">
-            <i data-lucide="download" class="w-5 h-5 text-primary"></i>
-            <span class="font-medium text-gray-900">Export Books</span>
+            <i data-lucide="archive" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">Backup & Restore</span>
           </div>
           <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
         </button>
         <!-- Section Content -->
         <div class="accordion-content p-4 md:p-0">
-          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Export Books</h2>
-          <div class="bg-gray-50 rounded-xl p-6">
-            <p class="text-gray-600 mb-4">Download all your books as a JSON file. This backup includes titles, authors, ratings, notes, and genres.</p>
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Backup & Restore</h2>
+
+          <!-- Export -->
+          <div class="bg-gray-50 rounded-xl p-6 mb-4">
+            <h3 class="font-medium text-gray-900 mb-2">Export Backup</h3>
+            <p class="text-gray-600 text-sm mb-4">Download all your books and genres as a JSON file.</p>
             <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors">
               <i data-lucide="download" class="w-4 h-4"></i>
               <span>Download Backup</span>
             </button>
+          </div>
+
+          <!-- Import -->
+          <div class="bg-gray-50 rounded-xl p-6">
+            <h3 class="font-medium text-gray-900 mb-2">Import Backup</h3>
+            <p class="text-gray-600 text-sm mb-4">Restore books and genres from a backup file. Duplicates will be skipped.</p>
+            <input type="file" id="import-file" accept=".json" class="hidden">
+            <button id="import-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              <span>Select Backup File</span>
+            </button>
+            <div id="import-progress" class="hidden mt-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></span>
+                <span id="import-status">Importing...</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -450,20 +470,11 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <p id="new-strength-text" class="text-xs text-gray-500"></p>
         </div>
         <!-- Password Requirements -->
-        <ul id="new-password-requirements" class="mt-2 space-y-1 text-xs">
-          <li id="new-req-length" class="flex items-center gap-1 text-gray-400">
-            <i data-lucide="circle" class="w-3 h-3"></i>
-            <span>At least 6 characters</span>
-          </li>
-          <li id="new-req-uppercase" class="flex items-center gap-1 text-gray-400">
-            <i data-lucide="circle" class="w-3 h-3"></i>
-            <span>One uppercase letter</span>
-          </li>
-          <li id="new-req-number" class="flex items-center gap-1 text-gray-400">
-            <i data-lucide="circle" class="w-3 h-3"></i>
-            <span>One number</span>
-          </li>
-        </ul>
+        <div id="new-password-requirements" class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+          <span id="new-req-length" class="text-gray-400">6+ chars</span>
+          <span id="new-req-uppercase" class="text-gray-400">1 uppercase</span>
+          <span id="new-req-number" class="text-gray-400">1 number</span>
+        </div>
       </div>
       <div>
         <label class="block font-semibold text-gray-700 mb-1">Confirm New Password</label>

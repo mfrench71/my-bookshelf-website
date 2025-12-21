@@ -9,7 +9,7 @@ import {
   doc,
   getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile } from './utils.js';
+import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, clearBooksCache } from './utils.js';
 import { bookCard } from './book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { getGravatarUrl } from './md5.js';
@@ -213,6 +213,38 @@ function closeMenu() {
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
     await signOut(auth);
+  });
+}
+
+// Refresh Library
+const refreshLibraryBtn = document.getElementById('refresh-library-btn');
+if (refreshLibraryBtn) {
+  refreshLibraryBtn.addEventListener('click', async () => {
+    if (!currentUser) return;
+
+    // Show loading state
+    const icon = refreshLibraryBtn.querySelector('svg');
+    if (icon) icon.classList.add('animate-spin');
+    refreshLibraryBtn.disabled = true;
+
+    try {
+      // Clear the cache
+      clearBooksCache(currentUser.uid);
+
+      // Close menu
+      closeMenu();
+
+      // Show toast
+      showToast('Library refreshed');
+
+      // Reload page to fetch fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error refreshing library:', error);
+      showToast('Failed to refresh');
+      if (icon) icon.classList.remove('animate-spin');
+      refreshLibraryBtn.disabled = false;
+    }
   });
 }
 

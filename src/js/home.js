@@ -227,7 +227,10 @@ function renderSection(sectionId, sectionBooks, maxCount) {
 // Render a compact book card for horizontal scroll
 function renderBookCard(book) {
   const cover = book.coverImageUrl
-    ? `<img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-24 h-36 object-cover rounded-lg shadow-md" loading="lazy">`
+    ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden">
+        <i data-lucide="book" class="w-8 h-8 text-white"></i>
+        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
+      </div>`
     : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center">
         <i data-lucide="book" class="w-8 h-8 text-white"></i>
       </div>`;
@@ -244,7 +247,10 @@ function renderBookCard(book) {
 // Render a recommendation card (external book, not in library)
 function renderRecommendationCard(book) {
   const cover = book.coverImageUrl
-    ? `<img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-24 h-36 object-cover rounded-lg shadow-md" loading="lazy">`
+    ? `<div class="relative w-24 h-36 bg-gray-300 rounded-lg shadow-md flex items-center justify-center overflow-hidden">
+        <i data-lucide="book" class="w-8 h-8 text-gray-500"></i>
+        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
+      </div>`
     : `<div class="w-24 h-36 bg-gray-300 rounded-lg shadow-md flex items-center justify-center">
         <i data-lucide="book" class="w-8 h-8 text-gray-500"></i>
       </div>`;

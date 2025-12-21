@@ -261,6 +261,20 @@ python3 -m http.server 8000
 
 **Recommendation**: Start with Cloudinary (already configured in old project) or use ImgBB for simplicity.
 
+## Implementation Notes
+
+### Author Sorting (by Surname)
+Books sorted by author use the **last word** of the author name as the sort key. This handles most Western names correctly (e.g., "Stephen King" → "King", "J.R.R. Tolkien" → "Tolkien").
+
+**Known limitations:**
+- Multi-word surnames not handled (e.g., "Ursula K. Le Guin" sorts under "Guin" not "Le Guin")
+- Non-Western name conventions may not sort as expected
+
+**Future enhancement options:**
+1. **Store surname separately** - Add `authorSurname` field to book schema. Most accurate but requires data migration.
+2. **Smart parsing** - Handle common surname prefixes ("van", "de", "Le", "von", "Mac", "Mc"). Could use a library or custom regex.
+3. **User-editable sort key** - Let users manually override the sort key for edge cases.
+
 ## API References
 - [Firebase Auth](https://firebase.google.com/docs/auth/web/start)
 - [Firebase Firestore](https://firebase.google.com/docs/firestore/quickstart)

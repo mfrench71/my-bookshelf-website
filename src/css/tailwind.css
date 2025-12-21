@@ -37,6 +37,25 @@
   transform: scale(0.99);
 }
 
+.book-cover-wrapper {
+  position: relative;
+  width: 60px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.book-cover-wrapper .book-cover-placeholder {
+  position: absolute;
+  inset: 0;
+}
+
+.book-cover-wrapper .book-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .book-cover {
   width: 60px;
   height: 90px;
@@ -197,6 +216,11 @@ button, a {
 .settings-nav-btn {
   color: #374151;
   transition: background-color 0.15s, color 0.15s;
+}
+
+.settings-nav-btn svg {
+  stroke: currentColor;
+  flex-shrink: 0;
 }
 
 .settings-nav-btn:hover:not(.active) {

@@ -48,7 +48,38 @@ const ratingFilterSelect = document.getElementById('rating-filter');
 const genreFilterSelect = document.getElementById('genre-filter');
 const statusFilterSelect = document.getElementById('status-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
-const refreshBtn = document.getElementById('refresh-btn');
+
+// Parse URL parameters and apply filters
+function applyUrlFilters() {
+  const params = new URLSearchParams(window.location.search);
+
+  // Status filter
+  const status = params.get('status');
+  if (status && statusFilterSelect) {
+    statusFilter = status;
+    statusFilterSelect.value = status;
+  }
+
+  // Rating filter
+  const rating = params.get('rating');
+  if (rating && ratingFilterSelect) {
+    ratingFilter = parseInt(rating, 10) || 0;
+    ratingFilterSelect.value = ratingFilter;
+  }
+
+  // Sort order
+  const sort = params.get('sort');
+  if (sort && sortSelect) {
+    currentSort = sort;
+    sortSelect.value = sort;
+  }
+
+  // Update filter highlights for URL params
+  updateFilterHighlights();
+}
+
+// Apply URL filters on page load
+applyUrlFilters();
 
 // Auth State
 onAuthStateChanged(auth, async (user) => {
@@ -286,6 +317,13 @@ function setupScrollObserver() {
 
 setupScrollObserver();
 
+// Extract surname (last word) for author sorting
+function getAuthorSurname(author) {
+  if (!author) return '';
+  const parts = author.trim().split(/\s+/);
+  return parts[parts.length - 1].toLowerCase();
+}
+
 // Sorting function (client-side for cached data)
 function sortBooks(booksArray, sortKey) {
   const [field, direction] = sortKey.split('-');
@@ -297,8 +335,9 @@ function sortBooks(booksArray, sortKey) {
         bVal = (b.title || '').toLowerCase();
         break;
       case 'author':
-        aVal = (a.author || '').toLowerCase();
-        bVal = (b.author || '').toLowerCase();
+        // Sort by surname (last word of author name)
+        aVal = getAuthorSurname(a.author);
+        bVal = getAuthorSurname(b.author);
         break;
       case 'rating':
         aVal = a.rating || 0;
@@ -405,22 +444,16 @@ function loadMore() {
   }
 }
 
-// Refresh - clear cache and reload from Firebase
+// Refresh - clear cache and reload from Firebase (used by pull-to-refresh)
 async function refreshBooks() {
-  refreshBtn.classList.add('animate-spin');
-
-  try {
-    clearCache();
-    displayLimit = BOOKS_PER_PAGE;
-    // Reload both genres and books
-    await Promise.all([
-      loadGenres(),
-      loadBooks(true)
-    ]);
-    showToast('Books refreshed');
-  } finally {
-    refreshBtn.classList.remove('animate-spin');
-  }
+  clearCache();
+  displayLimit = BOOKS_PER_PAGE;
+  // Reload both genres and books
+  await Promise.all([
+    loadGenres(),
+    loadBooks(true)
+  ]);
+  showToast('Books refreshed');
 }
 
 // Sort & Filter Controls
@@ -468,18 +501,38 @@ if (statusFilterSelect) {
   });
 }
 
-// Refresh button
-refreshBtn.addEventListener('click', refreshBooks);
-
 // Check if any filters are active
 function hasActiveFilters() {
   return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '';
 }
 
-// Show/hide reset button based on filter state
+// Show/hide reset button and update filter highlights
 function updateResetButton() {
   const isDefault = currentSort === 'createdAt-desc' && !hasActiveFilters();
   resetFiltersBtn.classList.toggle('hidden', isDefault);
+  updateFilterHighlights();
+}
+
+// Highlight active filter dropdowns
+function updateFilterHighlights() {
+  // Rating filter
+  if (ratingFilterSelect) {
+    const isActive = ratingFilter !== 0;
+    ratingFilterSelect.classList.toggle('border-primary', isActive);
+    ratingFilterSelect.classList.toggle('border-gray-200', !isActive);
+  }
+  // Genre filter
+  if (genreFilterSelect) {
+    const isActive = genreFilter !== '';
+    genreFilterSelect.classList.toggle('border-primary', isActive);
+    genreFilterSelect.classList.toggle('border-gray-200', !isActive);
+  }
+  // Status filter
+  if (statusFilterSelect) {
+    const isActive = statusFilter !== '';
+    statusFilterSelect.classList.toggle('border-primary', isActive);
+    statusFilterSelect.classList.toggle('border-gray-200', !isActive);
+  }
 }
 
 // Get a human-readable description of active filters

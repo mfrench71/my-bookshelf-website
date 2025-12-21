@@ -15,6 +15,18 @@ import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 // Initialize icons once on load
 initIcons();
 
+// Back button - smart navigation
+const backBtn = document.getElementById('back-btn');
+if (backBtn) {
+  backBtn.addEventListener('click', () => {
+    if (history.length > 1) {
+      history.back();
+    } else {
+      window.location.href = '/books/';
+    }
+  });
+}
+
 // State
 let currentUser = null;
 let bookId = null;
@@ -135,19 +147,26 @@ async function loadBook() {
 
 function renderBook() {
   // Cover - use createElement to prevent XSS
+  const fallbackHtml = `
+    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg mx-auto flex items-center justify-center">
+      <i data-lucide="book" class="w-16 h-16 text-white"></i>
+    </div>
+  `;
+
   if (book.coverImageUrl) {
+    // Create wrapper with fallback behind image
+    coverContainer.innerHTML = fallbackHtml;
+    coverContainer.firstElementChild.classList.add('absolute', 'inset-0');
+    coverContainer.classList.add('relative');
+
     const img = document.createElement('img');
     img.src = book.coverImageUrl;
     img.alt = '';
-    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto';
-    coverContainer.innerHTML = '';
+    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto absolute inset-0';
+    img.onerror = () => { img.style.display = 'none'; };
     coverContainer.appendChild(img);
   } else {
-    coverContainer.innerHTML = `
-      <div class="w-40 h-60 bg-primary rounded-xl shadow-lg mx-auto flex items-center justify-center">
-        <i data-lucide="book" class="w-16 h-16 text-white"></i>
-      </div>
-    `;
+    coverContainer.innerHTML = fallbackHtml;
   }
 
   // Info

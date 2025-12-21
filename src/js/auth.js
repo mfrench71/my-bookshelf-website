@@ -3,7 +3,6 @@ import { auth } from './firebase-config.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  updateProfile,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons, checkPasswordStrength } from './utils.js';
@@ -102,21 +101,13 @@ function updatePasswordUI(password) {
 
 function updateRequirement(element, met) {
   if (!element) return;
-  const icon = element.querySelector('i');
   if (met) {
     element.classList.remove('text-gray-400');
     element.classList.add('text-green-500');
-    if (icon) {
-      icon.setAttribute('data-lucide', 'check-circle');
-    }
   } else {
     element.classList.remove('text-green-500');
     element.classList.add('text-gray-400');
-    if (icon) {
-      icon.setAttribute('data-lucide', 'circle');
-    }
   }
-  initIcons();
 }
 
 registerPassword?.addEventListener('input', (e) => {
@@ -149,7 +140,6 @@ loginForm?.addEventListener('submit', async (e) => {
 registerForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const name = document.getElementById('register-name').value;
   const email = document.getElementById('register-email').value;
   const password = document.getElementById('register-password').value;
   const passwordConfirm = document.getElementById('register-password-confirm').value;
@@ -166,8 +156,7 @@ registerForm?.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Creating account...';
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName: name });
+    await createUserWithEmailAndPassword(auth, email, password);
     // Redirect happens via onAuthStateChanged
   } catch (error) {
     showError(getErrorMessage(error.code));

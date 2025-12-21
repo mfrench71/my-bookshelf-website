@@ -7,7 +7,6 @@ const {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  updateProfile,
   getFirestore,
   collection,
   doc,
@@ -140,13 +139,11 @@ loginForm.addEventListener('submit', async (e) => {
 // Register
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const name = document.getElementById('register-name').value;
   const email = document.getElementById('register-email').value;
   const password = document.getElementById('register-password').value;
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName: name });
+    await createUserWithEmailAndPassword(auth, email, password);
   } catch (error) {
     showAuthError(getErrorMessage(error.code));
   }

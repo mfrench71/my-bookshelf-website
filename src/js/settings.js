@@ -16,7 +16,8 @@ import {
   getDoc,
   setDoc,
   deleteDoc,
-  writeBatch
+  writeBatch,
+  serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   loadUserGenres,
@@ -35,6 +36,14 @@ import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
 initIcons();
+
+// Ensure icons are initialized after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initIcons);
+} else {
+  // DOM already ready, call again to be safe
+  setTimeout(initIcons, 0);
+}
 
 // Back button - smart navigation
 const backBtn = document.getElementById('back-btn');
@@ -78,8 +87,12 @@ const deleteMessage = document.getElementById('delete-message');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 
-// DOM Elements - Export
+// DOM Elements - Backup & Restore
 const exportBtn = document.getElementById('export-btn');
+const importBtn = document.getElementById('import-btn');
+const importFileInput = document.getElementById('import-file');
+const importProgress = document.getElementById('import-progress');
+const importStatus = document.getElementById('import-status');
 
 // DOM Elements - Cleanup
 const cleanupGenresBtn = document.getElementById('cleanup-genres-btn');
@@ -560,17 +573,13 @@ function updateNewPasswordUI(password) {
 
 function updateRequirement(element, met) {
   if (!element) return;
-  const icon = element.querySelector('i');
   if (met) {
     element.classList.remove('text-gray-400');
     element.classList.add('text-green-500');
-    if (icon) icon.setAttribute('data-lucide', 'check-circle');
   } else {
     element.classList.remove('text-green-500');
     element.classList.add('text-gray-400');
-    if (icon) icon.setAttribute('data-lucide', 'circle');
   }
-  initIcons();
 }
 
 newPasswordInput?.addEventListener('input', (e) => {
@@ -976,33 +985,40 @@ async function loadAllBooks() {
   }
 }
 
-async function exportBooks() {
+async function exportBackup() {
   exportBtn.disabled = true;
   exportBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
 
   try {
     await loadAllBooks();
 
-    if (books.length === 0) {
-      showToast('No books to export', { type: 'error' });
+    if (books.length === 0 && genres.length === 0) {
+      showToast('No data to export', { type: 'error' });
       return;
     }
 
-    const data = books.map(({ id, _normalizedTitle, _normalizedAuthor, ...book }) => book);
-    const json = JSON.stringify(data, null, 2);
+    // Prepare export data
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      genres: genres.map(({ id, ...genre }) => ({ ...genre, _exportId: id })),
+      books: books.map(({ id, _normalizedTitle, _normalizedAuthor, ...book }) => book)
+    };
+
+    const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `mybookshelf-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `mybookshelf-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
 
     URL.revokeObjectURL(url);
-    showToast('Books exported!', { type: 'success' });
+    showToast(`Exported ${books.length} books and ${genres.length} genres`);
   } catch (error) {
-    console.error('Error exporting books:', error);
-    showToast('Error exporting books', { type: 'error' });
+    console.error('Error exporting backup:', error);
+    showToast('Error exporting backup', { type: 'error' });
   } finally {
     exportBtn.disabled = false;
     exportBtn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i><span>Download Backup</span>';
@@ -1010,7 +1026,171 @@ async function exportBooks() {
   }
 }
 
-exportBtn.addEventListener('click', exportBooks);
+exportBtn.addEventListener('click', exportBackup);
+
+// ==================== Import Backup ====================
+
+async function importBackup(file) {
+  importBtn.disabled = true;
+  importProgress.classList.remove('hidden');
+  importStatus.textContent = 'Reading file...';
+
+  try {
+    const text = await file.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error('Invalid JSON file');
+    }
+
+    // Validate backup format
+    if (!data.version || data.version !== 1) {
+      throw new Error('Unrecognized backup format');
+    }
+
+    const importGenres = data.genres || [];
+    const importBooks = data.books || [];
+
+    if (importBooks.length === 0 && importGenres.length === 0) {
+      throw new Error('Backup file is empty');
+    }
+
+    // Load existing data to check for duplicates
+    importStatus.textContent = 'Checking for duplicates...';
+    await loadAllBooks();
+    const existingGenres = await loadUserGenres(currentUser.uid);
+
+    // Build genre ID mapping (old export ID -> new Firestore ID)
+    const genreIdMap = new Map();
+    let genresImported = 0;
+    let genresSkipped = 0;
+
+    // Import genres first
+    if (importGenres.length > 0) {
+      importStatus.textContent = 'Importing genres...';
+
+      for (const genre of importGenres) {
+        // Check if genre with same name already exists
+        const existingGenre = existingGenres.find(g => g.name.toLowerCase() === genre.name.toLowerCase());
+
+        if (existingGenre) {
+          // Map old ID to existing genre ID
+          genreIdMap.set(genre._exportId, existingGenre.id);
+          genresSkipped++;
+        } else {
+          // Create new genre
+          const newGenre = await createGenre(currentUser.uid, genre.name, genre.color);
+          genreIdMap.set(genre._exportId, newGenre.id);
+          genresImported++;
+        }
+      }
+    }
+
+    // Import books
+    let booksImported = 0;
+    let booksSkipped = 0;
+
+    if (importBooks.length > 0) {
+      importStatus.textContent = 'Importing books...';
+
+      const booksRef = collection(db, 'users', currentUser.uid, 'books');
+
+      for (const book of importBooks) {
+        // Check for duplicates by ISBN or title+author
+        const isDuplicate = books.some(existing => {
+          if (book.isbn && existing.isbn && book.isbn === existing.isbn) return true;
+          if (book.title && existing.title &&
+              book.title.toLowerCase() === existing.title.toLowerCase() &&
+              (book.author || '').toLowerCase() === (existing.author || '').toLowerCase()) return true;
+          return false;
+        });
+
+        if (isDuplicate) {
+          booksSkipped++;
+          continue;
+        }
+
+        // Remap genre IDs
+        let remappedGenres = [];
+        if (book.genres && Array.isArray(book.genres)) {
+          remappedGenres = book.genres
+            .map(oldId => genreIdMap.get(oldId))
+            .filter(id => id); // Remove any unmapped genres
+        }
+
+        // Create book document
+        const bookData = {
+          ...book,
+          genres: remappedGenres,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        // Remove any timestamp fields that might cause issues
+        delete bookData.createdAt;
+        delete bookData.updatedAt;
+
+        await setDoc(doc(booksRef), {
+          ...bookData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        booksImported++;
+      }
+    }
+
+    // Clear caches and refresh
+    clearBooksCache(currentUser.uid);
+    clearGenresCache();
+
+    // Recalculate genre book counts
+    if (genresImported > 0 || booksImported > 0) {
+      importStatus.textContent = 'Updating genre counts...';
+      await recalculateGenreBookCounts(currentUser.uid);
+    }
+
+    // Show results
+    const results = [];
+    if (booksImported > 0) results.push(`${booksImported} books`);
+    if (genresImported > 0) results.push(`${genresImported} genres`);
+
+    const skipped = [];
+    if (booksSkipped > 0) skipped.push(`${booksSkipped} duplicate books`);
+    if (genresSkipped > 0) skipped.push(`${genresSkipped} existing genres`);
+
+    let message = `Imported ${results.join(' and ') || 'nothing'}`;
+    if (skipped.length > 0) message += `. Skipped ${skipped.join(', ')}`;
+
+    showToast(message);
+
+    // Reload page to show new data
+    setTimeout(() => window.location.reload(), 1500);
+
+  } catch (error) {
+    console.error('Error importing backup:', error);
+    showToast(error.message || 'Error importing backup', { type: 'error' });
+    importProgress.classList.add('hidden');
+  } finally {
+    importBtn.disabled = false;
+    importFileInput.value = '';
+  }
+}
+
+// Import button click handler
+importBtn.addEventListener('click', () => {
+  importFileInput.click();
+});
+
+// File input change handler
+importFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    importBackup(file);
+  }
+});
 
 // ==================== Data Cleanup ====================
 

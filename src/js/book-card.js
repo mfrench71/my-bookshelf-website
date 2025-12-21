@@ -64,7 +64,10 @@ export function bookCard(book, options = {}) {
   const { showDate = false, genreLookup = null } = options;
 
   const cover = book.coverImageUrl
-    ? `<img src="${book.coverImageUrl}" alt="" class="book-cover" loading="lazy">`
+    ? `<div class="book-cover-wrapper">
+        <div class="book-cover-placeholder"><i data-lucide="book"></i></div>
+        <img src="${book.coverImageUrl}" alt="" class="book-cover" loading="lazy" onerror="this.style.display='none'">
+      </div>`
     : `<div class="book-cover-placeholder"><i data-lucide="book"></i></div>`;
 
   const rating = book.rating
