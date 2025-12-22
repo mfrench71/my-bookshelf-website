@@ -4,7 +4,6 @@ import {
   collection,
   doc,
   getDocs,
-  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -99,9 +98,11 @@ export const GENRE_COLORS = [
   '#71717a'  // zinc-500
 ];
 
-// In-memory cache for genres
+// In-memory cache for genres (with TTL)
 let genresCache = null;
 let genresCacheUserId = null;
+let genresCacheTime = 0;
+const GENRES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get all genres for a user
@@ -110,7 +111,12 @@ let genresCacheUserId = null;
  * @returns {Promise<Array>} Array of genre objects
  */
 export async function loadUserGenres(userId, forceRefresh = false) {
-  if (!forceRefresh && genresCache && genresCacheUserId === userId) {
+  const now = Date.now();
+  const cacheValid = genresCache &&
+                     genresCacheUserId === userId &&
+                     (now - genresCacheTime) < GENRES_CACHE_TTL;
+
+  if (!forceRefresh && cacheValid) {
     return genresCache;
   }
 
@@ -123,6 +129,7 @@ export async function loadUserGenres(userId, forceRefresh = false) {
     ...doc.data()
   }));
   genresCacheUserId = userId;
+  genresCacheTime = Date.now();
 
   return genresCache;
 }
@@ -150,21 +157,6 @@ export function getUsedColors(genres, excludeGenreId = null) {
 export function getAvailableColors(genres, excludeGenreId = null) {
   const usedColors = getUsedColors(genres, excludeGenreId);
   return GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
-}
-
-/**
- * Get a single genre by ID
- * @param {string} userId - The user's ID
- * @param {string} genreId - The genre ID
- * @returns {Promise<Object|null>} Genre object or null
- */
-export async function getGenre(userId, genreId) {
-  const genreRef = doc(db, 'users', userId, 'genres', genreId);
-  const genreSnap = await getDoc(genreRef);
-
-  if (!genreSnap.exists()) return null;
-
-  return { id: genreSnap.id, ...genreSnap.data() };
 }
 
 /**
@@ -298,28 +290,6 @@ export async function deleteGenre(userId, genreId) {
 }
 
 /**
- * Update the bookCount for a genre
- * @param {string} userId - The user's ID
- * @param {string} genreId - The genre ID
- * @param {number} delta - Amount to change (positive or negative)
- */
-export async function updateGenreBookCount(userId, genreId, delta) {
-  const genre = await getGenre(userId, genreId);
-  if (!genre) return;
-
-  const newCount = Math.max(0, (genre.bookCount || 0) + delta);
-
-  const genreRef = doc(db, 'users', userId, 'genres', genreId);
-  await updateDoc(genreRef, {
-    bookCount: newCount,
-    updatedAt: serverTimestamp()
-  });
-
-  // Invalidate cache
-  genresCache = null;
-}
-
-/**
  * Update bookCounts for multiple genres in a batch
  * @param {string} userId - The user's ID
  * @param {Array<string>} addedGenreIds - Genre IDs to increment
@@ -363,27 +333,12 @@ export async function updateGenreBookCounts(userId, addedGenreIds = [], removedG
 }
 
 /**
- * Find or create a genre by name
- * @param {string} userId - The user's ID
- * @param {string} name - Genre name
- * @returns {Promise<Object>} Genre object (existing or newly created)
- */
-export async function findOrCreateGenre(userId, name) {
-  const normalizedName = normalizeGenreName(name);
-  const genres = await loadUserGenres(userId);
-
-  const existing = genres.find(g => g.normalizedName === normalizedName);
-  if (existing) return existing;
-
-  return createGenre(userId, name);
-}
-
-/**
  * Clear the genres cache
  */
 export function clearGenresCache() {
   genresCache = null;
   genresCacheUserId = null;
+  genresCacheTime = 0;
 }
 
 /**

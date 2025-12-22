@@ -109,7 +109,13 @@ async function initGenrePicker() {
 // Fetch genre suggestions from Google Books API
 async function fetchGenreSuggestions(isbn) {
   try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const response = await fetchWithTimeout(
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
+      {},
+      5000 // 5 second timeout for suggestions (non-critical)
+    );
+    if (!response.ok) return;
+
     const data = await response.json();
 
     if (data.items?.length > 0) {
@@ -119,7 +125,8 @@ async function fetchGenreSuggestions(isbn) {
       }
     }
   } catch (e) {
-    console.error('Error fetching genre suggestions:', e);
+    // Non-critical - log but don't show error to user
+    console.warn('Genre suggestions unavailable:', e.message);
   }
 }
 

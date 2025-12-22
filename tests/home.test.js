@@ -2,19 +2,16 @@
  * Tests for src/js/home.js - Home page dashboard logic
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Home settings constants (replicated from home.js)
 const HOME_SETTINGS_KEY = 'homeSettings';
-const RECOMMENDATIONS_CACHE_KEY = 'recommendationsCache';
-const RECOMMENDATIONS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const DEFAULT_HOME_SETTINGS = {
   currentlyReading: { enabled: true, count: 6 },
   recentlyAdded: { enabled: true, count: 6 },
   topRated: { enabled: true, count: 6 },
-  recentlyFinished: { enabled: true, count: 6 },
-  recommendations: { enabled: true, count: 6 }
+  recentlyFinished: { enabled: true, count: 6 }
 };
 
 // Replicate getHomeSettings from home.js
@@ -28,47 +25,6 @@ function getHomeSettings() {
     console.warn('Error loading home settings:', e);
   }
   return { ...DEFAULT_HOME_SETTINGS };
-}
-
-// Replicate recommendations cache functions
-function getRecommendationsCache(userId) {
-  try {
-    const cached = localStorage.getItem(`${RECOMMENDATIONS_CACHE_KEY}_${userId}`);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < RECOMMENDATIONS_CACHE_TTL) {
-        return data;
-      }
-    }
-  } catch (e) {
-    // Ignore cache errors
-  }
-  return null;
-}
-
-function setRecommendationsCache(userId, data) {
-  try {
-    localStorage.setItem(`${RECOMMENDATIONS_CACHE_KEY}_${userId}`, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  } catch (e) {
-    // Ignore cache errors
-  }
-}
-
-// Replicate filterOwnedBooks from home.js
-function filterOwnedBooks(recommendations, ownedBooks) {
-  const ownedTitles = new Set(ownedBooks.map(b => b.title?.toLowerCase()));
-  const ownedIsbns = new Set(ownedBooks.map(b => b.isbn).filter(Boolean));
-
-  return recommendations.filter(rec => {
-    // Check ISBN match
-    if (rec.isbn && ownedIsbns.has(rec.isbn)) return false;
-    // Check title match
-    if (rec.title && ownedTitles.has(rec.title.toLowerCase())) return false;
-    return true;
-  });
 }
 
 // Replicate section filtering logic from home.js
@@ -117,21 +73,6 @@ describe('Home Settings', () => {
       expect(settings.recentlyAdded.count).toBe(9);
       // Other sections should use defaults
       expect(settings.topRated.enabled).toBe(true);
-    });
-
-    it('should merge partial settings with defaults', () => {
-      const partialSettings = {
-        recommendations: { enabled: false, count: 12 }
-      };
-      localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(partialSettings));
-
-      const settings = getHomeSettings();
-
-      expect(settings.recommendations.enabled).toBe(false);
-      expect(settings.recommendations.count).toBe(12);
-      // All other sections should have defaults
-      expect(settings.currentlyReading.enabled).toBe(true);
-      expect(settings.currentlyReading.count).toBe(6);
     });
 
     it('should handle invalid JSON gracefully', () => {
@@ -253,204 +194,6 @@ describe('Section Filtering', () => {
   });
 });
 
-describe('Recommendations Cache', () => {
-  const userId = 'test-user-123';
-
-  beforeEach(() => {
-    localStorage.clear();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  describe('getRecommendationsCache', () => {
-    it('should return null when cache is empty', () => {
-      const result = getRecommendationsCache(userId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return cached data when fresh', () => {
-      const recommendations = [
-        { title: 'Book 1', author: 'Author 1' },
-        { title: 'Book 2', author: 'Author 2' }
-      ];
-      setRecommendationsCache(userId, recommendations);
-
-      const result = getRecommendationsCache(userId);
-
-      expect(result).toEqual(recommendations);
-    });
-
-    it('should return null when cache is expired (older than 24 hours)', () => {
-      const recommendations = [{ title: 'Book 1', author: 'Author 1' }];
-      setRecommendationsCache(userId, recommendations);
-
-      // Advance time by 25 hours
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
-
-      const result = getRecommendationsCache(userId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return cached data just before expiry', () => {
-      const recommendations = [{ title: 'Book 1', author: 'Author 1' }];
-      setRecommendationsCache(userId, recommendations);
-
-      // Advance time by just under 24 hours
-      vi.advanceTimersByTime(RECOMMENDATIONS_CACHE_TTL - 1000);
-
-      const result = getRecommendationsCache(userId);
-
-      expect(result).toEqual(recommendations);
-    });
-
-    it('should handle invalid JSON gracefully', () => {
-      localStorage.setItem(`${RECOMMENDATIONS_CACHE_KEY}_${userId}`, 'invalid json');
-
-      const result = getRecommendationsCache(userId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should be user-specific', () => {
-      const user1Recs = [{ title: 'User 1 Book' }];
-      const user2Recs = [{ title: 'User 2 Book' }];
-
-      setRecommendationsCache('user1', user1Recs);
-      setRecommendationsCache('user2', user2Recs);
-
-      expect(getRecommendationsCache('user1')).toEqual(user1Recs);
-      expect(getRecommendationsCache('user2')).toEqual(user2Recs);
-    });
-  });
-
-  describe('setRecommendationsCache', () => {
-    it('should store recommendations with timestamp', () => {
-      const recommendations = [{ title: 'Book 1' }];
-
-      setRecommendationsCache(userId, recommendations);
-
-      const stored = JSON.parse(localStorage.getItem(`${RECOMMENDATIONS_CACHE_KEY}_${userId}`));
-      expect(stored.data).toEqual(recommendations);
-      expect(stored.timestamp).toBeTypeOf('number');
-    });
-  });
-});
-
-describe('Filter Owned Books', () => {
-  describe('filterOwnedBooks', () => {
-    it('should filter out books by ISBN match', () => {
-      const recommendations = [
-        { title: 'Book 1', isbn: '1234567890' },
-        { title: 'Book 2', isbn: '0987654321' },
-        { title: 'Book 3', isbn: '1111111111' }
-      ];
-      const ownedBooks = [
-        { title: 'Owned Book', isbn: '1234567890' }
-      ];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(2);
-      expect(result.map(b => b.isbn)).not.toContain('1234567890');
-    });
-
-    it('should filter out books by title match (case-insensitive)', () => {
-      const recommendations = [
-        { title: 'The Great Gatsby', isbn: '111' },
-        { title: 'To Kill a Mockingbird', isbn: '222' },
-        { title: '1984', isbn: '333' }
-      ];
-      const ownedBooks = [
-        { title: 'THE GREAT GATSBY' },
-        { title: '1984' }
-      ];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('To Kill a Mockingbird');
-    });
-
-    it('should handle recommendations without ISBN', () => {
-      const recommendations = [
-        { title: 'Book 1' },
-        { title: 'Book 2', isbn: '' },
-        { title: 'Book 3', isbn: null }
-      ];
-      const ownedBooks = [{ title: 'Book 1' }];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(2);
-    });
-
-    it('should handle owned books without ISBN', () => {
-      const recommendations = [
-        { title: 'Rec Book 1', isbn: '123' },
-        { title: 'Rec Book 2', isbn: '456' }
-      ];
-      const ownedBooks = [
-        { title: 'Owned Book' } // No ISBN
-      ];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(2);
-    });
-
-    it('should return all recommendations when no owned books match', () => {
-      const recommendations = [
-        { title: 'New Book 1', isbn: '111' },
-        { title: 'New Book 2', isbn: '222' }
-      ];
-      const ownedBooks = [
-        { title: 'Different Book', isbn: '999' }
-      ];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(2);
-    });
-
-    it('should return empty array when all recommendations are owned', () => {
-      const recommendations = [
-        { title: 'Book 1', isbn: '111' },
-        { title: 'Book 2', isbn: '222' }
-      ];
-      const ownedBooks = [
-        { title: 'Book 1', isbn: '111' },
-        { title: 'Book 2', isbn: '222' }
-      ];
-
-      const result = filterOwnedBooks(recommendations, ownedBooks);
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should handle empty recommendations array', () => {
-      const result = filterOwnedBooks([], [{ title: 'Owned Book' }]);
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should handle empty owned books array', () => {
-      const recommendations = [
-        { title: 'Book 1' },
-        { title: 'Book 2' }
-      ];
-
-      const result = filterOwnedBooks(recommendations, []);
-
-      expect(result).toHaveLength(2);
-    });
-  });
-});
-
 describe('Section Display Logic', () => {
   describe('item count limiting', () => {
     it('should respect maxCount setting', () => {
@@ -556,65 +299,5 @@ describe('Welcome Message Stats', () => {
 
     expect(stats.totalBooks).toBe(0);
     expect(stats.booksThisYear).toBe(0);
-  });
-});
-
-describe('Recommendation Deduplication', () => {
-  // Replicate deduplication from home.js
-  function deduplicateRecommendations(books) {
-    const seen = new Set();
-    return books.filter(book => {
-      const key = `${book.title?.toLowerCase()}|${book.author?.toLowerCase()}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-
-  it('should remove duplicate books by title+author', () => {
-    const books = [
-      { title: 'Book 1', author: 'Author A' },
-      { title: 'Book 2', author: 'Author B' },
-      { title: 'Book 1', author: 'Author A' }, // duplicate
-      { title: 'Book 3', author: 'Author C' }
-    ];
-
-    const result = deduplicateRecommendations(books);
-
-    expect(result).toHaveLength(3);
-  });
-
-  it('should be case-insensitive', () => {
-    const books = [
-      { title: 'The Great Gatsby', author: 'F. Scott Fitzgerald' },
-      { title: 'THE GREAT GATSBY', author: 'F. SCOTT FITZGERALD' }
-    ];
-
-    const result = deduplicateRecommendations(books);
-
-    expect(result).toHaveLength(1);
-  });
-
-  it('should treat different authors as different books', () => {
-    const books = [
-      { title: 'Same Title', author: 'Author A' },
-      { title: 'Same Title', author: 'Author B' }
-    ];
-
-    const result = deduplicateRecommendations(books);
-
-    expect(result).toHaveLength(2);
-  });
-
-  it('should handle missing title or author', () => {
-    const books = [
-      { title: 'Book 1', author: null },
-      { title: null, author: 'Author' },
-      { title: 'Book 2', author: 'Author' }
-    ];
-
-    const result = deduplicateRecommendations(books);
-
-    expect(result).toHaveLength(3);
   });
 });

@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI } from './utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -18,7 +18,7 @@ import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 initIcons();
 
 // Max books to check for title/author duplicates (prevents excessive reads on large libraries)
-const DUPLICATE_CHECK_LIMIT = 500;
+const DUPLICATE_CHECK_LIMIT = 200;
 
 /**
  * Check if a book with the same ISBN or title/author already exists
@@ -328,19 +328,22 @@ async function loadMoreSearchResults() {
 }
 
 function renderSearchResults(books, append = false) {
-  const html = books.map(book => `
+  const html = books.map(book => {
+    const hasCover = book.cover && isValidImageUrl(book.cover);
+    return `
     <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
          data-title="${escapeAttr(book.title)}"
          data-author="${escapeAttr(book.author)}"
-         data-cover="${escapeAttr(book.cover)}"
+         data-cover="${hasCover ? escapeAttr(book.cover) : ''}"
          data-publisher="${escapeAttr(book.publisher)}"
          data-published="${escapeAttr(book.publishedDate)}"
          data-isbn="${escapeAttr(book.isbn)}"
          data-categories="${escapeAttr(JSON.stringify(book.categories || []))}">
-      ${book.cover
-        ? `<img src="${book.cover}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0">`
-        : `<div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>`
+      ${hasCover
+        ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ''
       }
+      <div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 items-center justify-center${hasCover ? ' hidden' : ' flex'}"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>
       <div class="flex-1 min-w-0">
         <p class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</p>
         <p class="text-sm text-gray-500 truncate">${escapeHtml(book.author)}</p>
@@ -349,7 +352,7 @@ function renderSearchResults(books, append = false) {
         </p>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 
   // Remove old sentinel if appending
   if (append) {

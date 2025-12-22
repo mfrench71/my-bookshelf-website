@@ -92,14 +92,37 @@ async function updateMenuAvatar(user) {
       return;
     }
   } catch (e) {
-    // Ignore errors, fall through to Gravatar/initial
+    console.warn('Failed to load user profile photo:', e.message);
   }
 
-  // Try Gravatar
+  // Try Gravatar (with localStorage cache to avoid repeated HEAD requests)
   const gravatarUrl = getGravatarUrl(user.email, 80);
+  const gravatarCacheKey = `gravatar_exists_${user.uid}`;
+  const gravatarCacheTTL = 24 * 60 * 60 * 1000; // 24 hours
+
   try {
-    const response = await fetch(gravatarUrl, { method: 'HEAD' });
-    if (response.ok) {
+    // Check cache first
+    const cached = localStorage.getItem(gravatarCacheKey);
+    let gravatarExists = false;
+
+    if (cached) {
+      const { exists, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < gravatarCacheTTL) {
+        gravatarExists = exists;
+      }
+    }
+
+    // If not cached or expired, check Gravatar
+    if (!cached || Date.now() - JSON.parse(cached).timestamp >= gravatarCacheTTL) {
+      const response = await fetch(gravatarUrl, { method: 'HEAD' });
+      gravatarExists = response.ok;
+      localStorage.setItem(gravatarCacheKey, JSON.stringify({
+        exists: gravatarExists,
+        timestamp: Date.now()
+      }));
+    }
+
+    if (gravatarExists) {
       // Use createElement to prevent XSS
       const img = document.createElement('img');
       img.src = gravatarUrl;
@@ -110,7 +133,7 @@ async function updateMenuAvatar(user) {
       return;
     }
   } catch (e) {
-    // Ignore errors
+    console.warn('Gravatar check failed:', e.message);
   }
 
   // Fall back to initial
@@ -158,7 +181,7 @@ async function loadAllBooksForSearch() {
       }
     }
   } catch (e) {
-    // Ignore cache errors
+    console.warn('Cache read error in search:', e.message);
   }
 
   // Fetch all from Firebase

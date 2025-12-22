@@ -10,7 +10,7 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache } from './utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle } from './utils.js';
 import { bookCard } from './book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 
@@ -85,9 +85,8 @@ applyUrlFilters();
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    // Load genres first (needed for genre indicators), then books
-    await loadGenres();
-    await loadBooks();
+    // Load genres and books in parallel for faster initial load
+    await Promise.all([loadGenres(), loadBooks()]);
   }
 });
 
@@ -347,9 +346,8 @@ function sortBooks(booksArray, sortKey) {
         aVal = a.createdAt || 0;
         bVal = b.createdAt || 0;
     }
-    return direction === 'asc'
-      ? (aVal < bVal ? -1 : aVal > bVal ? 1 : 0)
-      : (aVal > bVal ? -1 : aVal < bVal ? 1 : 0);
+    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+    return direction === 'asc' ? comparison : -comparison;
   });
 }
 
@@ -623,6 +621,28 @@ function handleTouchStart(e) {
   }
 }
 
+// Throttled UI update for pull-to-refresh (16ms = 60fps)
+const updatePullUI = throttle((pullDistance) => {
+  // Calculate display height (with resistance)
+  const displayHeight = Math.min(pullDistance * 0.5, pullThreshold + 20);
+
+  // Show and size the indicator
+  pullIndicator.classList.remove('hidden');
+  pullIndicator.style.height = `${displayHeight}px`;
+
+  // Update icon rotation and text based on pull distance
+  if (pullDistance >= pullThreshold) {
+    pullIcon.style.transform = 'rotate(180deg)';
+    pullText.textContent = 'Release to refresh';
+    pullIcon.setAttribute('data-lucide', 'arrow-up');
+  } else {
+    pullIcon.style.transform = 'rotate(0deg)';
+    pullText.textContent = 'Pull to refresh';
+    pullIcon.setAttribute('data-lucide', 'arrow-down');
+  }
+  initIcons();
+}, 16);
+
 function handleTouchMove(e) {
   if (!isPulling || isLoading) return;
 
@@ -633,25 +653,8 @@ function handleTouchMove(e) {
   if (pullDistance > 0 && window.scrollY === 0) {
     // Prevent default scrolling behavior when pulling
     e.preventDefault();
-
-    // Calculate display height (with resistance)
-    const displayHeight = Math.min(pullDistance * 0.5, pullThreshold + 20);
-
-    // Show and size the indicator
-    pullIndicator.classList.remove('hidden');
-    pullIndicator.style.height = `${displayHeight}px`;
-
-    // Update icon rotation and text based on pull distance
-    if (pullDistance >= pullThreshold) {
-      pullIcon.style.transform = 'rotate(180deg)';
-      pullText.textContent = 'Release to refresh';
-      pullIcon.setAttribute('data-lucide', 'arrow-up');
-    } else {
-      pullIcon.style.transform = 'rotate(0deg)';
-      pullText.textContent = 'Pull to refresh';
-      pullIcon.setAttribute('data-lucide', 'arrow-down');
-    }
-    initIcons();
+    // Use throttled UI update
+    updatePullUI(pullDistance);
   }
 }
 

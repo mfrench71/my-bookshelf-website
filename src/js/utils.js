@@ -377,6 +377,39 @@ export function isOnline() {
 }
 
 /**
+ * Validate an image URL for safe use in img src attributes
+ * Only allows http: and https: protocols
+ * @param {string} url - URL to validate
+ * @returns {boolean} True if URL is valid and safe
+ */
+export function isValidImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Throttle function calls to max once per delay
+ * @param {Function} fn - Function to throttle
+ * @param {number} delay - Minimum time between calls in ms
+ * @returns {Function} Throttled function
+ */
+export function throttle(fn, delay) {
+  let lastCall = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn(...args);
+    }
+  };
+}
+
+/**
  * Check if viewport is mobile-sized (matches Tailwind's md breakpoint)
  * @returns {boolean} True if mobile
  */
@@ -411,28 +444,62 @@ export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
   }
 }
 
+// ISBN lookup cache constants
+const ISBN_CACHE_KEY = 'mybookshelf_isbn_cache';
+const ISBN_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 /**
- * Debounced version of initIcons to prevent excessive calls
- * Waits 50ms after the last call before executing
+ * Get cached ISBN lookup result
+ * @param {string} isbn - ISBN to look up
+ * @returns {Object|null} Cached result or null
  */
-let initIconsTimeout = null;
-export function debouncedInitIcons() {
-  if (initIconsTimeout) {
-    clearTimeout(initIconsTimeout);
+function getISBNCache(isbn) {
+  try {
+    const cached = localStorage.getItem(`${ISBN_CACHE_KEY}_${isbn}`);
+    if (!cached) return null;
+
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < ISBN_CACHE_TTL) {
+      return data;
+    }
+    // Expired, remove it
+    localStorage.removeItem(`${ISBN_CACHE_KEY}_${isbn}`);
+  } catch (e) {
+    console.warn('ISBN cache read error:', e.message);
   }
-  initIconsTimeout = setTimeout(() => {
-    initIcons();
-    initIconsTimeout = null;
-  }, 50);
+  return null;
+}
+
+/**
+ * Cache ISBN lookup result
+ * @param {string} isbn - ISBN
+ * @param {Object|null} data - Result to cache
+ */
+function setISBNCache(isbn, data) {
+  try {
+    localStorage.setItem(`${ISBN_CACHE_KEY}_${isbn}`, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('ISBN cache write error:', e.message);
+  }
 }
 
 /**
  * Look up book data by ISBN from Google Books and Open Library APIs
+ * Results are cached for 24 hours to reduce API calls
  * @param {string} isbn - ISBN to look up
  * @returns {Promise<Object|null>} Book data or null if not found
  */
 export async function lookupISBN(isbn) {
   if (!isbn) return null;
+
+  // Check cache first
+  const cached = getISBNCache(isbn);
+  if (cached !== null) {
+    return cached;
+  }
 
   let result = null;
 
@@ -496,6 +563,9 @@ export async function lookupISBN(isbn) {
   } catch (e) {
     console.error('Open Library API error:', e);
   }
+
+  // Cache the result (including null for not found)
+  setISBNCache(isbn, result);
 
   return result;
 }
@@ -639,4 +709,41 @@ export function clearUserProfileCache() {
   userProfileCache = null;
   userProfileCacheUserId = null;
   userProfileCacheTime = 0;
+}
+
+// Home settings constants
+const HOME_SETTINGS_KEY = 'homeSettings';
+const DEFAULT_HOME_SETTINGS = {
+  currentlyReading: { enabled: true, count: 6 },
+  recentlyAdded: { enabled: true, count: 6 },
+  topRated: { enabled: true, count: 6 },
+  recentlyFinished: { enabled: true, count: 6 }
+};
+
+/**
+ * Get home page settings from localStorage
+ * @returns {Object} Home settings with defaults applied
+ */
+export function getHomeSettings() {
+  try {
+    const stored = localStorage.getItem(HOME_SETTINGS_KEY);
+    if (stored) {
+      return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.warn('Error loading home settings:', e);
+  }
+  return { ...DEFAULT_HOME_SETTINGS };
+}
+
+/**
+ * Save home page settings to localStorage
+ * @param {Object} settings - Settings to save
+ */
+export function saveHomeSettings(settings) {
+  try {
+    localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('Error saving home settings:', e);
+  }
 }

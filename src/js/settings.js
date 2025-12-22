@@ -32,7 +32,7 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -1023,7 +1023,7 @@ async function loadAllBooks() {
       }
     }
   } catch (e) {
-    // Ignore cache errors
+    console.warn('Cache read error in settings:', e.message);
   }
 
   // Fetch from Firebase
@@ -1381,48 +1381,10 @@ recountGenresBtn.addEventListener('click', runRecountGenres);
 
 // ==================== Home Content Settings ====================
 
-const HOME_SETTINGS_KEY = 'homeSettings';
-
-// Default home settings
-const DEFAULT_HOME_SETTINGS = {
-  currentlyReading: { enabled: true, count: 6 },
-  recentlyAdded: { enabled: true, count: 6 },
-  topRated: { enabled: true, count: 6 },
-  recentlyFinished: { enabled: true, count: 6 },
-  recommendations: { enabled: true, count: 6 }
-};
-
-// Load home settings from localStorage
-function loadHomeSettings() {
-  try {
-    const stored = localStorage.getItem(HOME_SETTINGS_KEY);
-    if (stored) {
-      return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
-    }
-  } catch (e) {
-    console.warn('Error loading home settings:', e);
-  }
-  return { ...DEFAULT_HOME_SETTINGS };
-}
-
-// Save home settings to localStorage
-function saveHomeSettings(settings) {
-  try {
-    localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('Error saving home settings:', e);
-  }
-}
-
-// Export for home.js to use
-export function getHomeSettings() {
-  return loadHomeSettings();
-}
-
 // Initialize content settings UI
 function initContentSettings() {
-  const settings = loadHomeSettings();
-  const sections = ['currentlyReading', 'recentlyAdded', 'topRated', 'recentlyFinished', 'recommendations'];
+  const settings = getHomeSettings();
+  const sections = ['currentlyReading', 'recentlyAdded', 'topRated', 'recentlyFinished'];
 
   sections.forEach(section => {
     const toggle = document.getElementById(`toggle-${section}`);
@@ -1431,7 +1393,7 @@ function initContentSettings() {
     if (toggle) {
       toggle.checked = settings[section]?.enabled ?? true;
       toggle.addEventListener('change', () => {
-        const currentSettings = loadHomeSettings();
+        const currentSettings = getHomeSettings();
         currentSettings[section] = {
           ...currentSettings[section],
           enabled: toggle.checked
@@ -1444,7 +1406,7 @@ function initContentSettings() {
     if (countSelect) {
       countSelect.value = String(settings[section]?.count ?? 6);
       countSelect.addEventListener('change', () => {
-        const currentSettings = loadHomeSettings();
+        const currentSettings = getHomeSettings();
         currentSettings[section] = {
           ...currentSettings[section],
           count: parseInt(countSelect.value, 10)

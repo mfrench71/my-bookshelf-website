@@ -7,25 +7,11 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { initIcons, escapeHtml, CACHE_KEY, serializeTimestamp, fetchWithTimeout } from './utils.js';
+import { initIcons, escapeHtml, CACHE_KEY, serializeTimestamp, getHomeSettings } from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 
 // Initialize icons
 initIcons();
-
-// Constants
-const HOME_SETTINGS_KEY = 'homeSettings';
-const RECOMMENDATIONS_CACHE_KEY = 'recommendationsCache';
-const RECOMMENDATIONS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-
-// Default home settings
-const DEFAULT_HOME_SETTINGS = {
-  currentlyReading: { enabled: true, count: 6 },
-  recentlyAdded: { enabled: true, count: 6 },
-  topRated: { enabled: true, count: 6 },
-  recentlyFinished: { enabled: true, count: 6 },
-  recommendations: { enabled: true, count: 6 }
-};
 
 // State
 let currentUser = null;
@@ -103,19 +89,6 @@ resendVerificationBtn?.addEventListener('click', async () => {
   }
 });
 
-// Load home settings from localStorage
-function getHomeSettings() {
-  try {
-    const stored = localStorage.getItem(HOME_SETTINGS_KEY);
-    if (stored) {
-      return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
-    }
-  } catch (e) {
-    console.warn('Error loading home settings:', e);
-  }
-  return { ...DEFAULT_HOME_SETTINGS };
-}
-
 // Load all user data
 async function loadDashboard() {
   try {
@@ -175,7 +148,7 @@ async function loadBooksData() {
       }
     }
   } catch (e) {
-    // Ignore cache errors
+    console.warn('Cache read error on home page:', e.message);
   }
 
   // Fetch from Firebase
@@ -242,11 +215,6 @@ function renderSections(settings) {
       .sort((a, b) => (b.finishedAt || b.updatedAt || 0) - (a.finishedAt || a.updatedAt || 0));
     renderSection('recentlyFinished', finished, settings.recentlyFinished.count);
   }
-
-  // Recommendations (async)
-  if (settings.recommendations?.enabled) {
-    loadRecommendations(settings.recommendations.count);
-  }
 }
 
 // Render a single section
@@ -300,229 +268,3 @@ function renderBookCard(book) {
   `;
 }
 
-// Render a recommendation card (external book, not in library)
-function renderRecommendationCard(book) {
-  const cover = book.coverImageUrl
-    ? `<div class="relative w-24 h-36 bg-gray-300 rounded-lg shadow-md flex items-center justify-center overflow-hidden">
-        <i data-lucide="book" class="w-8 h-8 text-gray-500"></i>
-        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
-      </div>`
-    : `<div class="w-24 h-36 bg-gray-300 rounded-lg shadow-md flex items-center justify-center">
-        <i data-lucide="book" class="w-8 h-8 text-gray-500"></i>
-      </div>`;
-
-  // Link to add page with pre-filled ISBN or search
-  const addLink = book.isbn
-    ? `/add/?isbn=${encodeURIComponent(book.isbn)}`
-    : `/add/?search=${encodeURIComponent(book.title + ' ' + book.author)}`;
-
-  return `
-    <div class="flex-shrink-0 w-24 snap-start relative group">
-      ${cover}
-      <a href="${addLink}" class="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <span class="text-white text-sm flex items-center gap-1">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          Add
-        </span>
-      </a>
-      <h3 class="text-sm font-medium text-gray-900 mt-2 line-clamp-2">${escapeHtml(book.title)}</h3>
-      <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown')}</p>
-    </div>
-  `;
-}
-
-// Load recommendations
-async function loadRecommendations(maxCount) {
-  const section = document.getElementById('section-recommendations');
-  const booksContainer = document.getElementById('books-recommendations');
-  const loadingEl = document.getElementById('loading-recommendations');
-  const emptyMsg = document.getElementById('empty-recommendations');
-
-  if (!section) return;
-
-  section.classList.remove('hidden');
-
-  // Get highly rated books to find authors
-  const highlyRated = books.filter(b => b.rating && b.rating >= 4);
-
-  if (highlyRated.length === 0) {
-    if (emptyMsg) emptyMsg.classList.remove('hidden');
-    return;
-  }
-
-  // Get unique authors from highly rated books
-  const authors = [...new Set(highlyRated.map(b => b.author).filter(Boolean))];
-
-  if (authors.length === 0) {
-    if (emptyMsg) emptyMsg.classList.remove('hidden');
-    return;
-  }
-
-  // Check cache
-  const cached = getRecommendationsCache();
-  if (cached && cached.length > 0) {
-    const filtered = filterOwnedBooks(cached);
-    if (filtered.length > 0) {
-      const spacer = '<div class="carousel-spacer"></div>';
-      booksContainer.innerHTML = spacer + filtered.slice(0, maxCount).map(renderRecommendationCard).join('') + spacer;
-      initIcons();
-      return;
-    }
-  }
-
-  // Show loading
-  if (loadingEl) loadingEl.classList.remove('hidden');
-
-  try {
-    // Fetch recommendations from both APIs
-    const recommendations = await fetchRecommendations(authors.slice(0, 3)); // Limit to 3 authors
-
-    // Cache recommendations
-    setRecommendationsCache(recommendations);
-
-    // Filter out books already in library
-    const filtered = filterOwnedBooks(recommendations);
-
-    if (loadingEl) loadingEl.classList.add('hidden');
-
-    if (filtered.length === 0) {
-      if (emptyMsg) {
-        emptyMsg.textContent = 'No new recommendations found';
-        emptyMsg.classList.remove('hidden');
-      }
-      return;
-    }
-
-    if (emptyMsg) emptyMsg.classList.add('hidden');
-    const spacer = '<div class="carousel-spacer"></div>';
-    booksContainer.innerHTML = spacer + filtered.slice(0, maxCount).map(renderRecommendationCard).join('') + spacer;
-    initIcons();
-  } catch (error) {
-    console.error('Error loading recommendations:', error);
-    if (loadingEl) loadingEl.classList.add('hidden');
-    if (emptyMsg) {
-      emptyMsg.textContent = 'Could not load recommendations';
-      emptyMsg.classList.remove('hidden');
-    }
-  }
-}
-
-// Fetch recommendations from Google Books and Open Library
-async function fetchRecommendations(authors) {
-  const allBooks = [];
-
-  for (const author of authors) {
-    try {
-      // Google Books API
-      const googleBooks = await searchGoogleBooks(author);
-      allBooks.push(...googleBooks);
-    } catch (e) {
-      console.warn('Google Books error:', e);
-    }
-
-    try {
-      // Open Library API
-      const openLibraryBooks = await searchOpenLibrary(author);
-      allBooks.push(...openLibraryBooks);
-    } catch (e) {
-      console.warn('Open Library error:', e);
-    }
-  }
-
-  // Deduplicate by title+author
-  const seen = new Set();
-  return allBooks.filter(book => {
-    const key = `${book.title?.toLowerCase()}|${book.author?.toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-// Search Google Books API
-async function searchGoogleBooks(author) {
-  const response = await fetchWithTimeout(
-    `https://www.googleapis.com/books/v1/volumes?q=inauthor:"${encodeURIComponent(author)}"&maxResults=10`
-  );
-  const data = await response.json();
-
-  if (!data.items) return [];
-
-  return data.items.map(item => {
-    const info = item.volumeInfo || {};
-    const isbn = info.industryIdentifiers?.find(id => id.type === 'ISBN_13' || id.type === 'ISBN_10')?.identifier;
-
-    return {
-      title: info.title || '',
-      author: info.authors?.join(', ') || author,
-      coverImageUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
-      isbn: isbn || ''
-    };
-  }).filter(b => b.title);
-}
-
-// Search Open Library API
-async function searchOpenLibrary(author) {
-  const response = await fetchWithTimeout(
-    `https://openlibrary.org/search.json?author=${encodeURIComponent(author)}&limit=10`
-  );
-  const data = await response.json();
-
-  if (!data.docs) return [];
-
-  return data.docs.map(doc => {
-    const coverId = doc.cover_i;
-    const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : '';
-
-    return {
-      title: doc.title || '',
-      author: doc.author_name?.join(', ') || author,
-      coverImageUrl: coverUrl,
-      isbn: doc.isbn?.[0] || ''
-    };
-  }).filter(b => b.title);
-}
-
-// Filter out books already in library
-function filterOwnedBooks(recommendations) {
-  const ownedTitles = new Set(books.map(b => b.title?.toLowerCase()));
-  const ownedIsbns = new Set(books.map(b => b.isbn).filter(Boolean));
-
-  return recommendations.filter(rec => {
-    // Check ISBN match
-    if (rec.isbn && ownedIsbns.has(rec.isbn)) return false;
-    // Check title match
-    if (rec.title && ownedTitles.has(rec.title.toLowerCase())) return false;
-    return true;
-  });
-}
-
-// Recommendations cache
-function getRecommendationsCache() {
-  try {
-    const cacheKey = `${RECOMMENDATIONS_CACHE_KEY}_${currentUser.uid}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < RECOMMENDATIONS_CACHE_TTL) {
-        return data;
-      }
-      // Remove stale cache entry
-      localStorage.removeItem(cacheKey);
-    }
-  } catch (e) {
-    // Ignore cache errors
-  }
-  return null;
-}
-
-function setRecommendationsCache(data) {
-  try {
-    localStorage.setItem(`${RECOMMENDATIONS_CACHE_KEY}_${currentUser.uid}`, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  } catch (e) {
-    // Ignore cache errors
-  }
-}
