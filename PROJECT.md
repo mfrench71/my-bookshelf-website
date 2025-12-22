@@ -80,6 +80,47 @@ MyBookShelf/
 - **Genre Cache**: 5-minute in-memory TTL to reduce Firestore reads
 - **Gravatar Cache**: 24-hour localStorage cache for avatar existence checks
 
+### Data Enrichment Opportunities
+
+API fields available but not currently stored (for future features):
+
+| Field | Source | Value |
+|-------|--------|-------|
+| `description` | Google Books | Book synopsis for browsing/search |
+| `language` | Google Books | Filter by language |
+| `previewLink` | Google Books | "Read sample" links |
+| `averageRating` / `ratingsCount` | Google Books | Community rating comparison |
+| `categories` / `subjects` | Both APIs | Better genre suggestions, mood inference |
+| `maturityRating` | Google Books | Content warnings foundation |
+| `firstPublishYear` | Open Library | Original vs edition publication date |
+| Higher-res covers | Both APIs | `large`/`extraLarge` image URLs available |
+
+**User-generated fields (for planned features):**
+- `moods[]` - Mood/emotion tracking
+- `pacing` - Pace tagging (fast/medium/slow)
+- `contentWarnings[]` - Content warnings with severity
+- `quotes[]` - Quote capture
+- `plotOrCharacter` - Plot-driven vs character-driven
+
+### Scalability Considerations
+
+**Current limitations (tested scale: ~100 books per user):**
+
+| Concern | Issue | Impact |
+|---------|-------|--------|
+| Full collection load | `books.js:223-226` loads ALL books on page load | 500 books = 25 API calls |
+| Client-side filtering | `books.js:373-380` filters/sorts entire array | O(n log n) on every change |
+| Sort triggers reload | `books.js:458-470` clears cache, refetches all | Expensive for large libraries |
+| No query limits | `genres.js:360`, `settings.js:1041` fetch entire collections | Unbounded reads |
+| No virtualisation | `books.js:416-431` renders all visible books at once | DOM bloat at scale |
+
+**Recommended improvements for 500+ books:**
+- [ ] Server-side filtering with Firestore composite indexes
+- [ ] Virtualised list rendering (only render visible items)
+- [ ] Limit initial load to 50-100 books, paginate on demand
+- [ ] Add limits to all `getDocs()` calls
+- [ ] Implement server-side search (Algolia or Firestore full-text)
+
 ## Development Progress
 
 ### Completed
@@ -349,11 +390,13 @@ The current data model supports comprehensive reading statistics:
 | App | Strengths | Weaknesses |
 |-----|-----------|------------|
 | **Goodreads** | Largest community, social features | Outdated UI, owned by Amazon, no half-star ratings |
-| **StoryGraph** | Mood/pacing charts, AI recommendations, quarter-star ratings | No reading timer |
-| **Bookly** | Reading timer, gamification, streaks, ambient sounds | Subscription required for full features |
+| **StoryGraph** | Mood/pacing charts, AI recommendations, quarter-star ratings, content warnings | No reading timer |
+| **Bookly** | Reading timer, gamification, streaks, ambient sounds, reading speed | Subscription required for full features |
 | **Bookmory** | Timer, quotes, notes with photos, statistics | Less social features |
-| **Hardcover** | Ad-free, privacy controls, modern UI | Smaller community |
-| **Literal/Oku** | Clean design, social clubs | Limited features |
+| **Hardcover** | Ad-free, per-book privacy controls, modern UI, API | Smaller community |
+| **Literal** | Quote-centric, public API, website widgets, book clubs | Limited free features |
+| **Oku** | Minimalist design, clean UI, ad-free | Premium required for goals/stats |
+| **Book Tracker** | Native iOS, OCR quote capture, loan tracking, widgets, iCloud sync | iOS only, no social features |
 
 ### Feature Ideas from Competitors
 
@@ -410,12 +453,66 @@ The current data model supports comprehensive reading statistics:
 - [ ] Export to various formats
 - [ ] Backup to cloud storage (Google Drive, Dropbox, iCloud)
 
+#### Quote Capture & Reading Journal
+- [ ] Save favourite quotes manually
+- [ ] OCR quote capture (photograph text, transcribe automatically)
+- [ ] Reading journal with progress update notes
+- [ ] Highlight and annotation capture
+- [ ] Quote-centric sharing (share updates with quote snippets)
+
+#### Widgets & System Integration
+- [ ] Home screen widgets for reading stats/progress
+- [ ] Lock screen widgets (iOS 16+)
+- [ ] Siri/voice assistant support ("Add book", "Start reading timer")
+- [ ] iOS Shortcuts integration for automation
+- [ ] Live Activities for active reading sessions (iOS 16+)
+- [ ] Ambient sounds while reading (rain, café, fireplace, etc.)
+
+#### Enhanced Book Metadata
+- [ ] Plot-driven vs character-driven tagging
+- [ ] Content warning severity levels (graphic/moderate/minor)
+- [ ] User-submitted content warnings with community voting
+- [ ] Book edition tracking (hardcover, paperback, ebook, audiobook)
+- [ ] Manga and international title support
+- [ ] Original publication date vs edition date
+
+#### Advanced Analytics
+- [ ] Year-over-year reading comparison
+- [ ] Month-over-month trend analysis
+- [ ] Custom charts with user-defined colours and labels
+- [ ] Reading by format breakdown (physical vs ebook vs audio)
+- [ ] Compare any two time periods side-by-side
+- [ ] Personalised book match percentage (how likely to enjoy based on history)
+
+#### Privacy & Visibility
+- [ ] Per-book privacy controls (public/private/friends-only)
+- [ ] Profile visibility settings (public/private/friends-only)
+- [ ] Hide specific books from public view
+- [ ] Anonymous mode for browsing
+
+#### Social Reading
+- [ ] Buddy reads (read together with a friend, share progress)
+- [ ] Readalongs (group reading events with schedules)
+- [ ] Direct messaging between readers
+- [ ] Reading activity feed
+
+#### API & Integrations
+- [ ] Public API for third-party integrations
+- [ ] Website embed widget (display book lists on personal site)
+- [ ] Browser extension for quick book adding
+- [ ] Zapier/IFTTT integration
+
 ### Sources
 - [Beyond Goodreads: 5 Game-Changing Apps](https://medium.com/macoclock/beyond-goodreads-the-5-game-changing-book-tracking-apps-you-need-to-try-482b2811e8ab)
 - [Best Book Tracking Apps - ISBNDB](https://isbndb.com/blog/book-tracking-apps-and-websites/)
 - [The StoryGraph](https://thestorygraph.com/)
 - [Bookly](https://getbookly.com/)
 - [Book Tracker App](https://booktrack.app/)
+- [Hardcover](https://hardcover.app/)
+- [Literal](https://literal.club/)
+- [Oku](https://oku.club/)
+- [Best Book Tracking App Comparison - Book Riot](https://bookriot.com/best-book-tracking-app/)
+- [StoryGraph Features - Everyday Reading](https://everyday-reading.com/storygraph/)
 
 ---
 **Last Updated**: 2025-12-22
