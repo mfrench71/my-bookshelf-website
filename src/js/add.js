@@ -64,9 +64,9 @@ async function checkForDuplicate(userId, isbn, title, author) {
 // State
 let currentUser = null;
 let currentRating = 0;
+let currentStatus = null;
 let scannerRunning = false;
 let formDirty = false;
-let fetchedBookData = {};
 let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
@@ -89,8 +89,12 @@ const coverUrlInput = document.getElementById('cover-url');
 const coverPreview = document.getElementById('cover-preview');
 const coverImg = document.getElementById('cover-img');
 const notesInput = document.getElementById('notes');
+const publisherInput = document.getElementById('publisher');
+const publishedDateInput = document.getElementById('published-date');
+const physicalFormatInput = document.getElementById('physical-format');
 const submitBtn = document.getElementById('submit-btn');
 const starBtns = document.querySelectorAll('.star-btn');
+const statusBtns = document.querySelectorAll('.status-btn');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
@@ -148,6 +152,28 @@ function updateRatingStars() {
   updateStars(starBtns, currentRating);
 }
 
+// Status Buttons
+statusBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const clickedStatus = btn.dataset.status;
+    // Toggle off if clicking the same status (allows clearing)
+    currentStatus = currentStatus === clickedStatus ? null : clickedStatus;
+    updateStatusButtons();
+    formDirty = true;
+  });
+});
+
+function updateStatusButtons() {
+  statusBtns.forEach(btn => {
+    const isSelected = btn.dataset.status === currentStatus;
+    btn.classList.toggle('bg-primary', isSelected);
+    btn.classList.toggle('text-white', isSelected);
+    btn.classList.toggle('border-primary', isSelected);
+    btn.classList.toggle('border-gray-300', !isSelected);
+  });
+  initIcons();
+}
+
 // Cover Preview
 coverUrlInput.addEventListener('input', () => {
   const url = coverUrlInput.value.trim();
@@ -190,11 +216,10 @@ async function handleISBNLookup() {
         coverImg.src = bookData.coverImageUrl;
         coverPreview.classList.remove('hidden');
       }
-      fetchedBookData = {
-        publisher: bookData.publisher || '',
-        publishedDate: bookData.publishedDate || '',
-        physicalFormat: bookData.physicalFormat || ''
-      };
+      // Populate additional fields
+      publisherInput.value = bookData.publisher || '';
+      publishedDateInput.value = bookData.publishedDate || '';
+      physicalFormatInput.value = bookData.physicalFormat || '';
       showStatus('Book found!', 'success');
       formDirty = true;
     } else {
@@ -412,11 +437,10 @@ async function selectSearchResult(el) {
     }
   }
 
-  fetchedBookData = {
-    publisher: publisher || '',
-    publishedDate: published || '',
-    physicalFormat: ''
-  };
+  // Set initial values from search result
+  publisherInput.value = publisher || '';
+  publishedDateInput.value = published || '';
+  physicalFormatInput.value = '';
 
   // Supplement missing data from Open Library if we have an ISBN
   if (isbn) {
@@ -426,9 +450,9 @@ async function selectSearchResult(el) {
       const book = data[`ISBN:${isbn}`];
       if (book) {
         // Supplement missing fields
-        if (!fetchedBookData.publisher) fetchedBookData.publisher = book.publishers?.[0]?.name || '';
-        if (!fetchedBookData.publishedDate) fetchedBookData.publishedDate = book.publish_date || '';
-        if (!fetchedBookData.physicalFormat) fetchedBookData.physicalFormat = book.physical_format || '';
+        if (!publisherInput.value) publisherInput.value = book.publishers?.[0]?.name || '';
+        if (!publishedDateInput.value) publishedDateInput.value = book.publish_date || '';
+        if (!physicalFormatInput.value) physicalFormatInput.value = book.physical_format || '';
         if (!coverUrlInput.value && book.cover?.medium) {
           coverUrlInput.value = book.cover.medium;
           coverImg.src = book.cover.medium;
@@ -659,12 +683,21 @@ bookForm.addEventListener('submit', async (e) => {
     notes: notesInput.value.trim(),
     isbn,
     genres: selectedGenres,
-    publisher: fetchedBookData.publisher || '',
-    publishedDate: fetchedBookData.publishedDate || '',
-    physicalFormat: fetchedBookData.physicalFormat || '',
+    publisher: publisherInput.value.trim(),
+    publishedDate: publishedDateInput.value.trim(),
+    physicalFormat: physicalFormatInput.value.trim(),
+    status: currentStatus,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
+
+  // Set reading timestamps based on initial status
+  if (currentStatus === 'reading') {
+    bookData.startedAt = serverTimestamp();
+  } else if (currentStatus === 'finished') {
+    bookData.startedAt = serverTimestamp();
+    bookData.finishedAt = serverTimestamp();
+  }
 
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
