@@ -274,6 +274,32 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               <span>Recalculate Counts</span>
             </button>
           </div>
+
+          <!-- Fetch Book Covers -->
+          <div class="bg-gray-50 rounded-xl p-6">
+            <h3 class="font-medium text-gray-900 mb-2">Fetch Book Covers</h3>
+            <p class="text-gray-600 text-sm mb-4">Scan your library for alternative book covers from Google Books and Open Library. Books with ISBNs will be checked for available cover images.</p>
+            <div id="cover-stats" class="mb-4 text-sm text-gray-600">
+              <p>Books with ISBN: <span id="cover-isbn-count" class="font-medium">-</span></p>
+              <p>Books with multiple covers: <span id="cover-multi-count" class="font-medium">-</span></p>
+            </div>
+            <div id="cover-progress" class="hidden mb-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                <div class="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                <span id="cover-status">Fetching covers...</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="cover-progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
+              </div>
+            </div>
+            <div id="cover-results" class="hidden mb-4 p-4 bg-white rounded-lg border border-gray-200">
+              <p id="cover-results-text" class="text-sm text-gray-700"></p>
+            </div>
+            <button id="fetch-covers-btn" class="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors">
+              <i data-lucide="image" class="w-4 h-4"></i>
+              <span>Fetch Covers</span>
+            </button>
+          </div>
           </div>
         </div>
       </section>

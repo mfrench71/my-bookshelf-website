@@ -490,37 +490,32 @@ function setISBNCache(isbn, data) {
  * Look up book data by ISBN from Google Books and Open Library APIs
  * Results are cached for 24 hours to reduce API calls
  * @param {string} isbn - ISBN to look up
+ * @param {Object} options - Options
+ * @param {boolean} options.skipCache - If true, skip cache and fetch fresh data
  * @returns {Promise<Object|null>} Book data or null if not found
  */
-export async function lookupISBN(isbn) {
+export async function lookupISBN(isbn, options = {}) {
   if (!isbn) return null;
 
-  // Check cache first
-  const cached = getISBNCache(isbn);
-  if (cached !== null) {
-    // If cached result is missing physicalFormat, try to fetch it
-    if (cached && !cached.physicalFormat) {
-      try {
-        const editionResponse = await fetchWithTimeout(
-          `https://openlibrary.org/isbn/${isbn}.json`
-        );
-        const edition = await editionResponse.json();
-        if (edition.physical_format) {
-          cached.physicalFormat = edition.physical_format
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-          // Update cache with new data
-          setISBNCache(isbn, cached);
-        }
-      } catch (e) {
-        // Edition endpoint may not exist for all ISBNs
+  const { skipCache = false } = options;
+
+  // Check cache first (unless skipCache is true)
+  if (!skipCache) {
+    const cached = getISBNCache(isbn);
+    if (cached !== null) {
+      // If cached result is missing physicalFormat or covers, refetch to get complete data
+      if (cached && (!cached.physicalFormat || !cached.covers)) {
+        // Return null to trigger a fresh fetch (cache will be updated)
+        // This ensures we get covers from both APIs
+      } else {
+        return cached;
       }
     }
-    return cached;
   }
 
   let result = null;
+  let googleBooksCover = '';
+  let openLibraryCover = '';
 
   // Try Google Books first
   try {
@@ -531,10 +526,11 @@ export async function lookupISBN(isbn) {
 
     if (data.items?.length > 0) {
       const book = data.items[0].volumeInfo;
+      googleBooksCover = book.imageLinks?.thumbnail?.replace('http:', 'https:') || '';
       result = {
         title: normalizeTitle(book.title || ''),
         author: normalizeAuthor(book.authors?.join(', ') || ''),
-        coverImageUrl: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+        coverImageUrl: googleBooksCover,
         publisher: normalizePublisher(book.publisher || ''),
         publishedDate: normalizePublishedDate(book.publishedDate),
         physicalFormat: '',
@@ -556,12 +552,13 @@ export async function lookupISBN(isbn) {
 
     if (book) {
       const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
+      openLibraryCover = book.cover?.medium || '';
 
       if (result) {
         // Supplement missing fields from Open Library
         if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
         if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
-        if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
+        if (!result.coverImageUrl) result.coverImageUrl = openLibraryCover;
         if (!result.pageCount && book.number_of_pages) result.pageCount = book.number_of_pages;
         // Add Open Library genres to suggestions
         if (result.genres.length === 0 && genres.length > 0) {
@@ -572,7 +569,7 @@ export async function lookupISBN(isbn) {
         result = {
           title: normalizeTitle(book.title || ''),
           author: normalizeAuthor(book.authors?.map(a => a.name).join(', ') || ''),
-          coverImageUrl: book.cover?.medium || '',
+          coverImageUrl: openLibraryCover,
           publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
           publishedDate: normalizePublishedDate(book.publish_date),
           physicalFormat: '',
@@ -583,6 +580,13 @@ export async function lookupISBN(isbn) {
     }
   } catch (e) {
     console.error('Open Library API error:', e);
+  }
+
+  // Add covers object with all available sources
+  if (result) {
+    result.covers = {};
+    if (googleBooksCover) result.covers.googleBooks = googleBooksCover;
+    if (openLibraryCover) result.covers.openLibrary = openLibraryCover;
   }
 
   // Try Open Library edition endpoint for physical_format and page count (not in jscmd=data)

@@ -73,12 +73,25 @@ scripts: '<script type="module" src="/js/add.js"></script>'
     </div>
 
     <div>
-      <label class="block font-semibold text-gray-700 mb-1">Cover Image URL</label>
-      <input type="url" id="cover-url" readonly
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed outline-none">
+      <label class="block font-semibold text-gray-700 mb-1">Cover Image</label>
+      <input type="hidden" id="cover-url">
+      <div id="cover-picker" class="hidden">
+        <div class="flex gap-4 flex-wrap">
+          <div id="cover-option-google" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors" data-source="googleBooks">
+            <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
+            <img src="" alt="Google Books cover" class="h-24 rounded object-cover mx-auto">
+          </div>
+          <div id="cover-option-openlibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors" data-source="openLibrary">
+            <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
+            <img src="" alt="Open Library cover" class="h-24 rounded object-cover mx-auto">
+          </div>
+        </div>
+      </div>
       <div id="cover-preview" class="mt-2 hidden">
+        <div class="text-xs text-gray-500 mb-1">Selected cover</div>
         <img id="cover-img" src="" alt="Cover preview" class="h-24 rounded-lg object-cover">
       </div>
+      <p id="no-cover-msg" class="text-sm text-gray-400 hidden">No cover available</p>
     </div>
 
     <div class="grid grid-cols-2 gap-4">

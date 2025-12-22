@@ -37,6 +37,7 @@ let originalGenres = [];
 let originalValues = {};
 let formDirty = false;
 let currentReads = []; // Array of {startedAt, finishedAt} objects
+let availableCovers = {}; // Track available covers { googleBooks: url, openLibrary: url }
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -59,6 +60,10 @@ const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
+const coverPicker = document.getElementById('cover-picker');
+const coverOptionGoogle = document.getElementById('cover-option-google');
+const coverOptionOpenLibrary = document.getElementById('cover-option-openlibrary');
+const noCoverMsg = document.getElementById('no-cover-msg');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
@@ -84,6 +89,105 @@ const toggleHistoryBtn = document.getElementById('toggle-history');
 const historyChevron = document.getElementById('history-chevron');
 const historyCount = document.getElementById('history-count');
 const readHistoryList = document.getElementById('read-history-list');
+
+// Cover Picker Functions
+function renderCoverPicker(covers, currentCoverUrl) {
+  availableCovers = covers || {};
+  const hasGoogle = availableCovers.googleBooks;
+  const hasOpenLibrary = availableCovers.openLibrary;
+  const hasAnyCovers = hasGoogle || hasOpenLibrary;
+
+  // Reset UI
+  coverPicker.classList.add('hidden');
+  noCoverMsg.classList.add('hidden');
+  coverOptionGoogle.classList.add('hidden');
+  coverOptionOpenLibrary.classList.add('hidden');
+  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/5');
+  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/5');
+
+  if (!hasAnyCovers) {
+    if (!currentCoverUrl) {
+      noCoverMsg.classList.remove('hidden');
+    }
+    return;
+  }
+
+  // Show picker with available options
+  coverPicker.classList.remove('hidden');
+
+  if (hasGoogle) {
+    coverOptionGoogle.classList.remove('hidden');
+    coverOptionGoogle.querySelector('img').src = availableCovers.googleBooks;
+    coverOptionGoogle.querySelector('img').onerror = () => {
+      coverOptionGoogle.classList.add('hidden');
+    };
+  }
+
+  if (hasOpenLibrary) {
+    coverOptionOpenLibrary.classList.remove('hidden');
+    coverOptionOpenLibrary.querySelector('img').src = availableCovers.openLibrary;
+    coverOptionOpenLibrary.querySelector('img').onerror = () => {
+      coverOptionOpenLibrary.classList.add('hidden');
+    };
+  }
+
+  // Highlight currently selected cover
+  if (currentCoverUrl === availableCovers.googleBooks) {
+    coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+  } else if (currentCoverUrl === availableCovers.openLibrary) {
+    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+  } else if (hasGoogle) {
+    // Default to first available if current doesn't match
+    coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+  } else if (hasOpenLibrary) {
+    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+  }
+}
+
+function selectCover(source) {
+  const url = availableCovers[source];
+  if (!url) return;
+
+  coverUrlInput.value = url;
+
+  // Update sidebar cover
+  updateSidebarCover(url);
+
+  // Update selection styling
+  coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
+  coverOptionGoogle.classList.toggle('bg-primary/5', source === 'googleBooks');
+  coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
+  coverOptionOpenLibrary.classList.toggle('bg-primary/5', source === 'openLibrary');
+
+  updateSaveButtonState();
+}
+
+function updateSidebarCover(url) {
+  if (!url) return;
+
+  const fallbackHtml = `
+    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg flex items-center justify-center">
+      <i data-lucide="book" class="w-16 h-16 text-white"></i>
+    </div>
+  `;
+
+  coverContainer.innerHTML = fallbackHtml;
+  coverContainer.firstElementChild.classList.add('absolute', 'inset-0');
+  coverContainer.classList.add('relative', 'w-40', 'h-60');
+
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg absolute inset-0';
+  img.onerror = () => { img.style.display = 'none'; };
+  coverContainer.appendChild(img);
+
+  initIcons();
+}
+
+// Cover option click handlers
+coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
+coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
 // Auth Check - header.js handles redirect, just load book
 onAuthStateChanged(auth, (user) => {
@@ -250,6 +354,26 @@ function renderBook() {
 
   // Initialize genre picker after content is shown
   initGenrePicker();
+
+  // Initialize cover picker with stored covers or fetch if book has ISBN
+  if (book.covers && Object.keys(book.covers).length > 0) {
+    renderCoverPicker(book.covers, book.coverImageUrl);
+  } else if (book.isbn) {
+    // Fetch covers from APIs in background
+    fetchBookCovers(book.isbn);
+  }
+}
+
+// Fetch covers from both APIs for existing books
+async function fetchBookCovers(isbn) {
+  try {
+    const result = await lookupISBN(isbn);
+    if (result && result.covers) {
+      renderCoverPicker(result.covers, book.coverImageUrl);
+    }
+  } catch (e) {
+    console.warn('Error fetching covers:', e);
+  }
 }
 
 // Rating Stars
@@ -440,6 +564,7 @@ editForm.addEventListener('submit', async (e) => {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
     coverImageUrl: coverUrlInput.value.trim(),
+    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
@@ -651,17 +776,23 @@ refreshDataBtn.addEventListener('click', async () => {
       fillEmptyField(physicalFormatInput, apiData.physicalFormat, 'format');
       fillEmptyField(pageCountInput, apiData.pageCount, 'pages');
 
-      // Cover image - only fill if empty
-      if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
+      // Cover image - show picker if API returned covers
+      if (apiData.covers && Object.keys(apiData.covers).length > 0) {
+        renderCoverPicker(apiData.covers, coverUrlInput.value);
+        // If no cover was set, auto-select first available
+        if (!coverUrlInput.value.trim()) {
+          if (apiData.covers.googleBooks) {
+            selectCover('googleBooks');
+            changedFields.push('cover');
+          } else if (apiData.covers.openLibrary) {
+            selectCover('openLibrary');
+            changedFields.push('cover');
+          }
+        }
+      } else if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
+        // Fallback to single cover if no covers object
         coverUrlInput.value = apiData.coverImageUrl;
-        coverUrlInput.classList.add('field-changed');
-        // Use createElement to prevent XSS
-        const img = document.createElement('img');
-        img.src = apiData.coverImageUrl;
-        img.alt = '';
-        img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg mx-auto field-changed-cover';
-        coverContainer.innerHTML = '';
-        coverContainer.appendChild(img);
+        updateSidebarCover(apiData.coverImageUrl);
         changedFields.push('cover');
       }
 

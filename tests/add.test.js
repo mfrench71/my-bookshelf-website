@@ -699,3 +699,408 @@ describe('checkForDuplicate', () => {
     });
   });
 });
+
+describe('Cover picker functionality', () => {
+  // Replicate cover picker rendering logic for testing
+  function renderCoverPicker(covers) {
+    const result = {
+      showPicker: false,
+      showGoogleOption: false,
+      showOpenLibraryOption: false,
+      selectedCover: null,
+      showNoCoverMsg: false
+    };
+
+    if (!covers || Object.keys(covers).length === 0) {
+      result.showNoCoverMsg = true;
+      return result;
+    }
+
+    const hasGoogle = covers.googleBooks;
+    const hasOpenLibrary = covers.openLibrary;
+
+    if (hasGoogle || hasOpenLibrary) {
+      result.showPicker = true;
+      result.showGoogleOption = !!hasGoogle;
+      result.showOpenLibraryOption = !!hasOpenLibrary;
+
+      // Auto-select first available
+      if (hasGoogle) {
+        result.selectedCover = 'googleBooks';
+      } else if (hasOpenLibrary) {
+        result.selectedCover = 'openLibrary';
+      }
+    } else {
+      result.showNoCoverMsg = true;
+    }
+
+    return result;
+  }
+
+  function selectCover(availableCovers, source) {
+    if (!availableCovers || !availableCovers[source]) {
+      return { success: false, url: null };
+    }
+    return { success: true, url: availableCovers[source] };
+  }
+
+  describe('renderCoverPicker', () => {
+    it('should show picker with both options when both covers available', () => {
+      const covers = {
+        googleBooks: 'https://books.google.com/cover.jpg',
+        openLibrary: 'https://covers.openlibrary.org/cover.jpg'
+      };
+
+      const result = renderCoverPicker(covers);
+
+      expect(result.showPicker).toBe(true);
+      expect(result.showGoogleOption).toBe(true);
+      expect(result.showOpenLibraryOption).toBe(true);
+      expect(result.selectedCover).toBe('googleBooks');
+      expect(result.showNoCoverMsg).toBe(false);
+    });
+
+    it('should show only Google option when only Google cover available', () => {
+      const covers = {
+        googleBooks: 'https://books.google.com/cover.jpg'
+      };
+
+      const result = renderCoverPicker(covers);
+
+      expect(result.showPicker).toBe(true);
+      expect(result.showGoogleOption).toBe(true);
+      expect(result.showOpenLibraryOption).toBe(false);
+      expect(result.selectedCover).toBe('googleBooks');
+    });
+
+    it('should show only Open Library option when only Open Library cover available', () => {
+      const covers = {
+        openLibrary: 'https://covers.openlibrary.org/cover.jpg'
+      };
+
+      const result = renderCoverPicker(covers);
+
+      expect(result.showPicker).toBe(true);
+      expect(result.showGoogleOption).toBe(false);
+      expect(result.showOpenLibraryOption).toBe(true);
+      expect(result.selectedCover).toBe('openLibrary');
+    });
+
+    it('should show no cover message when covers object is empty', () => {
+      const result = renderCoverPicker({});
+
+      expect(result.showPicker).toBe(false);
+      expect(result.showNoCoverMsg).toBe(true);
+    });
+
+    it('should show no cover message when covers is null', () => {
+      const result = renderCoverPicker(null);
+
+      expect(result.showPicker).toBe(false);
+      expect(result.showNoCoverMsg).toBe(true);
+    });
+
+    it('should show no cover message when covers is undefined', () => {
+      const result = renderCoverPicker(undefined);
+
+      expect(result.showPicker).toBe(false);
+      expect(result.showNoCoverMsg).toBe(true);
+    });
+
+    it('should handle covers with empty string values', () => {
+      const covers = {
+        googleBooks: '',
+        openLibrary: ''
+      };
+
+      const result = renderCoverPicker(covers);
+
+      expect(result.showPicker).toBe(false);
+      expect(result.showNoCoverMsg).toBe(true);
+    });
+  });
+
+  describe('selectCover', () => {
+    const availableCovers = {
+      googleBooks: 'https://books.google.com/cover.jpg',
+      openLibrary: 'https://covers.openlibrary.org/cover.jpg'
+    };
+
+    it('should select Google cover successfully', () => {
+      const result = selectCover(availableCovers, 'googleBooks');
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe('https://books.google.com/cover.jpg');
+    });
+
+    it('should select Open Library cover successfully', () => {
+      const result = selectCover(availableCovers, 'openLibrary');
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe('https://covers.openlibrary.org/cover.jpg');
+    });
+
+    it('should fail when selecting unavailable source', () => {
+      const singleCover = { googleBooks: 'https://books.google.com/cover.jpg' };
+
+      const result = selectCover(singleCover, 'openLibrary');
+
+      expect(result.success).toBe(false);
+      expect(result.url).toBe(null);
+    });
+
+    it('should fail when covers is null', () => {
+      const result = selectCover(null, 'googleBooks');
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail when source is invalid', () => {
+      const result = selectCover(availableCovers, 'invalid');
+
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('lookupISBN covers object', () => {
+  beforeEach(() => {
+    resetMocks();
+  });
+
+  // Replicate the expected behavior for testing
+  async function fetchBookWithCovers(isbn) {
+    let result = null;
+    let googleBooksCover = '';
+    let openLibraryCover = '';
+
+    // Try Google Books first
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const data = await response.json();
+
+      if (data.items?.length > 0) {
+        const book = data.items[0].volumeInfo;
+        googleBooksCover = book.imageLinks?.thumbnail?.replace('http:', 'https:') || '';
+        result = {
+          title: book.title,
+          author: book.authors?.join(', ') || '',
+          coverImageUrl: googleBooksCover,
+          publisher: book.publisher || '',
+          publishedDate: book.publishedDate || ''
+        };
+      }
+    } catch (e) {
+      console.error('Google Books error:', e);
+    }
+
+    // Try Open Library
+    try {
+      const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+      const data = await response.json();
+      const book = data[`ISBN:${isbn}`];
+
+      if (book) {
+        openLibraryCover = book.cover?.medium || '';
+
+        if (result) {
+          // Supplement missing fields
+          if (!result.coverImageUrl) result.coverImageUrl = openLibraryCover;
+        } else {
+          // Use Open Library as primary source
+          result = {
+            title: book.title,
+            author: book.authors?.map(a => a.name).join(', ') || '',
+            coverImageUrl: openLibraryCover,
+            publisher: book.publishers?.[0]?.name || '',
+            publishedDate: book.publish_date || ''
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Open Library error:', e);
+    }
+
+    // Add covers object with all available sources
+    if (result) {
+      result.covers = {};
+      if (googleBooksCover) result.covers.googleBooks = googleBooksCover;
+      if (openLibraryCover) result.covers.openLibrary = openLibraryCover;
+    }
+
+    return result;
+  }
+
+  it('should return covers from both APIs when available', async () => {
+    // Google Books response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book',
+            imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' }
+          }
+        }]
+      })
+    });
+
+    // Open Library response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          title: 'Test Book',
+          cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    expect(result.covers).toBeDefined();
+    expect(result.covers.googleBooks).toBe('https://books.google.com/cover.jpg');
+    expect(result.covers.openLibrary).toBe('https://covers.openlibrary.org/cover.jpg');
+  });
+
+  it('should return only Google cover when Open Library has none', async () => {
+    // Google Books response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book',
+            imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' }
+          }
+        }]
+      })
+    });
+
+    // Open Library response - no cover
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          title: 'Test Book'
+          // No cover field
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    expect(result.covers).toBeDefined();
+    expect(result.covers.googleBooks).toBe('https://books.google.com/cover.jpg');
+    expect(result.covers.openLibrary).toBeUndefined();
+  });
+
+  it('should return only Open Library cover when Google has none', async () => {
+    // Google Books response - no cover
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book'
+            // No imageLinks
+          }
+        }]
+      })
+    });
+
+    // Open Library response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          title: 'Test Book',
+          cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    expect(result.covers).toBeDefined();
+    expect(result.covers.googleBooks).toBeUndefined();
+    expect(result.covers.openLibrary).toBe('https://covers.openlibrary.org/cover.jpg');
+  });
+
+  it('should return empty covers object when neither API has covers', async () => {
+    // Google Books response - no cover
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book'
+          }
+        }]
+      })
+    });
+
+    // Open Library response - no cover
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          title: 'Test Book'
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    expect(result.covers).toBeDefined();
+    expect(Object.keys(result.covers).length).toBe(0);
+  });
+
+  it('should set coverImageUrl to Google cover when available', async () => {
+    // Google Books response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book',
+            imageLinks: { thumbnail: 'https://books.google.com/cover.jpg' }
+          }
+        }]
+      })
+    });
+
+    // Open Library response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    // coverImageUrl should be the first found (Google)
+    expect(result.coverImageUrl).toBe('https://books.google.com/cover.jpg');
+  });
+
+  it('should set coverImageUrl to Open Library cover when Google has none', async () => {
+    // Google Books response - no cover
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        items: [{
+          volumeInfo: {
+            title: 'Test Book'
+          }
+        }]
+      })
+    });
+
+    // Open Library response
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        'ISBN:1234567890': {
+          title: 'Test Book',
+          cover: { medium: 'https://covers.openlibrary.org/cover.jpg' }
+        }
+      })
+    });
+
+    const result = await fetchBookWithCovers('1234567890');
+
+    // coverImageUrl should be Open Library since Google had none
+    expect(result.coverImageUrl).toBe('https://covers.openlibrary.org/cover.jpg');
+  });
+});

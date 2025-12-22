@@ -32,7 +32,7 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -105,6 +105,16 @@ const cleanupResultsText = document.getElementById('cleanup-results-text');
 const recountGenresBtn = document.getElementById('recount-genres-btn');
 const recountResults = document.getElementById('recount-results');
 const recountResultsText = document.getElementById('recount-results-text');
+
+// DOM Elements - Cover Fetch
+const coverIsbnCount = document.getElementById('cover-isbn-count');
+const coverMultiCount = document.getElementById('cover-multi-count');
+const coverProgress = document.getElementById('cover-progress');
+const coverStatus = document.getElementById('cover-status');
+const coverProgressBar = document.getElementById('cover-progress-bar');
+const coverResults = document.getElementById('cover-results');
+const coverResultsText = document.getElementById('cover-results-text');
+const fetchCoversBtn = document.getElementById('fetch-covers-btn');
 
 // DOM Elements - Profile
 const profileAvatar = document.getElementById('profile-avatar');
@@ -1378,6 +1388,172 @@ async function runRecountGenres() {
 }
 
 recountGenresBtn.addEventListener('click', runRecountGenres);
+
+// ==================== Cover Fetch ====================
+
+/**
+ * Update cover statistics display showing books with ISBNs and multiple covers.
+ */
+async function updateCoverStats() {
+  if (!coverIsbnCount || !coverMultiCount) return;
+
+  try {
+    await loadAllBooks();
+
+    const booksWithIsbn = books.filter(b => b.isbn);
+    const booksWithMultipleCovers = books.filter(b => {
+      if (!b.covers) return false;
+      const coverCount = Object.values(b.covers).filter(url => url).length;
+      return coverCount > 1;
+    });
+
+    coverIsbnCount.textContent = booksWithIsbn.length;
+    coverMultiCount.textContent = booksWithMultipleCovers.length;
+  } catch (error) {
+    console.error('Error updating cover stats:', error);
+    coverIsbnCount.textContent = '-';
+    coverMultiCount.textContent = '-';
+  }
+}
+
+/**
+ * Bulk fetch covers for all books with ISBNs.
+ * Calls lookupISBN for each book and stores available covers.
+ * Rate-limited to avoid API throttling.
+ */
+async function runFetchCovers() {
+  fetchCoversBtn.disabled = true;
+  fetchCoversBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Fetching...';
+  coverProgress.classList.remove('hidden');
+  coverResults.classList.add('hidden');
+  coverProgressBar.style.width = '0%';
+
+  try {
+    await loadAllBooks();
+
+    const booksWithIsbn = books.filter(b => b.isbn);
+
+    if (booksWithIsbn.length === 0) {
+      coverProgress.classList.add('hidden');
+      coverResults.classList.remove('hidden');
+      coverResultsText.textContent = 'No books with ISBNs found.';
+      showToast('No books with ISBNs to process', { type: 'info' });
+      return;
+    }
+
+    let processed = 0;
+    let updated = 0;
+    let newCoversFound = 0;
+
+    const booksRef = collection(db, 'users', currentUser.uid, 'books');
+
+    for (const book of booksWithIsbn) {
+      processed++;
+      const percent = Math.round((processed / booksWithIsbn.length) * 100);
+      coverProgressBar.style.width = `${percent}%`;
+      coverStatus.textContent = `Processing ${processed} of ${booksWithIsbn.length}...`;
+
+      try {
+        // Fetch fresh cover data from APIs
+        const result = await lookupISBN(book.isbn, { skipCache: true });
+
+        if (result && result.covers) {
+          const existingCovers = book.covers || {};
+          const newCovers = result.covers;
+
+          // Check if we found new covers
+          const hasNewGoogle = newCovers.googleBooks && !existingCovers.googleBooks;
+          const hasNewOpenLibrary = newCovers.openLibrary && !existingCovers.openLibrary;
+
+          if (hasNewGoogle || hasNewOpenLibrary) {
+            newCoversFound++;
+          }
+
+          // Merge covers (keep existing, add new)
+          const mergedCovers = {
+            ...existingCovers,
+            ...newCovers
+          };
+
+          // Only update if covers changed
+          const coversChanged =
+            (mergedCovers.googleBooks !== existingCovers.googleBooks) ||
+            (mergedCovers.openLibrary !== existingCovers.openLibrary);
+
+          if (coversChanged) {
+            await setDoc(doc(booksRef, book.id), {
+              covers: mergedCovers,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+            updated++;
+          }
+        }
+      } catch (error) {
+        console.warn(`Error fetching covers for book ${book.id}:`, error);
+        // Continue with next book
+      }
+
+      // Rate limit: 500ms delay between API calls
+      if (processed < booksWithIsbn.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    // Show results
+    coverProgress.classList.add('hidden');
+    coverResults.classList.remove('hidden');
+
+    if (updated === 0) {
+      coverResultsText.textContent = `Scanned ${processed} books. No new covers found.`;
+      showToast('No new covers found', { type: 'info' });
+    } else {
+      coverResultsText.textContent = `Scanned ${processed} books. Updated ${updated} with new cover options (${newCoversFound} new covers found).`;
+      showToast(`Found ${newCoversFound} new covers!`, { type: 'success' });
+    }
+
+    // Clear cache and update stats
+    clearBooksCache(currentUser.uid);
+    allBooksLoaded = false;
+    await updateCoverStats();
+
+  } catch (error) {
+    console.error('Error fetching covers:', error);
+    coverProgress.classList.add('hidden');
+    coverResults.classList.remove('hidden');
+    coverResultsText.textContent = `Error: ${error.message}`;
+    showToast('Cover fetch failed', { type: 'error' });
+  } finally {
+    fetchCoversBtn.disabled = false;
+    fetchCoversBtn.innerHTML = '<i data-lucide="image" class="w-4 h-4"></i><span>Fetch Covers</span>';
+    initIcons();
+  }
+}
+
+fetchCoversBtn?.addEventListener('click', runFetchCovers);
+
+// Update cover stats when cleanup section is visible
+// (delayed to avoid unnecessary API calls on page load)
+let coverStatsLoaded = false;
+const cleanupSection = document.getElementById('cleanup-section');
+const cleanupAccordion = document.querySelector('[data-accordion="cleanup"]');
+
+function checkAndLoadCoverStats() {
+  if (coverStatsLoaded) return;
+  if (cleanupSection && !cleanupSection.classList.contains('hidden')) {
+    coverStatsLoaded = true;
+    updateCoverStats();
+  }
+}
+
+// Check when switching to cleanup section (desktop)
+document.querySelector('[data-section="cleanup"]')?.addEventListener('click', () => {
+  setTimeout(checkAndLoadCoverStats, 100);
+});
+
+// Check when expanding cleanup accordion (mobile)
+cleanupAccordion?.addEventListener('click', () => {
+  setTimeout(checkAndLoadCoverStats, 100);
+});
 
 // ==================== Home Content Settings ====================
 

@@ -85,8 +85,12 @@ const bookForm = document.getElementById('book-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
+const coverPicker = document.getElementById('cover-picker');
+const coverOptionGoogle = document.getElementById('cover-option-google');
+const coverOptionOpenLibrary = document.getElementById('cover-option-openlibrary');
 const coverPreview = document.getElementById('cover-preview');
 const coverImg = document.getElementById('cover-img');
+const noCoverMsg = document.getElementById('no-cover-msg');
 const notesInput = document.getElementById('notes');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
@@ -151,17 +155,85 @@ function updateRatingStars() {
   updateStars(starBtns, currentRating);
 }
 
-// Cover Preview
-coverUrlInput.addEventListener('input', () => {
-  const url = coverUrlInput.value.trim();
-  if (url) {
-    coverImg.src = url;
-    coverPreview.classList.remove('hidden');
-    coverImg.onerror = () => coverPreview.classList.add('hidden');
-  } else {
-    coverPreview.classList.add('hidden');
+// Cover Picker
+let availableCovers = {}; // Track available covers { googleBooks: url, openLibrary: url }
+
+function renderCoverPicker(covers) {
+  availableCovers = covers || {};
+  const hasGoogle = availableCovers.googleBooks;
+  const hasOpenLibrary = availableCovers.openLibrary;
+  const hasAnyCovers = hasGoogle || hasOpenLibrary;
+
+  // Reset UI
+  coverPicker.classList.add('hidden');
+  coverPreview.classList.add('hidden');
+  noCoverMsg.classList.add('hidden');
+  coverOptionGoogle.classList.add('hidden');
+  coverOptionOpenLibrary.classList.add('hidden');
+  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/5');
+  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/5');
+
+  if (!hasAnyCovers) {
+    noCoverMsg.classList.remove('hidden');
+    coverUrlInput.value = '';
+    return;
   }
-});
+
+  // Show picker with available options
+  coverPicker.classList.remove('hidden');
+
+  if (hasGoogle) {
+    coverOptionGoogle.classList.remove('hidden');
+    coverOptionGoogle.querySelector('img').src = availableCovers.googleBooks;
+    coverOptionGoogle.querySelector('img').onerror = () => {
+      coverOptionGoogle.classList.add('hidden');
+      // If this was selected, switch to other
+      if (coverUrlInput.value === availableCovers.googleBooks && hasOpenLibrary) {
+        selectCover('openLibrary');
+      }
+    };
+  }
+
+  if (hasOpenLibrary) {
+    coverOptionOpenLibrary.classList.remove('hidden');
+    coverOptionOpenLibrary.querySelector('img').src = availableCovers.openLibrary;
+    coverOptionOpenLibrary.querySelector('img').onerror = () => {
+      coverOptionOpenLibrary.classList.add('hidden');
+      // If this was selected, switch to other
+      if (coverUrlInput.value === availableCovers.openLibrary && hasGoogle) {
+        selectCover('googleBooks');
+      }
+    };
+  }
+
+  // Auto-select first available cover
+  if (hasGoogle) {
+    selectCover('googleBooks');
+  } else if (hasOpenLibrary) {
+    selectCover('openLibrary');
+  }
+}
+
+function selectCover(source) {
+  const url = availableCovers[source];
+  if (!url) return;
+
+  coverUrlInput.value = url;
+  coverImg.src = url;
+  coverPreview.classList.remove('hidden');
+
+  // Update selection styling
+  coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
+  coverOptionGoogle.classList.toggle('bg-primary/5', source === 'googleBooks');
+  coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
+  coverOptionOpenLibrary.classList.toggle('bg-primary/5', source === 'openLibrary');
+
+  formDirty = true;
+}
+
+// Cover option click handlers
+coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
+coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
 // ISBN Lookup
 lookupBtn.addEventListener('click', handleISBNLookup);
@@ -188,11 +260,8 @@ async function handleISBNLookup() {
     if (bookData) {
       titleInput.value = bookData.title || '';
       authorInput.value = bookData.author || '';
-      if (bookData.coverImageUrl) {
-        coverUrlInput.value = bookData.coverImageUrl;
-        coverImg.src = bookData.coverImageUrl;
-        coverPreview.classList.remove('hidden');
-      }
+      // Render cover picker with available covers from both APIs
+      renderCoverPicker(bookData.covers);
       // Populate additional fields
       publisherInput.value = bookData.publisher || '';
       publishedDateInput.value = bookData.publishedDate || '';
@@ -202,6 +271,7 @@ async function handleISBNLookup() {
       formDirty = true;
     } else {
       showStatus('Book not found. Try entering details manually.', 'error');
+      renderCoverPicker(null); // Clear picker
     }
   } catch (error) {
     console.error('Lookup error:', error);
@@ -395,13 +465,14 @@ async function selectSearchResult(el) {
 
   titleInput.value = title;
   authorInput.value = author;
-  if (cover) {
-    coverUrlInput.value = cover;
-    coverImg.src = cover;
-    coverPreview.classList.remove('hidden');
-  }
   if (isbn) {
     isbnInput.value = isbn;
+  }
+
+  // Collect covers from both APIs
+  const covers = {};
+  if (cover) {
+    covers.googleBooks = cover;
   }
 
   // Extract and suggest genres from categories
@@ -432,10 +503,9 @@ async function selectSearchResult(el) {
         // Supplement missing fields
         if (!publisherInput.value) publisherInput.value = book.publishers?.[0]?.name || '';
         if (!publishedDateInput.value) publishedDateInput.value = book.publish_date || '';
-        if (!coverUrlInput.value && book.cover?.medium) {
-          coverUrlInput.value = book.cover.medium;
-          coverImg.src = book.cover.medium;
-          coverPreview.classList.remove('hidden');
+        // Collect Open Library cover
+        if (book.cover?.medium) {
+          covers.openLibrary = book.cover.medium;
         }
         // Page count from Open Library
         if (!pageCountInput.value && book.number_of_pages) {
@@ -470,6 +540,9 @@ async function selectSearchResult(el) {
       }
     }
   }
+
+  // Render cover picker with collected covers
+  renderCoverPicker(Object.keys(covers).length > 0 ? covers : null);
 
   bookSearchInput.value = '';
   searchResultsDiv.classList.add('hidden');
@@ -683,6 +756,7 @@ bookForm.addEventListener('submit', async (e) => {
     title,
     author,
     coverImageUrl: coverUrlInput.value.trim(),
+    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     isbn,
