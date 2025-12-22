@@ -541,7 +541,6 @@ export async function lookupISBN(isbn) {
         // Supplement missing fields from Open Library
         if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
         if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
-        if (!result.physicalFormat) result.physicalFormat = book.physical_format || '';
         if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
         // Add Open Library genres to suggestions
         if (result.genres.length === 0 && genres.length > 0) {
@@ -555,13 +554,32 @@ export async function lookupISBN(isbn) {
           coverImageUrl: book.cover?.medium || '',
           publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
           publishedDate: normalizePublishedDate(book.publish_date),
-          physicalFormat: book.physical_format || '',
+          physicalFormat: '',
           genres
         };
       }
     }
   } catch (e) {
     console.error('Open Library API error:', e);
+  }
+
+  // Try Open Library edition endpoint for physical_format (not in jscmd=data)
+  if (result && !result.physicalFormat) {
+    try {
+      const editionResponse = await fetchWithTimeout(
+        `https://openlibrary.org/isbn/${isbn}.json`
+      );
+      const edition = await editionResponse.json();
+      if (edition.physical_format) {
+        // Normalize to title case to match select options (e.g., "paperback" -> "Paperback")
+        result.physicalFormat = edition.physical_format
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+    } catch (e) {
+      // Edition endpoint may not exist for all ISBNs
+    }
   }
 
   // Cache the result (including null for not found)
