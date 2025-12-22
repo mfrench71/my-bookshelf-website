@@ -76,6 +76,9 @@ MyBookShelf/
 - **Firestore Offline**: `persistentLocalCache()` enabled in firebase-config.js
 - **Cover Image Sources**: books.google.com, covers.openlibrary.org
 - **API Caching**: Google Books and Open Library responses cached with timestamp-based TTL
+- **ISBN Lookup Cache**: 24-hour TTL in localStorage for Google Books/Open Library results
+- **Genre Cache**: 5-minute in-memory TTL to reduce Firestore reads
+- **Gravatar Cache**: 24-hour localStorage cache for avatar existence checks
 
 ## Development Progress
 
@@ -101,6 +104,9 @@ MyBookShelf/
 - [x] API data supplementation (fill missing fields from Open Library when Google Books data incomplete)
 - [x] Data cleanup utility (fix genre references from names to IDs)
 - [x] Codebase audit and fixes (XSS vulnerabilities, debug code removal, Firebase optimization, code consolidation)
+- [x] Performance audit (parallel loading, touch event throttling, simplified sorting)
+- [x] Caching audit (ISBN lookup cache with 24h TTL, genre cache with 5min TTL, Gravatar cache)
+- [x] Dead code removal (unused exports: debouncedInitIcons, updateGenreBookCount, findOrCreateGenre, getGenre)
 - [x] Home page dashboard with configurable sections
 - [x] Reading status tracking (Want to Read, Reading, Finished)
 - [x] Auto-timestamps (startedAt when reading, finishedAt when finished)
@@ -368,4 +374,4 @@ Books sorted by author use the **last word** of the author name as the sort key.
 - [Book Tracker App](https://booktrack.app/)
 
 ---
-**Last Updated**: 2025-12-21
+**Last Updated**: 2025-12-22
