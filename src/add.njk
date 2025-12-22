@@ -22,13 +22,18 @@ scripts: '<script type="module" src="/js/add.js"></script>'
     <span class="font-medium">Scan ISBN Barcode</span>
   </button>
 
-  <div class="relative mb-6">
-    <div class="absolute inset-0 flex items-center">
-      <div class="w-full border-t border-gray-200"></div>
+  <!-- ISBN Lookup -->
+  <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+    <label class="block font-semibold text-gray-700 mb-2">Lookup by ISBN</label>
+    <div class="flex gap-2">
+      <input type="text" id="isbn-input" placeholder="Enter ISBN..."
+        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      <button id="lookup-btn"
+        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+        Lookup
+      </button>
     </div>
-    <div class="relative flex justify-center">
-      <span class="bg-gray-50 px-3 text-sm text-gray-400">or enter manually</span>
-    </div>
+    <p id="lookup-status" class="text-sm text-gray-500 mt-2 hidden"></p>
   </div>
 
   <!-- Book Search -->
@@ -44,18 +49,13 @@ scripts: '<script type="module" src="/js/add.js"></script>'
     <div id="book-search-results" class="mt-3 space-y-2 max-h-64 overflow-y-auto hidden"></div>
   </div>
 
-  <!-- ISBN Lookup -->
-  <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-    <label class="block font-semibold text-gray-700 mb-2">Or lookup by ISBN</label>
-    <div class="flex gap-2">
-      <input type="text" id="isbn-input" placeholder="Enter ISBN..."
-        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      <button id="lookup-btn"
-        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
-        Lookup
-      </button>
+  <div class="relative mb-6">
+    <div class="absolute inset-0 flex items-center">
+      <div class="w-full border-t border-gray-200"></div>
     </div>
-    <p id="lookup-status" class="text-sm text-gray-500 mt-2 hidden"></p>
+    <div class="relative flex justify-center">
+      <span class="bg-gray-50 px-3 text-sm text-gray-400">or enter manually</span>
+    </div>
   </div>
 
   <!-- Book Form -->
@@ -96,8 +96,18 @@ scripts: '<script type="module" src="/js/add.js"></script>'
 
     <div>
       <label class="block font-semibold text-gray-700 mb-1">Format</label>
-      <input type="text" id="physical-format" placeholder="e.g., Hardcover, Paperback"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      <select id="physical-format"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+        <option value="">Select format...</option>
+        <option value="Paperback">Paperback</option>
+        <option value="Hardcover">Hardcover</option>
+        <option value="Mass Market Paperback">Mass Market Paperback</option>
+        <option value="Trade Paperback">Trade Paperback</option>
+        <option value="Library Binding">Library Binding</option>
+        <option value="Spiral-bound">Spiral-bound</option>
+        <option value="Audio CD">Audio CD</option>
+        <option value="Ebook">Ebook</option>
+      </select>
     </div>
 
     <div>
