@@ -498,6 +498,25 @@ export async function lookupISBN(isbn) {
   // Check cache first
   const cached = getISBNCache(isbn);
   if (cached !== null) {
+    // If cached result is missing physicalFormat, try to fetch it
+    if (cached && !cached.physicalFormat) {
+      try {
+        const editionResponse = await fetchWithTimeout(
+          `https://openlibrary.org/isbn/${isbn}.json`
+        );
+        const edition = await editionResponse.json();
+        if (edition.physical_format) {
+          cached.physicalFormat = edition.physical_format
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          // Update cache with new data
+          setISBNCache(isbn, cached);
+        }
+      } catch (e) {
+        // Edition endpoint may not exist for all ISBNs
+      }
+    }
     return cached;
   }
 
