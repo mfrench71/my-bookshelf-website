@@ -161,15 +161,15 @@ coverUrlInput.addEventListener('input', () => {
 });
 
 // ISBN Lookup
-lookupBtn.addEventListener('click', lookupISBN);
+lookupBtn.addEventListener('click', handleISBNLookup);
 isbnInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    lookupISBN();
+    handleISBNLookup();
   }
 });
 
-async function lookupISBN() {
+async function handleISBNLookup() {
   const isbn = isbnInput.value.trim().replace(/-/g, '');
   if (!isbn) {
     showStatus('Please enter an ISBN', 'error');
@@ -572,7 +572,7 @@ function startQuagga() {
       closeScanner();
       isbnInput.value = code;
       showToast('Scanned: ' + code, { type: 'success' });
-      lookupISBN();
+      handleISBNLookup();
     });
   });
 }
