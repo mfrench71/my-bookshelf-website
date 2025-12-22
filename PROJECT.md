@@ -94,7 +94,7 @@ MyBookShelf/
 - [x] PWA manifest and icons
 - [x] Service worker v4 (comprehensive caching)
 - [x] Netlify deployment with CI/CD
-- [x] Comprehensive test suite (588 tests)
+- [x] Comprehensive test suite (601 tests)
 - [x] Open Library fallback for book search
 - [x] Infinite scroll for search results
 - [x] Genre management system with color-coded badges
@@ -121,6 +121,8 @@ MyBookShelf/
 - [x] Shared ISBN lookup utility (consolidated Google Books + Open Library)
 - [x] Smart back button navigation (history-aware)
 - [x] Page count field (retrieved from Google Books / Open Library)
+- [x] Cover image picker (select from Google Books or Open Library covers)
+- [x] Bulk cover fetch (update all books with ISBNs from Settings)
 
 ### In Progress
 - None currently
@@ -145,7 +147,7 @@ MyBookShelf/
 - [ ] Book notes/reviews
 - [x] Reading dates (start/finish) - Auto-tracked via status changes
 - [ ] Custom cover image upload
-- [ ] Cover image picker (select from multiple API sources: Google Books, Open Library)
+- [x] Cover image picker (select from multiple API sources: Google Books, Open Library)
 - [x] Export to JSON (full backup with genres)
 - [x] Import from JSON backup (cross-account restore with duplicate detection)
 - [ ] Export to CSV
