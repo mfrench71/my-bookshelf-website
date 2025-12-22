@@ -64,7 +64,6 @@ async function checkForDuplicate(userId, isbn, title, author) {
 // State
 let currentUser = null;
 let currentRating = 0;
-let currentStatus = null;
 let scannerRunning = false;
 let formDirty = false;
 let genrePicker = null;
@@ -94,7 +93,6 @@ const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
 const submitBtn = document.getElementById('submit-btn');
 const starBtns = document.querySelectorAll('.star-btn');
-const statusBtns = document.querySelectorAll('.status-btn');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
@@ -150,28 +148,6 @@ starBtns.forEach(btn => {
 
 function updateRatingStars() {
   updateStars(starBtns, currentRating);
-}
-
-// Status Buttons
-statusBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const clickedStatus = btn.dataset.status;
-    // Toggle off if clicking the same status (allows clearing)
-    currentStatus = currentStatus === clickedStatus ? null : clickedStatus;
-    updateStatusButtons();
-    formDirty = true;
-  });
-});
-
-function updateStatusButtons() {
-  statusBtns.forEach(btn => {
-    const isSelected = btn.dataset.status === currentStatus;
-    btn.classList.toggle('bg-primary', isSelected);
-    btn.classList.toggle('text-white', isSelected);
-    btn.classList.toggle('border-primary', isSelected);
-    btn.classList.toggle('border-gray-300', !isSelected);
-  });
-  initIcons();
 }
 
 // Cover Preview
@@ -702,18 +678,10 @@ bookForm.addEventListener('submit', async (e) => {
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
-    status: currentStatus,
+    reads: [], // Reading status inferred from reads array
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
-
-  // Set reading timestamps based on initial status
-  if (currentStatus === 'reading') {
-    bookData.startedAt = serverTimestamp();
-  } else if (currentStatus === 'finished') {
-    bookData.startedAt = serverTimestamp();
-    bookData.finishedAt = serverTimestamp();
-  }
 
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');

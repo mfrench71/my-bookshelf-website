@@ -23,7 +23,10 @@ import {
   CACHE_TTL,
   clearBooksCache,
   serializeTimestamp,
-  updateRatingStars
+  updateRatingStars,
+  migrateBookReads,
+  getCurrentRead,
+  getBookStatus
 } from '../src/js/utils.js';
 
 describe('escapeHtml', () => {
@@ -742,5 +745,117 @@ describe('updateRatingStars', () => {
     expect(starBtns[2].classList.contains('active')).toBe(false);
     expect(starBtns[3].classList.contains('active')).toBe(false);
     expect(starBtns[4].classList.contains('active')).toBe(false);
+  });
+});
+
+// Reading status utility functions
+describe('migrateBookReads', () => {
+  it('should return book unchanged if already has reads array', () => {
+    const book = { title: 'Test', reads: [{ startedAt: 123, finishedAt: 456 }] };
+    const result = migrateBookReads(book);
+    expect(result.reads).toEqual([{ startedAt: 123, finishedAt: 456 }]);
+  });
+
+  it('should convert startedAt/finishedAt to reads array', () => {
+    const book = { title: 'Test', startedAt: 1000, finishedAt: 2000 };
+    const result = migrateBookReads(book);
+    expect(result.reads).toEqual([{ startedAt: 1000, finishedAt: 2000 }]);
+    expect(result.startedAt).toBeUndefined();
+    expect(result.finishedAt).toBeUndefined();
+  });
+
+  it('should handle startedAt only (no finishedAt)', () => {
+    const book = { title: 'Test', startedAt: 1000 };
+    const result = migrateBookReads(book);
+    expect(result.reads).toEqual([{ startedAt: 1000, finishedAt: null }]);
+  });
+
+  it('should return empty reads array for book with no dates', () => {
+    const book = { title: 'Test' };
+    const result = migrateBookReads(book);
+    expect(result.reads).toEqual([]);
+  });
+
+  it('should remove old status field', () => {
+    const book = { title: 'Test', status: 'reading', startedAt: 1000 };
+    const result = migrateBookReads(book);
+    expect(result.status).toBeUndefined();
+    expect(result.reads).toEqual([{ startedAt: 1000, finishedAt: null }]);
+  });
+});
+
+describe('getCurrentRead', () => {
+  it('should return last read entry from reads array', () => {
+    const book = {
+      reads: [
+        { startedAt: 100, finishedAt: 200 },
+        { startedAt: 300, finishedAt: null }
+      ]
+    };
+    const result = getCurrentRead(book);
+    expect(result).toEqual({ startedAt: 300, finishedAt: null });
+  });
+
+  it('should return null for empty reads array', () => {
+    const book = { reads: [] };
+    expect(getCurrentRead(book)).toBeNull();
+  });
+
+  it('should return null for book without reads', () => {
+    const book = { title: 'Test' };
+    expect(getCurrentRead(book)).toBeNull();
+  });
+
+  it('should migrate legacy format and return current read', () => {
+    const book = { startedAt: 1000, finishedAt: 2000 };
+    const result = getCurrentRead(book);
+    expect(result).toEqual({ startedAt: 1000, finishedAt: 2000 });
+  });
+});
+
+describe('getBookStatus', () => {
+  it('should return "reading" when current read has startedAt but no finishedAt', () => {
+    const book = { reads: [{ startedAt: 1000, finishedAt: null }] };
+    expect(getBookStatus(book)).toBe('reading');
+  });
+
+  it('should return "finished" when current read has both dates', () => {
+    const book = { reads: [{ startedAt: 1000, finishedAt: 2000 }] };
+    expect(getBookStatus(book)).toBe('finished');
+  });
+
+  it('should return null for empty reads array', () => {
+    const book = { reads: [] };
+    expect(getBookStatus(book)).toBeNull();
+  });
+
+  it('should return null for book without reads', () => {
+    const book = { title: 'Test' };
+    expect(getBookStatus(book)).toBeNull();
+  });
+
+  it('should handle legacy startedAt/finishedAt format', () => {
+    const book = { startedAt: 1000 };
+    expect(getBookStatus(book)).toBe('reading');
+  });
+
+  it('should return "finished" for multiple reads where last is complete', () => {
+    const book = {
+      reads: [
+        { startedAt: 100, finishedAt: 200 },
+        { startedAt: 300, finishedAt: 400 }
+      ]
+    };
+    expect(getBookStatus(book)).toBe('finished');
+  });
+
+  it('should return "reading" for re-read in progress', () => {
+    const book = {
+      reads: [
+        { startedAt: 100, finishedAt: 200 },
+        { startedAt: 300, finishedAt: null }
+      ]
+    };
+    expect(getBookStatus(book)).toBe('reading');
   });
 });

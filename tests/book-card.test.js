@@ -182,18 +182,11 @@ describe('bookCard', () => {
   });
 
   describe('status badge', () => {
-    it('should render "Want to Read" badge for want-to-read status', () => {
-      const book = createMockBook({ status: 'want-to-read' });
-      const html = bookCard(book);
-
-      expect(html).toContain('Want to Read');
-      expect(html).toContain('bg-amber-100');
-      expect(html).toContain('text-amber-700');
-      expect(html).toContain('data-lucide="bookmark"');
-    });
-
-    it('should render "Reading" badge for reading status', () => {
-      const book = createMockBook({ status: 'reading' });
+    // Status is now inferred from reads array
+    it('should render "Reading" badge when book has startedAt but no finishedAt', () => {
+      const book = createMockBook({
+        reads: [{ startedAt: Date.now() - 86400000, finishedAt: null }]
+      });
       const html = bookCard(book);
 
       expect(html).toContain('Reading');
@@ -202,8 +195,10 @@ describe('bookCard', () => {
       expect(html).toContain('data-lucide="book-open"');
     });
 
-    it('should render "Finished" badge for finished status', () => {
-      const book = createMockBook({ status: 'finished' });
+    it('should render "Finished" badge when book has both startedAt and finishedAt', () => {
+      const book = createMockBook({
+        reads: [{ startedAt: Date.now() - 86400000 * 7, finishedAt: Date.now() }]
+      });
       const html = bookCard(book);
 
       expect(html).toContain('Finished');
@@ -212,32 +207,32 @@ describe('bookCard', () => {
       expect(html).toContain('data-lucide="check-circle"');
     });
 
-    it('should not render status badge for null status', () => {
-      const book = createMockBook({ status: null });
+    it('should not render status badge for empty reads array', () => {
+      const book = createMockBook({ reads: [] });
       const html = bookCard(book);
 
-      expect(html).not.toContain('Want to Read');
       expect(html).not.toContain('Reading');
       expect(html).not.toContain('Finished');
     });
 
-    it('should not render status badge for undefined status', () => {
-      const book = createMockBook({ status: undefined });
+    it('should not render status badge when reads is undefined', () => {
+      const book = createMockBook({ reads: undefined });
       const html = bookCard(book);
 
-      expect(html).not.toContain('Want to Read');
       expect(html).not.toContain('Reading');
       expect(html).not.toContain('Finished');
     });
 
-    it('should not render status badge for unknown status value', () => {
-      const book = createMockBook({ status: 'invalid-status' });
+    it('should infer status from legacy startedAt/finishedAt fields (migration)', () => {
+      // Old format: startedAt and finishedAt directly on book
+      const book = createMockBook({
+        startedAt: Date.now() - 86400000,
+        finishedAt: Date.now()
+      });
       const html = bookCard(book);
 
-      expect(html).not.toContain('invalid-status');
-      expect(html).not.toContain('bg-amber-100');
-      expect(html).not.toContain('bg-blue-100');
-      expect(html).not.toContain('bg-green-100');
+      expect(html).toContain('Finished');
+      expect(html).toContain('bg-green-100');
     });
   });
 

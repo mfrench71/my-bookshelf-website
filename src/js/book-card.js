@@ -1,12 +1,11 @@
 // Shared Book Card Component
-import { escapeHtml, renderStars, formatDate, getContrastColor } from './utils.js';
+import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus } from './utils.js';
 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
 
-// Status badge configuration
+// Status badge configuration (status inferred from reads array)
 const STATUS_CONFIG = {
-  'want-to-read': { icon: 'bookmark', label: 'Want to Read', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
   'reading': { icon: 'book-open', label: 'Reading', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
   'finished': { icon: 'check-circle', label: 'Finished', bgClass: 'bg-green-100', textClass: 'text-green-700' }
 };
@@ -90,7 +89,9 @@ export function bookCard(book, options = {}) {
     dateStr = dateAdded ? `<p class="text-xs text-gray-400 mt-1">Added ${dateAdded}</p>` : '';
   }
 
-  const statusBadge = renderStatusBadge(book.status);
+  // Infer status from reads array
+  const status = getBookStatus(book);
+  const statusBadge = renderStatusBadge(status);
 
   return `
     <a href="/book/?id=${book.id}" class="book-card">

@@ -10,7 +10,7 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle } from './utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from './utils.js';
 import { bookCard } from './book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 
@@ -363,10 +363,10 @@ function filterByGenre(booksArray, genreId) {
   return booksArray.filter(b => b.genres && b.genres.includes(genreId));
 }
 
-// Status filter function
+// Status filter function (uses inferred status from reads array)
 function filterByStatus(booksArray, status) {
   if (!status) return booksArray;
-  return booksArray.filter(b => b.status === status);
+  return booksArray.filter(b => getBookStatus(b) === status);
 }
 
 // Get filtered and sorted books (with caching)
@@ -539,7 +539,6 @@ function getActiveFilterDescription() {
 
   if (statusFilter) {
     const statusLabels = {
-      'want-to-read': 'Want to Read',
       'reading': 'Reading',
       'finished': 'Finished'
     };

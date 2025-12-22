@@ -8,7 +8,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout } from './utils.js';
+import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout, migrateBookReads, getCurrentRead, getBookStatus } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 
@@ -32,11 +32,11 @@ let currentUser = null;
 let bookId = null;
 let book = null;
 let currentRating = 0;
-let currentStatus = null;
 let genrePicker = null;
 let originalGenres = [];
 let originalValues = {};
 let formDirty = false;
+let currentReads = []; // Array of {startedAt, finishedAt} objects
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -69,8 +69,19 @@ const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 const starBtns = document.querySelectorAll('.star-btn');
-const statusBtns = document.querySelectorAll('.status-btn');
 const genrePickerContainer = document.getElementById('genre-picker-container');
+
+// Reading Dates Elements
+const startedDateInput = document.getElementById('started-date');
+const finishedDateInput = document.getElementById('finished-date');
+const readingDateError = document.getElementById('reading-date-error');
+const rereadBtn = document.getElementById('reread-btn');
+const readingStatusBadge = document.getElementById('reading-status-badge');
+const readHistorySection = document.getElementById('read-history-section');
+const toggleHistoryBtn = document.getElementById('toggle-history');
+const historyChevron = document.getElementById('history-chevron');
+const historyCount = document.getElementById('history-count');
+const readHistoryList = document.getElementById('read-history-list');
 
 // Auth Check - header.js handles redirect, just load book
 onAuthStateChanged(auth, (user) => {
@@ -202,9 +213,14 @@ function renderBook() {
   physicalFormatInput.value = book.physicalFormat || '';
   notesInput.value = book.notes || '';
   currentRating = book.rating || 0;
-  currentStatus = book.status || null;
   updateRatingStars();
-  updateStatusButtons();
+
+  // Migrate old format to reads array if needed
+  const migratedBook = migrateBookReads(book);
+  currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({...r}))] : [];
+
+  // Populate reading dates from current read (last in array)
+  updateReadingDatesUI();
 
   // Store original values for dirty checking
   originalValues = {
@@ -216,8 +232,8 @@ function renderBook() {
     physicalFormat: book.physicalFormat || '',
     notes: book.notes || '',
     rating: book.rating || 0,
-    status: book.status || null,
-    genres: book.genres ? [...book.genres] : []
+    genres: book.genres ? [...book.genres] : [],
+    reads: JSON.stringify(currentReads) // Serialize for comparison
   };
   formDirty = false;
   updateSaveButtonState();
@@ -246,27 +262,133 @@ function updateRatingStars() {
   updateStars(starBtns, currentRating);
 }
 
-// Status Buttons
-statusBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const clickedStatus = btn.dataset.status;
-    // Toggle off if clicking the same status (allows clearing)
-    currentStatus = currentStatus === clickedStatus ? null : clickedStatus;
-    updateStatusButtons();
-    updateSaveButtonState();
-  });
+// Reading Dates Handlers
+function formatDateForInput(timestamp) {
+  const date = parseTimestamp(timestamp);
+  if (!date) return '';
+  // Format as YYYY-MM-DD for date input
+  return date.toISOString().split('T')[0];
+}
+
+function updateReadingDatesUI() {
+  const currentRead = currentReads.length > 0 ? currentReads[currentReads.length - 1] : null;
+
+  // Set date inputs
+  startedDateInput.value = currentRead ? formatDateForInput(currentRead.startedAt) : '';
+  finishedDateInput.value = currentRead ? formatDateForInput(currentRead.finishedAt) : '';
+
+  // Update status badge
+  const status = getBookStatus({ reads: currentReads });
+  if (status === 'reading') {
+    readingStatusBadge.textContent = 'Reading';
+    readingStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800';
+  } else if (status === 'finished') {
+    readingStatusBadge.textContent = 'Finished';
+    readingStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800';
+  } else {
+    readingStatusBadge.textContent = '';
+    readingStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full';
+  }
+
+  // Re-read button: disabled if no current read or current read not finished
+  const canReread = currentRead && currentRead.finishedAt;
+  rereadBtn.disabled = !canReread;
+
+  // Show read history if there are previous reads
+  const previousReads = currentReads.slice(0, -1);
+  if (previousReads.length > 0) {
+    readHistorySection.classList.remove('hidden');
+    historyCount.textContent = previousReads.length;
+    renderReadHistory(previousReads);
+  } else {
+    readHistorySection.classList.add('hidden');
+  }
+
+  initIcons();
+}
+
+function renderReadHistory(previousReads) {
+  // Render in reverse chronological order (most recent first)
+  const html = previousReads.slice().reverse().map(read => {
+    const started = formatDate(read.startedAt) || 'Unknown';
+    const finished = formatDate(read.finishedAt) || 'In progress';
+    return `<div class="text-gray-500">${started} - ${finished}</div>`;
+  }).join('');
+  readHistoryList.innerHTML = html;
+}
+
+// Date input change handlers
+startedDateInput.addEventListener('change', () => {
+  const startedValue = startedDateInput.value;
+
+  // Validation: finished date can't be before started date
+  if (finishedDateInput.value && startedValue && finishedDateInput.value < startedValue) {
+    readingDateError.textContent = 'Finished date cannot be before started date';
+    readingDateError.classList.remove('hidden');
+    return;
+  }
+  readingDateError.classList.add('hidden');
+
+  // Update current read or create new one
+  if (currentReads.length === 0) {
+    if (startedValue) {
+      currentReads.push({ startedAt: new Date(startedValue).getTime(), finishedAt: null });
+    }
+  } else {
+    const lastRead = currentReads[currentReads.length - 1];
+    lastRead.startedAt = startedValue ? new Date(startedValue).getTime() : null;
+  }
+
+  updateReadingDatesUI();
+  updateSaveButtonState();
 });
 
-function updateStatusButtons() {
-  statusBtns.forEach(btn => {
-    const isSelected = btn.dataset.status === currentStatus;
-    btn.classList.toggle('bg-primary', isSelected);
-    btn.classList.toggle('text-white', isSelected);
-    btn.classList.toggle('border-primary', isSelected);
-    btn.classList.toggle('border-gray-300', !isSelected);
-    btn.classList.toggle('text-gray-700', !isSelected);
-  });
-}
+finishedDateInput.addEventListener('change', () => {
+  const finishedValue = finishedDateInput.value;
+
+  // Validation: can't have finished without started
+  if (finishedValue && !startedDateInput.value) {
+    readingDateError.textContent = 'Please set a start date first';
+    readingDateError.classList.remove('hidden');
+    return;
+  }
+
+  // Validation: finished date can't be before started date
+  if (finishedValue && startedDateInput.value && finishedValue < startedDateInput.value) {
+    readingDateError.textContent = 'Finished date cannot be before started date';
+    readingDateError.classList.remove('hidden');
+    return;
+  }
+  readingDateError.classList.add('hidden');
+
+  // Update current read
+  if (currentReads.length > 0) {
+    const lastRead = currentReads[currentReads.length - 1];
+    lastRead.finishedAt = finishedValue ? new Date(finishedValue).getTime() : null;
+  }
+
+  updateReadingDatesUI();
+  updateSaveButtonState();
+});
+
+// Re-read button handler
+rereadBtn.addEventListener('click', () => {
+  // Add new read entry with today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  currentReads.push({ startedAt: today.getTime(), finishedAt: null });
+
+  updateReadingDatesUI();
+  updateSaveButtonState();
+  showToast('Started new read!', { type: 'success' });
+});
+
+// Toggle history visibility
+toggleHistoryBtn.addEventListener('click', () => {
+  const isHidden = readHistoryList.classList.contains('hidden');
+  readHistoryList.classList.toggle('hidden');
+  historyChevron.style.transform = isHidden ? 'rotate(90deg)' : '';
+});
 
 // Check if form has actual changes
 function checkFormDirty() {
@@ -278,7 +400,9 @@ function checkFormDirty() {
   if (physicalFormatInput.value.trim() !== originalValues.physicalFormat) return true;
   if (notesInput.value.trim() !== originalValues.notes) return true;
   if (currentRating !== originalValues.rating) return true;
-  if (currentStatus !== originalValues.status) return true;
+
+  // Check reads array
+  if (JSON.stringify(currentReads) !== originalValues.reads) return true;
 
   // Check genres (if picker not ready yet, use original genres to avoid false positive)
   const currentGenres = genrePicker ? genrePicker.getSelected() : originalValues.genres;
@@ -314,21 +438,11 @@ editForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     rating: currentRating || null,
-    status: currentStatus,
     notes: notesInput.value.trim(),
     genres: selectedGenres,
+    reads: currentReads,
     updatedAt: serverTimestamp()
   };
-
-  // Auto-set startedAt when status changes to 'reading'
-  if (currentStatus === 'reading' && originalValues.status !== 'reading') {
-    updates.startedAt = serverTimestamp();
-  }
-
-  // Auto-set finishedAt when status changes to 'finished'
-  if (currentStatus === 'finished' && originalValues.status !== 'finished') {
-    updates.finishedAt = serverTimestamp();
-  }
 
   try {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);

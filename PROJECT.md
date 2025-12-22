@@ -108,8 +108,9 @@ MyBookShelf/
 - [x] Caching audit (ISBN lookup cache with 24h TTL, genre cache with 5min TTL, Gravatar cache)
 - [x] Dead code removal (unused exports: debouncedInitIcons, updateGenreBookCount, findOrCreateGenre, getGenre)
 - [x] Home page dashboard with configurable sections
-- [x] Reading status tracking (Want to Read, Reading, Finished)
-- [x] Auto-timestamps (startedAt when reading, finishedAt when finished)
+- [x] Reading status inferred from dates (Reading, Finished) with read history
+- [x] Reading dates input on book edit (manual start/finish dates)
+- [x] Re-read tracking with full read history
 - [x] Book recommendations based on highly-rated authors (Google Books + Open Library)
 - [x] Content settings to configure home page sections (visibility + item count)
 - [x] Status filter on book list page
@@ -157,6 +158,7 @@ MyBookShelf/
 - [x] Book recommendations - Based on highly-rated authors
 - [ ] Reading goals/challenges
 - [ ] Multiple shelves/lists
+- [ ] Customisable home screen layout (section ordering, visibility, drag-and-drop, responsive multi-column)
 
 ### Bulk Tools
 - [ ] Bulk select mode (checkbox on each book card)
@@ -360,8 +362,8 @@ Books sorted by author use the **last word** of the author name as the sort key.
 
 #### Enhanced Book Data
 - [ ] Half-star or quarter-star ratings
-- [x] Start/finish reading dates (startedAt, finishedAt auto-tracked)
-- [ ] Re-read tracking (read count)
+- [x] Start/finish reading dates (manual date input on book edit)
+- [x] Re-read tracking with full read history
 - [ ] DNF (did not finish) status
 - [ ] Loaned to / borrowed from tracking
 - [ ] Physical location (which shelf)

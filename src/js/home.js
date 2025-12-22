@@ -7,7 +7,7 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { initIcons, escapeHtml, CACHE_KEY, serializeTimestamp, getHomeSettings } from './utils.js';
+import { initIcons, escapeHtml, CACHE_KEY, serializeTimestamp, getHomeSettings, getBookStatus, getCurrentRead } from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 
 // Initialize icons
@@ -186,11 +186,17 @@ function updateWelcomeMessage() {
   }
 }
 
+// Helper to get finishedAt from current read
+function getFinishedAt(book) {
+  const currentRead = getCurrentRead(book);
+  return currentRead?.finishedAt || book.finishedAt || book.updatedAt || 0;
+}
+
 // Render all sections
 function renderSections(settings) {
-  // Currently Reading
+  // Currently Reading (uses inferred status from reads array)
   if (settings.currentlyReading?.enabled) {
-    const reading = books.filter(b => b.status === 'reading');
+    const reading = books.filter(b => getBookStatus(b) === 'reading');
     renderSection('currentlyReading', reading, settings.currentlyReading.count);
   }
 
@@ -208,11 +214,11 @@ function renderSections(settings) {
     renderSection('topRated', topRated, settings.topRated.count);
   }
 
-  // Recently Finished
+  // Recently Finished (uses inferred status from reads array)
   if (settings.recentlyFinished?.enabled) {
     const finished = books
-      .filter(b => b.status === 'finished')
-      .sort((a, b) => (b.finishedAt || b.updatedAt || 0) - (a.finishedAt || a.updatedAt || 0));
+      .filter(b => getBookStatus(b) === 'finished')
+      .sort((a, b) => getFinishedAt(b) - getFinishedAt(a));
     renderSection('recentlyFinished', finished, settings.recentlyFinished.count);
   }
 }
