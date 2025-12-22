@@ -166,7 +166,11 @@ API fields available but not currently stored (for future features):
 - [x] Bulk cover fetch (update all books with ISBNs from Settings)
 
 ### In Progress
-- None currently
+- [ ] Split book detail into separate View and Edit pages
+  - View page (`/book/?id=X`): Clean read-only display with cover, metadata, reading history, notes
+  - Edit page (`/book/edit/?id=X`): Form-based editing with all current fields
+  - Extract shared components: cover-picker, rating-input, reading-status
+  - Refactor add.js to use shared components (reduce duplication)
 
 ## Future Development Ideas
 
