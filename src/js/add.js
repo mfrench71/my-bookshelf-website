@@ -91,6 +91,7 @@ const notesInput = document.getElementById('notes');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
+const pageCountInput = document.getElementById('page-count');
 const submitBtn = document.getElementById('submit-btn');
 const starBtns = document.querySelectorAll('.star-btn');
 const genrePickerContainer = document.getElementById('genre-picker-container');
@@ -196,6 +197,7 @@ async function handleISBNLookup() {
       publisherInput.value = bookData.publisher || '';
       publishedDateInput.value = bookData.publishedDate || '';
       physicalFormatInput.value = bookData.physicalFormat || '';
+      pageCountInput.value = bookData.pageCount || '';
       showStatus('Book found!', 'success');
       formDirty = true;
     } else {
@@ -339,6 +341,7 @@ function renderSearchResults(books, append = false) {
          data-publisher="${escapeAttr(book.publisher)}"
          data-published="${escapeAttr(book.publishedDate)}"
          data-isbn="${escapeAttr(book.isbn)}"
+         data-pagecount="${book.pageCount || ''}"
          data-categories="${escapeAttr(JSON.stringify(book.categories || []))}">
       ${hasCover
         ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -388,7 +391,7 @@ function renderSearchResults(books, append = false) {
 }
 
 async function selectSearchResult(el) {
-  const { title, author, cover, publisher, published, isbn, categories } = el.dataset;
+  const { title, author, cover, publisher, published, isbn, pagecount, categories } = el.dataset;
 
   titleInput.value = title;
   authorInput.value = author;
@@ -417,6 +420,7 @@ async function selectSearchResult(el) {
   publisherInput.value = publisher || '';
   publishedDateInput.value = published || '';
   physicalFormatInput.value = '';
+  pageCountInput.value = pagecount || '';
 
   // Supplement missing data from Open Library if we have an ISBN
   if (isbn) {
@@ -432,6 +436,10 @@ async function selectSearchResult(el) {
           coverUrlInput.value = book.cover.medium;
           coverImg.src = book.cover.medium;
           coverPreview.classList.remove('hidden');
+        }
+        // Page count from Open Library
+        if (!pageCountInput.value && book.number_of_pages) {
+          pageCountInput.value = book.number_of_pages;
         }
         // Add Open Library genres/subjects to suggestions
         const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
@@ -452,6 +460,10 @@ async function selectSearchResult(el) {
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
+        }
+        // Page count from edition endpoint
+        if (!pageCountInput.value && edition.number_of_pages) {
+          pageCountInput.value = edition.number_of_pages;
         }
       } catch (e) {
         // Edition endpoint may not exist for all ISBNs
@@ -678,6 +690,7 @@ bookForm.addEventListener('submit', async (e) => {
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
+    pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
     reads: [], // Reading status inferred from reads array
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()

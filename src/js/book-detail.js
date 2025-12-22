@@ -53,6 +53,7 @@ const coverContainer = document.getElementById('cover-container');
 const bookTitle = document.getElementById('book-title');
 const bookAuthor = document.getElementById('book-author');
 const bookIsbn = document.getElementById('book-isbn');
+const bookPages = document.getElementById('book-pages');
 const bookDates = document.getElementById('book-dates');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
@@ -61,6 +62,7 @@ const coverUrlInput = document.getElementById('cover-url');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
+const pageCountInput = document.getElementById('page-count');
 const notesInput = document.getElementById('notes');
 const saveBtn = document.getElementById('save-btn');
 const deleteBtn = document.getElementById('delete-btn');
@@ -189,6 +191,7 @@ function renderBook() {
   bookTitle.textContent = book.title;
   bookAuthor.textContent = book.author || 'Unknown author';
   bookIsbn.textContent = book.isbn ? `ISBN: ${book.isbn}` : '';
+  bookPages.textContent = book.pageCount ? `${book.pageCount} pages` : '';
 
   // Dates
   const dateAdded = parseTimestamp(book.createdAt);
@@ -211,6 +214,7 @@ function renderBook() {
   publisherInput.value = book.publisher || '';
   publishedDateInput.value = book.publishedDate || '';
   physicalFormatInput.value = book.physicalFormat || '';
+  pageCountInput.value = book.pageCount || '';
   notesInput.value = book.notes || '';
   currentRating = book.rating || 0;
   updateRatingStars();
@@ -230,6 +234,7 @@ function renderBook() {
     publisher: book.publisher || '',
     publishedDate: book.publishedDate || '',
     physicalFormat: book.physicalFormat || '',
+    pageCount: book.pageCount || '',
     notes: book.notes || '',
     rating: book.rating || 0,
     genres: book.genres ? [...book.genres] : [],
@@ -398,6 +403,7 @@ function checkFormDirty() {
   if (publisherInput.value.trim() !== originalValues.publisher) return true;
   if (publishedDateInput.value.trim() !== originalValues.publishedDate) return true;
   if (physicalFormatInput.value.trim() !== originalValues.physicalFormat) return true;
+  if ((pageCountInput.value || '') !== String(originalValues.pageCount || '')) return true;
   if (notesInput.value.trim() !== originalValues.notes) return true;
   if (currentRating !== originalValues.rating) return true;
 
@@ -437,6 +443,7 @@ editForm.addEventListener('submit', async (e) => {
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
+    pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
     rating: currentRating || null,
     notes: notesInput.value.trim(),
     genres: selectedGenres,
@@ -467,7 +474,8 @@ editForm.addEventListener('submit', async (e) => {
     formDirty = false;
 
     // Update local data and re-render
-    book = { ...book, ...updates };
+    // Use actual Date for local display (serverTimestamp() is a sentinel, not a real timestamp)
+    book = { ...book, ...updates, updatedAt: new Date() };
     renderBook();
   } catch (error) {
     console.error('Error saving:', error);
@@ -527,7 +535,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
 });
 
 // Track unsaved changes on form inputs (coverUrlInput excluded - read-only)
-[titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, notesInput].forEach(el => {
+[titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, pageCountInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
     updateSaveButtonState();
   });
@@ -641,6 +649,7 @@ refreshDataBtn.addEventListener('click', async () => {
       fillEmptyField(publisherInput, apiData.publisher, 'publisher');
       fillEmptyField(publishedDateInput, apiData.publishedDate, 'published date');
       fillEmptyField(physicalFormatInput, apiData.physicalFormat, 'format');
+      fillEmptyField(pageCountInput, apiData.pageCount, 'pages');
 
       // Cover image - only fill if empty
       if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
@@ -663,6 +672,7 @@ refreshDataBtn.addEventListener('click', async () => {
       book.publisher = publisherInput.value;
       book.publishedDate = publishedDateInput.value;
       book.physicalFormat = physicalFormatInput.value;
+      book.pageCount = pageCountInput.value ? parseInt(pageCountInput.value, 10) : null;
 
       // Update header display
       bookTitle.textContent = book.title;

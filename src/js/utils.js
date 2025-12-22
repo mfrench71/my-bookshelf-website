@@ -538,6 +538,7 @@ export async function lookupISBN(isbn) {
         publisher: normalizePublisher(book.publisher || ''),
         publishedDate: normalizePublishedDate(book.publishedDate),
         physicalFormat: '',
+        pageCount: book.pageCount || null,
         genres: book.categories || []
       };
     }
@@ -561,6 +562,7 @@ export async function lookupISBN(isbn) {
         if (!result.publisher) result.publisher = normalizePublisher(book.publishers?.[0]?.name || '');
         if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
         if (!result.coverImageUrl) result.coverImageUrl = book.cover?.medium || '';
+        if (!result.pageCount && book.number_of_pages) result.pageCount = book.number_of_pages;
         // Add Open Library genres to suggestions
         if (result.genres.length === 0 && genres.length > 0) {
           result.genres = genres;
@@ -574,6 +576,7 @@ export async function lookupISBN(isbn) {
           publisher: normalizePublisher(book.publishers?.[0]?.name || ''),
           publishedDate: normalizePublishedDate(book.publish_date),
           physicalFormat: '',
+          pageCount: book.number_of_pages || null,
           genres
         };
       }
@@ -582,19 +585,22 @@ export async function lookupISBN(isbn) {
     console.error('Open Library API error:', e);
   }
 
-  // Try Open Library edition endpoint for physical_format (not in jscmd=data)
-  if (result && !result.physicalFormat) {
+  // Try Open Library edition endpoint for physical_format and page count (not in jscmd=data)
+  if (result && (!result.physicalFormat || !result.pageCount)) {
     try {
       const editionResponse = await fetchWithTimeout(
         `https://openlibrary.org/isbn/${isbn}.json`
       );
       const edition = await editionResponse.json();
-      if (edition.physical_format) {
+      if (!result.physicalFormat && edition.physical_format) {
         // Normalize to title case to match select options (e.g., "paperback" -> "Paperback")
         result.physicalFormat = edition.physical_format
           .split(' ')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
           .join(' ');
+      }
+      if (!result.pageCount && edition.number_of_pages) {
+        result.pageCount = edition.number_of_pages;
       }
     } catch (e) {
       // Edition endpoint may not exist for all ISBNs

@@ -120,6 +120,7 @@ MyBookShelf/
 - [x] Cover image fallbacks (placeholder shown on broken image URLs)
 - [x] Shared ISBN lookup utility (consolidated Google Books + Open Library)
 - [x] Smart back button navigation (history-aware)
+- [x] Page count field (retrieved from Google Books / Open Library)
 
 ### In Progress
 - None currently
@@ -299,6 +300,37 @@ Books sorted by author use the **last word** of the author name as the sort key.
 1. **Store surname separately** - Add `authorSurname` field to book schema. Most accurate but requires data migration.
 2. **Smart parsing** - Handle common surname prefixes ("van", "de", "Le", "von", "Mac", "Mc"). Could use a library or custom regex.
 3. **User-editable sort key** - Let users manually override the sort key for edge cases.
+
+### Reading Stats Data Model
+
+The current data model supports comprehensive reading statistics:
+
+**Available Data per Book:**
+- `pageCount` - Number of pages (from Google Books / Open Library)
+- `reads` - Array of read entries: `[{ startedAt: timestamp, finishedAt: timestamp | null }, ...]`
+- `rating` - User rating (1-5 stars)
+- `genres` - Array of genre IDs
+- `createdAt` - When book was added to library
+
+**Stats That Can Be Calculated:**
+- Total books read (count of books with at least one completed read)
+- Total pages read (sum of pageCount for completed books)
+- Books per month/year (group by finishedAt date)
+- Pages per month/year (aggregate pageCount by finishedAt)
+- Average books per month
+- Average rating
+- Genre distribution (count per genre)
+- Rating distribution (count per star level)
+- Re-read count (books with multiple reads entries)
+- Average reading time (finishedAt - startedAt for completed reads)
+- Fastest/slowest read
+- Reading streaks (consecutive days/weeks with finished books)
+- Currently reading count
+
+**Future Enhancements for Richer Stats:**
+- Reading sessions with time tracking (pages read per session, reading speed)
+- DNF (Did Not Finish) tracking
+- Reading goals (books per year, pages per month)
 
 ## API References
 - [Firebase Auth](https://firebase.google.com/docs/auth/web/start)
