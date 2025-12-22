@@ -452,7 +452,6 @@ async function selectSearchResult(el) {
         // Supplement missing fields
         if (!publisherInput.value) publisherInput.value = book.publishers?.[0]?.name || '';
         if (!publishedDateInput.value) publishedDateInput.value = book.publish_date || '';
-        if (!physicalFormatInput.value) physicalFormatInput.value = book.physical_format || '';
         if (!coverUrlInput.value && book.cover?.medium) {
           coverUrlInput.value = book.cover.medium;
           coverImg.src = book.cover.medium;
@@ -464,6 +463,23 @@ async function selectSearchResult(el) {
       }
     } catch (e) {
       console.error('Open Library supplement error:', e);
+    }
+
+    // Fetch physical_format from edition endpoint (not in jscmd=data)
+    if (!physicalFormatInput.value) {
+      try {
+        const editionResponse = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+        const edition = await editionResponse.json();
+        if (edition.physical_format) {
+          // Normalize to title case to match select options
+          physicalFormatInput.value = edition.physical_format
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+      } catch (e) {
+        // Edition endpoint may not exist for all ISBNs
+      }
     }
   }
 

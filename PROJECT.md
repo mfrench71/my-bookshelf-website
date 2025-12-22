@@ -188,6 +188,14 @@ MyBookShelf/
 - [ ] View reading statistics from profile
 - [ ] Export/import data from profile
 
+### Library Health
+- [ ] Data quality dashboard in Settings
+- [ ] Books missing cover image
+- [ ] Books missing genre
+- [ ] Books missing publisher/date/format
+- [ ] Quick-fix actions (batch assign genre, refresh from API)
+- [ ] Duplicate book detection
+
 ### Privacy Settings
 - [ ] Profile visibility (public/private/friends only)
 - [ ] Show reading activity to others
