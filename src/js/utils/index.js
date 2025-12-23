@@ -1,6 +1,4 @@
-// Shared Utilities Module
-// This file re-exports from focused modules for backwards compatibility
-// New code should import directly from utils/[module].js
+// Utils Index - Re-exports all utilities for convenient importing
 
 // Format utilities
 export {
@@ -14,7 +12,7 @@ export {
   normalizePublisher,
   normalizePublishedDate,
   renderStars
-} from './utils/format.js';
+} from './format.js';
 
 // DOM utilities
 export {
@@ -26,7 +24,7 @@ export {
   updateRatingStars,
   isMobile,
   getContrastColor
-} from './utils/dom.js';
+} from './dom.js';
 
 // Helper utilities
 export {
@@ -35,7 +33,7 @@ export {
   checkPasswordStrength,
   isOnline,
   isValidImageUrl
-} from './utils/helpers.js';
+} from './helpers.js';
 
 // Cache utilities
 export {
@@ -46,22 +44,21 @@ export {
   getHomeSettings,
   saveHomeSettings,
   getCachedUserProfile,
-  clearUserProfileCache
-} from './utils/cache.js';
+  clearUserProfileCache,
+  getISBNCache,
+  setISBNCache
+} from './cache.js';
 
 // API utilities
 export {
   fetchWithTimeout,
   lookupISBN,
   searchBooks
-} from './utils/api.js';
+} from './api.js';
 
 // Reading utilities
 export {
   migrateBookReads,
   getCurrentRead,
   getBookStatus
-} from './utils/reading.js';
-
-// Toast (re-exported from stores for backwards compatibility)
-export { showToast } from './stores/toast.js';
+} from './reading.js';

@@ -1,0 +1,48 @@
+// Toast Store - Toast notification state management
+
+// Track toast timeout to clear it when showing a new toast
+let toastTimeout = null;
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {Object} options - Optional settings
+ * @param {number} options.duration - Duration in ms (default: 3000)
+ * @param {string} options.type - 'success', 'error', or 'info' (default: 'info')
+ */
+export function showToast(message, options = {}) {
+  const { duration = 3000, type = 'info' } = typeof options === 'number'
+    ? { duration: options }
+    : options;
+
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+  }
+
+  // Clear any existing timeout to prevent premature hiding
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+    toastTimeout = null;
+  }
+
+  // Base classes
+  const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50';
+
+  // Type-specific colors
+  const typeClasses = {
+    success: 'bg-green-600 text-white',
+    error: 'bg-red-600 text-white',
+    info: 'bg-gray-800 text-white'
+  };
+
+  toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info}`;
+  toast.textContent = message;
+
+  toastTimeout = setTimeout(() => {
+    toast.classList.add('hidden');
+    toastTimeout = null;
+  }, duration);
+}
