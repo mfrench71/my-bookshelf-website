@@ -201,19 +201,11 @@ async function initGenrePicker() {
 
 async function fetchGenreSuggestions(isbn) {
   try {
-    const response = await fetchWithTimeout(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
-      {},
-      5000
-    );
-    if (!response.ok) return;
-
-    const data = await response.json();
-    if (data.items?.length > 0) {
-      const categories = data.items[0].volumeInfo.categories || [];
-      if (categories.length > 0 && genrePicker) {
-        genrePicker.setSuggestions(categories);
-      }
+    // Use lookupISBN which checks both Google Books and Open Library,
+    // parses hierarchical genres, and normalizes variations
+    const result = await lookupISBN(isbn);
+    if (result?.genres?.length > 0 && genrePicker) {
+      genrePicker.setSuggestions(result.genres);
     }
   } catch (e) {
     console.warn('Genre suggestions unavailable:', e.message);

@@ -3,7 +3,13 @@
 All notable changes to MyBookShelf are documented here.
 
 ## [Unreleased]
-- Nothing yet
+
+### Genre Suggestions Improvements
+- **Hierarchical Parsing**: Genre categories like "Fiction / Science Fiction / Space Opera" now split into individual genres
+- **All Open Library Subjects**: Removed 5-subject limit, now includes all available subjects
+- **API Merging**: Genres from both Google Books and Open Library now combined (deduplicated)
+- **Variation Normalization**: Maps abbreviations and synonyms (e.g., "Sci-Fi" → "Science Fiction", "YA" → "Young Adult")
+- **Documentation**: Added Data Enrichment Sources section to PROJECT.md
 
 ---
 

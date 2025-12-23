@@ -11,6 +11,7 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from '../utils.js';
+import { parseHierarchicalGenres } from '../utils/genre-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { CoverPicker } from '../components/cover-picker.js';
@@ -477,8 +478,9 @@ async function selectSearchResult(el) {
         if (!pageCountInput.value && book.number_of_pages) {
           pageCountInput.value = book.number_of_pages;
         }
-        // Add Open Library genres/subjects to suggestions
-        const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
+        // Add Open Library genres/subjects to suggestions (parsed and normalized)
+        const rawSubjects = book.subjects?.map(s => s.name || s) || [];
+        const genres = parseHierarchicalGenres(rawSubjects);
         updateGenreSuggestions(genres);
       }
     } catch (e) {

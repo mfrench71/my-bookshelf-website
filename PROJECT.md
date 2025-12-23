@@ -216,6 +216,23 @@ npm test && npm run build
 
 ## Technical Reference
 
+### Data Enrichment Sources
+
+| Source | API | Notes |
+|--------|-----|-------|
+| **Google Books** | `volumeInfo.categories` | Hierarchical (e.g., "Fiction / Fantasy / Epic"), parsed automatically |
+| **Open Library** | `subjects` | User-contributed, all subjects now included (no limit) |
+| **Library of Congress** | `loc.gov/search` | Free, no sign-up, US-focused (future) |
+| **BISAC Codes** | Static mapping | Industry standard ~50 categories (future) |
+| **Thema Codes** | Static mapping | International, multilingual (future) |
+
+### Genre Normalization
+
+Genres from APIs are automatically processed:
+- **Hierarchical parsing**: Splits on `/`, `-`, `>`, `—` (e.g., "Fiction / Fantasy" → ["Fiction", "Fantasy"])
+- **Variation mapping**: Normalizes abbreviations and synonyms (e.g., "Sci-Fi" → "Science Fiction", "YA" → "Young Adult")
+- **Deduplication**: Merges genres from Google Books and Open Library, removing duplicates
+
 ### Caching Strategy
 | Cache | Storage | TTL | Purpose |
 |-------|---------|-----|---------|

@@ -4,9 +4,11 @@ import {
   normalizeTitle,
   normalizeAuthor,
   normalizePublisher,
-  normalizePublishedDate
+  normalizePublishedDate,
+  normalizeGenreName
 } from './format.js';
 import { getISBNCache, setISBNCache } from './cache.js';
+import { parseHierarchicalGenres } from './genre-parser.js';
 
 /**
  * Fetch with timeout
@@ -84,7 +86,7 @@ export async function lookupISBN(isbn, options = {}) {
         publishedDate: normalizePublishedDate(book.publishedDate),
         physicalFormat: '',
         pageCount: book.pageCount || null,
-        genres: book.categories || []
+        genres: parseHierarchicalGenres(book.categories || [])
       };
     }
   } catch (e) {
@@ -100,7 +102,10 @@ export async function lookupISBN(isbn, options = {}) {
     const book = data[`ISBN:${isbn}`];
 
     if (book) {
-      const genres = book.subjects?.map(s => s.name || s).slice(0, 5) || [];
+      // Parse all Open Library subjects (no limit)
+      const olGenres = parseHierarchicalGenres(
+        book.subjects?.map(s => s.name || s) || []
+      );
       openLibraryCover = book.cover?.medium || '';
 
       if (result) {
@@ -109,9 +114,14 @@ export async function lookupISBN(isbn, options = {}) {
         if (!result.publishedDate) result.publishedDate = normalizePublishedDate(book.publish_date);
         if (!result.coverImageUrl) result.coverImageUrl = openLibraryCover;
         if (!result.pageCount && book.number_of_pages) result.pageCount = book.number_of_pages;
-        // Add Open Library genres to suggestions
-        if (result.genres.length === 0 && genres.length > 0) {
-          result.genres = genres;
+        // Merge Open Library genres with Google Books genres (deduplicate)
+        if (olGenres.length > 0) {
+          const existingNormalized = new Set(result.genres.map(g => normalizeGenreName(g)));
+          olGenres.forEach(g => {
+            if (!existingNormalized.has(normalizeGenreName(g))) {
+              result.genres.push(g);
+            }
+          });
         }
       } else {
         // Use Open Library as primary source
@@ -123,7 +133,7 @@ export async function lookupISBN(isbn, options = {}) {
           publishedDate: normalizePublishedDate(book.publish_date),
           physicalFormat: '',
           pageCount: book.number_of_pages || null,
-          genres
+          genres: olGenres
         };
       }
     }
@@ -206,7 +216,7 @@ export async function searchBooks(query, options = {}) {
               publishedDate: normalizePublishedDate(book.publishedDate),
               pageCount: book.pageCount || '',
               isbn: book.industryIdentifiers?.[0]?.identifier || '',
-              categories: book.categories || []
+              categories: parseHierarchicalGenres(book.categories || [])
             };
           });
           hasMore = (startIndex + books.length) < totalItems;
@@ -238,7 +248,7 @@ export async function searchBooks(query, options = {}) {
             publishedDate: normalizePublishedDate(doc.first_publish_year),
             pageCount: doc.number_of_pages_median || '',
             isbn: doc.isbn?.[0] || '',
-            categories: doc.subject?.slice(0, 5) || []
+            categories: parseHierarchicalGenres(doc.subject || [])
           }));
           hasMore = (startIndex + books.length) < totalItems;
         }
