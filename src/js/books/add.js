@@ -16,7 +16,9 @@ import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { CoverPicker } from '../components/cover-picker.js';
+import { SeriesPicker } from '../components/series-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
+import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
 
@@ -71,6 +73,7 @@ async function checkForDuplicate(userId, isbn, title, author) {
 let currentUser = null;
 let ratingInput = null;
 let coverPicker = null;
+let seriesPicker = null;
 let scannerRunning = false;
 let formDirty = false;
 let genrePicker = null;
@@ -102,10 +105,7 @@ const pageCountInput = document.getElementById('page-count');
 const submitBtn = document.getElementById('submit-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
-const seriesSection = document.getElementById('series-section');
-const seriesDisplay = document.getElementById('series-display');
-const seriesNameInput = document.getElementById('series-name');
-const seriesPositionInput = document.getElementById('series-position');
+const seriesPickerContainer = document.getElementById('series-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
 onAuthStateChanged(auth, (user) => {
@@ -114,6 +114,7 @@ onAuthStateChanged(auth, (user) => {
     initRatingInput();
     initCoverPicker();
     initGenrePicker();
+    initSeriesPicker();
   }
 });
 
@@ -162,6 +163,21 @@ function updateGenreSuggestions(genres) {
   }
 }
 
+// Initialize Series Picker
+async function initSeriesPicker() {
+  if (seriesPicker || !seriesPickerContainer) return;
+
+  seriesPicker = new SeriesPicker({
+    container: seriesPickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      formDirty = true;
+    }
+  });
+
+  await seriesPicker.init();
+}
+
 // Initialize Cover Picker
 function initCoverPicker() {
   if (coverPicker) return;
@@ -190,19 +206,14 @@ function setCoverPickerCovers(covers) {
   }
 }
 
-// Set series display from API lookup
-function setSeriesDisplay(seriesName, seriesPosition) {
-  if (seriesName) {
-    seriesDisplay.textContent = formatSeriesDisplay(seriesName, seriesPosition);
-    seriesNameInput.value = seriesName;
-    seriesPositionInput.value = seriesPosition ?? '';
-    seriesSection.classList.remove('hidden');
-    initIcons();
-  } else {
-    seriesSection.classList.add('hidden');
-    seriesDisplay.textContent = '';
-    seriesNameInput.value = '';
-    seriesPositionInput.value = '';
+// Set series suggestion from API lookup
+function setSeriesSuggestion(seriesName, seriesPosition) {
+  if (seriesPicker) {
+    if (seriesName) {
+      seriesPicker.setSuggestion(seriesName, seriesPosition);
+    } else {
+      seriesPicker.clear();
+    }
   }
 }
 
@@ -239,13 +250,13 @@ async function handleISBNLookup() {
       physicalFormatInput.value = bookData.physicalFormat || '';
       pageCountInput.value = bookData.pageCount || '';
       // Show series if detected
-      setSeriesDisplay(bookData.seriesName, bookData.seriesPosition);
+      setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
       showStatus('Book found!', 'success');
       formDirty = true;
     } else {
       showStatus('Book not found. Try entering details manually.', 'error');
       setCoverPickerCovers(null); // Clear picker
-      setSeriesDisplay(null, null); // Clear series
+      setSeriesSuggestion(null, null); // Clear series
     }
   } catch (error) {
     console.error('Lookup error:', error);
@@ -531,7 +542,7 @@ async function selectSearchResult(el) {
         if (edition.series) {
           const seriesInfo = parseSeriesFromAPI(edition.series);
           if (seriesInfo) {
-            setSeriesDisplay(seriesInfo.name, seriesInfo.position);
+            setSeriesSuggestion(seriesInfo.name, seriesInfo.position);
           }
         }
       }
@@ -540,10 +551,7 @@ async function selectSearchResult(el) {
     }
   }
 
-  // Clear series if no ISBN or no series found
-  if (!seriesNameInput.value) {
-    setSeriesDisplay(null, null);
-  }
+  // Note: Series is only set via setSeriesSuggestion when detected from Open Library
 
   // Set covers in picker
   setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);
@@ -781,6 +789,9 @@ bookForm.addEventListener('submit', async (e) => {
   // Get selected genres from picker
   const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
 
+  // Get selected series from picker
+  const selectedSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: null, position: null };
+
   const bookData = {
     title,
     author,
@@ -794,8 +805,8 @@ bookForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
-    seriesName: seriesNameInput.value.trim() || null,
-    seriesPosition: seriesPositionInput.value ? parseInt(seriesPositionInput.value, 10) : null,
+    seriesId: selectedSeries.seriesId,
+    seriesPosition: selectedSeries.position,
     reads: [], // Reading status inferred from reads array
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -810,12 +821,20 @@ bookForm.addEventListener('submit', async (e) => {
       await updateGenreBookCounts(currentUser.uid, selectedGenres, []);
     }
 
+    // Update series book count
+    if (selectedSeries.seriesId) {
+      await updateSeriesBookCounts(currentUser.uid, selectedSeries.seriesId, null);
+    }
+
     formDirty = false;
     duplicateCheckBypassed = false;
 
     // Clear caches so the new book appears on the list page
     clearBooksCache(currentUser.uid);
     clearGenresCache();
+    if (selectedSeries.seriesId) {
+      clearSeriesCache();
+    }
 
     showToast('Book added!', { type: 'success' });
     setTimeout(() => {

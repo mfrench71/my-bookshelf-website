@@ -13,6 +13,21 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-23 (Evening)
+
+### Series System Fixes
+- **Book Detail Page**: Fixed series display to use `seriesId` lookup instead of legacy `seriesName`
+- **Series Widget Links**: Fixed to use series ID for reliable filtering (was using name, causing no results)
+- **Firestore Rules**: Added series subcollection rules
+
+### Documentation
+- **Colour Scheme**: Documented semantic colour usage for buttons, badges, and icons
+- **Cover Image Sources**: Documented Google Books and Open Library cover sizes
+- **API Limitations**: Documented series search limitations and workarounds
+- **Series Features**: Documented current capabilities and future enhancements
+
+---
+
 ## 2025-12-23
 
 ### Sprint 4: Widget Dashboard ✅

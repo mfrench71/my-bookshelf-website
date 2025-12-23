@@ -42,8 +42,9 @@ export function renderWidgetSkeletons(container, count = 4) {
  * @param {Array<Object>} books - User's books
  * @param {Object} settings - Widget settings { version, widgets: [...] }
  * @param {Object} genreLookup - Genre ID to genre object map
+ * @param {Object} seriesLookup - Series ID to series object map
  */
-export function renderWidgets(container, books, settings, genreLookup = {}) {
+export function renderWidgets(container, books, settings, genreLookup = {}, seriesLookup = null) {
   const enabledWidgets = getEnabledWidgets(settings);
 
   if (enabledWidgets.length === 0) {
@@ -63,7 +64,7 @@ export function renderWidgets(container, books, settings, genreLookup = {}) {
     }
 
     const sizeClass = `widget-col-${config.size || Widget.defaultSize}`;
-    const html = Widget.renderWidget(books, config, genreLookup);
+    const html = Widget.renderWidget(books, config, genreLookup, seriesLookup);
 
     return `<div class="${sizeClass}">${html}</div>`;
   }).join('');
@@ -80,15 +81,16 @@ export function renderWidgets(container, books, settings, genreLookup = {}) {
  * @param {Array<Object>} books - Sample books
  * @param {Object} config - Widget configuration
  * @param {Object} genreLookup - Genre lookup
+ * @param {Object} seriesLookup - Series lookup
  * @returns {string} - HTML string
  */
-export function renderSingleWidget(widgetId, books, config, genreLookup = {}) {
+export function renderSingleWidget(widgetId, books, config, genreLookup = {}, seriesLookup = null) {
   const Widget = widgetRegistry.get(widgetId);
   if (!Widget) {
     return '<p class="text-gray-500">Widget not found</p>';
   }
 
-  return Widget.renderWidget(books, config, genreLookup);
+  return Widget.renderWidget(books, config, genreLookup, seriesLookup);
 }
 
 /**

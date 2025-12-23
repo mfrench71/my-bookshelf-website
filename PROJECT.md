@@ -41,9 +41,11 @@ MyBookShelf/
 │   │   ├── header.js           # Header (auth, menu, search)
 │   │   ├── settings.js         # Settings page
 │   │   ├── genres.js           # Genre CRUD
+│   │   ├── series.js           # Series CRUD
 │   │   ├── books/              # Book page modules
 │   │   ├── components/         # Reusable UI components
 │   │   ├── schemas/            # Zod validation schemas
+│   │   ├── widgets/            # Dashboard widget system
 │   │   └── utils/              # Utility modules
 │   └── sw.js                   # Service worker
 ├── tests/                      # Test files
@@ -72,7 +74,7 @@ npm test && npm run build
 
 ### Firebase
 - **Project**: book-tracker-b786e
-- **Firestore**: `/users/{userId}/books`, `/users/{userId}/genres`
+- **Firestore**: `/users/{userId}/books`, `/users/{userId}/genres`, `/users/{userId}/series`
 
 ---
 
@@ -95,6 +97,7 @@ npm test && npm run build
 | Recently Added | Latest additions | 12 (full) |
 | Top Rated | Highest rated books (4+ stars) | 12 (full) |
 | Recently Finished | Completed books | 12 (full) |
+| Series Progress | Series with completion tracking | 6 (half) |
 
 ### Future Widget Ideas
 | Widget | Description | Default Size |
@@ -127,7 +130,6 @@ npm test && npm run build
 
 ### Future Features
 - [ ] Reading timer with sessions
-- [ ] Book series tracking
 - [ ] Multiple shelves/lists
 - [ ] Social features (follow, share)
 - [ ] Reading goals/challenges
@@ -151,16 +153,33 @@ npm test && npm run build
 - [ ] List CRUD (create, read, update, delete)
 - [ ] Drag and drop reordering within lists
 
-### Book Series (Partial) ✅
+### Book Series System ✅
 - [x] Auto-detect series from Open Library API
-- [x] Store seriesName and seriesPosition on books
+- [x] Store seriesId and seriesPosition on books (linked to series collection)
 - [x] Display series on book detail page with links to other books
-- [x] Filter books by series via URL param (/books/?series=Name)
-- [ ] User-created series with CRUD
-- [ ] Add/remove books from series manually
-- [ ] Override API-detected series
-- [ ] Series management page
-- [ ] Series completion progress
+- [x] Filter books by series (dropdown filter and URL param)
+- [x] User-created series with CRUD (Firestore collection)
+- [x] Add/remove books from series via series picker component
+- [x] Override API-detected series in book forms
+- [x] Series management page (settings)
+- [x] Series completion progress (totalBooks tracking)
+- [x] Series progress dashboard widget
+- [x] Series badges on book cards (purple badge with position)
+
+#### Current Series Management
+- **Settings page**: Create, edit, delete series; set totalBooks for completion tracking
+- **Book forms**: Add/remove book from series via series picker; set position
+- **Series widget**: View series progress on home dashboard
+- **Books list**: Filter by series via dropdown
+
+#### Future Series Enhancements
+- [ ] Series widget: Show reading progress (X of Y finished) alongside owned count
+- [ ] Series widget: List which books are owned with read/unread status
+- [ ] Show series badge on search results (requires per-result ISBN lookup - expensive)
+- [ ] External series lookup API (Wikidata SPARQL or similar)
+- [ ] Auto-populate totalBooks from external source
+- [ ] Series detail page with drag-drop reordering and bulk actions
+- [ ] Book detail page: Display series books as cover thumbnails (like home widgets) with "viewing" highlight
 
 ### Reading Timer & Sessions
 - [ ] Built-in reading timer with start/pause/stop
@@ -211,6 +230,7 @@ npm test && npm run build
 - [ ] Clear local cache/data
 
 ### Technical Debt
+- [ ] Fix colour inconsistencies in Data Cleanup buttons (should all be amber)
 - [ ] Full Zod validation (remove HTML validation attributes)
 - [ ] Tree-shake Lucide icons (387KB → ~30KB)
 - [ ] Minify/bundle JavaScript
@@ -221,6 +241,51 @@ npm test && npm run build
 
 ## Technical Reference
 
+### Colour Scheme (Semantic)
+
+Consistent colour usage across buttons, badges, icons, and UI elements:
+
+| Colour | Tailwind Classes | Usage |
+|--------|------------------|-------|
+| **Primary (Blue)** | `bg-primary`, `text-primary` | Default actions, links, navigation, form focus |
+| **Green** | `bg-green-*`, `text-green-*` | Success, completion, "Finished" status, create/add |
+| **Red** | `bg-red-*`, `text-red-*` | Destructive actions (delete), errors, logout, warnings |
+| **Blue (Light)** | `bg-blue-100`, `text-blue-700` | "Reading" status badges, informational |
+| **Purple** | `bg-purple-*`, `text-purple-*` | Series-related (badges, progress bars, icons) |
+| **Amber** | `bg-amber-*`, `text-amber-*` | Maintenance/cleanup tasks, caution |
+| **Gray** | `bg-gray-*`, `text-gray-*` | Neutral, secondary actions, cancel, disabled |
+
+#### Button Patterns
+
+| Type | Classes | Example |
+|------|---------|---------|
+| Primary action | `bg-primary hover:bg-primary-dark text-white` | Save, Submit |
+| Secondary action | `border border-gray-300 hover:bg-gray-50 text-gray-700` | Cancel, Back |
+| Destructive | `bg-red-600 hover:bg-red-700 text-white` | Delete, Remove |
+| Utility/Maintenance | `bg-amber-500 hover:bg-amber-600 text-white` | Cleanup, Recalculate |
+| Icon button (neutral) | `p-2 hover:bg-gray-100 rounded-lg text-gray-500` | Edit, Settings |
+| Icon button (danger) | `p-2 hover:bg-red-50 rounded-lg text-red-500` | Delete |
+| Icon button (info) | `p-2 hover:bg-blue-50 rounded-lg text-blue-500` | Merge, Info |
+
+#### Status Badges
+
+| Status | Background | Text | Icon |
+|--------|------------|------|------|
+| Reading | `bg-blue-100` | `text-blue-700` | `book-open` |
+| Finished | `bg-green-100` | `text-green-700` | `check-circle` |
+| Series | `bg-purple-100` | `text-purple-700` | `library` |
+
+#### Icon Colours
+
+| Context | Colour | Example |
+|---------|--------|---------|
+| Navigation/neutral | `text-gray-500` | Menu icons, back arrows |
+| Primary/active | `text-primary` | Section headers, important icons |
+| Destructive | `text-red-500` | Delete buttons |
+| Success/create | `text-green-500` | Add new, checkmarks |
+| Series | `text-purple-600` | Series widget, badges |
+| Warning/caution | `text-amber-500` | Alerts, cleanup |
+
 ### Data Enrichment Sources
 
 | Source | API | Notes |
@@ -230,6 +295,25 @@ npm test && npm run build
 | **Library of Congress** | `loc.gov/search` | Free, no sign-up, US-focused (future) |
 | **BISAC Codes** | Static mapping | Industry standard ~50 categories (future) |
 | **Thema Codes** | Static mapping | International, multilingual (future) |
+
+### API Limitations
+
+| Feature | Limitation | Workaround |
+|---------|------------|------------|
+| **Series in search results** | Google Books and Open Library search APIs don't return series data | Series only shown after ISBN lookup or when book is saved with series |
+| **Series lookup API** | No free external API for series metadata (total books, book list) | Manual series management with user-entered totalBooks |
+| **Cover quality** | Google Books thumbnails are low-res (~128px) | Use Open Library medium covers (~180px) as alternative |
+
+### Cover Image Sources
+
+| Source | URL Pattern | Size | Notes |
+|--------|-------------|------|-------|
+| **Google Books** | `books.googleapis.com/.../thumbnail` | ~128×192 | Low-res, reliable availability |
+| **Open Library (S)** | `covers.openlibrary.org/b/id/{id}-S.jpg` | ~40×60 | Too small for display |
+| **Open Library (M)** | `covers.openlibrary.org/b/id/{id}-M.jpg` | ~180×270 | Used by default |
+| **Open Library (L)** | `covers.openlibrary.org/b/id/{id}-L.jpg` | ~300×450 | Better quality, not always available |
+
+Current implementation uses Open Library medium (-M) covers. Consider upgrading to large (-L) with medium fallback.
 
 ### Genre Normalization
 
@@ -243,6 +327,7 @@ Genres from APIs are automatically processed:
 |-------|---------|-----|---------|
 | Books | localStorage | 5 min | Reduce Firestore reads |
 | Genres | Memory | 5 min | Reduce Firestore reads |
+| Series | Memory | 5 min | Reduce Firestore reads |
 | ISBN Lookup | localStorage | 24 hrs | Cache API responses |
 | Covers | Service Worker | 200 items | Image caching |
 | Gravatar | localStorage | 24 hrs | Avatar existence check |

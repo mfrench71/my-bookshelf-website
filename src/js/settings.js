@@ -32,6 +32,15 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from './genres.js';
+import {
+  loadUserSeries,
+  createSeries,
+  updateSeries,
+  deleteSeries,
+  mergeSeries,
+  clearSeriesCache,
+  findPotentialDuplicates
+} from './series.js';
 import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from './utils/widget-settings.js';
@@ -69,6 +78,10 @@ let editingGenreId = null;
 let selectedColor = GENRE_COLORS[0];
 let books = [];
 let allBooksLoaded = false;
+
+// Series State
+let series = [];
+let editingSeriesId = null;
 
 // DOM Elements - Navigation
 const navBtns = document.querySelectorAll('.settings-nav-btn');
@@ -1863,4 +1876,358 @@ contentNavBtn?.addEventListener('click', () => {
 // Load when expanding content accordion (mobile)
 contentAccordion?.addEventListener('click', () => {
   setTimeout(checkAndLoadWidgetSettings, 100);
+});
+
+// ==================== Series Management ====================
+
+// DOM Elements - Series
+const seriesLoading = document.getElementById('series-loading');
+const seriesEmpty = document.getElementById('series-empty');
+const seriesList = document.getElementById('series-list');
+const addSeriesBtn = document.getElementById('add-series-btn');
+const seriesModal = document.getElementById('series-modal');
+const seriesModalTitle = document.getElementById('series-modal-title');
+const seriesForm = document.getElementById('series-form');
+const seriesNameInput = document.getElementById('series-name');
+const seriesDescriptionInput = document.getElementById('series-description');
+const seriesTotalBooksInput = document.getElementById('series-total-books');
+const cancelSeriesBtn = document.getElementById('cancel-series');
+const saveSeriesBtn = document.getElementById('save-series');
+const deleteSeriesModal = document.getElementById('delete-series-modal');
+const deleteSeriesMessage = document.getElementById('delete-series-message');
+const cancelDeleteSeriesBtn = document.getElementById('cancel-delete-series');
+const confirmDeleteSeriesBtn = document.getElementById('confirm-delete-series');
+const mergeSeriesModal = document.getElementById('merge-series-modal');
+const mergeSourceName = document.getElementById('merge-source-name');
+const mergeTargetSelect = document.getElementById('merge-target-select');
+const cancelMergeSeriesBtn = document.getElementById('cancel-merge-series');
+const confirmMergeSeriesBtn = document.getElementById('confirm-merge-series');
+const seriesDuplicates = document.getElementById('series-duplicates');
+const duplicateList = document.getElementById('duplicate-list');
+
+let deletingSeriesId = null;
+let mergingSeriesId = null;
+let seriesLoaded = false;
+
+/**
+ * Load series from Firestore
+ */
+async function loadSeries() {
+  if (!currentUser) return;
+
+  try {
+    series = await loadUserSeries(currentUser.uid, true);
+    renderSeries();
+  } catch (error) {
+    console.error('Error loading series:', error);
+    showToast('Error loading series', { type: 'error' });
+  }
+}
+
+/**
+ * Render series list
+ */
+function renderSeries() {
+  if (!seriesLoading || !seriesEmpty || !seriesList) return;
+
+  seriesLoading.classList.add('hidden');
+
+  if (series.length === 0) {
+    seriesEmpty.classList.remove('hidden');
+    seriesList.innerHTML = '';
+    seriesDuplicates?.classList.add('hidden');
+    initIcons();
+    return;
+  }
+
+  seriesEmpty.classList.add('hidden');
+
+  seriesList.innerHTML = series.map(s => {
+    const completionText = s.totalBooks
+      ? `${s.bookCount || 0} of ${s.totalBooks}`
+      : `${s.bookCount || 0} book${(s.bookCount || 0) !== 1 ? 's' : ''}`;
+
+    return `
+      <div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-gray-900 truncate">${escapeHtml(s.name)}</div>
+          ${s.description ? `<p class="text-xs text-gray-400 truncate">${escapeHtml(s.description)}</p>` : ''}
+        </div>
+        <span class="text-sm text-gray-500 whitespace-nowrap">${completionText}</span>
+        <button class="edit-series-btn p-2 hover:bg-gray-100 rounded-lg text-gray-500" data-id="${s.id}" title="Edit">
+          <i data-lucide="edit-2" class="w-4 h-4"></i>
+        </button>
+        <button class="merge-series-btn p-2 hover:bg-blue-50 rounded-lg text-blue-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" title="Merge">
+          <i data-lucide="git-merge" class="w-4 h-4"></i>
+        </button>
+        <button class="delete-series-btn p-2 hover:bg-red-50 rounded-lg text-red-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" data-count="${s.bookCount || 0}" title="Delete">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  // Attach event listeners
+  seriesList.querySelectorAll('.edit-series-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditSeriesModal(btn.dataset.id));
+  });
+
+  seriesList.querySelectorAll('.merge-series-btn').forEach(btn => {
+    btn.addEventListener('click', () => openMergeSeriesModal(btn.dataset.id, btn.dataset.name));
+  });
+
+  seriesList.querySelectorAll('.delete-series-btn').forEach(btn => {
+    btn.addEventListener('click', () => openDeleteSeriesModal(btn.dataset.id, btn.dataset.name, parseInt(btn.dataset.count)));
+  });
+
+  // Check for duplicates
+  renderDuplicateWarnings();
+
+  initIcons();
+}
+
+/**
+ * Render duplicate series warnings
+ */
+function renderDuplicateWarnings() {
+  if (!seriesDuplicates || !duplicateList) return;
+
+  const duplicates = findPotentialDuplicates(series);
+
+  if (duplicates.length === 0) {
+    seriesDuplicates.classList.add('hidden');
+    return;
+  }
+
+  duplicateList.innerHTML = duplicates.map(group => {
+    const names = group.map(s => `"${escapeHtml(s.name)}"`).join(', ');
+    return `<p class="text-sm text-amber-800">${names}</p>`;
+  }).join('');
+
+  seriesDuplicates.classList.remove('hidden');
+  initIcons();
+}
+
+/**
+ * Open add series modal
+ */
+function openAddSeriesModal() {
+  editingSeriesId = null;
+  seriesModalTitle.textContent = 'Add Series';
+  seriesNameInput.value = '';
+  seriesDescriptionInput.value = '';
+  seriesTotalBooksInput.value = '';
+  saveSeriesBtn.textContent = 'Add';
+  seriesModal.classList.remove('hidden');
+  lockBodyScroll();
+  if (!isMobile()) seriesNameInput.focus();
+}
+
+/**
+ * Open edit series modal
+ */
+function openEditSeriesModal(seriesId) {
+  const s = series.find(x => x.id === seriesId);
+  if (!s) return;
+
+  editingSeriesId = seriesId;
+  seriesModalTitle.textContent = 'Edit Series';
+  seriesNameInput.value = s.name;
+  seriesDescriptionInput.value = s.description || '';
+  seriesTotalBooksInput.value = s.totalBooks || '';
+  saveSeriesBtn.textContent = 'Save';
+  seriesModal.classList.remove('hidden');
+  lockBodyScroll();
+  if (!isMobile()) seriesNameInput.focus();
+}
+
+/**
+ * Close series modal
+ */
+function closeSeriesModal() {
+  seriesModal.classList.add('hidden');
+  unlockBodyScroll();
+  editingSeriesId = null;
+}
+
+/**
+ * Open delete series modal
+ */
+function openDeleteSeriesModal(seriesId, name, bookCount) {
+  deletingSeriesId = seriesId;
+  deleteSeriesMessage.textContent = bookCount > 0
+    ? `This will unlink "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
+    : `Are you sure you want to delete "${name}"?`;
+  deleteSeriesModal.classList.remove('hidden');
+  lockBodyScroll();
+}
+
+/**
+ * Close delete series modal
+ */
+function closeDeleteSeriesModal() {
+  deleteSeriesModal.classList.add('hidden');
+  unlockBodyScroll();
+  deletingSeriesId = null;
+}
+
+/**
+ * Open merge series modal
+ */
+function openMergeSeriesModal(seriesId, name) {
+  mergingSeriesId = seriesId;
+  mergeSourceName.textContent = name;
+
+  // Populate target select with other series
+  mergeTargetSelect.innerHTML = '<option value="">Select a series...</option>' +
+    series
+      .filter(s => s.id !== seriesId)
+      .map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
+      .join('');
+
+  confirmMergeSeriesBtn.disabled = true;
+  mergeSeriesModal.classList.remove('hidden');
+  lockBodyScroll();
+}
+
+/**
+ * Close merge series modal
+ */
+function closeMergeSeriesModal() {
+  mergeSeriesModal.classList.add('hidden');
+  unlockBodyScroll();
+  mergingSeriesId = null;
+}
+
+// Series Event Listeners
+addSeriesBtn?.addEventListener('click', openAddSeriesModal);
+cancelSeriesBtn?.addEventListener('click', closeSeriesModal);
+seriesModal?.addEventListener('click', (e) => {
+  if (e.target === seriesModal) closeSeriesModal();
+});
+cancelDeleteSeriesBtn?.addEventListener('click', closeDeleteSeriesModal);
+deleteSeriesModal?.addEventListener('click', (e) => {
+  if (e.target === deleteSeriesModal) closeDeleteSeriesModal();
+});
+cancelMergeSeriesBtn?.addEventListener('click', closeMergeSeriesModal);
+mergeSeriesModal?.addEventListener('click', (e) => {
+  if (e.target === mergeSeriesModal) closeMergeSeriesModal();
+});
+
+// Enable/disable merge button based on selection
+mergeTargetSelect?.addEventListener('change', () => {
+  confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;
+});
+
+// Series form submit
+seriesForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const name = seriesNameInput.value.trim();
+  if (!name) {
+    showToast('Please enter a series name', { type: 'error' });
+    return;
+  }
+
+  const description = seriesDescriptionInput.value.trim() || null;
+  const totalBooks = seriesTotalBooksInput.value ? parseInt(seriesTotalBooksInput.value, 10) : null;
+
+  saveSeriesBtn.disabled = true;
+  saveSeriesBtn.textContent = 'Saving...';
+
+  try {
+    if (editingSeriesId) {
+      await updateSeries(currentUser.uid, editingSeriesId, { name, description, totalBooks });
+      showToast('Series updated!', { type: 'success' });
+    } else {
+      await createSeries(currentUser.uid, name, description, totalBooks);
+      showToast('Series created!', { type: 'success' });
+    }
+
+    closeSeriesModal();
+    clearSeriesCache();
+    await loadSeries();
+  } catch (error) {
+    console.error('Error saving series:', error);
+    showToast(error.message || 'Error saving series', { type: 'error' });
+  } finally {
+    saveSeriesBtn.disabled = false;
+    saveSeriesBtn.textContent = editingSeriesId ? 'Save' : 'Add';
+  }
+});
+
+// Delete series confirmation
+confirmDeleteSeriesBtn?.addEventListener('click', async () => {
+  if (!deletingSeriesId) return;
+
+  confirmDeleteSeriesBtn.disabled = true;
+  confirmDeleteSeriesBtn.textContent = 'Deleting...';
+
+  try {
+    const booksUpdated = await deleteSeries(currentUser.uid, deletingSeriesId);
+
+    if (booksUpdated > 0) {
+      clearBooksCache(currentUser.uid);
+    }
+
+    showToast('Series deleted', { type: 'success' });
+    closeDeleteSeriesModal();
+    clearSeriesCache();
+    await loadSeries();
+  } catch (error) {
+    console.error('Error deleting series:', error);
+    showToast('Error deleting series', { type: 'error' });
+  } finally {
+    confirmDeleteSeriesBtn.disabled = false;
+    confirmDeleteSeriesBtn.textContent = 'Delete';
+  }
+});
+
+// Merge series confirmation
+confirmMergeSeriesBtn?.addEventListener('click', async () => {
+  if (!mergingSeriesId || !mergeTargetSelect.value) return;
+
+  confirmMergeSeriesBtn.disabled = true;
+  confirmMergeSeriesBtn.textContent = 'Merging...';
+
+  try {
+    const result = await mergeSeries(currentUser.uid, mergingSeriesId, mergeTargetSelect.value);
+
+    const message = result.booksUpdated > 0
+      ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} moved.`
+      : 'Series merged!';
+
+    showToast(message, { type: 'success' });
+    closeMergeSeriesModal();
+    clearSeriesCache();
+    clearBooksCache(currentUser.uid);
+    await loadSeries();
+  } catch (error) {
+    console.error('Error merging series:', error);
+    showToast(error.message || 'Error merging series', { type: 'error' });
+  } finally {
+    confirmMergeSeriesBtn.disabled = false;
+    confirmMergeSeriesBtn.textContent = 'Merge';
+  }
+});
+
+// Load series when series section becomes visible
+const seriesSection = document.getElementById('series-section');
+const seriesNavBtn = document.querySelector('[data-section="series"]');
+const seriesAccordion = document.querySelector('[data-accordion="series"]');
+
+function checkAndLoadSeries() {
+  if (seriesLoaded || !currentUser) return;
+  seriesLoaded = true;
+  loadSeries();
+}
+
+// Load when switching to series section (desktop)
+seriesNavBtn?.addEventListener('click', () => {
+  setTimeout(checkAndLoadSeries, 100);
+});
+
+// Load when expanding series accordion (mobile)
+seriesAccordion?.addEventListener('click', () => {
+  setTimeout(checkAndLoadSeries, 100);
 });

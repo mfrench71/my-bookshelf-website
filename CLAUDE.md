@@ -38,6 +38,7 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 
 ### Consistency Checklist
 - [ ] Does this match the visual style of similar components?
+- [ ] Are button/icon colours semantically correct? (see Colour Scheme below)
 - [ ] Are error messages consistent with other forms?
 - [ ] Are empty states consistent with other empty states?
 - [ ] Are loading states consistent with other loading states?
@@ -53,6 +54,16 @@ Use the design tokens defined in `src/css/tailwind.css`:
 - Shadows: `shadow-xs`, `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl`
 - Border radius: `radius-sm`, `radius-md`, `radius-lg`, `radius-xl`, `radius-full`
 - Transitions: `transition-fast`, `transition-normal`, `transition-slow`
+
+### Semantic Colour Scheme
+Follow the colour scheme documented in PROJECT.md. Key rules:
+- **Primary (blue)**: Default actions, links, navigation
+- **Green**: Success, completion, "Finished" status, create/add actions
+- **Red**: Destructive actions (delete), errors, logout
+- **Blue (light)**: "Reading" status badges, informational
+- **Purple**: Series-related (badges, progress, icons)
+- **Amber**: Maintenance/cleanup/utility tasks
+- **Gray**: Neutral, secondary actions, cancel buttons
 
 ### Component Patterns
 - Forms: Use validation schemas from `src/js/schemas/` and helpers from `src/js/utils/validation.js`
@@ -124,6 +135,8 @@ src/
 │   │   ├── modal.js        # Modal and ConfirmModal components
 │   │   └── rating-input.js # Star rating input
 │   ├── genres.js           # Genre CRUD operations and utilities
+│   ├── series.js           # Series CRUD operations and utilities
+│   ├── widgets/            # Dashboard widget system
 │   └── settings.js         # Settings page logic
 ├── css/tailwind.css      # Tailwind v4 with custom theme
 └── sw.js                 # Service worker for PWA
@@ -131,8 +144,9 @@ src/
 
 ### Data Flow
 - **Firebase Auth**: `header.js` is the primary auth handler and redirects unauthenticated users
-- **Firestore**: Books stored at `/users/{userId}/books` with real-time listeners
+- **Firestore**: Books, genres, and series stored under `/users/{userId}/` with on-demand fetching (no real-time listeners)
 - **Book APIs**: Google Books API (primary) with Open Library fallback for ISBN lookup
+- **Caching**: 5-minute TTL caches for books, genres, and series to reduce Firestore reads
 
 ### Key Patterns
 - Pages set `hideHeader: true` in frontmatter to hide the common header (e.g., login page)
@@ -157,11 +171,13 @@ This project uses Tailwind v4 which has different syntax:
 Common utilities are consolidated in shared modules:
 - `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
+- `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
 
 Reusable UI components in `src/js/components/`:
-- `book-card.js` - BookCard component for rendering book list items with genre badges
+- `book-card.js` - BookCard component for rendering book list items with genre/series badges
 - `cover-picker.js` - CoverPicker for selecting from Google Books or Open Library covers
 - `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead
+- `series-picker.js` - SeriesPicker class for single-select series input with position
 - `modal.js` - Modal and ConfirmModal components with escape/backdrop handling
 - `rating-input.js` - RatingInput for star rating selection
 
@@ -183,8 +199,11 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `header.test.js` - Tests for header menu and search functionality
 - `index.test.js` - Tests for home page dashboard
 - `login.test.js` - Tests for authentication page (login, register, password strength)
-- `settings.test.js` - Tests for settings page (profile, genres, export, cleanup)
+- `settings.test.js` - Tests for settings page (profile, genres, series, export, cleanup)
 - `genre-picker.test.js` - Tests for genre picker component (filtering, selection, keyboard nav)
+- `series.test.js` - Tests for series CRUD operations
+- `series-picker.test.js` - Tests for series picker component
+- `series-progress-widget.test.js` - Tests for series progress widget
 
 ### Pre-Deployment
 All tests must pass before deploying:
@@ -201,4 +220,7 @@ npm test && npm run build
 
 - Project ID: `book-tracker-b786e`
 - Auth: Email/password
-- Firestore collection: `/users/{userId}/books`
+- Firestore collections:
+  - `/users/{userId}/books` - User's book library
+  - `/users/{userId}/genres` - User's custom genres
+  - `/users/{userId}/series` - User's book series

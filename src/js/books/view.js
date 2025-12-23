@@ -5,7 +5,8 @@ import { doc, getDoc, deleteDoc, collection, getDocs } from 'https://www.gstatic
 import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, lockBodyScroll, unlockBodyScroll, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
-import { normalizeSeriesName, formatSeriesDisplay } from '../utils/series-parser.js';
+import { loadUserSeries, createSeriesLookup } from '../series.js';
+import { formatSeriesDisplay } from '../utils/series-parser.js';
 
 // Initialize icons
 initIcons();
@@ -15,6 +16,7 @@ let currentUser = null;
 let bookId = null;
 let book = null;
 let genreLookup = null;
+let seriesLookup = null;
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -83,9 +85,13 @@ backBtn.addEventListener('click', () => {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    // Load genres for badge display
-    const genres = await loadUserGenres(user.uid);
+    // Load genres and series for badge display
+    const [genres, series] = await Promise.all([
+      loadUserGenres(user.uid),
+      loadUserSeries(user.uid)
+    ]);
     genreLookup = createGenreLookup(genres);
+    seriesLookup = createSeriesLookup(series);
     loadBook();
   }
 });
@@ -165,7 +171,7 @@ function renderBook() {
   }
 
   // Series
-  if (book.seriesName) {
+  if (book.seriesId && seriesLookup) {
     renderSeriesSection();
   }
 
@@ -227,8 +233,10 @@ function renderBook() {
 
 // Render series section with other books in the same series
 async function renderSeriesSection() {
-  const seriesName = book.seriesName;
-  const normalizedName = normalizeSeriesName(seriesName);
+  const seriesObj = seriesLookup.get(book.seriesId);
+  if (!seriesObj) return;
+
+  const seriesName = seriesObj.name;
 
   // Update title with series name
   seriesTitle.textContent = seriesName;
@@ -241,7 +249,7 @@ async function renderSeriesSection() {
     const seriesBooksData = [];
     snapshot.forEach(doc => {
       const bookData = { id: doc.id, ...doc.data() };
-      if (bookData.seriesName && normalizeSeriesName(bookData.seriesName) === normalizedName) {
+      if (bookData.seriesId === book.seriesId) {
         seriesBooksData.push(bookData);
       }
     });
@@ -280,8 +288,8 @@ async function renderSeriesSection() {
 
       seriesBooks.innerHTML = booksHtml;
 
-      // Show "View all" link
-      seriesViewAll.href = `/books/?series=${encodeURIComponent(seriesName)}`;
+      // Show "View all" link (use series ID for filtering)
+      seriesViewAll.href = `/books/?series=${encodeURIComponent(book.seriesId)}`;
       seriesViewAll.classList.remove('hidden');
     } else {
       // Only current book in series - just show series name

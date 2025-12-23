@@ -13,6 +13,7 @@ import {
 import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
+import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 
 // Initialize icons once on load
@@ -37,6 +38,8 @@ let genreLookup = null; // Map of genreId -> genre object
 let genreFilter = ''; // Currently selected genre ID for filtering
 let statusFilter = ''; // Currently selected status for filtering
 let seriesFilter = ''; // Currently selected series name for filtering (URL param only)
+let series = []; // All user series
+let seriesLookup = null; // Map of seriesId -> series object
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -49,6 +52,7 @@ const sortSelect = document.getElementById('sort-select');
 const ratingFilterSelect = document.getElementById('rating-filter');
 const genreFilterSelect = document.getElementById('genre-filter');
 const statusFilterSelect = document.getElementById('status-filter');
+const seriesFilterSelect = document.getElementById('series-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
 
 // Parse URL parameters and apply filters
@@ -93,8 +97,8 @@ applyUrlFilters();
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    // Load genres and books in parallel for faster initial load
-    await Promise.all([loadGenres(), loadBooks()]);
+    // Load genres, series, and books in parallel for faster initial load
+    await Promise.all([loadGenres(), loadSeries(), loadBooks()]);
   }
 });
 
@@ -108,6 +112,54 @@ async function loadGenres() {
     console.error('Error loading genres:', error);
     genres = [];
     genreLookup = new Map();
+  }
+}
+
+// Load user series
+async function loadSeries() {
+  try {
+    series = await loadUserSeries(currentUser.uid);
+    seriesLookup = createSeriesLookup(series);
+    populateSeriesFilter();
+  } catch (error) {
+    console.error('Error loading series:', error);
+    series = [];
+    seriesLookup = new Map();
+  }
+}
+
+// Populate series filter dropdown
+function populateSeriesFilter() {
+  if (!seriesFilterSelect) return;
+
+  // Keep the "All Series" option
+  seriesFilterSelect.innerHTML = '<option value="">All Series</option>';
+
+  // Sort series by name for the dropdown
+  const sortedSeries = [...series].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Add options for each series
+  sortedSeries.forEach(s => {
+    const option = document.createElement('option');
+    option.value = s.id;
+    option.textContent = s.name;
+    if (s.id === seriesFilter) {
+      option.selected = true;
+    }
+    seriesFilterSelect.appendChild(option);
+  });
+
+  // Handle URL param with series name (from widget links)
+  // If seriesFilter is set but not a valid series ID, try to match by name
+  if (seriesFilter && !seriesLookup.has(seriesFilter)) {
+    const matchedSeries = series.find(s =>
+      s.name.toLowerCase() === seriesFilter.toLowerCase() ||
+      s.normalizedName === seriesFilter.toLowerCase().replace(/[^a-z0-9]/g, '')
+    );
+    if (matchedSeries) {
+      seriesFilter = matchedSeries.id;
+      seriesFilterSelect.value = matchedSeries.id;
+    }
   }
 }
 
@@ -378,11 +430,10 @@ function filterByStatus(booksArray, status) {
   return booksArray.filter(b => getBookStatus(b) === status);
 }
 
-// Series filter function (matches by normalised series name)
-function filterBySeries(booksArray, seriesName) {
-  if (!seriesName) return booksArray;
-  const normalizedFilter = normalizeSeriesName(seriesName);
-  return booksArray.filter(b => b.seriesName && normalizeSeriesName(b.seriesName) === normalizedFilter);
+// Series filter function (matches by series ID)
+function filterBySeries(booksArray, seriesId) {
+  if (!seriesId) return booksArray;
+  return booksArray.filter(b => b.seriesId === seriesId);
 }
 
 // Get filtered and sorted books (with caching)
@@ -433,7 +484,7 @@ function renderBooks() {
   const visible = filtered.slice(0, displayLimit);
   const hasMoreToDisplay = filtered.length > displayLimit;
 
-  bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup })).join('');
+  bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
 
   if (hasMoreToDisplay) {
     bookList.innerHTML += `
@@ -463,9 +514,10 @@ function loadMore() {
 async function refreshBooks() {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
-  // Reload both genres and books
+  // Reload genres, series, and books
   await Promise.all([
     loadGenres(),
+    loadSeries(),
     loadBooks(true)
   ]);
   showToast('Books refreshed');
@@ -516,6 +568,17 @@ if (statusFilterSelect) {
   });
 }
 
+// Series filter
+if (seriesFilterSelect) {
+  seriesFilterSelect.addEventListener('change', () => {
+    seriesFilter = seriesFilterSelect.value;
+    displayLimit = BOOKS_PER_PAGE;
+    invalidateFilteredCache(); // Re-filter with new series
+    updateResetButton();
+    renderBooks();
+  });
+}
+
 // Check if any filters are active
 function hasActiveFilters() {
   return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '' || seriesFilter !== '';
@@ -548,6 +611,12 @@ function updateFilterHighlights() {
     statusFilterSelect.classList.toggle('border-primary', isActive);
     statusFilterSelect.classList.toggle('border-gray-200', !isActive);
   }
+  // Series filter
+  if (seriesFilterSelect) {
+    const isActive = seriesFilter !== '';
+    seriesFilterSelect.classList.toggle('border-primary', isActive);
+    seriesFilterSelect.classList.toggle('border-gray-200', !isActive);
+  }
 }
 
 // Get a human-readable description of active filters
@@ -573,8 +642,11 @@ function getActiveFilterDescription() {
     }
   }
 
-  if (seriesFilter) {
-    parts.push(`${seriesFilter} series`);
+  if (seriesFilter && seriesLookup) {
+    const seriesObj = seriesLookup.get(seriesFilter);
+    if (seriesObj) {
+      parts.push(`${seriesObj.name} series`);
+    }
   }
 
   if (parts.length === 0) return 'your filters';
@@ -595,6 +667,7 @@ async function resetAllFilters() {
   ratingFilterSelect.value = '0';
   if (genreFilterSelect) genreFilterSelect.value = '';
   if (statusFilterSelect) statusFilterSelect.value = '';
+  if (seriesFilterSelect) seriesFilterSelect.value = '';
   displayLimit = BOOKS_PER_PAGE;
   invalidateFilteredCache(); // Re-filter with reset values
   updateResetButton();

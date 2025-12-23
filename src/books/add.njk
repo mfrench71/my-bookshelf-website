@@ -72,16 +72,7 @@ scripts: '<script type="module" src="/js/books/add.js"></script>'
         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
     </div>
 
-    <!-- Series (auto-detected, read-only) -->
-    <div id="series-section" class="hidden">
-      <label class="block font-semibold text-gray-700 mb-1">Series</label>
-      <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
-        <i data-lucide="library" class="w-4 h-4 text-gray-400"></i>
-        <span id="series-display"></span>
-      </div>
-      <input type="hidden" id="series-name">
-      <input type="hidden" id="series-position">
-    </div>
+    <div id="series-picker-container"></div>
 
     <div>
       <label class="block font-semibold text-gray-700 mb-1">Cover Image</label>

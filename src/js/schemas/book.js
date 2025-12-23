@@ -72,11 +72,11 @@ export const BookSchema = z.object({
 
   genres: z.array(z.string()).optional().default([]),
 
-  // Series information (from Open Library API)
-  seriesName: z.string()
-    .max(200, 'Series name must be 200 characters or less')
-    .optional()
-    .transform(s => s?.trim() || ''),
+  // Series reference (links to /users/{userId}/series/{seriesId})
+  seriesId: z.string()
+    .max(100, 'Series ID must be 100 characters or less')
+    .nullable()
+    .optional(),
 
   seriesPosition: z.union([
     z.number().positive('Series position must be a positive number'),

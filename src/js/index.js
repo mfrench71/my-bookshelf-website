@@ -9,6 +9,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
+import { loadUserSeries, createSeriesLookup } from './series.js';
 import { loadWidgetSettings } from './utils/widget-settings.js';
 import { renderWidgets, renderWidgetSkeletons } from './widgets/widget-renderer.js';
 // Import widgets to ensure they're registered
@@ -22,6 +23,8 @@ let currentUser = null;
 let books = [];
 let genres = [];
 let genreLookup = null;
+let series = [];
+let seriesLookup = null;
 
 // DOM Elements
 const widgetContainer = document.getElementById('widget-container');
@@ -98,20 +101,23 @@ async function loadDashboard() {
       renderWidgetSkeletons(widgetContainer, 4);
     }
 
-    // Load genres, books, and widget settings in parallel
-    const [genresResult, booksResult, widgetSettings] = await Promise.all([
+    // Load genres, series, books, and widget settings in parallel
+    const [genresResult, seriesResult, booksResult, widgetSettings] = await Promise.all([
       loadGenresData(),
+      loadSeriesData(),
       loadBooksData(),
       loadWidgetSettings(currentUser.uid)
     ]);
 
     genres = genresResult;
     genreLookup = createGenreLookup(genres);
+    series = seriesResult;
+    seriesLookup = createSeriesLookup(series);
     books = booksResult;
 
     // Render widgets
     if (widgetContainer) {
-      renderWidgets(widgetContainer, books, widgetSettings, genreLookup);
+      renderWidgets(widgetContainer, books, widgetSettings, genreLookup, seriesLookup);
     }
 
     initIcons();
@@ -134,6 +140,16 @@ async function loadGenresData() {
     return await loadUserGenres(currentUser.uid);
   } catch (e) {
     console.error('Error loading genres:', e);
+    return [];
+  }
+}
+
+// Load series
+async function loadSeriesData() {
+  try {
+    return await loadUserSeries(currentUser.uid);
+  } catch (e) {
+    console.error('Error loading series:', e);
     return [];
   }
 }

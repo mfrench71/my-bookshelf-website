@@ -236,6 +236,120 @@ describe('bookCard', () => {
     });
   });
 
+  describe('series badge', () => {
+    it('should render series badge when seriesLookup contains the series', () => {
+      const book = createMockBook({
+        seriesId: 'series-1',
+        seriesPosition: 4
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'Harry Potter' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      expect(html).toContain('Harry Potter');
+      expect(html).toContain('#4');
+      expect(html).toContain('bg-purple-100');
+      expect(html).toContain('text-purple-700');
+      expect(html).toContain('data-lucide="library"');
+    });
+
+    it('should not render series badge when seriesLookup is not provided', () => {
+      const book = createMockBook({
+        seriesId: 'series-1',
+        seriesPosition: 2
+      });
+
+      const html = bookCard(book);
+
+      expect(html).not.toContain('bg-purple-100');
+      expect(html).not.toContain('data-lucide="library"');
+    });
+
+    it('should not render series badge when series not found in lookup', () => {
+      const book = createMockBook({
+        seriesId: 'unknown-series',
+        seriesPosition: 1
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'Harry Potter' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      expect(html).not.toContain('bg-purple-100');
+    });
+
+    it('should not render series badge when book has no seriesId', () => {
+      const book = createMockBook({
+        seriesId: null,
+        seriesPosition: null
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'Harry Potter' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      expect(html).not.toContain('bg-purple-100');
+      expect(html).not.toContain('data-lucide="library"');
+    });
+
+    it('should render series badge without position when position is null', () => {
+      const book = createMockBook({
+        seriesId: 'series-1',
+        seriesPosition: null
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'Discworld' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      expect(html).toContain('Discworld');
+      expect(html).not.toContain('#');
+    });
+
+    it('should truncate long series names', () => {
+      const book = createMockBook({
+        seriesId: 'series-1',
+        seriesPosition: 1
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'The Very Long Series Name That Exceeds Twenty Characters' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      // Should be truncated (19 chars + ellipsis) in the span text
+      expect(html).toContain('…');
+      // The displayed name should be truncated (check span content)
+      expect(html).toContain('<span>The Very Long Serie…');
+      // Full name should be in title attribute for hover tooltip
+      expect(html).toContain('title="The Very Long Series Name That Exceeds Twenty Characters');
+    });
+
+    it('should render both status and series badges together', () => {
+      const book = createMockBook({
+        seriesId: 'series-1',
+        seriesPosition: 3,
+        reads: [{ startedAt: Date.now() - 86400000, finishedAt: null }]
+      });
+      const seriesLookup = new Map([
+        ['series-1', { id: 'series-1', name: 'Lord of the Rings' }]
+      ]);
+
+      const html = bookCard(book, { seriesLookup });
+
+      expect(html).toContain('Reading');
+      expect(html).toContain('Lord of the Rings');
+      expect(html).toContain('#3');
+      // Both badges should be in the same flex container
+      expect(html).toContain('flex flex-wrap gap-1');
+    });
+  });
+
   describe('book list rendering (integration)', () => {
     it('should show date for ALL serialized books, not just the first one', () => {
       const books = createSerializedBooks(5);

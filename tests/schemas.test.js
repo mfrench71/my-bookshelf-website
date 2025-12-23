@@ -713,6 +713,187 @@ describe('Genre Schemas', () => {
 });
 
 // ============================================================
+// Series Schema Tests
+// ============================================================
+
+describe('Series Schemas', () => {
+  const ExpectedBookSchema = z.object({
+    title: z.string()
+      .min(1, 'Title is required')
+      .max(500, 'Title must be 500 characters or less')
+      .transform(s => s.trim()),
+
+    isbn: z.string()
+      .regex(/^(\d{10}|\d{13})?$/, 'ISBN must be 10 or 13 digits')
+      .nullable()
+      .optional()
+      .or(z.literal('')),
+
+    position: z.union([
+      z.number().positive('Position must be a positive number'),
+      z.null()
+    ]).optional(),
+
+    source: z.enum(['api', 'manual']).default('manual')
+  });
+
+  const SeriesSchema = z.object({
+    name: z.string()
+      .min(1, 'Series name is required')
+      .max(200, 'Series name must be 200 characters or less')
+      .transform(s => s.trim()),
+
+    description: z.string()
+      .max(1000, 'Description must be 1000 characters or less')
+      .nullable()
+      .optional()
+      .transform(s => s?.trim() || null),
+
+    totalBooks: z.union([
+      z.number().int().positive('Total books must be a positive number'),
+      z.null()
+    ]).optional(),
+
+    expectedBooks: z.array(ExpectedBookSchema).optional().default([])
+  });
+
+  describe('name field', () => {
+    it('should require a name', () => {
+      const result = SeriesSchema.safeParse({ name: '' });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Series name is required');
+    });
+
+    it('should accept valid name', () => {
+      const result = SeriesSchema.safeParse({ name: 'Harry Potter' });
+      expect(result.success).toBe(true);
+      expect(result.data.name).toBe('Harry Potter');
+    });
+
+    it('should trim whitespace', () => {
+      const result = SeriesSchema.safeParse({ name: '  Harry Potter  ' });
+      expect(result.success).toBe(true);
+      expect(result.data.name).toBe('Harry Potter');
+    });
+
+    it('should reject name over 200 characters', () => {
+      const longName = 'A'.repeat(201);
+      const result = SeriesSchema.safeParse({ name: longName });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Series name must be 200 characters or less');
+    });
+  });
+
+  describe('description field', () => {
+    it('should accept null description', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', description: null });
+      expect(result.success).toBe(true);
+      expect(result.data.description).toBeNull();
+    });
+
+    it('should accept valid description', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', description: 'A wizard story' });
+      expect(result.success).toBe(true);
+      expect(result.data.description).toBe('A wizard story');
+    });
+
+    it('should trim description whitespace', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', description: '  A wizard story  ' });
+      expect(result.success).toBe(true);
+      expect(result.data.description).toBe('A wizard story');
+    });
+
+    it('should reject description over 1000 characters', () => {
+      const longDesc = 'A'.repeat(1001);
+      const result = SeriesSchema.safeParse({ name: 'Test', description: longDesc });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Description must be 1000 characters or less');
+    });
+
+    it('should transform empty string to null', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', description: '' });
+      expect(result.success).toBe(true);
+      expect(result.data.description).toBeNull();
+    });
+  });
+
+  describe('totalBooks field', () => {
+    it('should accept null totalBooks', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', totalBooks: null });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept positive totalBooks', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', totalBooks: 7 });
+      expect(result.success).toBe(true);
+      expect(result.data.totalBooks).toBe(7);
+    });
+
+    it('should reject zero totalBooks', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', totalBooks: 0 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject negative totalBooks', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test', totalBooks: -1 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('expectedBooks field', () => {
+    it('should default to empty array', () => {
+      const result = SeriesSchema.safeParse({ name: 'Test' });
+      expect(result.success).toBe(true);
+      expect(result.data.expectedBooks).toEqual([]);
+    });
+
+    it('should accept valid expected books', () => {
+      const result = SeriesSchema.safeParse({
+        name: 'Test',
+        expectedBooks: [
+          { title: 'Book 5', position: 5, source: 'api' }
+        ]
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.expectedBooks).toHaveLength(1);
+    });
+
+    it('should require title in expected books', () => {
+      const result = SeriesSchema.safeParse({
+        name: 'Test',
+        expectedBooks: [{ title: '' }]
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept valid ISBN in expected books', () => {
+      const result = SeriesSchema.safeParse({
+        name: 'Test',
+        expectedBooks: [{ title: 'Book', isbn: '9780123456789' }]
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid ISBN in expected books', () => {
+      const result = SeriesSchema.safeParse({
+        name: 'Test',
+        expectedBooks: [{ title: 'Book', isbn: '12345' }]
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should default source to manual', () => {
+      const result = SeriesSchema.safeParse({
+        name: 'Test',
+        expectedBooks: [{ title: 'Book' }]
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.expectedBooks[0].source).toBe('manual');
+    });
+  });
+});
+
+// ============================================================
 // Validation Helpers Tests
 // ============================================================
 

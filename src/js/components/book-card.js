@@ -4,6 +4,9 @@ import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus } 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
 
+// Maximum series name length before truncation
+const MAX_SERIES_NAME_LENGTH = 20;
+
 // Status badge configuration (status inferred from reads array)
 const STATUS_CONFIG = {
   'reading': { icon: 'book-open', label: 'Reading', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
@@ -22,6 +25,29 @@ function renderStatusBadge(status) {
   return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${config.bgClass} ${config.textClass}">
     <i data-lucide="${config.icon}" class="w-3 h-3"></i>
     <span>${config.label}</span>
+  </span>`;
+}
+
+/**
+ * Render series badge for a book
+ * @param {Object} series - Series object with name
+ * @param {number|null} position - Book's position in series
+ * @returns {string} HTML string for series badge
+ */
+function renderSeriesBadge(series, position) {
+  if (!series || !series.name) return '';
+
+  // Truncate long series names
+  let displayName = series.name;
+  if (displayName.length > MAX_SERIES_NAME_LENGTH) {
+    displayName = displayName.substring(0, MAX_SERIES_NAME_LENGTH - 1) + '…';
+  }
+
+  const positionStr = position ? ` #${position}` : '';
+
+  return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700" title="${escapeHtml(series.name)}${positionStr}">
+    <i data-lucide="library" class="w-3 h-3"></i>
+    <span>${escapeHtml(displayName)}${positionStr}</span>
   </span>`;
 }
 
@@ -57,10 +83,11 @@ function renderGenreBadges(genreDetails) {
  * @param {Object} options - Optional settings
  * @param {boolean} options.showDate - Whether to show the date added (default: false)
  * @param {Map} options.genreLookup - Map of genreId -> genre object for enriching genres
+ * @param {Map} options.seriesLookup - Map of seriesId -> series object for enriching series
  * @returns {string} HTML string for the book card
  */
 export function bookCard(book, options = {}) {
-  const { showDate = false, genreLookup = null } = options;
+  const { showDate = false, genreLookup = null, seriesLookup = null } = options;
 
   const cover = book.coverImageUrl
     ? `<div class="book-cover-wrapper">
@@ -83,6 +110,13 @@ export function bookCard(book, options = {}) {
     genreBadges = renderGenreBadges(genreDetails);
   }
 
+  // Resolve series ID to series object
+  let seriesBadge = '';
+  if (book.seriesId && seriesLookup) {
+    const series = seriesLookup.get(book.seriesId);
+    seriesBadge = renderSeriesBadge(series, book.seriesPosition);
+  }
+
   let dateStr = '';
   if (showDate) {
     const dateAdded = formatDate(book.createdAt);
@@ -93,13 +127,16 @@ export function bookCard(book, options = {}) {
   const status = getBookStatus(book);
   const statusBadge = renderStatusBadge(status);
 
+  // Combine status and series badges on same line if both present
+  const topBadges = [statusBadge, seriesBadge].filter(Boolean).join(' ');
+
   return `
     <a href="/books/view/?id=${book.id}" class="book-card">
       ${cover}
       <div class="flex-1 min-w-0">
         <h3 class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</h3>
         <p class="text-sm text-gray-500 truncate">${escapeHtml(book.author || 'Unknown author')}</p>
-        ${statusBadge ? `<div class="mt-1">${statusBadge}</div>` : ''}
+        ${topBadges ? `<div class="flex flex-wrap gap-1 mt-1">${topBadges}</div>` : ''}
         ${rating ? `<div class="mt-1">${rating}</div>` : ''}
         ${genreBadges}
         ${dateStr}

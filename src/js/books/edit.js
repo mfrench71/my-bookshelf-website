@@ -11,7 +11,9 @@ import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, norm
 import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
+import { SeriesPicker } from '../components/series-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
+import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
 
@@ -24,7 +26,9 @@ let bookId = null;
 let book = null;
 let ratingInput = null;
 let genrePicker = null;
+let seriesPicker = null;
 let originalGenres = [];
+let originalSeriesId = null;
 let originalValues = {};
 let formDirty = false;
 let currentReads = [];
@@ -62,10 +66,7 @@ const saveBtn = document.getElementById('save-btn');
 const refreshDataBtn = document.getElementById('refresh-data-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
-const seriesSection = document.getElementById('series-section');
-const seriesDisplay = document.getElementById('series-display');
-const seriesNameInput = document.getElementById('series-name');
-const seriesPositionInput = document.getElementById('series-position');
+const seriesPickerContainer = document.getElementById('series-picker-container');
 
 // Reading Dates Elements
 const startedDateInput = document.getElementById('started-date');
@@ -172,19 +173,35 @@ function selectCover(source) {
 coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
 coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
-// Set series display
-function setSeriesDisplay(seriesName, seriesPosition) {
-  if (seriesName) {
-    seriesDisplay.textContent = formatSeriesDisplay(seriesName, seriesPosition);
-    seriesNameInput.value = seriesName;
-    seriesPositionInput.value = seriesPosition ?? '';
-    seriesSection.classList.remove('hidden');
-    initIcons();
-  } else {
-    seriesSection.classList.add('hidden');
-    seriesDisplay.textContent = '';
-    seriesNameInput.value = '';
-    seriesPositionInput.value = '';
+// Set series suggestion from API lookup
+function setSeriesSuggestion(seriesName, seriesPosition) {
+  if (seriesPicker) {
+    if (seriesName) {
+      seriesPicker.setSuggestion(seriesName, seriesPosition);
+    } else {
+      seriesPicker.clear();
+    }
+  }
+}
+
+// Initialize Series Picker
+async function initSeriesPicker() {
+  if (seriesPicker || !seriesPickerContainer) return;
+
+  seriesPicker = new SeriesPicker({
+    container: seriesPickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      updateSaveButtonState();
+    }
+  });
+
+  await seriesPicker.init();
+
+  // Set initial series if book has one
+  if (book && book.seriesId) {
+    seriesPicker.setSelected(book.seriesId, book.seriesPosition);
+    originalSeriesId = book.seriesId;
   }
 }
 
@@ -268,9 +285,6 @@ function renderForm() {
   notesInput.value = book.notes || '';
   initRatingInput(book.rating || 0);
 
-  // Series display
-  setSeriesDisplay(book.seriesName, book.seriesPosition);
-
   // Reading dates
   const migratedBook = migrateBookReads(book);
   currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({...r}))] : [];
@@ -300,6 +314,7 @@ function renderForm() {
 
   // Initialize pickers
   initGenrePicker();
+  initSeriesPicker();
 
   // Cover picker
   if (book.covers && Object.keys(book.covers).length > 0) {
@@ -467,6 +482,11 @@ function checkFormDirty() {
   if (currentGenres.length !== originalValues.genres.length) return true;
   if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
 
+  // Check series
+  const currentSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: originalSeriesId };
+  if (currentSeries.seriesId !== originalSeriesId) return true;
+  if (currentSeries.seriesId && currentSeries.position !== book.seriesPosition) return true;
+
   return false;
 }
 
@@ -484,6 +504,7 @@ editForm.addEventListener('submit', async (e) => {
   clearFormErrors(editForm);
 
   const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
+  const selectedSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: null, position: null };
 
   const formData = {
     title: titleInput.value.trim(),
@@ -520,8 +541,8 @@ editForm.addEventListener('submit', async (e) => {
     publishedDate: validation.data.publishedDate || '',
     physicalFormat: validation.data.physicalFormat || '',
     pageCount: validation.data.pageCount || null,
-    seriesName: seriesNameInput.value.trim() || null,
-    seriesPosition: seriesPositionInput.value ? parseInt(seriesPositionInput.value, 10) : null,
+    seriesId: selectedSeries.seriesId,
+    seriesPosition: selectedSeries.position,
     rating: validation.data.rating || null,
     notes: validation.data.notes || '',
     genres: selectedGenres,
@@ -540,8 +561,18 @@ editForm.addEventListener('submit', async (e) => {
       await updateGenreBookCounts(currentUser.uid, addedGenres, removedGenres);
     }
 
+    // Update series book counts if series changed
+    const seriesChanged = selectedSeries.seriesId !== originalSeriesId;
+    if (seriesChanged) {
+      // Update counts: add to new series, remove from old series
+      await updateSeriesBookCounts(currentUser.uid, selectedSeries.seriesId, originalSeriesId);
+    }
+
     clearBooksCache(currentUser.uid);
     clearGenresCache();
+    if (seriesChanged) {
+      clearSeriesCache();
+    }
 
     // Reset dirty flag before redirect to prevent "leave site?" prompt
     formDirty = false;
@@ -680,9 +711,10 @@ refreshDataBtn.addEventListener('click', async () => {
         changedFields.push('cover');
       }
 
-      // Series from API
-      if (apiData.seriesName && !seriesNameInput.value) {
-        setSeriesDisplay(apiData.seriesName, apiData.seriesPosition);
+      // Series from API - suggest if no series currently selected
+      const currentSeriesSelection = seriesPicker ? seriesPicker.getSelected() : { seriesId: null };
+      if (apiData.seriesName && !currentSeriesSelection.seriesId) {
+        setSeriesSuggestion(apiData.seriesName, apiData.seriesPosition);
         changedFields.push('series');
       }
 
