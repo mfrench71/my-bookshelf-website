@@ -629,9 +629,14 @@ button, a {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(12, 1fr);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Widget size classes (desktop: 12-column grid) */
+[class*="widget-col-"] {
+  min-width: 0; /* Prevent grid blowout from content */
+}
 .widget-col-3 { grid-column: span 3; }   /* Quarter width */
 .widget-col-6 { grid-column: span 6; }   /* Half width */
 .widget-col-9 { grid-column: span 9; }   /* Three-quarter width */
@@ -698,7 +703,35 @@ button, a {
   color: #6b7280;
 }
 
-/* Widget content area */
+/* Widget content area - wrapper for widget content */
+.widget-content-area {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Widget scroll container - horizontal scrolling book list */
+.widget-scroll-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1rem;
+  scroll-padding-left: 1rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.widget-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.widget-scroll-container > * {
+  scroll-snap-align: start;
+}
+
+/* Legacy widget content (for non-scrolling widgets) */
 .widget-content {
   padding: 1rem;
   flex: 1;

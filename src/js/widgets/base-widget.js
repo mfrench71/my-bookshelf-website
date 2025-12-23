@@ -102,7 +102,7 @@ export class BaseWidget {
           </div>
           ${seeAllHtml}
         </div>
-        <div class="p-4">
+        <div class="widget-content-area">
           ${content}
         </div>
       </div>

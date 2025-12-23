@@ -38,7 +38,7 @@ export class RecentlyAddedWidget extends BaseWidget {
 
   static render(books, config, genreLookup) {
     return `
-      <div class="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+      <div class="widget-scroll-container">
         ${books.map(book => this.renderBookCard(book)).join('')}
       </div>
     `;

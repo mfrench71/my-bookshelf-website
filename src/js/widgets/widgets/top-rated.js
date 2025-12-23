@@ -40,7 +40,7 @@ export class TopRatedWidget extends BaseWidget {
     const filteredBooks = books.filter(b => b.rating >= minRating);
 
     return `
-      <div class="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+      <div class="widget-scroll-container">
         ${filteredBooks.map(book => this.renderBookCard(book)).join('')}
       </div>
     `;

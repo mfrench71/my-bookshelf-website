@@ -19,6 +19,7 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () =>
 // Import after mocks
 import { widgetRegistry } from '../src/js/widgets/registry.js';
 import { BaseWidget } from '../src/js/widgets/base-widget.js';
+import { WelcomeWidget } from '../src/js/widgets/widgets/welcome.js';
 import { CurrentlyReadingWidget } from '../src/js/widgets/widgets/currently-reading.js';
 import { RecentlyAddedWidget } from '../src/js/widgets/widgets/recently-added.js';
 import { TopRatedWidget } from '../src/js/widgets/widgets/top-rated.js';
@@ -168,6 +169,39 @@ describe('BaseWidget', () => {
 
   it('should have default getSeeAllParams returning null', () => {
     expect(BaseWidget.getSeeAllParams()).toBeNull();
+  });
+});
+
+describe('WelcomeWidget', () => {
+  it('should have correct static properties', () => {
+    expect(WelcomeWidget.id).toBe('welcome');
+    expect(WelcomeWidget.name).toBe('Welcome');
+    expect(WelcomeWidget.icon).toBe('home');
+    expect(WelcomeWidget.iconColor).toBe('text-primary');
+    expect(WelcomeWidget.defaultSize).toBe(12);
+  });
+
+  it('should return all books (no filtering)', () => {
+    const result = WelcomeWidget.filterAndSort(sampleBooks);
+    expect(result).toHaveLength(sampleBooks.length);
+  });
+
+  it('should render welcome message with stats', () => {
+    const config = { size: 12, settings: {} };
+    const html = WelcomeWidget.renderWidget(sampleBooks, config, {});
+    expect(html).toContain('Welcome back!');
+    expect(html).toContain(`${sampleBooks.length} book`);
+  });
+
+  it('should show books added this year', () => {
+    const thisYear = new Date().getFullYear();
+    const booksWithDates = [
+      { id: '1', title: 'Book 1', createdAt: new Date().toISOString() },
+      { id: '2', title: 'Book 2', createdAt: new Date(thisYear - 1, 0, 1).toISOString() }
+    ];
+    const config = { size: 12, settings: {} };
+    const html = WelcomeWidget.renderWidget(booksWithDates, config, {});
+    expect(html).toContain('1 added this year');
   });
 });
 

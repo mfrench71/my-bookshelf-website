@@ -24,8 +24,6 @@ let genres = [];
 let genreLookup = null;
 
 // DOM Elements
-const welcomeText = document.getElementById('welcome-text');
-const statsText = document.getElementById('stats-text');
 const widgetContainer = document.getElementById('widget-container');
 
 // Email Verification Elements
@@ -111,9 +109,6 @@ async function loadDashboard() {
     genreLookup = createGenreLookup(genres);
     books = booksResult;
 
-    // Update welcome message
-    updateWelcomeMessage();
-
     // Render widgets
     if (widgetContainer) {
       renderWidgets(widgetContainer, books, widgetSettings, genreLookup);
@@ -179,19 +174,3 @@ async function loadBooksData() {
   });
 }
 
-// Update welcome message
-function updateWelcomeMessage() {
-  // Calculate stats
-  const totalBooks = books.length;
-  const thisYear = new Date().getFullYear();
-  const booksThisYear = books.filter(b => {
-    const date = new Date(b.createdAt);
-    return date.getFullYear() === thisYear;
-  }).length;
-
-  welcomeText.textContent = 'Welcome back!';
-  statsText.textContent = `${totalBooks} book${totalBooks !== 1 ? 's' : ''} in your library`;
-  if (booksThisYear > 0) {
-    statsText.textContent += ` · ${booksThisYear} added this year`;
-  }
-}
