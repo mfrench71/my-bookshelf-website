@@ -6,6 +6,14 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/manifest.json");
   eleventyConfig.addPassthroughCopy("src/sw.js");
 
+  // Vendor files from node_modules (local instead of CDN)
+  eleventyConfig.addPassthroughCopy({
+    "node_modules/lucide/dist/umd/lucide.min.js": "vendor/lucide.min.js"
+  });
+  eleventyConfig.addPassthroughCopy({
+    "node_modules/@ericblade/quagga2/dist/quagga.min.js": "vendor/quagga.min.js"
+  });
+
   return {
     dir: {
       input: "src",
