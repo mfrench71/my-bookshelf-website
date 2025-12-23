@@ -11,11 +11,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 
-## UI/UX Consistency (IMPORTANT)
+## UI/UX Principles (CRITICAL)
 
-**Always prioritise UI/UX consistency across the entire application.** Before making any UI change, check how similar patterns are handled elsewhere and follow the same approach.
+This is a **mobile-first PWA** that should feel like a native app. Every feature must prioritise:
 
-### Checklist for Every Change
+### Core Principles
+1. **App-like Experience**: Instant feedback, smooth transitions, no page refreshes feeling
+2. **Responsive Design**: Mobile-first, works beautifully on all screen sizes
+3. **Snappy Interactions**: Immediate visual feedback on every tap/click
+4. **Lazy Loading**: Load content progressively, never block the UI
+5. **Offline-First**: App remains functional without network
+
+### Performance Requirements
+- **Touch targets**: Minimum 44px for all interactive elements
+- **Feedback latency**: Visual response within 100ms of user action
+- **Loading states**: Show skeletons/spinners, never blank screens
+- **Animations**: Use CSS transitions (not JS), keep under 300ms
+- **Images**: Lazy load with `loading="lazy"`, show placeholders
+
+### Consistency Checklist
 - [ ] Does this match the visual style of similar components?
 - [ ] Are error messages consistent with other forms?
 - [ ] Are empty states consistent with other empty states?
@@ -23,6 +37,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [ ] Do buttons/inputs follow the same sizing and styling?
 - [ ] Are toast messages using the correct type (success/error/info)?
 - [ ] Is the spacing and layout consistent with other pages?
+- [ ] Does it feel responsive and snappy on mobile?
+- [ ] Is there immediate visual feedback on interaction?
 
 ### Design Tokens
 Use the design tokens defined in `src/css/tailwind.css`:
