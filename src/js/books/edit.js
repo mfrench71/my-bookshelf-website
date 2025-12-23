@@ -516,6 +516,9 @@ editForm.addEventListener('submit', async (e) => {
     clearBooksCache(currentUser.uid);
     clearGenresCache();
 
+    // Reset dirty flag before redirect to prevent "leave site?" prompt
+    formDirty = false;
+
     showToast('Changes saved!', { type: 'success' });
 
     // Redirect to view page after save
