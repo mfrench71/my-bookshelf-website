@@ -17,14 +17,30 @@ scripts: '<script type="module" src="/js/books/edit.js"></script>'
   </div>
 </div>
 
-<!-- Loading -->
-<div id="loading" class="max-w-6xl mx-auto px-4 py-12 text-center">
-  <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-  <p class="text-gray-500 mt-3">Loading...</p>
+<!-- Loading (Skeleton Form) -->
+<div id="loading" class="max-w-2xl mx-auto px-4 py-6">
+  <div class="skeleton skeleton-text h-7 w-32 mb-6"></div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+    <!-- Cover skeleton -->
+    <div class="flex gap-4">
+      <div class="skeleton w-24 h-36 rounded-lg flex-shrink-0"></div>
+      <div class="flex-1 space-y-2">
+        <div class="skeleton skeleton-text w-full"></div>
+        <div class="skeleton skeleton-text w-3/4"></div>
+      </div>
+    </div>
+    <!-- Form fields skeleton -->
+    <div class="skeleton skeleton-text h-4 w-16"></div>
+    <div class="skeleton h-10 w-full rounded-lg"></div>
+    <div class="skeleton skeleton-text h-4 w-16"></div>
+    <div class="skeleton h-10 w-full rounded-lg"></div>
+    <div class="skeleton skeleton-text h-4 w-16"></div>
+    <div class="skeleton h-10 w-full rounded-lg"></div>
+  </div>
 </div>
 
 <!-- Edit Form -->
-<main id="content" class="hidden max-w-2xl mx-auto px-4 py-6">
+<main id="content" class="hidden max-w-2xl mx-auto px-4 py-6 page-content">
   <h1 id="page-title" class="text-xl font-bold text-gray-900 mb-6">Edit Book</h1>
 
   <form id="edit-form" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">

@@ -70,11 +70,19 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 </div>
 
 <!-- Main Content -->
-<main id="main-content" class="max-w-6xl mx-auto px-4 py-4 pb-24">
-  <!-- Loading State -->
-  <div id="loading-state" class="py-12 text-center">
-    <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-    <p class="text-gray-500 mt-3">Loading your books...</p>
+<main id="main-content" class="max-w-6xl mx-auto px-4 py-4 pb-24 page-content">
+  <!-- Loading State (Skeleton Cards) -->
+  <div id="loading-state" class="space-y-3">
+    {% for i in range(0, 5) %}
+    <div class="skeleton-card">
+      <div class="skeleton skeleton-cover"></div>
+      <div class="flex-1 min-w-0 py-1">
+        <div class="skeleton skeleton-text w-3/4"></div>
+        <div class="skeleton skeleton-text w-1/2"></div>
+        <div class="skeleton skeleton-text w-1/4 mt-2"></div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
 
   <!-- Empty State (no books in library) -->
@@ -97,7 +105,7 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 
 <!-- FAB - Add Book -->
 <a href="/books/add/"
-  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30">
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press">
   <i data-lucide="plus" class="w-6 h-6"></i>
 </a>
 

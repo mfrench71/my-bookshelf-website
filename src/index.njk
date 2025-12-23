@@ -5,7 +5,7 @@ permalink: /
 scripts: '<script type="module" src="/js/index.js"></script>'
 bodyClass: bg-gray-100
 ---
-<main class="max-w-6xl mx-auto px-4 py-6 pb-24">
+<main class="max-w-6xl mx-auto px-4 py-6 pb-24 page-content">
   <!-- Email Verification Banner -->
   <div id="verify-email-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
     <i data-lucide="mail" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
@@ -50,10 +50,40 @@ bodyClass: bg-gray-100
     </section>
   </div>
 
-  <!-- Loading State -->
-  <div id="loading-state" class="bg-white rounded-xl p-6 text-center shadow-sm">
-    <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-    <p class="text-gray-500 mt-3">Loading your dashboard...</p>
+  <!-- Loading State (Skeleton Dashboard) -->
+  <div id="loading-state" class="space-y-4">
+    <!-- Skeleton Section -->
+    <div class="bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <div class="skeleton skeleton-text w-32"></div>
+        <div class="skeleton skeleton-text w-16"></div>
+      </div>
+      <div class="flex gap-3 px-4 overflow-hidden">
+        {% for i in range(0, 5) %}
+        <div class="flex-shrink-0 w-24">
+          <div class="skeleton w-24 h-36 rounded-lg"></div>
+          <div class="skeleton skeleton-text w-20 mt-2"></div>
+          <div class="skeleton skeleton-text w-16"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <!-- Second Skeleton Section -->
+    <div class="bg-white rounded-xl pt-4 pb-3 shadow-sm">
+      <div class="flex items-center justify-between mb-3 px-4">
+        <div class="skeleton skeleton-text w-28"></div>
+        <div class="skeleton skeleton-text w-16"></div>
+      </div>
+      <div class="flex gap-3 px-4 overflow-hidden">
+        {% for i in range(0, 5) %}
+        <div class="flex-shrink-0 w-24">
+          <div class="skeleton w-24 h-36 rounded-lg"></div>
+          <div class="skeleton skeleton-text w-20 mt-2"></div>
+          <div class="skeleton skeleton-text w-16"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
   <!-- Dashboard Sections -->
@@ -106,7 +136,7 @@ bodyClass: bg-gray-100
 
 <!-- FAB - Add Book -->
 <a href="/books/add/"
-  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30">
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press">
   <i data-lucide="plus" class="w-6 h-6"></i>
 </a>
 
