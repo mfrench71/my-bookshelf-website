@@ -130,15 +130,24 @@ function renderCoverPicker(covers, currentCoverUrl) {
   }
 
   // Highlight currently selected
+  const googleBadge = coverOptionGoogle.querySelector('.cover-selected-badge');
+  const openLibraryBadge = coverOptionOpenLibrary.querySelector('.cover-selected-badge');
+
   if (currentCoverUrl === availableCovers.googleBooks) {
     coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+    googleBadge?.classList.remove('hidden');
   } else if (currentCoverUrl === availableCovers.openLibrary) {
     coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+    openLibraryBadge?.classList.remove('hidden');
   } else if (hasGoogle) {
     coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+    googleBadge?.classList.remove('hidden');
   } else if (hasOpenLibrary) {
     coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+    openLibraryBadge?.classList.remove('hidden');
   }
+
+  initIcons();
 }
 
 function selectCover(source) {
