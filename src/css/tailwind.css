@@ -637,13 +637,13 @@ button, a {
 .widget-col-9 { grid-column: span 9; }   /* Three-quarter width */
 .widget-col-12 { grid-column: span 12; } /* Full width */
 
-/* Tablet: 6-column grid (widgets span more) */
+/* Tablet: 6-column grid (widgets respect sizes proportionally) */
 @media (max-width: 1023px) {
   .widget-grid {
     grid-template-columns: repeat(6, 1fr);
   }
   .widget-col-3 { grid-column: span 3; }   /* Half width on tablet */
-  .widget-col-6 { grid-column: span 6; }   /* Full width on tablet */
+  .widget-col-6 { grid-column: span 3; }   /* Half width on tablet */
   .widget-col-9 { grid-column: span 6; }   /* Full width on tablet */
   .widget-col-12 { grid-column: span 6; }  /* Full width on tablet */
 }
@@ -666,6 +666,9 @@ button, a {
   border: 1px solid #f3f4f6;
   overflow: hidden;
   transition: box-shadow 0.2s ease-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .widget-card:hover {
@@ -698,6 +701,7 @@ button, a {
 /* Widget content area */
 .widget-content {
   padding: 1rem;
+  flex: 1;
 }
 
 /* Widget "See all" link */
