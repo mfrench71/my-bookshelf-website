@@ -35,12 +35,23 @@ MyBookShelf/
 │   │   ├── books.js            # Book CRUD + listing
 │   │   ├── add.js              # Add book logic + barcode scanner
 │   │   ├── book-detail.js      # Detail/edit logic
-│   │   ├── utils.js            # Shared utilities
-│   │   ├── book-card.js        # Book card component
+│   │   ├── utils.js            # Shared utilities (re-exports from utils/)
 │   │   ├── genres.js           # Genre CRUD and utilities
-│   │   ├── genre-picker.js     # Genre picker component
 │   │   ├── settings.js         # Settings page logic
-│   │   └── md5.js              # MD5 hash for Gravatar
+│   │   ├── md5.js              # MD5 hash for Gravatar
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── book-card.js    # Book card for list rendering
+│   │   │   ├── genre-picker.js # Multi-select genre input
+│   │   │   └── rating-input.js # Interactive star rating
+│   │   ├── schemas/            # Zod validation schemas
+│   │   │   ├── book.js         # Book form validation
+│   │   │   ├── auth.js         # Auth form validation
+│   │   │   └── genre.js        # Genre validation
+│   │   └── utils/              # Utility modules
+│   │       ├── cache.js        # Caching utilities
+│   │       ├── dom.js          # DOM helpers
+│   │       ├── api.js          # API utilities
+│   │       └── validation.js   # Form validation helpers
 │   └── sw.js                   # Service worker (v4)
 ├── tests/                # Vitest test files
 ├── _site/                # Built output (11ty)
@@ -79,6 +90,20 @@ MyBookShelf/
 - **ISBN Lookup Cache**: 24-hour TTL in localStorage for Google Books/Open Library results
 - **Genre Cache**: 5-minute in-memory TTL to reduce Firestore reads
 - **Gravatar Cache**: 24-hour localStorage cache for avatar existence checks
+
+### Caching Review (TODO)
+Consider removing the need for manual "Refresh library" menu option while maintaining:
+- **Cross-device sync**: Data should be up-to-date across all devices as quickly as possible
+- **Immediate updates**: Newly added/edited content must be available immediately
+- **Cost efficiency**: Minimise Firebase reads/writes
+
+**Options to explore:**
+1. **Firestore real-time listeners** (`onSnapshot`) - automatic sync but more reads
+2. **Visibility-based refresh** - refetch when tab becomes visible after being hidden
+3. **Stale-while-revalidate** - show cached data immediately, update in background
+4. **Push notifications** - Firebase Cloud Messaging to trigger refresh on other devices
+5. **Shorter cache TTL** - reduce from 5 min to 1-2 min for faster updates
+6. **Hybrid approach** - real-time for recent changes, cached for older data
 
 ### Data Enrichment Opportunities
 
@@ -198,6 +223,7 @@ API fields available but not currently stored (for future features):
 - [ ] Export to CSV
 - [ ] Import from Goodreads
 - [ ] Scheduled backups (automatic periodic JSON export)
+- [ ] Configurable display constants in Settings (e.g., books per page, max genre badges, etc.)
 
 ### Nice to Have
 - [ ] Reading statistics/charts

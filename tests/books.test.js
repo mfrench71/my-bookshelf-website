@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createMockBooks } from './setup.js';
-import { bookCard } from '../src/js/book-card.js';
+import { bookCard } from '../src/js/components/book-card.js';
 
 // Replicate sorting function from books.js for testing
 // Note: In production, createdAt is serialized to milliseconds (plain numbers)

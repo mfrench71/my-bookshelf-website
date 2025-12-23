@@ -11,7 +11,7 @@ import {
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from './utils.js';
-import { bookCard } from './book-card.js';
+import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 
 // Initialize icons once on load

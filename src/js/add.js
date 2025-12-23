@@ -10,8 +10,9 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from './utils.js';
-import { GenrePicker } from './genre-picker.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from './utils.js';
+import { GenrePicker } from './components/genre-picker.js';
+import { RatingInput } from './components/rating-input.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 import { BookFormSchema } from './schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
@@ -65,7 +66,7 @@ async function checkForDuplicate(userId, isbn, title, author) {
 
 // State
 let currentUser = null;
-let currentRating = 0;
+let ratingInput = null;
 let scannerRunning = false;
 let formDirty = false;
 let genrePicker = null;
@@ -99,16 +100,30 @@ const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
 const pageCountInput = document.getElementById('page-count');
 const submitBtn = document.getElementById('submit-btn');
-const starBtns = document.querySelectorAll('.star-btn');
+const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
+    initRatingInput();
     initGenrePicker();
   }
 });
+
+// Initialize Rating Input
+function initRatingInput() {
+  if (ratingInput) return;
+
+  ratingInput = new RatingInput({
+    container: ratingInputContainer,
+    value: 0,
+    onChange: () => {
+      formDirty = true;
+    }
+  });
+}
 
 // Initialize Genre Picker
 async function initGenrePicker() {
@@ -140,21 +155,6 @@ function updateGenreSuggestions(genres) {
   if (genrePicker) {
     genrePicker.setSuggestions(apiGenreSuggestions);
   }
-}
-
-// Rating Stars
-starBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const clickedRating = parseInt(btn.dataset.rating);
-    // Toggle off if clicking the same rating (allows clearing)
-    currentRating = currentRating === clickedRating ? 0 : clickedRating;
-    updateRatingStars();
-    formDirty = true;
-  });
-});
-
-function updateRatingStars() {
-  updateStars(starBtns, currentRating);
 }
 
 // Cover Picker
@@ -729,7 +729,7 @@ bookForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value,
-    rating: currentRating || null,
+    rating: ratingInput ? ratingInput.getValue() : null,
     notes: notesInput.value.trim()
   };
 
@@ -784,7 +784,7 @@ bookForm.addEventListener('submit', async (e) => {
     author,
     coverImageUrl: coverUrlInput.value.trim(),
     covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
-    rating: currentRating || null,
+    rating: ratingInput ? ratingInput.getValue() : null,
     notes: notesInput.value.trim(),
     isbn,
     genres: selectedGenres,

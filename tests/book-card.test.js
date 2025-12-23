@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { bookCard } from '../src/js/book-card.js';
+import { bookCard } from '../src/js/components/book-card.js';
 import { createMockBook, createSerializedBook, createSerializedBooks } from './setup.js';
 
 describe('bookCard', () => {

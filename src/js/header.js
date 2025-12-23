@@ -10,7 +10,7 @@ import {
   getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, clearBooksCache } from './utils.js';
-import { bookCard } from './book-card.js';
+import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { getGravatarUrl } from './md5.js';
 

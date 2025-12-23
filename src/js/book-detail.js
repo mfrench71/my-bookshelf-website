@@ -8,8 +8,9 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout, migrateBookReads, getCurrentRead, getBookStatus } from './utils.js';
-import { GenrePicker } from './genre-picker.js';
+import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout, migrateBookReads, getCurrentRead, getBookStatus } from './utils.js';
+import { GenrePicker } from './components/genre-picker.js';
+import { RatingInput } from './components/rating-input.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
 import { BookFormSchema } from './schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
@@ -33,7 +34,7 @@ if (backBtn) {
 let currentUser = null;
 let bookId = null;
 let book = null;
-let currentRating = 0;
+let ratingInput = null;
 let genrePicker = null;
 let originalGenres = [];
 let originalValues = {};
@@ -77,7 +78,7 @@ const refreshDataBtn = document.getElementById('refresh-data-btn');
 const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
-const starBtns = document.querySelectorAll('.star-btn');
+const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
 // Reading Dates Elements
@@ -322,8 +323,7 @@ function renderBook() {
   physicalFormatInput.value = book.physicalFormat || '';
   pageCountInput.value = book.pageCount || '';
   notesInput.value = book.notes || '';
-  currentRating = book.rating || 0;
-  updateRatingStars();
+  initRatingInput(book.rating || 0);
 
   // Migrate old format to reads array if needed
   const migratedBook = migrateBookReads(book);
@@ -378,19 +378,20 @@ async function fetchBookCovers(isbn) {
   }
 }
 
-// Rating Stars
-starBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const clickedRating = parseInt(btn.dataset.rating);
-    // Toggle off if clicking the same rating (allows clearing)
-    currentRating = currentRating === clickedRating ? 0 : clickedRating;
-    updateRatingStars();
-    updateSaveButtonState();
-  });
-});
+// Initialize Rating Input
+function initRatingInput(initialValue = 0) {
+  if (ratingInput) {
+    ratingInput.setValue(initialValue);
+    return;
+  }
 
-function updateRatingStars() {
-  updateStars(starBtns, currentRating);
+  ratingInput = new RatingInput({
+    container: ratingInputContainer,
+    value: initialValue,
+    onChange: () => {
+      updateSaveButtonState();
+    }
+  });
 }
 
 // Reading Dates Handlers
@@ -531,6 +532,7 @@ function checkFormDirty() {
   if (physicalFormatInput.value.trim() !== originalValues.physicalFormat) return true;
   if ((pageCountInput.value || '') !== String(originalValues.pageCount || '')) return true;
   if (notesInput.value.trim() !== originalValues.notes) return true;
+  const currentRating = ratingInput ? ratingInput.getValue() : 0;
   if (currentRating !== originalValues.rating) return true;
 
   // Check reads array
@@ -571,7 +573,7 @@ editForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value,
-    rating: currentRating || null,
+    rating: ratingInput ? ratingInput.getValue() : null,
     notes: notesInput.value.trim()
   };
 

@@ -1,8 +1,8 @@
 // Genre Picker Component
 // A reusable multi-select component for picking genres
 
-import { loadUserGenres, createGenre, GENRE_COLORS } from './genres.js';
-import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from './utils.js';
+import { loadUserGenres, createGenre, GENRE_COLORS } from '../genres.js';
+import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from '../utils.js';
 
 /**
  * GenrePicker - Multi-select genre picker with typeahead and create option

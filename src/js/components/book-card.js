@@ -1,5 +1,5 @@
 // Shared Book Card Component
-import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus } from './utils.js';
+import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus } from '../utils.js';
 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
