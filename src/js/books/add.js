@@ -295,7 +295,17 @@ async function searchBooks(query) {
   // Clear accumulated genre suggestions from previous searches
   apiGenreSuggestions = [];
 
-  searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
+  // Show skeleton loaders
+  searchResultsDiv.innerHTML = Array(3).fill(`
+    <div class="flex gap-3 p-2 border border-gray-100 rounded-lg">
+      <div class="skeleton w-12 h-18 rounded flex-shrink-0"></div>
+      <div class="flex-1 space-y-2">
+        <div class="skeleton h-4 w-3/4 rounded"></div>
+        <div class="skeleton h-3 w-1/2 rounded"></div>
+        <div class="skeleton h-2 w-2/3 rounded"></div>
+      </div>
+    </div>
+  `).join('');
   searchResultsDiv.classList.remove('hidden');
 
   const result = await fetchSearchResults();
