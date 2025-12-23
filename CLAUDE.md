@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Guidelines
 
 - Do not automatically push commits to remote. Always wait for explicit user approval before pushing.
+- Apply logical commits as you work. Group related changes together and commit after completing each logical unit of work (e.g., after creating a new file/component, after fixing a bug, after updating tests).
 - When adding or updating features, always write or update corresponding tests. Run `npm test` to verify all tests pass before committing.
 - Keep PROJECT.md up to date as features are added or changed. Update roadmap, architecture notes, and current sprint status.
 - Keep CHANGELOG.md up to date with notable changes, grouped by date. Include features, bug fixes, and breaking changes.
