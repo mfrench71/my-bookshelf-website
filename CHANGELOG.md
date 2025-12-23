@@ -3,11 +3,21 @@
 All notable changes to MyBookShelf are documented here.
 
 ## [Unreleased]
-- Extensible widget dashboard system (Sprint 4)
+- Nothing yet
 
 ---
 
 ## 2025-12-23
+
+### Sprint 4: Widget Dashboard ✅
+- **Widget System**: Extensible registry pattern with base widget class
+- **5 Widgets**: Welcome, Currently Reading, Recently Added, Top Rated, Recently Finished
+- **12-Column Grid**: Responsive layout with 4 size options (quarter, half, three-quarter, full)
+- **Settings Configuration**: Reorder, toggle visibility, and resize widgets
+- **Firestore Sync**: Widget settings persist across devices
+- **Auto-Merge**: New widgets automatically added to existing user settings
+- **CLS Prevention**: Fixed icon layout shift with CSS
+- **Bug Fixes**: Rating validation (0 allowed), form dirty state after save
 
 ### Sprint 5: Polish & Testing
 - **E2E Testing**: Added Playwright tests (34 tests covering navigation, auth, accessibility)
@@ -119,6 +129,7 @@ All notable changes to MyBookShelf are documented here.
 
 | Version | Date | Milestone |
 |---------|------|-----------|
+| 0.6.0 | 2025-12-23 | Sprint 4 - Widget Dashboard |
 | 0.5.0 | 2025-12-23 | Sprint 5 - Polish & Testing |
 | 0.4.0 | 2025-12-23 | Sprint 3 - Component Refactoring |
 | 0.3.0 | 2025-12-22 | Cover Picker & Read History |
