@@ -129,6 +129,79 @@ npm test && npm run build
 - [ ] Social features (follow, share)
 - [ ] Reading goals/challenges
 
+### Bulk Tools
+- [ ] Bulk select mode (checkbox on each book card)
+- [ ] Select all / deselect all
+- [ ] Bulk delete selected books
+- [ ] Bulk update fields (rating, genres)
+- [ ] Bulk export selected books (JSON/CSV)
+- [ ] Bulk add from ISBN list (paste multiple ISBNs)
+
+### Genre Enhancements
+- [ ] Merge duplicate genres
+- [ ] Improved genre suggestions (parse hierarchical categories, normalise variations)
+- [ ] Match API suggestions to existing user genres
+
+### User Lists / Shelves
+- [ ] Custom user lists (beyond built-in statuses)
+- [ ] Assign books to multiple lists
+- [ ] List CRUD (create, read, update, delete)
+- [ ] Drag and drop reordering within lists
+
+### Book Series
+- [ ] Link books to a series (e.g., "Harry Potter #1")
+- [ ] Series view page (all books in a series)
+- [ ] Auto-detect series from API data
+- [ ] Series completion progress
+
+### Reading Timer & Sessions
+- [ ] Built-in reading timer with start/pause/stop
+- [ ] Log reading sessions with duration and pages read
+- [ ] Calculate reading speed (pages per minute/hour)
+- [ ] Estimate time to finish book based on pace
+
+### Advanced Statistics
+- [ ] Visual reading stats dashboard
+- [ ] Books read per month/year charts
+- [ ] Reading streaks and daily goals
+- [ ] Genre distribution pie chart
+- [ ] Rating distribution histogram
+
+### Mood & Emotion Tracking
+- [ ] Tag books by mood (adventurous, funny, dark, emotional)
+- [ ] Tag books by pacing (fast, medium, slow)
+- [ ] Content warnings/triggers
+- [ ] Discover books by mood filters
+
+### Gamification
+- [ ] Reading streaks (days in a row)
+- [ ] Achievement badges (first book, 10 books, etc.)
+- [ ] Annual reading challenge/goals
+- [ ] Shareable reading stats cards
+
+### Social Features
+- [ ] Follow other readers
+- [ ] Book clubs/groups
+- [ ] Activity feed
+- [ ] Share reviews publicly
+
+### Quote Capture & Reading Journal
+- [ ] Save favourite quotes manually
+- [ ] OCR quote capture (photograph text, transcribe)
+- [ ] Reading journal with progress update notes
+
+### Library Health Dashboard
+- [ ] Books missing cover image
+- [ ] Books missing genre
+- [ ] Books missing publisher/date/format
+- [ ] Quick-fix actions (batch assign genre, refresh from API)
+
+### Privacy Settings
+- [ ] Profile visibility (public/private)
+- [ ] Per-book privacy controls
+- [ ] Download all my data (GDPR-style export)
+- [ ] Clear local cache/data
+
 ### Technical Debt
 - [ ] Full Zod validation (remove HTML validation attributes)
 - [ ] Tree-shake Lucide icons (387KB → ~30KB)
@@ -188,16 +261,32 @@ For 500+ books:
 ### Key Competitors
 | App | Strengths | Weaknesses |
 |-----|-----------|------------|
-| Goodreads | Large community | Outdated UI, Amazon-owned |
-| StoryGraph | Mood/pacing charts, AI recommendations | No reading timer |
-| Bookly | Reading timer, gamification | Subscription required |
-| Hardcover | Ad-free, modern UI, API | Smaller community |
+| Goodreads | Largest community, social features | Outdated UI, Amazon-owned, no half-stars |
+| StoryGraph | Mood/pacing charts, AI recommendations, quarter-stars | No reading timer |
+| Bookly | Reading timer, gamification, streaks, ambient sounds | Subscription required |
+| Bookmory | Timer, quotes, notes with photos, statistics | Less social features |
+| Hardcover | Ad-free, per-book privacy, modern UI, API | Smaller community |
+| Literal | Quote-centric, public API, book clubs | Limited free features |
+| Oku | Minimalist design, clean UI, ad-free | Premium required for goals |
+| Book Tracker | Native iOS, OCR quote capture, loan tracking | iOS only |
 
 ### Feature Inspiration
-- **Reading Timer**: Track sessions, calculate reading speed
-- **Mood Tracking**: Tag by mood, pacing, content warnings
-- **Gamification**: Streaks, badges, annual challenges
-- **Quote Capture**: OCR from photos, reading journal
+- **Reading Timer**: Track sessions, calculate reading speed, ambient sounds
+- **Mood Tracking**: Tag by mood, pacing, content warnings with severity levels
+- **Gamification**: Streaks, badges, annual challenges, progress bars
+- **Quote Capture**: OCR from photos, reading journal, highlight capture
+- **Advanced Stats**: Year-over-year comparison, custom charts, reading speed trends
+- **Privacy**: Per-book visibility, anonymous browsing mode
+- **Social**: Buddy reads, readalongs, direct messaging
+
+### Research Sources
+- [The StoryGraph](https://thestorygraph.com/)
+- [Bookly](https://getbookly.com/)
+- [Book Tracker App](https://booktrack.app/)
+- [Hardcover](https://hardcover.app/)
+- [Literal](https://literal.club/)
+- [Oku](https://oku.club/)
+- [Book Riot Comparison](https://bookriot.com/best-book-tracking-app/)
 
 ---
 

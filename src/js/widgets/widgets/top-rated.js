@@ -61,7 +61,7 @@ export class TopRatedWidget extends BaseWidget {
         ${cover}
         <h3 class="text-sm font-medium text-gray-900 mt-2 line-clamp-2">${escapeHtml(book.title)}</h3>
         <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown')}</p>
-        <div class="mt-1">${renderStars(book.rating || 0, 'w-3 h-3')}</div>
+        <div class="rating-stars mt-1">${renderStars(book.rating || 0)}</div>
       </a>
     `;
   }

@@ -34,6 +34,10 @@ import {
 } from './genres.js';
 import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
+import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from './utils/widget-settings.js';
+import { getWidgetInfo, WIDGET_SIZES } from './widgets/widget-renderer.js';
+// Import widgets to ensure they're registered
+import './widgets/index.js';
 
 // Initialize icons once on load
 initIcons();
@@ -232,7 +236,6 @@ function toggleAccordion(sectionId) {
   if (isExpanded) {
     // Collapse this section
     content.classList.add('hidden');
-    content.classList.remove('open');
     icon?.classList.remove('rotate-180');
   } else {
     // Close all other accordions first
@@ -242,14 +245,12 @@ function toggleAccordion(sectionId) {
         const otherSectionId = otherSection.id.replace('-section', '');
         const otherIcon = document.querySelector(`[data-accordion="${otherSectionId}"] .accordion-icon`);
         otherContent?.classList.add('hidden');
-        otherContent?.classList.remove('open');
         otherIcon?.classList.remove('rotate-180');
       }
     });
 
     // Expand this section
     content.classList.remove('hidden');
-    content.classList.add('open');
     icon?.classList.add('rotate-180');
 
     // Scroll to the accordion header, accounting for sticky header
@@ -277,21 +278,20 @@ function initializeAccordions() {
       const icon = document.querySelector(`[data-accordion="${sectionId}"] .accordion-icon`);
 
       if (sectionId === 'profile') {
+        // Expand profile section
         content?.classList.remove('hidden');
-        content?.classList.add('open');
         icon?.classList.add('rotate-180');
       } else {
+        // Collapse other sections
         content?.classList.add('hidden');
-        content?.classList.remove('open');
         icon?.classList.remove('rotate-180');
       }
     });
   } else {
-    // On desktop: ensure all accordion content is visible (not collapsed from mobile)
+    // On desktop: ensure all accordion content is visible (expanded)
     sections.forEach(section => {
       const content = section.querySelector('.accordion-content');
       content?.classList.remove('hidden');
-      content?.classList.add('open');
     });
     // Then use sidebar navigation to show only active section
     switchSection('profile');
@@ -1613,44 +1613,228 @@ cleanupAccordion?.addEventListener('click', () => {
   setTimeout(checkAndLoadCoverStats, 100);
 });
 
-// ==================== Home Content Settings ====================
+// ==================== Home Content Settings (Widget System) ====================
 
-// Initialize content settings UI
-function initContentSettings() {
-  const settings = getHomeSettings();
-  const sections = ['currentlyReading', 'recentlyAdded', 'topRated', 'recentlyFinished'];
+// DOM Elements - Widget Settings
+const widgetsLoading = document.getElementById('widgets-loading');
+const widgetSettingsList = document.getElementById('widget-settings-list');
 
-  sections.forEach(section => {
-    const toggle = document.getElementById(`toggle-${section}`);
-    const countSelect = document.getElementById(`count-${section}`);
+// Widget settings state
+let widgetSettings = null;
 
-    if (toggle) {
-      toggle.checked = settings[section]?.enabled ?? true;
-      toggle.addEventListener('change', () => {
-        const currentSettings = getHomeSettings();
-        currentSettings[section] = {
-          ...currentSettings[section],
-          enabled: toggle.checked
-        };
-        saveHomeSettings(currentSettings);
-        showToast('Settings saved', { type: 'success' });
-      });
-    }
+/**
+ * Load and render widget settings
+ */
+async function loadAndRenderWidgetSettings() {
+  if (!currentUser || !widgetSettingsList) return;
 
-    if (countSelect) {
-      countSelect.value = String(settings[section]?.count ?? 6);
-      countSelect.addEventListener('change', () => {
-        const currentSettings = getHomeSettings();
-        currentSettings[section] = {
-          ...currentSettings[section],
-          count: parseInt(countSelect.value, 10)
-        };
-        saveHomeSettings(currentSettings);
-        showToast('Settings saved', { type: 'success' });
-      });
-    }
+  try {
+    widgetSettings = await loadWidgetSettings(currentUser.uid);
+    renderWidgetSettings();
+  } catch (error) {
+    console.error('Error loading widget settings:', error);
+    showToast('Error loading widget settings', { type: 'error' });
+  }
+}
+
+/**
+ * Render widget settings UI
+ */
+function renderWidgetSettings() {
+  if (!widgetSettings || !widgetSettingsList) return;
+
+  const widgetInfo = getWidgetInfo();
+  const widgetInfoMap = new Map(widgetInfo.map(w => [w.id, w]));
+
+  // Sort widgets by order
+  const sortedWidgets = [...widgetSettings.widgets].sort((a, b) => a.order - b.order);
+
+  widgetSettingsList.innerHTML = sortedWidgets.map((widget, index) => {
+    const info = widgetInfoMap.get(widget.id);
+    if (!info) return '';
+
+    const isFirst = index === 0;
+    const isLast = index === sortedWidgets.length - 1;
+
+    return `
+      <div class="bg-gray-50 rounded-xl p-4" data-widget-id="${widget.id}">
+        <div class="flex items-center gap-3">
+          <!-- Reorder Buttons -->
+          <div class="flex flex-col gap-0.5">
+            <button class="move-up-btn p-1 rounded hover:bg-gray-200 ${isFirst ? 'opacity-30 cursor-not-allowed' : ''}"
+                    data-id="${widget.id}" ${isFirst ? 'disabled' : ''} title="Move up">
+              <i data-lucide="chevron-up" class="w-4 h-4 text-gray-500"></i>
+            </button>
+            <button class="move-down-btn p-1 rounded hover:bg-gray-200 ${isLast ? 'opacity-30 cursor-not-allowed' : ''}"
+                    data-id="${widget.id}" ${isLast ? 'disabled' : ''} title="Move down">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
+            </button>
+          </div>
+
+          <!-- Widget Info -->
+          <i data-lucide="${info.icon}" class="w-5 h-5 ${info.iconColor}"></i>
+          <span class="font-medium text-gray-900 flex-1">${info.name}</span>
+
+          <!-- Toggle -->
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="widget-toggle sr-only peer" data-id="${widget.id}" ${widget.enabled ? 'checked' : ''}>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
+
+        <!-- Settings Row -->
+        <div class="flex items-center gap-4 mt-3 pl-10">
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600">Items:</label>
+            <select class="widget-count px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
+              <option value="3" ${widget.settings?.count === 3 ? 'selected' : ''}>3</option>
+              <option value="6" ${(widget.settings?.count || 6) === 6 ? 'selected' : ''}>6</option>
+              <option value="9" ${widget.settings?.count === 9 ? 'selected' : ''}>9</option>
+              <option value="12" ${widget.settings?.count === 12 ? 'selected' : ''}>12</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600">Size:</label>
+            <select class="widget-size px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
+              ${WIDGET_SIZES.map(size => `
+                <option value="${size.value}" ${widget.size === size.value ? 'selected' : ''}>${size.label}</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Hide loading, show list
+  widgetsLoading?.classList.add('hidden');
+  widgetSettingsList.classList.remove('hidden');
+
+  // Attach event listeners
+  attachWidgetSettingsListeners();
+  initIcons();
+}
+
+/**
+ * Attach event listeners to widget settings controls
+ */
+function attachWidgetSettingsListeners() {
+  // Toggle listeners
+  widgetSettingsList.querySelectorAll('.widget-toggle').forEach(toggle => {
+    toggle.addEventListener('change', async (e) => {
+      const widgetId = e.target.dataset.id;
+      const enabled = e.target.checked;
+      await updateWidgetSetting(widgetId, { enabled });
+    });
+  });
+
+  // Count select listeners
+  widgetSettingsList.querySelectorAll('.widget-count').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const widgetId = e.target.dataset.id;
+      const count = parseInt(e.target.value, 10);
+      await updateWidgetSetting(widgetId, { settings: { count } });
+    });
+  });
+
+  // Size select listeners
+  widgetSettingsList.querySelectorAll('.widget-size').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const widgetId = e.target.dataset.id;
+      const size = parseInt(e.target.value, 10);
+      await updateWidgetSetting(widgetId, { size });
+    });
+  });
+
+  // Move up listeners
+  widgetSettingsList.querySelectorAll('.move-up-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const widgetId = btn.dataset.id;
+      await moveWidget(widgetId, -1);
+    });
+  });
+
+  // Move down listeners
+  widgetSettingsList.querySelectorAll('.move-down-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const widgetId = btn.dataset.id;
+      await moveWidget(widgetId, 1);
+    });
   });
 }
 
-// Initialize content settings on load
-initContentSettings();
+/**
+ * Update a single widget setting
+ */
+async function updateWidgetSetting(widgetId, updates) {
+  if (!widgetSettings || !currentUser) return;
+
+  const widgetIndex = widgetSettings.widgets.findIndex(w => w.id === widgetId);
+  if (widgetIndex === -1) return;
+
+  // Update local state
+  widgetSettings.widgets[widgetIndex] = {
+    ...widgetSettings.widgets[widgetIndex],
+    ...updates,
+    settings: {
+      ...widgetSettings.widgets[widgetIndex].settings,
+      ...updates.settings
+    }
+  };
+
+  try {
+    await saveWidgetSettings(currentUser.uid, widgetSettings);
+    showToast('Settings saved', { type: 'success' });
+  } catch (error) {
+    console.error('Error saving widget settings:', error);
+    showToast('Error saving settings', { type: 'error' });
+  }
+}
+
+/**
+ * Move a widget up or down
+ */
+async function moveWidget(widgetId, direction) {
+  if (!widgetSettings || !currentUser) return;
+
+  const sortedWidgets = [...widgetSettings.widgets].sort((a, b) => a.order - b.order);
+  const currentIndex = sortedWidgets.findIndex(w => w.id === widgetId);
+  const newIndex = currentIndex + direction;
+
+  if (newIndex < 0 || newIndex >= sortedWidgets.length) return;
+
+  // Swap orders
+  const orderedIds = sortedWidgets.map(w => w.id);
+  [orderedIds[currentIndex], orderedIds[newIndex]] = [orderedIds[newIndex], orderedIds[currentIndex]];
+
+  try {
+    widgetSettings = await reorderWidgets(currentUser.uid, orderedIds);
+    renderWidgetSettings();
+    showToast('Order updated', { type: 'success' });
+  } catch (error) {
+    console.error('Error reordering widgets:', error);
+    showToast('Error updating order', { type: 'error' });
+  }
+}
+
+// Load widget settings when content section becomes visible
+const contentSection = document.getElementById('content-section');
+const contentNavBtn = document.querySelector('[data-section="content"]');
+const contentAccordion = document.querySelector('[data-accordion="content"]');
+let widgetSettingsLoaded = false;
+
+function checkAndLoadWidgetSettings() {
+  if (widgetSettingsLoaded || !currentUser) return;
+  widgetSettingsLoaded = true;
+  loadAndRenderWidgetSettings();
+}
+
+// Load when switching to content section (desktop)
+contentNavBtn?.addEventListener('click', () => {
+  setTimeout(checkAndLoadWidgetSettings, 100);
+});
+
+// Load when expanding content accordion (mobile)
+contentAccordion?.addEventListener('click', () => {
+  setTimeout(checkAndLoadWidgetSettings, 100);
+});
