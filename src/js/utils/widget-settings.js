@@ -59,6 +59,21 @@ export async function loadWidgetSettings(userId) {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
+
+      // Merge in any new widgets that don't exist in saved settings
+      const defaultConfigs = getDefaultWidgetConfigs();
+      const existingIds = new Set(data.widgets.map(w => w.id));
+      const newWidgets = defaultConfigs.filter(w => !existingIds.has(w.id));
+
+      if (newWidgets.length > 0) {
+        // Add new widgets at the beginning (order 0) and shift existing ones
+        const maxOrder = Math.max(...data.widgets.map(w => w.order), -1);
+        newWidgets.forEach((widget, i) => {
+          widget.order = maxOrder + 1 + i;
+        });
+        data.widgets = [...data.widgets, ...newWidgets];
+      }
+
       // Cache locally for offline access
       localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(data));
       return data;
