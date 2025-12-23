@@ -152,6 +152,43 @@ API fields available but not currently stored (for future features):
 - [ ] Add limits to all `getDocs()` calls
 - [ ] Implement server-side search (Algolia or Firestore full-text)
 
+### Performance Optimization Opportunities
+
+**Current Bundle Sizes (December 2025 Audit):**
+| Asset | Size | Notes |
+|-------|------|-------|
+| CSS (Tailwind) | 56KB | Minified, acceptable |
+| Lucide Icons | 387KB | Full icon set |
+| Quagga (barcode) | 157KB | Lazy loaded on add page only ✓ |
+| Zod (validation) | 294KB | Full library bundled |
+| Custom JS | 772KB | Unminified source files |
+
+**Implemented Optimizations:**
+- [x] Quagga lazy loaded only on `/books/add/` page via `headScripts`
+- [x] CSS minified by Tailwind
+- [x] Service worker caches static assets
+- [x] Cover images cached with 200-image limit
+
+**Future Optimization Opportunities:**
+- [ ] **Tree-shake Lucide icons** - Currently loads full 387KB icon set. Could reduce to ~20-30KB by bundling only the ~50 icons actually used (book-open, search, menu, x, star, etc.)
+- [ ] **Minify JavaScript** - Custom JS files are unminified. Using esbuild or terser could reduce 772KB by 60-70%
+- [ ] **Bundle JavaScript** - Combine modules into fewer files to reduce HTTP requests
+- [ ] **Code-split by route** - Load page-specific JS only when needed (currently all pages load similar amount)
+- [ ] **Smaller validation library** - Zod (294KB) is feature-rich but large. Consider Valibot (~5KB) or Superstruct (~10KB) for smaller bundle
+- [ ] **Image lazy loading** - Add `loading="lazy"` to cover images in carousels and lists
+- [ ] **Preconnect hints** - Add `<link rel="preconnect">` for Firebase, Google Books API domains
+- [ ] **Font subsetting** - If custom fonts added, subset to used characters only
+
+**Build Pipeline Improvements:**
+- [ ] Add esbuild or Vite for JS bundling and minification
+- [ ] Configure Tailwind purge for production (already enabled via `@source` directive)
+- [ ] Add source maps for debugging minified code
+- [ ] Consider switching to Vite for faster dev server and better bundling
+
+**Monitoring:**
+- [ ] Add Lighthouse CI to GitHub Actions for performance regression tracking
+- [ ] Set up bundle size alerts (e.g., bundlewatch)
+
 ## Development Progress
 
 ### Completed
