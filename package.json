@@ -13,7 +13,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed"
   },
   "repository": {
     "type": "git",
@@ -29,8 +32,10 @@
   "homepage": "https://github.com/mfrench71/my-bookshelf-website#readme",
   "devDependencies": {
     "@11ty/eleventy": "^3.1.2",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/cli": "^4.1.18",
     "@testing-library/dom": "^10.4.1",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
