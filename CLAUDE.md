@@ -31,6 +31,10 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 - **Loading states**: Show skeletons/spinners, never blank screens
 - **Animations**: Use CSS transitions (not JS), keep under 300ms
 - **Images**: Lazy load with `loading="lazy"`, show placeholders
+- **Minimise CLS**: Reserve space for async content (icons, images) to prevent layout shift:
+  - Icons: Ensure `[data-lucide]` elements have explicit dimensions before Lucide loads
+  - Images: Use fixed aspect ratios or explicit width/height
+  - Dynamic content: Use skeleton loaders that match final dimensions
 
 ### Consistency Checklist
 - [ ] Does this match the visual style of similar components?

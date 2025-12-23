@@ -44,6 +44,11 @@
 
 /* Custom Styles for MyBookShelf */
 
+/* Icon loading - prevent CLS by ensuring dimensions apply before Lucide loads */
+[data-lucide] {
+  display: block;
+}
+
 /* Hide scrollbar but allow scrolling */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
