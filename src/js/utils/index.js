@@ -62,3 +62,14 @@ export {
   getCurrentRead,
   getBookStatus
 } from './reading.js';
+
+// Validation utilities
+export {
+  validateField,
+  validateForm,
+  showFieldError,
+  clearFormErrors,
+  showFormErrors,
+  getFormData,
+  setupFieldValidation
+} from './validation.js';

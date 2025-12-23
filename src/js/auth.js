@@ -7,6 +7,8 @@ import {
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons, checkPasswordStrength } from './utils.js';
+import { LoginSchema, RegisterSchema } from './schemas/auth.js';
+import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
 
 // Initialize Lucide icons
 initIcons();
@@ -123,12 +125,28 @@ loginForm?.addEventListener('submit', async (e) => {
   const password = document.getElementById('login-password').value;
   const submitBtn = loginForm.querySelector('button[type="submit"]');
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Signing in...';
+  // Clear previous errors
+  clearFormErrors(loginForm);
   authError.classList.add('hidden');
 
+  // Validate form data
+  const validation = validateForm(LoginSchema, { email, password });
+  if (!validation.success) {
+    // Show field-level errors
+    if (validation.errors.email) {
+      showFieldError(document.getElementById('login-email'), validation.errors.email);
+    }
+    if (validation.errors.password) {
+      showFieldError(document.getElementById('login-password'), validation.errors.password);
+    }
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Signing in...';
+
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(auth, validation.data.email, password);
     // Redirect happens via onAuthStateChanged
   } catch (error) {
     showError(getErrorMessage(error.code));
@@ -143,13 +161,26 @@ registerForm?.addEventListener('submit', async (e) => {
 
   const email = document.getElementById('register-email').value;
   const password = document.getElementById('register-password').value;
-  const passwordConfirm = document.getElementById('register-password-confirm').value;
+  const confirmPassword = document.getElementById('register-password-confirm').value;
   const submitBtn = registerForm.querySelector('button[type="submit"]');
 
+  // Clear previous errors
+  clearFormErrors(registerForm);
   authError.classList.add('hidden');
 
-  if (password !== passwordConfirm) {
-    showError('Passwords do not match');
+  // Validate form data
+  const validation = validateForm(RegisterSchema, { email, password, confirmPassword });
+  if (!validation.success) {
+    // Show field-level errors
+    if (validation.errors.email) {
+      showFieldError(document.getElementById('register-email'), validation.errors.email);
+    }
+    if (validation.errors.password) {
+      showFieldError(document.getElementById('register-password'), validation.errors.password);
+    }
+    if (validation.errors.confirmPassword) {
+      showFieldError(document.getElementById('register-password-confirm'), validation.errors.confirmPassword);
+    }
     return;
   }
 
@@ -157,7 +188,7 @@ registerForm?.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Creating account...';
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, validation.data.email, password);
     // Send verification email
     try {
       await sendEmailVerification(userCredential.user);

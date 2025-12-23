@@ -11,6 +11,8 @@ import {
 import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout, migrateBookReads, getCurrentRead, getBookStatus } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
+import { BookFormSchema } from './schemas/book.js';
+import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
 
 // Initialize icons once on load
 initIcons();
@@ -554,23 +556,51 @@ function updateSaveButtonState() {
 editForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Saving...';
+  // Clear previous validation errors
+  clearFormErrors(editForm);
 
   // Get selected genres from picker
   const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
 
-  const updates = {
+  // Validate form data
+  const formData = {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
     coverImageUrl: coverUrlInput.value.trim(),
-    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
-    pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
+    pageCount: pageCountInput.value,
     rating: currentRating || null,
-    notes: notesInput.value.trim(),
+    notes: notesInput.value.trim()
+  };
+
+  const validation = validateForm(BookFormSchema, formData);
+  if (!validation.success) {
+    // Show field-level errors
+    if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
+    if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
+    if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
+    if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
+    if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
+    showToast('Please fix the errors above', { type: 'error' });
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
+  const updates = {
+    title: validation.data.title,
+    author: validation.data.author,
+    coverImageUrl: validation.data.coverImageUrl || '',
+    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
+    publisher: validation.data.publisher || '',
+    publishedDate: validation.data.publishedDate || '',
+    physicalFormat: validation.data.physicalFormat || '',
+    pageCount: validation.data.pageCount || null,
+    rating: validation.data.rating || null,
+    notes: validation.data.notes || '',
     genres: selectedGenres,
     reads: currentReads,
     updatedAt: serverTimestamp()

@@ -11,6 +11,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 
+## UI/UX Consistency (IMPORTANT)
+
+**Always prioritise UI/UX consistency across the entire application.** Before making any UI change, check how similar patterns are handled elsewhere and follow the same approach.
+
+### Checklist for Every Change
+- [ ] Does this match the visual style of similar components?
+- [ ] Are error messages consistent with other forms?
+- [ ] Are empty states consistent with other empty states?
+- [ ] Are loading states consistent with other loading states?
+- [ ] Do buttons/inputs follow the same sizing and styling?
+- [ ] Are toast messages using the correct type (success/error/info)?
+- [ ] Is the spacing and layout consistent with other pages?
+
+### Design Tokens
+Use the design tokens defined in `src/css/tailwind.css`:
+- Colours: `primary`, `primary-dark`, `primary-light`, `success`, `error`, `warning`, `info`
+- Shadows: `shadow-xs`, `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl`
+- Border radius: `radius-sm`, `radius-md`, `radius-lg`, `radius-xl`, `radius-full`
+- Transitions: `transition-fast`, `transition-normal`, `transition-slow`
+
+### Component Patterns
+- Forms: Use validation schemas from `src/js/schemas/` and helpers from `src/js/utils/validation.js`
+- Toasts: Use `showToast(message, { type: 'success' | 'error' | 'info' })`
+- Icons: Use Lucide icons and call `initIcons()` after dynamic insertion
+- Empty states: Show helpful message with icon and action button where appropriate
+- Error states: Red border, error message below input, clear on valid input
+
 ## Build & Development Commands
 
 ```bash

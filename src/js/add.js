@@ -13,6 +13,8 @@ import {
 import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, updateRatingStars as updateStars, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from './utils.js';
 import { GenrePicker } from './genre-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from './genres.js';
+import { BookFormSchema } from './schemas/book.js';
+import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
 
 // Initialize icons once on load
 initIcons();
@@ -699,6 +701,9 @@ function closeScanner() {
 bookForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  // Clear previous validation errors
+  clearFormErrors(bookForm);
+
   // Check for offline before attempting Firebase operation
   if (!isOnline()) {
     showToast('You are offline. Please check your connection.', { type: 'error' });
@@ -714,8 +719,30 @@ bookForm.addEventListener('submit', async (e) => {
   const author = authorInput.value.trim();
   const isbn = isbnInput.value.trim().replace(/-/g, '');
 
-  if (!title || !author) {
-    showToast('Title and author are required', { type: 'error' });
+  // Validate form data
+  const formData = {
+    title,
+    author,
+    isbn,
+    coverImageUrl: coverUrlInput.value.trim(),
+    publisher: publisherInput.value.trim(),
+    publishedDate: publishedDateInput.value.trim(),
+    physicalFormat: physicalFormatInput.value.trim(),
+    pageCount: pageCountInput.value,
+    rating: currentRating || null,
+    notes: notesInput.value.trim()
+  };
+
+  const validation = validateForm(BookFormSchema, formData);
+  if (!validation.success) {
+    // Show field-level errors
+    if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
+    if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
+    if (validation.errors.isbn) showFieldError(isbnInput, validation.errors.isbn);
+    if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
+    if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
+    if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
+    showToast('Please fix the errors above', { type: 'error' });
     return;
   }
 

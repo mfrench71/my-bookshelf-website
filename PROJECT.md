@@ -208,6 +208,17 @@ API fields available but not currently stored (for future features):
 - [ ] Multiple shelves/lists
 - [ ] Customisable home screen layout (section ordering, visibility, drag-and-drop, responsive multi-column)
 
+### UX Improvements
+- [ ] Improve "No books found" message on search to be more helpful (similar to filter empty state)
+- [ ] Consistent empty state messaging across all lists/views
+- [ ] Loading skeletons for book cards
+- [ ] Better error messages with actionable suggestions
+- [ ] View mode setting (Card/Compact/List) for book list and search results
+  - Card: Current large cards with cover, title, author, rating, genres
+  - Compact: Smaller cards with cover thumbnail, title, author only
+  - List: Table/row layout for dense viewing (cover, title, author, rating, status)
+- [ ] "Click to select a different cover" should only show if there IS another cover to select
+
 ### Bulk Tools
 - [ ] Bulk select mode (checkbox on each book card)
 - [ ] Select all / deselect all
