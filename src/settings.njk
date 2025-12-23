@@ -40,6 +40,10 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
           <span>Home Content</span>
         </button>
+        <button data-section="about" class="settings-nav-btn flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-left">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>About</span>
+        </button>
       </div>
     </nav>
 
@@ -310,7 +314,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
       </section>
 
       <!-- Content Settings Section -->
-      <section id="content-section" class="settings-section hidden bg-white md:bg-transparent border-x border-b border-gray-200 md:border-0 rounded-b-xl md:rounded-none overflow-hidden">
+      <section id="content-section" class="settings-section hidden bg-white md:bg-transparent border-x border-gray-200 md:border-0 overflow-hidden">
         <!-- Mobile Accordion Header -->
         <button data-accordion="content" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
           <div class="flex items-center gap-3">
@@ -421,6 +425,161 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section id="about-section" class="settings-section hidden bg-white md:bg-transparent border-x border-b border-gray-200 md:border-0 rounded-b-xl md:rounded-none overflow-hidden">
+        <!-- Mobile Accordion Header -->
+        <button data-accordion="about" class="accordion-header md:hidden w-full flex items-center justify-between p-4 border-y border-gray-200">
+          <div class="flex items-center gap-3">
+            <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+            <span class="font-medium text-gray-900">About</span>
+          </div>
+          <i data-lucide="chevron-down" class="accordion-icon w-5 h-5 text-gray-400 transition-transform"></i>
+        </button>
+        <!-- Section Content -->
+        <div class="accordion-content p-4 md:p-0">
+          <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">About MyBookShelf</h2>
+
+          <!-- App Info -->
+          <div class="bg-gray-50 rounded-xl p-6 mb-4">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
+                <i data-lucide="book-open" class="w-8 h-8 text-white"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 text-lg">MyBookShelf</h3>
+                <p class="text-gray-500 text-sm">Version 0.5.0</p>
+              </div>
+            </div>
+            <p class="text-gray-600 text-sm">A mobile-friendly book tracking PWA with barcode scanning. Track your reading, organise by genre, and never lose track of your library.</p>
+          </div>
+
+          <!-- Changelog -->
+          <div class="bg-gray-50 rounded-xl p-6 mb-4">
+            <h3 class="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-purple-600"></i>
+              Changelog
+            </h3>
+
+            <div class="space-y-2" id="changelog-accordions">
+              <!-- 23 Dec 2025 -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-23">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                    <span class="font-medium text-gray-900">23 December 2025</span>
+                    <span class="text-xs text-gray-500">Sprint 5 - Polish & Testing</span>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron"></i>
+                </button>
+                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
+                  <ul class="space-y-1 pl-4 list-disc">
+                    <li>E2E testing with Playwright (34 tests)</li>
+                    <li>Page animations and skeleton loaders</li>
+                    <li>SEO improvements (Open Graph, sitemap)</li>
+                    <li>Accessibility improvements (skip links, aria-labels)</li>
+                    <li>RESTful URL structure (/books/, /books/add/, etc.)</li>
+                    <li>View/Edit page split for books</li>
+                    <li>Zod form validation schemas</li>
+                    <li>Component directory structure</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 22 Dec 2025 -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-22">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span class="font-medium text-gray-900">22 December 2025</span>
+                    <span class="text-xs text-gray-500">Cover Picker & Reading History</span>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron"></i>
+                </button>
+                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
+                  <ul class="space-y-1 pl-4 list-disc">
+                    <li>Multi-source cover picker (Google Books, Open Library)</li>
+                    <li>Bulk cover fetch from Settings</li>
+                    <li>Page count field from APIs</li>
+                    <li>Format dropdown (Paperback, Hardcover, etc.)</li>
+                    <li>Date-based reading status inference</li>
+                    <li>Full read history tracking</li>
+                    <li>Re-read button for starting new reads</li>
+                    <li>Codebase audit and dead code removal</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 21 Dec 2025 -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-21">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span class="font-medium text-gray-900">21 December 2025</span>
+                    <span class="text-xs text-gray-500">Home Dashboard & Settings</span>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron"></i>
+                </button>
+                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
+                  <ul class="space-y-1 pl-4 list-disc">
+                    <li>Home dashboard with carousel sections</li>
+                    <li>Content settings for section visibility</li>
+                    <li>Email verification with banner</li>
+                    <li>Full backup & restore with JSON</li>
+                    <li>Profile section with avatar upload</li>
+                    <li>Password change and account deletion</li>
+                    <li>Mobile accordion layout for settings</li>
+                    <li>Smart back button navigation</li>
+                    <li>Cover image fallback placeholders</li>
+                    <li>601+ unit tests</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Earlier -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="earlier">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                    <span class="font-medium text-gray-900">Earlier</span>
+                    <span class="text-xs text-gray-500">Initial Release</span>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron"></i>
+                </button>
+                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
+                  <ul class="space-y-1 pl-4 list-disc">
+                    <li>Firebase Authentication (email/password)</li>
+                    <li>Firestore database with offline persistence</li>
+                    <li>Book list with sort and filter</li>
+                    <li>Add book via ISBN barcode scanning</li>
+                    <li>Add book via title/author search</li>
+                    <li>Google Books + Open Library APIs</li>
+                    <li>Genre management with colour badges</li>
+                    <li>PWA with service worker</li>
+                    <li>Infinite scroll for search results</li>
+                    <li>Duplicate book detection</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Links -->
+          <div class="bg-gray-50 rounded-xl p-6">
+            <h3 class="font-medium text-gray-900 mb-3">Resources</h3>
+            <div class="space-y-2">
+              <a href="https://github.com/mfrench71/mybookshelf" target="_blank" rel="noopener" class="flex items-center gap-2 text-primary hover:underline text-sm">
+                <i data-lucide="github" class="w-4 h-4"></i>
+                View on GitHub
+              </a>
+              <a href="/CHANGELOG.md" target="_blank" class="flex items-center gap-2 text-primary hover:underline text-sm">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Full Changelog
+              </a>
+            </div>
           </div>
         </div>
       </section>

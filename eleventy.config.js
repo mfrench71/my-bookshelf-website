@@ -15,6 +15,9 @@ module.exports = function(eleventyConfig) {
     "node_modules/@ericblade/quagga2/dist/quagga.min.js": "vendor/quagga.min.js"
   });
 
+  // Root files (changelog, etc.)
+  eleventyConfig.addPassthroughCopy({ "CHANGELOG.md": "CHANGELOG.md" });
+
   return {
     dir: {
       input: "src",
