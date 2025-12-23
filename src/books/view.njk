@@ -1,0 +1,136 @@
+---
+layout: base.njk
+title: Book Details
+scripts: '<script type="module" src="/js/books/view.js"></script>'
+---
+<!-- Sub-navigation -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-30">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+    <button id="back-btn" class="p-1 -ml-1 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      <span class="text-sm">Back</span>
+    </button>
+    <div class="flex items-center gap-2">
+      <a id="edit-btn" href="#" class="p-1 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Edit">
+        <i data-lucide="pencil" class="w-4 h-4"></i>
+        <span class="text-sm">Edit</span>
+      </a>
+      <button id="delete-btn" class="p-1 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1" title="Delete">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span class="text-sm">Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading" class="max-w-6xl mx-auto px-4 py-12 text-center">
+  <div class="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+  <p class="text-gray-500 mt-3">Loading...</p>
+</div>
+
+<!-- Book Content -->
+<main id="content" class="hidden max-w-6xl mx-auto px-4 py-6">
+  <div class="flex flex-col md:flex-row md:gap-8">
+    <!-- Left Column: Cover -->
+    <div class="md:w-72 flex-shrink-0 mb-6 md:mb-0">
+      <div id="cover-container" class="aspect-[2/3] bg-gray-100 rounded-lg overflow-hidden">
+        <div id="cover-placeholder" class="w-full h-full flex items-center justify-center text-gray-300">
+          <i data-lucide="book" class="w-16 h-16"></i>
+        </div>
+        <img id="cover-image" src="" alt="" class="hidden w-full h-full object-cover">
+      </div>
+    </div>
+
+    <!-- Right Column: Book Details -->
+    <div class="flex-1 space-y-6">
+      <!-- Title & Author -->
+      <div>
+        <h1 id="book-title" class="text-2xl md:text-3xl font-bold text-gray-900"></h1>
+        <p id="book-author" class="text-lg text-gray-500 mt-1"></p>
+      </div>
+
+      <!-- Rating -->
+      <div id="rating-section" class="hidden">
+        <div id="rating-stars" class="flex gap-0.5"></div>
+      </div>
+
+      <!-- Reading Status -->
+      <div id="status-section" class="hidden">
+        <span id="reading-status" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"></span>
+      </div>
+
+      <!-- Genres -->
+      <div id="genres-section" class="hidden">
+        <div id="genre-badges" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Metadata -->
+      <div id="metadata-section" class="bg-gray-50 rounded-lg p-4">
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div id="isbn-row" class="hidden">
+            <dt class="text-gray-500">ISBN</dt>
+            <dd id="book-isbn" class="font-medium text-gray-900"></dd>
+          </div>
+          <div id="pages-row" class="hidden">
+            <dt class="text-gray-500">Pages</dt>
+            <dd id="book-pages" class="font-medium text-gray-900"></dd>
+          </div>
+          <div id="format-row" class="hidden">
+            <dt class="text-gray-500">Format</dt>
+            <dd id="book-format" class="font-medium text-gray-900"></dd>
+          </div>
+          <div id="publisher-row" class="hidden">
+            <dt class="text-gray-500">Publisher</dt>
+            <dd id="book-publisher" class="font-medium text-gray-900"></dd>
+          </div>
+          <div id="published-row" class="hidden">
+            <dt class="text-gray-500">Published</dt>
+            <dd id="book-published" class="font-medium text-gray-900"></dd>
+          </div>
+          <div id="added-row" class="hidden">
+            <dt class="text-gray-500">Added</dt>
+            <dd id="book-added" class="font-medium text-gray-900"></dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Reading History -->
+      <div id="reading-history-section" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          Reading History
+        </h3>
+        <div id="reading-history" class="space-y-2"></div>
+      </div>
+
+      <!-- Notes -->
+      <div id="notes-section" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <i data-lucide="sticky-note" class="w-4 h-4"></i>
+          Notes
+        </h3>
+        <div id="book-notes" class="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+    <h3 class="text-lg font-semibold mb-2">Delete Book?</h3>
+    <p class="text-gray-500 mb-6">This action cannot be undone.</p>
+    <div class="flex gap-3">
+      <button id="cancel-delete" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+        Cancel
+      </button>
+      <button id="confirm-delete" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700">
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

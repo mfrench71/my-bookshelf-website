@@ -94,7 +94,7 @@ export function bookCard(book, options = {}) {
   const statusBadge = renderStatusBadge(status);
 
   return `
-    <a href="/book/?id=${book.id}" class="book-card">
+    <a href="/books/view/?id=${book.id}" class="book-card">
       ${cover}
       <div class="flex-1 min-w-0">
         <h3 class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</h3>

@@ -1,34 +1,21 @@
-// Book Detail Page Logic
-import { auth, db } from './firebase-config.js';
+// Book Edit Page Logic
+import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   doc,
   getDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lockBodyScroll, unlockBodyScroll, lookupISBN, fetchWithTimeout, migrateBookReads, getCurrentRead, getBookStatus } from './utils.js';
-import { GenrePicker } from './components/genre-picker.js';
-import { RatingInput } from './components/rating-input.js';
-import { updateGenreBookCounts, clearGenresCache } from './genres.js';
-import { BookFormSchema } from './schemas/book.js';
-import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
+import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lookupISBN, fetchWithTimeout, migrateBookReads, getBookStatus } from '../utils.js';
+import { GenrePicker } from '../components/genre-picker.js';
+import { RatingInput } from '../components/rating-input.js';
+import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
+import { BookFormSchema } from '../schemas/book.js';
+import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
 
 // Initialize icons once on load
 initIcons();
-
-// Back button - smart navigation
-const backBtn = document.getElementById('back-btn');
-if (backBtn) {
-  backBtn.addEventListener('click', () => {
-    if (history.length > 1) {
-      history.back();
-    } else {
-      window.location.href = '/books/';
-    }
-  });
-}
 
 // State
 let currentUser = null;
@@ -39,8 +26,8 @@ let genrePicker = null;
 let originalGenres = [];
 let originalValues = {};
 let formDirty = false;
-let currentReads = []; // Array of {startedAt, finishedAt} objects
-let availableCovers = {}; // Track available covers { googleBooks: url, openLibrary: url }
+let currentReads = [];
+let availableCovers = {};
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -53,17 +40,15 @@ if (!bookId) {
 // DOM Elements
 const loading = document.getElementById('loading');
 const content = document.getElementById('content');
-const coverContainer = document.getElementById('cover-container');
-const bookTitle = document.getElementById('book-title');
-const bookAuthor = document.getElementById('book-author');
-const bookIsbn = document.getElementById('book-isbn');
-const bookPages = document.getElementById('book-pages');
-const bookDates = document.getElementById('book-dates');
+const pageTitle = document.getElementById('page-title');
+const backBtn = document.getElementById('back-btn');
+const cancelBtn = document.getElementById('cancel-btn');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
 const coverPicker = document.getElementById('cover-picker');
+const coverPickerHint = document.getElementById('cover-picker-hint');
 const coverOptionGoogle = document.getElementById('cover-option-google');
 const coverOptionOpenLibrary = document.getElementById('cover-option-openlibrary');
 const noCoverMsg = document.getElementById('no-cover-msg');
@@ -73,11 +58,7 @@ const physicalFormatInput = document.getElementById('physical-format');
 const pageCountInput = document.getElementById('page-count');
 const notesInput = document.getElementById('notes');
 const saveBtn = document.getElementById('save-btn');
-const deleteBtn = document.getElementById('delete-btn');
 const refreshDataBtn = document.getElementById('refresh-data-btn');
-const deleteModal = document.getElementById('delete-modal');
-const cancelDeleteBtn = document.getElementById('cancel-delete');
-const confirmDeleteBtn = document.getElementById('confirm-delete');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 
@@ -93,12 +74,21 @@ const historyChevron = document.getElementById('history-chevron');
 const historyCount = document.getElementById('history-count');
 const readHistoryList = document.getElementById('read-history-list');
 
+// Navigation
+function goToViewPage() {
+  window.location.href = `/books/view/?id=${bookId}`;
+}
+
+backBtn.addEventListener('click', goToViewPage);
+cancelBtn.addEventListener('click', goToViewPage);
+
 // Cover Picker Functions
 function renderCoverPicker(covers, currentCoverUrl) {
   availableCovers = covers || {};
   const hasGoogle = availableCovers.googleBooks;
   const hasOpenLibrary = availableCovers.openLibrary;
   const hasAnyCovers = hasGoogle || hasOpenLibrary;
+  const hasMultipleCovers = hasGoogle && hasOpenLibrary;
 
   // Reset UI
   coverPicker.classList.add('hidden');
@@ -107,6 +97,7 @@ function renderCoverPicker(covers, currentCoverUrl) {
   coverOptionOpenLibrary.classList.add('hidden');
   coverOptionGoogle.classList.remove('border-primary', 'bg-primary/5');
   coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/5');
+  if (coverPickerHint) coverPickerHint.classList.add('hidden');
 
   if (!hasAnyCovers) {
     if (!currentCoverUrl) {
@@ -115,7 +106,6 @@ function renderCoverPicker(covers, currentCoverUrl) {
     return;
   }
 
-  // Show picker with available options
   coverPicker.classList.remove('hidden');
 
   if (hasGoogle) {
@@ -134,13 +124,17 @@ function renderCoverPicker(covers, currentCoverUrl) {
     };
   }
 
-  // Highlight currently selected cover
+  // Show hint only if there are multiple covers to choose from
+  if (hasMultipleCovers && coverPickerHint) {
+    coverPickerHint.classList.remove('hidden');
+  }
+
+  // Highlight currently selected
   if (currentCoverUrl === availableCovers.googleBooks) {
     coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
   } else if (currentCoverUrl === availableCovers.openLibrary) {
     coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
   } else if (hasGoogle) {
-    // Default to first available if current doesn't match
     coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
   } else if (hasOpenLibrary) {
     coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
@@ -153,10 +147,6 @@ function selectCover(source) {
 
   coverUrlInput.value = url;
 
-  // Update sidebar cover
-  updateSidebarCover(url);
-
-  // Update selection styling
   coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
   coverOptionGoogle.classList.toggle('bg-primary/5', source === 'googleBooks');
   coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
@@ -165,34 +155,10 @@ function selectCover(source) {
   updateSaveButtonState();
 }
 
-function updateSidebarCover(url) {
-  if (!url) return;
-
-  const fallbackHtml = `
-    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg flex items-center justify-center">
-      <i data-lucide="book" class="w-16 h-16 text-white"></i>
-    </div>
-  `;
-
-  coverContainer.innerHTML = fallbackHtml;
-  coverContainer.firstElementChild.classList.add('absolute', 'inset-0');
-  coverContainer.classList.add('relative', 'w-40', 'h-60');
-
-  const img = document.createElement('img');
-  img.src = url;
-  img.alt = '';
-  img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg absolute inset-0';
-  img.onerror = () => { img.style.display = 'none'; };
-  coverContainer.appendChild(img);
-
-  initIcons();
-}
-
-// Cover option click handlers
 coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
 coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
-// Auth Check - header.js handles redirect, just load book
+// Auth Check
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
@@ -214,30 +180,26 @@ async function initGenrePicker() {
 
   await genrePicker.init();
 
-  // Set the book's existing genres
   if (book && book.genres) {
     originalGenres = [...book.genres];
     genrePicker.setSelected(book.genres);
   }
 
-  // Fetch genre suggestions from API if book has ISBN
   if (book && book.isbn) {
     fetchGenreSuggestions(book.isbn);
   }
 }
 
-// Fetch genre suggestions from Google Books API
 async function fetchGenreSuggestions(isbn) {
   try {
     const response = await fetchWithTimeout(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
       {},
-      5000 // 5 second timeout for suggestions (non-critical)
+      5000
     );
     if (!response.ok) return;
 
     const data = await response.json();
-
     if (data.items?.length > 0) {
       const categories = data.items[0].volumeInfo.categories || [];
       if (categories.length > 0 && genrePicker) {
@@ -245,7 +207,6 @@ async function fetchGenreSuggestions(isbn) {
       }
     }
   } catch (e) {
-    // Non-critical - log but don't show error to user
     console.warn('Genre suggestions unavailable:', e.message);
   }
 }
@@ -263,58 +224,18 @@ async function loadBook() {
     }
 
     book = { id: bookSnap.id, ...bookSnap.data() };
-    renderBook();
+    renderForm();
   } catch (error) {
     console.error('Error loading book:', error);
     showToast('Error loading book', { type: 'error' });
   }
 }
 
-function renderBook() {
-  // Cover - use createElement to prevent XSS
-  const fallbackHtml = `
-    <div class="w-40 h-60 bg-primary rounded-xl shadow-lg flex items-center justify-center">
-      <i data-lucide="book" class="w-16 h-16 text-white"></i>
-    </div>
-  `;
+function renderForm() {
+  // Page title
+  pageTitle.textContent = `Edit: ${book.title}`;
 
-  if (book.coverImageUrl) {
-    // Create wrapper with fallback behind image - explicit dimensions prevent collapse
-    coverContainer.innerHTML = fallbackHtml;
-    coverContainer.firstElementChild.classList.add('absolute', 'inset-0');
-    coverContainer.classList.add('relative', 'w-40', 'h-60');
-
-    const img = document.createElement('img');
-    img.src = book.coverImageUrl;
-    img.alt = '';
-    img.className = 'w-40 h-60 object-cover rounded-xl shadow-lg absolute inset-0';
-    img.onerror = () => { img.style.display = 'none'; };
-    coverContainer.appendChild(img);
-  } else {
-    coverContainer.innerHTML = fallbackHtml;
-  }
-
-  // Info
-  bookTitle.textContent = book.title;
-  bookAuthor.textContent = book.author || 'Unknown author';
-  bookIsbn.textContent = book.isbn ? `ISBN: ${book.isbn}` : '';
-  bookPages.textContent = book.pageCount ? `${book.pageCount} pages` : '';
-
-  // Dates
-  const dateAdded = parseTimestamp(book.createdAt);
-  const dateModified = parseTimestamp(book.updatedAt);
-  const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-
-  let datesHtml = '';
-  if (dateAdded) {
-    datesHtml += `<div>Added ${dateAdded.toLocaleDateString(undefined, dateOptions)}</div>`;
-  }
-  if (dateModified && dateModified.getTime() !== dateAdded?.getTime()) {
-    datesHtml += `<div>Modified ${dateModified.toLocaleDateString(undefined, dateOptions)}</div>`;
-  }
-  bookDates.innerHTML = datesHtml;
-
-  // Form
+  // Form fields
   titleInput.value = book.title || '';
   authorInput.value = book.author || '';
   coverUrlInput.value = book.coverImageUrl || '';
@@ -325,14 +246,12 @@ function renderBook() {
   notesInput.value = book.notes || '';
   initRatingInput(book.rating || 0);
 
-  // Migrate old format to reads array if needed
+  // Reading dates
   const migratedBook = migrateBookReads(book);
   currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({...r}))] : [];
-
-  // Populate reading dates from current read (last in array)
   updateReadingDatesUI();
 
-  // Store original values for dirty checking
+  // Store original values
   originalValues = {
     title: book.title || '',
     author: book.author || '',
@@ -344,7 +263,7 @@ function renderBook() {
     notes: book.notes || '',
     rating: book.rating || 0,
     genres: book.genres ? [...book.genres] : [],
-    reads: JSON.stringify(currentReads) // Serialize for comparison
+    reads: JSON.stringify(currentReads)
   };
   formDirty = false;
   updateSaveButtonState();
@@ -354,19 +273,17 @@ function renderBook() {
   content.classList.remove('hidden');
   initIcons();
 
-  // Initialize genre picker after content is shown
+  // Initialize pickers
   initGenrePicker();
 
-  // Initialize cover picker with stored covers or fetch if book has ISBN
+  // Cover picker
   if (book.covers && Object.keys(book.covers).length > 0) {
     renderCoverPicker(book.covers, book.coverImageUrl);
   } else if (book.isbn) {
-    // Fetch covers from APIs in background
     fetchBookCovers(book.isbn);
   }
 }
 
-// Fetch covers from both APIs for existing books
 async function fetchBookCovers(isbn) {
   try {
     const result = await lookupISBN(isbn);
@@ -378,7 +295,7 @@ async function fetchBookCovers(isbn) {
   }
 }
 
-// Initialize Rating Input
+// Rating Input
 function initRatingInput(initialValue = 0) {
   if (ratingInput) {
     ratingInput.setValue(initialValue);
@@ -394,22 +311,19 @@ function initRatingInput(initialValue = 0) {
   });
 }
 
-// Reading Dates Handlers
+// Reading Dates
 function formatDateForInput(timestamp) {
   const date = parseTimestamp(timestamp);
   if (!date) return '';
-  // Format as YYYY-MM-DD for date input
   return date.toISOString().split('T')[0];
 }
 
 function updateReadingDatesUI() {
   const currentRead = currentReads.length > 0 ? currentReads[currentReads.length - 1] : null;
 
-  // Set date inputs
   startedDateInput.value = currentRead ? formatDateForInput(currentRead.startedAt) : '';
   finishedDateInput.value = currentRead ? formatDateForInput(currentRead.finishedAt) : '';
 
-  // Update status badge
   const status = getBookStatus({ reads: currentReads });
   if (status === 'reading') {
     readingStatusBadge.textContent = 'Reading';
@@ -422,11 +336,9 @@ function updateReadingDatesUI() {
     readingStatusBadge.className = 'px-2 py-0.5 text-xs rounded-full';
   }
 
-  // Re-read button: disabled if no current read or current read not finished
   const canReread = currentRead && currentRead.finishedAt;
   rereadBtn.disabled = !canReread;
 
-  // Show read history if there are previous reads
   const previousReads = currentReads.slice(0, -1);
   if (previousReads.length > 0) {
     readHistorySection.classList.remove('hidden');
@@ -440,7 +352,6 @@ function updateReadingDatesUI() {
 }
 
 function renderReadHistory(previousReads) {
-  // Render in reverse chronological order (most recent first)
   const html = previousReads.slice().reverse().map(read => {
     const started = formatDate(read.startedAt) || 'Unknown';
     const finished = formatDate(read.finishedAt) || 'In progress';
@@ -449,11 +360,9 @@ function renderReadHistory(previousReads) {
   readHistoryList.innerHTML = html;
 }
 
-// Date input change handlers
 startedDateInput.addEventListener('change', () => {
   const startedValue = startedDateInput.value;
 
-  // Validation: finished date can't be before started date
   if (finishedDateInput.value && startedValue && finishedDateInput.value < startedValue) {
     readingDateError.textContent = 'Finished date cannot be before started date';
     readingDateError.classList.remove('hidden');
@@ -461,7 +370,6 @@ startedDateInput.addEventListener('change', () => {
   }
   readingDateError.classList.add('hidden');
 
-  // Update current read or create new one
   if (currentReads.length === 0) {
     if (startedValue) {
       currentReads.push({ startedAt: new Date(startedValue).getTime(), finishedAt: null });
@@ -478,14 +386,12 @@ startedDateInput.addEventListener('change', () => {
 finishedDateInput.addEventListener('change', () => {
   const finishedValue = finishedDateInput.value;
 
-  // Validation: can't have finished without started
   if (finishedValue && !startedDateInput.value) {
     readingDateError.textContent = 'Please set a start date first';
     readingDateError.classList.remove('hidden');
     return;
   }
 
-  // Validation: finished date can't be before started date
   if (finishedValue && startedDateInput.value && finishedValue < startedDateInput.value) {
     readingDateError.textContent = 'Finished date cannot be before started date';
     readingDateError.classList.remove('hidden');
@@ -493,7 +399,6 @@ finishedDateInput.addEventListener('change', () => {
   }
   readingDateError.classList.add('hidden');
 
-  // Update current read
   if (currentReads.length > 0) {
     const lastRead = currentReads[currentReads.length - 1];
     lastRead.finishedAt = finishedValue ? new Date(finishedValue).getTime() : null;
@@ -503,9 +408,7 @@ finishedDateInput.addEventListener('change', () => {
   updateSaveButtonState();
 });
 
-// Re-read button handler
 rereadBtn.addEventListener('click', () => {
-  // Add new read entry with today's date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   currentReads.push({ startedAt: today.getTime(), finishedAt: null });
@@ -515,14 +418,13 @@ rereadBtn.addEventListener('click', () => {
   showToast('Started new read!', { type: 'success' });
 });
 
-// Toggle history visibility
 toggleHistoryBtn.addEventListener('click', () => {
   const isHidden = readHistoryList.classList.contains('hidden');
   readHistoryList.classList.toggle('hidden');
   historyChevron.style.transform = isHidden ? 'rotate(90deg)' : '';
 });
 
-// Check if form has actual changes
+// Form dirty checking
 function checkFormDirty() {
   if (titleInput.value.trim() !== originalValues.title) return true;
   if (authorInput.value.trim() !== originalValues.author) return true;
@@ -534,11 +436,8 @@ function checkFormDirty() {
   if (notesInput.value.trim() !== originalValues.notes) return true;
   const currentRating = ratingInput ? ratingInput.getValue() : 0;
   if (currentRating !== originalValues.rating) return true;
-
-  // Check reads array
   if (JSON.stringify(currentReads) !== originalValues.reads) return true;
 
-  // Check genres (if picker not ready yet, use original genres to avoid false positive)
   const currentGenres = genrePicker ? genrePicker.getSelected() : originalValues.genres;
   if (currentGenres.length !== originalValues.genres.length) return true;
   if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
@@ -546,7 +445,6 @@ function checkFormDirty() {
   return false;
 }
 
-// Update save button state based on form changes
 function updateSaveButtonState() {
   formDirty = checkFormDirty();
   saveBtn.disabled = !formDirty;
@@ -558,13 +456,10 @@ function updateSaveButtonState() {
 editForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // Clear previous validation errors
   clearFormErrors(editForm);
 
-  // Get selected genres from picker
   const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
 
-  // Validate form data
   const formData = {
     title: titleInput.value.trim(),
     author: authorInput.value.trim(),
@@ -579,7 +474,6 @@ editForm.addEventListener('submit', async (e) => {
 
   const validation = validateForm(BookFormSchema, formData);
   if (!validation.success) {
-    // Show field-level errors
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
     if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
@@ -612,86 +506,29 @@ editForm.addEventListener('submit', async (e) => {
     const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
     await updateDoc(bookRef, updates);
 
-    // Update genre book counts for changed genres
     const addedGenres = selectedGenres.filter(g => !originalGenres.includes(g));
     const removedGenres = originalGenres.filter(g => !selectedGenres.includes(g));
 
     if (addedGenres.length > 0 || removedGenres.length > 0) {
       await updateGenreBookCounts(currentUser.uid, addedGenres, removedGenres);
-      originalGenres = [...selectedGenres];
     }
 
-    // Clear caches so changes appear on the list page
     clearBooksCache(currentUser.uid);
     clearGenresCache();
 
     showToast('Changes saved!', { type: 'success' });
 
-    // Clear dirty state before re-render (renderBook will reset it)
-    formDirty = false;
-
-    // Update local data and re-render
-    // Use actual Date for local display (serverTimestamp() is a sentinel, not a real timestamp)
-    book = { ...book, ...updates, updatedAt: new Date() };
-    renderBook();
+    // Redirect to view page after save
+    setTimeout(() => goToViewPage(), 1000);
   } catch (error) {
     console.error('Error saving:', error);
     showToast('Error saving changes', { type: 'error' });
-  } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
   }
 });
 
-// Delete
-deleteBtn.addEventListener('click', () => {
-  deleteModal.classList.remove('hidden');
-  lockBodyScroll();
-});
-
-cancelDeleteBtn.addEventListener('click', () => {
-  deleteModal.classList.add('hidden');
-  unlockBodyScroll();
-});
-
-deleteModal.addEventListener('click', (e) => {
-  if (e.target === deleteModal) {
-    deleteModal.classList.add('hidden');
-    unlockBodyScroll();
-  }
-});
-
-confirmDeleteBtn.addEventListener('click', async () => {
-  confirmDeleteBtn.disabled = true;
-  confirmDeleteBtn.textContent = 'Deleting...';
-
-  try {
-    const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
-    await deleteDoc(bookRef);
-
-    // Decrement genre book counts for this book's genres
-    const bookGenres = book.genres || [];
-    if (bookGenres.length > 0) {
-      await updateGenreBookCounts(currentUser.uid, [], bookGenres);
-    }
-
-    // Clear caches so the deleted book disappears from the list
-    clearBooksCache(currentUser.uid);
-    clearGenresCache();
-
-    showToast('Book deleted', { type: 'success' });
-    setTimeout(() => window.location.href = '/books/', 1000);
-  } catch (error) {
-    console.error('Error deleting:', error);
-    showToast('Error deleting book', { type: 'error' });
-    confirmDeleteBtn.disabled = false;
-    confirmDeleteBtn.textContent = 'Delete';
-    deleteModal.classList.add('hidden');
-    unlockBodyScroll();
-  }
-});
-
-// Track unsaved changes on form inputs (coverUrlInput excluded - read-only)
+// Track input changes
 [titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, pageCountInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
     updateSaveButtonState();
@@ -708,12 +545,10 @@ window.addEventListener('beforeunload', (e) => {
 
 // Refresh Data from APIs
 async function fetchBookDataFromAPI(isbn, title, author) {
-  // Validate parameters - need at least ISBN or title+author to search
   if (!isbn && !title) {
     return null;
   }
 
-  // Try ISBN lookup first (uses shared utility with both Google Books and Open Library)
   if (isbn) {
     const result = await lookupISBN(isbn);
     if (result) {
@@ -721,7 +556,6 @@ async function fetchBookDataFromAPI(isbn, title, author) {
     }
   }
 
-  // Fallback to title/author search via Google Books
   if (title) {
     try {
       const searchQuery = author ? `intitle:${title}+inauthor:${author}` : `intitle:${title}`;
@@ -756,18 +590,13 @@ refreshDataBtn.addEventListener('click', async () => {
     <span class="text-sm">Refreshing...</span>
   `;
 
-  // Clear any existing highlights
   document.querySelectorAll('.field-changed').forEach(el => {
     el.classList.remove('field-changed');
-  });
-  document.querySelectorAll('.field-changed-cover').forEach(el => {
-    el.classList.remove('field-changed-cover');
   });
 
   try {
     const changedFields = [];
 
-    // Helper to normalize existing field value
     const normalizeField = (input, normalizeFn, fieldName) => {
       const currentValue = input.value.trim();
       if (currentValue) {
@@ -780,7 +609,6 @@ refreshDataBtn.addEventListener('click', async () => {
       }
     };
 
-    // Normalize existing values first
     normalizeField(titleInput, normalizeTitle, 'title');
     normalizeField(authorInput, normalizeAuthor, 'author');
     normalizeField(publisherInput, normalizePublisher, 'publisher');
@@ -789,7 +617,6 @@ refreshDataBtn.addEventListener('click', async () => {
     const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
 
     if (apiData) {
-      // Helper to fill ONLY empty fields (preserve existing data)
       const fillEmptyField = (input, newValue, fieldName) => {
         if (newValue && !input.value.trim()) {
           input.value = newValue;
@@ -800,7 +627,6 @@ refreshDataBtn.addEventListener('click', async () => {
         }
       };
 
-      // Fill only empty form fields with API data
       fillEmptyField(titleInput, apiData.title, 'title');
       fillEmptyField(authorInput, apiData.author, 'author');
       fillEmptyField(publisherInput, apiData.publisher, 'publisher');
@@ -808,10 +634,8 @@ refreshDataBtn.addEventListener('click', async () => {
       fillEmptyField(physicalFormatInput, apiData.physicalFormat, 'format');
       fillEmptyField(pageCountInput, apiData.pageCount, 'pages');
 
-      // Cover image - show picker if API returned covers
       if (apiData.covers && Object.keys(apiData.covers).length > 0) {
         renderCoverPicker(apiData.covers, coverUrlInput.value);
-        // If no cover was set, auto-select first available
         if (!coverUrlInput.value.trim()) {
           if (apiData.covers.googleBooks) {
             selectCover('googleBooks');
@@ -822,38 +646,18 @@ refreshDataBtn.addEventListener('click', async () => {
           }
         }
       } else if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
-        // Fallback to single cover if no covers object
         coverUrlInput.value = apiData.coverImageUrl;
-        updateSidebarCover(apiData.coverImageUrl);
         changedFields.push('cover');
       }
 
-      // Update book object with all refreshed values
-      book.title = titleInput.value;
-      book.author = authorInput.value;
-      book.coverImageUrl = coverUrlInput.value;
-      book.publisher = publisherInput.value;
-      book.publishedDate = publishedDateInput.value;
-      book.physicalFormat = physicalFormatInput.value;
-      book.pageCount = pageCountInput.value ? parseInt(pageCountInput.value, 10) : null;
-
-      // Update header display
-      bookTitle.textContent = book.title;
-      bookAuthor.textContent = book.author || 'Unknown author';
-
-      // Remove highlights after 3 seconds
       if (changedFields.length > 0) {
         setTimeout(() => {
           document.querySelectorAll('.field-changed').forEach(el => {
             el.classList.remove('field-changed');
           });
-          document.querySelectorAll('.field-changed-cover').forEach(el => {
-            el.classList.remove('field-changed-cover');
-          });
         }, 3000);
       }
 
-      // Show appropriate toast
       if (changedFields.length > 0) {
         updateSaveButtonState();
         showToast(`Updated: ${changedFields.join(', ')}`, { type: 'success' });
@@ -861,19 +665,7 @@ refreshDataBtn.addEventListener('click', async () => {
         showToast('No new data found', { type: 'info' });
       }
     } else {
-      // Even without API data, normalization may have changed fields
       if (changedFields.length > 0) {
-        // Update book object with normalized values
-        book.title = titleInput.value;
-        book.author = authorInput.value;
-        book.publisher = publisherInput.value;
-        book.publishedDate = publishedDateInput.value;
-
-        // Update header display
-        bookTitle.textContent = book.title;
-        bookAuthor.textContent = book.author || 'Unknown author';
-
-        // Remove highlights after 3 seconds
         setTimeout(() => {
           document.querySelectorAll('.field-changed').forEach(el => {
             el.classList.remove('field-changed');

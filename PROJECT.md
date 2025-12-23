@@ -20,21 +20,25 @@ MyBookShelf/
 ├── src/
 │   ├── _layouts/base.njk     # Base HTML template
 │   ├── _includes/header.njk  # Common header partial
-│   ├── index.njk             # Login/register page
-│   ├── home.njk              # Home/dashboard page
-│   ├── books.njk             # Book list (library view)
-│   ├── add.njk               # Add new book
-│   ├── book.njk              # Book detail/edit
-│   ├── settings.njk          # Settings page (genres, content, backup)
+│   ├── index.njk             # Home/dashboard page (/)
+│   ├── login.njk             # Login/register page (/login/)
+│   ├── books/                # Book-related pages
+│   │   ├── index.njk         # Book list (/books/)
+│   │   ├── add.njk           # Add book form (/books/add/)
+│   │   ├── view.njk          # Book view page (/books/view/?id=X)
+│   │   └── edit.njk          # Book edit page (/books/edit/?id=X)
+│   ├── settings.njk          # Settings page (/settings/)
 │   ├── css/tailwind.css      # Tailwind v4 config
 │   ├── js/
 │   │   ├── firebase-config.js  # Firebase init + offline persistence
+│   │   ├── index.js            # Home page logic
+│   │   ├── login.js            # Login/register page logic
 │   │   ├── header.js           # Header auth, menu, search
-│   │   ├── auth.js             # Authentication
-│   │   ├── home.js             # Home/dashboard logic
-│   │   ├── books.js            # Book CRUD + listing
-│   │   ├── add.js              # Add book logic + barcode scanner
-│   │   ├── book-detail.js      # Detail/edit logic
+│   │   ├── books/              # Book-related page logic
+│   │   │   ├── index.js        # Book list rendering, sorting, filtering
+│   │   │   ├── add.js          # Add book form, ISBN lookup, barcode scanner
+│   │   │   ├── view.js         # Book view page (read-only display)
+│   │   │   └── edit.js         # Book edit page (form-based editing)
 │   │   ├── utils.js            # Shared utilities (re-exports from utils/)
 │   │   ├── genres.js           # Genre CRUD and utilities
 │   │   ├── settings.js         # Settings page logic
@@ -192,12 +196,27 @@ API fields available but not currently stored (for future features):
 - [x] Cover image picker (select from Google Books or Open Library covers)
 - [x] Bulk cover fetch (update all books with ISBNs from Settings)
 
-### In Progress
-- [ ] Split book detail into separate View and Edit pages
-  - View page (`/book/?id=X`): Clean read-only display with cover, metadata, reading history, notes
-  - Edit page (`/book/edit/?id=X`): Form-based editing with all current fields
-  - Extract shared components: cover-picker, rating-input, reading-status
-  - Refactor add.js to use shared components (reduce duplication)
+### Recently Completed
+- [x] RESTful file naming restructure
+  - Templates: `src/books/` directory with `index.njk`, `add.njk`, `view.njk`, `edit.njk`
+  - JavaScript: `src/js/books/` directory with matching files
+  - URLs: `/books/`, `/books/add/`, `/books/view/?id=X`, `/books/edit/?id=X`
+  - Renamed `home.njk` → `index.njk`, `index.njk` → `login.njk`
+- [x] Split book detail into separate View and Edit pages
+  - View page (`/books/view/?id=X`): Clean read-only display with cover, metadata, reading history, notes
+  - Edit page (`/books/edit/?id=X`): Form-based editing with all current fields
+  - Shared components: CoverPicker, RatingInput, GenrePicker, Modal
+  - Refactored add.js to use CoverPicker component (reduced duplication)
+
+### Planned Improvements
+- [ ] Larger cover images on book view/edit pages (currently using thumbnail size)
+- [ ] Full custom validation with Zod (remove native HTML validation)
+  - Add `novalidate` to all forms
+  - Remove `required`, `minlength`, `pattern` attributes from HTML
+  - Keep `type="email"`, `type="number"` for keyboard hints only
+  - Implement real-time validation on blur using `setupFieldValidation()`
+  - Fix inconsistencies (HTML minlength="6" vs Zod min(8) for passwords)
+  - Files: login.njk, books/add.njk, books/edit.njk, settings.njk, login.js, books/add.js, books/edit.js, settings.js
 
 ## Future Development Ideas
 

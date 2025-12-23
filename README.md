@@ -35,7 +35,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (601 tests)
+- **Testing**: Vitest with jsdom (689 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
@@ -90,17 +90,27 @@ npm run test:coverage
 src/
 ├── _layouts/         # Base HTML templates
 ├── _includes/        # Reusable partials (header)
-├── js/               # JavaScript modules
-│   ├── utils.js      # Shared utilities
-│   ├── book-card.js  # Book card component
+├── index.njk         # Home page (/)
+├── login.njk         # Login/register (/login/)
+├── books/            # Book-related pages
+│   ├── index.njk     # Book list (/books/)
+│   ├── add.njk       # Add book (/books/add/)
+│   ├── view.njk      # View book (/books/view/?id=X)
+│   └── edit.njk      # Edit book (/books/edit/?id=X)
+├── settings.njk      # Settings page (/settings/)
+├── js/
+│   ├── index.js      # Home page logic
+│   ├── login.js      # Login/register logic
 │   ├── header.js     # Common header logic
-│   ├── home.js       # Home dashboard logic
+│   ├── books/        # Book-related page logic
+│   │   ├── index.js  # Book list
+│   │   ├── add.js    # Add book form
+│   │   ├── view.js   # View book
+│   │   └── edit.js   # Edit book
+│   ├── components/   # Reusable UI components
 │   ├── genres.js     # Genre CRUD and utilities
-│   ├── genre-picker.js # Genre picker component
-│   ├── settings.js   # Settings page logic
-│   └── ...           # Page-specific scripts
-├── css/              # Tailwind CSS source
-└── *.njk             # Page templates (index, home, books, add, book, settings)
+│   └── settings.js   # Settings page logic
+└── css/              # Tailwind CSS source
 ```
 
 ## Deployment

@@ -1,5 +1,5 @@
 // Books List Page Logic
-import { auth, db } from './firebase-config.js';
+import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -10,9 +10,9 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from './utils.js';
-import { bookCard } from './components/book-card.js';
-import { loadUserGenres, createGenreLookup } from './genres.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from '../utils.js';
+import { bookCard } from '../components/book-card.js';
+import { loadUserGenres, createGenreLookup } from '../genres.js';
 
 // Initialize icons once on load
 initIcons();

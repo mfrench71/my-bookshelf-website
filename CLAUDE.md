@@ -76,21 +76,32 @@ npm run test:coverage # Run with coverage report
 src/
 ├── _layouts/base.njk     # Base HTML template (conditionally includes header)
 ├── _includes/header.njk  # Common header partial (menu, search overlay)
-├── index.njk             # Login page (hideHeader: true)
-├── books.njk             # Book list with sort/filter controls
-├── add.njk               # Add book form with barcode scanner
-├── book.njk              # Book detail/edit page
-├── settings.njk          # Settings page (genres, export)
+├── index.njk             # Home page (/)
+├── login.njk             # Login/register page (/login/)
+├── books/
+│   ├── index.njk         # Book list (/books/)
+│   ├── add.njk           # Add book form (/books/add/)
+│   ├── view.njk          # Book view page (/books/view/?id=X)
+│   └── edit.njk          # Book edit page (/books/edit/?id=X)
+├── settings.njk          # Settings page (/settings/)
 ├── js/
-│   ├── firebase-config.js  # Firebase initialization (exported: app, auth, db)
+│   ├── firebase-config.js  # Firebase initialization
+│   ├── index.js            # Home page logic
+│   ├── login.js            # Login/register page logic
 │   ├── header.js           # Common header logic (auth, menu, search)
-│   ├── auth.js             # Login/register page logic
-│   ├── books.js            # Book list rendering, sorting, filtering
-│   ├── add.js              # Add book form, ISBN lookup, barcode scanner
-│   ├── book-detail.js      # Book detail view and edit
+│   ├── books/              # Book-related page logic
+│   │   ├── index.js        # Book list rendering, sorting, filtering
+│   │   ├── add.js          # Add book form, ISBN lookup, barcode scanner
+│   │   ├── view.js         # Book view page (read-only display)
+│   │   └── edit.js         # Book edit page (form-based editing)
+│   ├── components/         # Reusable UI components
+│   │   ├── book-card.js    # Book card for list display
+│   │   ├── cover-picker.js # Cover image source picker
+│   │   ├── genre-picker.js # Multi-select genre input
+│   │   ├── modal.js        # Modal and ConfirmModal components
+│   │   └── rating-input.js # Star rating input
 │   ├── genres.js           # Genre CRUD operations and utilities
-│   ├── genre-picker.js     # Reusable genre picker component
-│   └── settings.js         # Settings page logic (genres, export)
+│   └── settings.js         # Settings page logic
 ├── css/tailwind.css      # Tailwind v4 with custom theme
 └── sw.js                 # Service worker for PWA
 ```
@@ -122,9 +133,14 @@ This project uses Tailwind v4 which has different syntax:
 
 Common utilities are consolidated in shared modules:
 - `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN
-- `book-card.js` - bookCard component for rendering book list items with genre badges
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
-- `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead and suggestions
+
+Reusable UI components in `src/js/components/`:
+- `book-card.js` - BookCard component for rendering book list items with genre badges
+- `cover-picker.js` - CoverPicker for selecting from Google Books or Open Library covers
+- `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead
+- `modal.js` - Modal and ConfirmModal components with escape/backdrop handling
+- `rating-input.js` - RatingInput for star rating selection
 
 Toast notifications support types: `showToast('message', { type: 'success' | 'error' | 'info' })`
 
@@ -138,12 +154,12 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 ### Test Files
 - `utils.test.js` - Unit tests for shared utilities
 - `book-card.test.js` - Tests for book card component
-- `books.test.js` - Tests for sorting and filtering logic
-- `add.test.js` - Integration tests for book search and API interactions
-- `book-detail.test.js` - Tests for book detail page and API refresh
+- `books-index.test.js` - Tests for sorting and filtering logic
+- `books-add.test.js` - Integration tests for book search and API interactions
 - `genres.test.js` - Tests for genre CRUD operations and utilities
 - `header.test.js` - Tests for header menu and search functionality
-- `auth.test.js` - Tests for authentication page (login, register, password strength)
+- `index.test.js` - Tests for home page dashboard
+- `login.test.js` - Tests for authentication page (login, register, password strength)
 - `settings.test.js` - Tests for settings page (profile, genres, export, cleanup)
 - `genre-picker.test.js` - Tests for genre picker component (filtering, selection, keyboard nav)
 

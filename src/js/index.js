@@ -266,7 +266,7 @@ function renderBookCard(book) {
       </div>`;
 
   return `
-    <a href="/book/?id=${book.id}" class="flex-shrink-0 w-24 snap-start">
+    <a href="/books/view/?id=${book.id}" class="flex-shrink-0 w-24 snap-start">
       ${cover}
       <h3 class="text-sm font-medium text-gray-900 mt-2 line-clamp-2">${escapeHtml(book.title)}</h3>
       <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown')}</p>

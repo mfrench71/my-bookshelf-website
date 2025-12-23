@@ -19,7 +19,7 @@ describe('bookCard', () => {
 
       const html = bookCard(book);
 
-      expect(html).toContain('href="/book/?id=book-123"');
+      expect(html).toContain('href="/books/view/?id=book-123"');
       expect(html).toContain('The Great Gatsby');
       expect(html).toContain('F. Scott Fitzgerald');
       expect(html).toContain('https://example.com/gatsby.jpg');

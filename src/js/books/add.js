@@ -1,5 +1,5 @@
 // Add Book Page Logic
-import { auth, db } from './firebase-config.js';
+import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -10,12 +10,13 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from './utils.js';
-import { GenrePicker } from './components/genre-picker.js';
-import { RatingInput } from './components/rating-input.js';
-import { updateGenreBookCounts, clearGenresCache } from './genres.js';
-import { BookFormSchema } from './schemas/book.js';
-import { validateForm, showFieldError, clearFormErrors } from './utils/validation.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from '../utils.js';
+import { GenrePicker } from '../components/genre-picker.js';
+import { RatingInput } from '../components/rating-input.js';
+import { CoverPicker } from '../components/cover-picker.js';
+import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
+import { BookFormSchema } from '../schemas/book.js';
+import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
 
 // Initialize icons once on load
 initIcons();
@@ -67,6 +68,7 @@ async function checkForDuplicate(userId, isbn, title, author) {
 // State
 let currentUser = null;
 let ratingInput = null;
+let coverPicker = null;
 let scannerRunning = false;
 let formDirty = false;
 let genrePicker = null;
@@ -88,12 +90,8 @@ const bookForm = document.getElementById('book-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
-const coverPicker = document.getElementById('cover-picker');
-const coverOptionGoogle = document.getElementById('cover-option-google');
-const coverOptionOpenLibrary = document.getElementById('cover-option-openlibrary');
-const coverPreview = document.getElementById('cover-preview');
-const coverImg = document.getElementById('cover-img');
-const noCoverMsg = document.getElementById('no-cover-msg');
+const coverPickerContainer = document.getElementById('cover-picker-container');
+const coverPickerHint = document.getElementById('cover-picker-hint');
 const notesInput = document.getElementById('notes');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
@@ -108,6 +106,7 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
     initRatingInput();
+    initCoverPicker();
     initGenrePicker();
   }
 });
@@ -157,85 +156,33 @@ function updateGenreSuggestions(genres) {
   }
 }
 
-// Cover Picker
-let availableCovers = {}; // Track available covers { googleBooks: url, openLibrary: url }
+// Initialize Cover Picker
+function initCoverPicker() {
+  if (coverPicker) return;
 
-function renderCoverPicker(covers) {
-  availableCovers = covers || {};
-  const hasGoogle = availableCovers.googleBooks;
-  const hasOpenLibrary = availableCovers.openLibrary;
-  const hasAnyCovers = hasGoogle || hasOpenLibrary;
-
-  // Reset UI
-  coverPicker.classList.add('hidden');
-  coverPreview.classList.add('hidden');
-  noCoverMsg.classList.add('hidden');
-  coverOptionGoogle.classList.add('hidden');
-  coverOptionOpenLibrary.classList.add('hidden');
-  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/5');
-  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/5');
-
-  if (!hasAnyCovers) {
-    noCoverMsg.classList.remove('hidden');
-    coverUrlInput.value = '';
-    return;
-  }
-
-  // Show picker with available options
-  coverPicker.classList.remove('hidden');
-
-  if (hasGoogle) {
-    coverOptionGoogle.classList.remove('hidden');
-    coverOptionGoogle.querySelector('img').src = availableCovers.googleBooks;
-    coverOptionGoogle.querySelector('img').onerror = () => {
-      coverOptionGoogle.classList.add('hidden');
-      // If this was selected, switch to other
-      if (coverUrlInput.value === availableCovers.googleBooks && hasOpenLibrary) {
-        selectCover('openLibrary');
-      }
-    };
-  }
-
-  if (hasOpenLibrary) {
-    coverOptionOpenLibrary.classList.remove('hidden');
-    coverOptionOpenLibrary.querySelector('img').src = availableCovers.openLibrary;
-    coverOptionOpenLibrary.querySelector('img').onerror = () => {
-      coverOptionOpenLibrary.classList.add('hidden');
-      // If this was selected, switch to other
-      if (coverUrlInput.value === availableCovers.openLibrary && hasGoogle) {
-        selectCover('googleBooks');
-      }
-    };
-  }
-
-  // Auto-select first available cover
-  if (hasGoogle) {
-    selectCover('googleBooks');
-  } else if (hasOpenLibrary) {
-    selectCover('openLibrary');
-  }
+  coverPicker = new CoverPicker({
+    container: coverPickerContainer,
+    onSelect: (url) => {
+      coverUrlInput.value = url;
+      formDirty = true;
+      // Show hint if multiple covers available
+      const covers = coverPicker.getCovers();
+      const hasMultiple = covers.googleBooks && covers.openLibrary;
+      coverPickerHint.classList.toggle('hidden', !hasMultiple);
+    }
+  });
 }
 
-function selectCover(source) {
-  const url = availableCovers[source];
-  if (!url) return;
-
-  coverUrlInput.value = url;
-  coverImg.src = url;
-  coverPreview.classList.remove('hidden');
-
-  // Update selection styling
-  coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
-  coverOptionGoogle.classList.toggle('bg-primary/5', source === 'googleBooks');
-  coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
-  coverOptionOpenLibrary.classList.toggle('bg-primary/5', source === 'openLibrary');
-
-  formDirty = true;
+// Set covers in the picker
+function setCoverPickerCovers(covers) {
+  if (coverPicker) {
+    coverPicker.setCovers(covers);
+    coverUrlInput.value = coverPicker.getSelectedUrl() || '';
+    // Show hint if multiple covers available
+    const hasMultiple = covers && covers.googleBooks && covers.openLibrary;
+    coverPickerHint.classList.toggle('hidden', !hasMultiple);
+  }
 }
-
-// Cover option click handlers
-coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
-coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
 // ISBN Lookup
 lookupBtn.addEventListener('click', handleISBNLookup);
@@ -262,8 +209,8 @@ async function handleISBNLookup() {
     if (bookData) {
       titleInput.value = bookData.title || '';
       authorInput.value = bookData.author || '';
-      // Render cover picker with available covers from both APIs
-      renderCoverPicker(bookData.covers);
+      // Set covers in picker
+      setCoverPickerCovers(bookData.covers);
       // Populate additional fields
       publisherInput.value = bookData.publisher || '';
       publishedDateInput.value = bookData.publishedDate || '';
@@ -273,7 +220,7 @@ async function handleISBNLookup() {
       formDirty = true;
     } else {
       showStatus('Book not found. Try entering details manually.', 'error');
-      renderCoverPicker(null); // Clear picker
+      setCoverPickerCovers(null); // Clear picker
     }
   } catch (error) {
     console.error('Lookup error:', error);
@@ -543,8 +490,8 @@ async function selectSearchResult(el) {
     }
   }
 
-  // Render cover picker with collected covers
-  renderCoverPicker(Object.keys(covers).length > 0 ? covers : null);
+  // Set covers in picker
+  setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);
 
   bookSearchInput.value = '';
   searchResultsDiv.classList.add('hidden');
@@ -783,7 +730,7 @@ bookForm.addEventListener('submit', async (e) => {
     title,
     author,
     coverImageUrl: coverUrlInput.value.trim(),
-    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
+    covers: coverPicker && coverPicker.hasCovers() ? coverPicker.getCovers() : null,
     rating: ratingInput ? ratingInput.getValue() : null,
     notes: notesInput.value.trim(),
     isbn,
