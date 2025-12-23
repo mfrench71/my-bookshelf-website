@@ -232,6 +232,7 @@ function toggleAccordion(sectionId) {
   if (isExpanded) {
     // Collapse this section
     content.classList.add('hidden');
+    content.classList.remove('open');
     icon?.classList.remove('rotate-180');
   } else {
     // Close all other accordions first
@@ -241,12 +242,14 @@ function toggleAccordion(sectionId) {
         const otherSectionId = otherSection.id.replace('-section', '');
         const otherIcon = document.querySelector(`[data-accordion="${otherSectionId}"] .accordion-icon`);
         otherContent?.classList.add('hidden');
+        otherContent?.classList.remove('open');
         otherIcon?.classList.remove('rotate-180');
       }
     });
 
     // Expand this section
     content.classList.remove('hidden');
+    content.classList.add('open');
     icon?.classList.add('rotate-180');
 
     // Scroll to the accordion header, accounting for sticky header
@@ -275,9 +278,11 @@ function initializeAccordions() {
 
       if (sectionId === 'profile') {
         content?.classList.remove('hidden');
+        content?.classList.add('open');
         icon?.classList.add('rotate-180');
       } else {
         content?.classList.add('hidden');
+        content?.classList.remove('open');
         icon?.classList.remove('rotate-180');
       }
     });
@@ -286,6 +291,7 @@ function initializeAccordions() {
     sections.forEach(section => {
       const content = section.querySelector('.accordion-content');
       content?.classList.remove('hidden');
+      content?.classList.add('open');
     });
     // Then use sidebar navigation to show only active section
     switchSection('profile');
