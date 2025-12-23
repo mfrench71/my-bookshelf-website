@@ -23,114 +23,38 @@ bodyClass: bg-gray-100
     </button>
   </div>
 
-  <!-- Top Row: Welcome + Currently Reading -->
-  <div class="flex flex-col md:flex-row gap-4 mb-4">
-    <!-- Welcome Header -->
-    <div id="welcome-section" class="bg-white rounded-xl p-4 shadow-sm md:w-64 flex-shrink-0">
-      <h1 id="welcome-text" class="text-xl font-bold text-gray-900">Welcome back!</h1>
-      <p id="stats-text" class="text-gray-500 text-sm mt-1">Loading your library...</p>
-      <a href="/books/" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors">
-        <i data-lucide="library" class="w-4 h-4"></i>
-        <span>View My Library</span>
-      </a>
-    </div>
-
-    <!-- Currently Reading Section (inline on desktop) -->
-    <section id="section-currentlyReading" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm flex-1 min-w-0">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <i data-lucide="book-open" class="w-5 h-5 text-blue-600"></i>
-          Currently Reading
-          <span id="count-currentlyReading" class="text-sm font-normal text-gray-500">(0)</span>
-        </h2>
-        <a href="/books/?status=reading" class="text-sm text-primary hover:underline">See all</a>
-      </div>
-      <div id="books-currentlyReading" class="carousel-scroll"></div>
-      <p id="empty-currentlyReading" class="hidden text-gray-400 text-sm py-2 px-4">No books currently being read</p>
-    </section>
+  <!-- Welcome Header -->
+  <div id="welcome-section" class="bg-white rounded-xl p-4 shadow-sm mb-4">
+    <h1 id="welcome-text" class="text-xl font-bold text-gray-900">Welcome back!</h1>
+    <p id="stats-text" class="text-gray-500 text-sm mt-1">Loading your library...</p>
+    <a href="/books/" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors">
+      <i data-lucide="library" class="w-4 h-4"></i>
+      <span>View My Library</span>
+    </a>
   </div>
 
-  <!-- Loading State (Skeleton Dashboard) -->
-  <div id="loading-state" class="space-y-4">
-    <!-- Skeleton Section -->
-    <div class="bg-white rounded-xl pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <div class="skeleton skeleton-text w-32"></div>
-        <div class="skeleton skeleton-text w-16"></div>
-      </div>
-      <div class="flex gap-3 px-4 overflow-hidden">
-        {% for i in range(0, 5) %}
-        <div class="flex-shrink-0 w-24">
-          <div class="skeleton w-24 h-36 rounded-lg"></div>
-          <div class="skeleton skeleton-text w-20 mt-2"></div>
-          <div class="skeleton skeleton-text w-16"></div>
+  <!-- Widget Dashboard Container -->
+  <div id="widget-container">
+    <!-- Loading State (Skeleton Dashboard) -->
+    <div class="widget-grid">
+      {% for i in range(0, 4) %}
+      <div class="widget-skeleton widget-col-12">
+        <div class="skeleton-header">
+          <div class="skeleton skeleton-icon"></div>
+          <div class="skeleton skeleton-title"></div>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    <!-- Second Skeleton Section -->
-    <div class="bg-white rounded-xl pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <div class="skeleton skeleton-text w-28"></div>
-        <div class="skeleton skeleton-text w-16"></div>
-      </div>
-      <div class="flex gap-3 px-4 overflow-hidden">
-        {% for i in range(0, 5) %}
-        <div class="flex-shrink-0 w-24">
-          <div class="skeleton w-24 h-36 rounded-lg"></div>
-          <div class="skeleton skeleton-text w-20 mt-2"></div>
-          <div class="skeleton skeleton-text w-16"></div>
+        <div class="skeleton-content">
+          {% for j in range(0, 4) %}
+          <div class="skeleton-book">
+            <div class="skeleton skeleton-book-cover"></div>
+            <div class="skeleton skeleton-book-title"></div>
+            <div class="skeleton skeleton-book-author"></div>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
+      {% endfor %}
     </div>
-  </div>
-
-  <!-- Dashboard Sections -->
-  <div id="dashboard-sections" class="hidden space-y-4">
-
-    <!-- Recently Added Section -->
-    <section id="section-recentlyAdded" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
-          Recently Added
-          <span id="count-recentlyAdded" class="text-sm font-normal text-gray-500">(0)</span>
-        </h2>
-        <a href="/books/" class="text-sm text-primary hover:underline">See all</a>
-      </div>
-      <div id="books-recentlyAdded" class="carousel-scroll"></div>
-      <p id="empty-recentlyAdded" class="hidden text-gray-400 text-sm py-2 px-4">No books in your library yet</p>
-    </section>
-
-    <!-- Top Rated Section -->
-    <section id="section-topRated" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <i data-lucide="star" class="w-5 h-5 text-amber-500"></i>
-          Top Rated
-          <span id="count-topRated" class="text-sm font-normal text-gray-500">(0)</span>
-        </h2>
-        <a href="/books/?sort=rating-desc" class="text-sm text-primary hover:underline">See all</a>
-      </div>
-      <div id="books-topRated" class="carousel-scroll"></div>
-      <p id="empty-topRated" class="hidden text-gray-400 text-sm py-2 px-4">Rate some books to see your favourites</p>
-    </section>
-
-    <!-- Recently Finished Section -->
-    <section id="section-recentlyFinished" class="hidden bg-white rounded-xl pt-4 pb-3 shadow-sm">
-      <div class="flex items-center justify-between mb-3 px-4">
-        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
-          Recently Finished
-          <span id="count-recentlyFinished" class="text-sm font-normal text-gray-500">(0)</span>
-        </h2>
-        <a href="/books/?status=finished" class="text-sm text-primary hover:underline">See all</a>
-      </div>
-      <div id="books-recentlyFinished" class="carousel-scroll"></div>
-      <p id="empty-recentlyFinished" class="hidden text-gray-400 text-sm py-2 px-4">No finished books yet</p>
-    </section>
-
   </div>
 </main>
 

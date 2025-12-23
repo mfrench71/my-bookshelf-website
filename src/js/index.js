@@ -7,8 +7,12 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { initIcons, escapeHtml, CACHE_KEY, serializeTimestamp, getHomeSettings, getBookStatus, getCurrentRead } from './utils.js';
+import { initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
+import { loadWidgetSettings } from './utils/widget-settings.js';
+import { renderWidgets, renderWidgetSkeletons } from './widgets/widget-renderer.js';
+// Import widgets to ensure they're registered
+import './widgets/index.js';
 
 // Initialize icons
 initIcons();
@@ -22,8 +26,7 @@ let genreLookup = null;
 // DOM Elements
 const welcomeText = document.getElementById('welcome-text');
 const statsText = document.getElementById('stats-text');
-const loadingState = document.getElementById('loading-state');
-const dashboardSections = document.getElementById('dashboard-sections');
+const widgetContainer = document.getElementById('widget-container');
 
 // Email Verification Elements
 const verifyEmailBanner = document.getElementById('verify-email-banner');
@@ -92,10 +95,16 @@ resendVerificationBtn?.addEventListener('click', async () => {
 // Load all user data
 async function loadDashboard() {
   try {
-    // Load genres and books in parallel
-    const [genresResult, booksResult] = await Promise.all([
+    // Show skeleton loading state
+    if (widgetContainer) {
+      renderWidgetSkeletons(widgetContainer, 4);
+    }
+
+    // Load genres, books, and widget settings in parallel
+    const [genresResult, booksResult, widgetSettings] = await Promise.all([
       loadGenresData(),
-      loadBooksData()
+      loadBooksData(),
+      loadWidgetSettings(currentUser.uid)
     ]);
 
     genres = genresResult;
@@ -105,21 +114,22 @@ async function loadDashboard() {
     // Update welcome message
     updateWelcomeMessage();
 
-    // Hide loading, show dashboard
-    loadingState.classList.add('hidden');
-    dashboardSections.classList.remove('hidden');
-
-    // Render sections based on settings
-    const settings = getHomeSettings();
-    renderSections(settings);
+    // Render widgets
+    if (widgetContainer) {
+      renderWidgets(widgetContainer, books, widgetSettings, genreLookup);
+    }
 
     initIcons();
   } catch (error) {
     console.error('Error loading dashboard:', error);
-    loadingState.innerHTML = `
-      <p class="text-red-500">Error loading dashboard</p>
-      <button onclick="location.reload()" class="mt-2 text-primary hover:underline">Retry</button>
-    `;
+    if (widgetContainer) {
+      widgetContainer.innerHTML = `
+        <div class="text-center py-8">
+          <p class="text-red-500">Error loading dashboard</p>
+          <button onclick="location.reload()" class="mt-2 text-primary hover:underline">Retry</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -185,92 +195,3 @@ function updateWelcomeMessage() {
     statsText.textContent += ` · ${booksThisYear} added this year`;
   }
 }
-
-// Helper to get finishedAt from current read
-function getFinishedAt(book) {
-  const currentRead = getCurrentRead(book);
-  return currentRead?.finishedAt || book.finishedAt || book.updatedAt || 0;
-}
-
-// Render all sections
-function renderSections(settings) {
-  // Currently Reading (uses inferred status from reads array)
-  if (settings.currentlyReading?.enabled) {
-    const reading = books.filter(b => getBookStatus(b) === 'reading');
-    renderSection('currentlyReading', reading, settings.currentlyReading.count);
-  }
-
-  // Recently Added
-  if (settings.recentlyAdded?.enabled) {
-    const recent = [...books].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    renderSection('recentlyAdded', recent, settings.recentlyAdded.count);
-  }
-
-  // Top Rated
-  if (settings.topRated?.enabled) {
-    const topRated = books
-      .filter(b => b.rating && b.rating >= 4)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    renderSection('topRated', topRated, settings.topRated.count);
-  }
-
-  // Recently Finished (uses inferred status from reads array)
-  if (settings.recentlyFinished?.enabled) {
-    const finished = books
-      .filter(b => getBookStatus(b) === 'finished')
-      .sort((a, b) => getFinishedAt(b) - getFinishedAt(a));
-    renderSection('recentlyFinished', finished, settings.recentlyFinished.count);
-  }
-}
-
-// Render a single section
-function renderSection(sectionId, sectionBooks, maxCount) {
-  const section = document.getElementById(`section-${sectionId}`);
-  const booksContainer = document.getElementById(`books-${sectionId}`);
-  const countSpan = document.getElementById(`count-${sectionId}`);
-  const emptyMsg = document.getElementById(`empty-${sectionId}`);
-
-  if (!section) return;
-
-  section.classList.remove('hidden');
-
-  const displayBooks = sectionBooks.slice(0, maxCount);
-
-  if (countSpan) {
-    countSpan.textContent = `(${sectionBooks.length})`;
-  }
-
-  if (displayBooks.length === 0) {
-    booksContainer.innerHTML = '';
-    if (emptyMsg) emptyMsg.classList.remove('hidden');
-    return;
-  }
-
-  if (emptyMsg) emptyMsg.classList.add('hidden');
-
-  // Add spacer at start, books, and spacer at end for proper carousel padding
-  const spacer = '<div class="carousel-spacer"></div>';
-  booksContainer.innerHTML = spacer + displayBooks.map(book => renderBookCard(book)).join('') + spacer;
-  initIcons();
-}
-
-// Render a compact book card for horizontal scroll
-function renderBookCard(book) {
-  const cover = book.coverImageUrl
-    ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden">
-        <i data-lucide="book" class="w-8 h-8 text-white"></i>
-        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
-      </div>`
-    : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center">
-        <i data-lucide="book" class="w-8 h-8 text-white"></i>
-      </div>`;
-
-  return `
-    <a href="/books/view/?id=${book.id}" class="flex-shrink-0 w-24 snap-start">
-      ${cover}
-      <h3 class="text-sm font-medium text-gray-900 mt-2 line-clamp-2">${escapeHtml(book.title)}</h3>
-      <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown')}</p>
-    </a>
-  `;
-}
-
