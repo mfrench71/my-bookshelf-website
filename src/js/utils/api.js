@@ -9,6 +9,7 @@ import {
 } from './format.js';
 import { getISBNCache, setISBNCache } from './cache.js';
 import { parseHierarchicalGenres } from './genre-parser.js';
+import { parseSeriesFromAPI } from './series-parser.js';
 
 /**
  * Fetch with timeout
@@ -148,8 +149,8 @@ export async function lookupISBN(isbn, options = {}) {
     if (openLibraryCover) result.covers.openLibrary = openLibraryCover;
   }
 
-  // Try Open Library edition endpoint for physical_format and page count (not in jscmd=data)
-  if (result && (!result.physicalFormat || !result.pageCount)) {
+  // Try Open Library edition endpoint for physical_format, page count, and series (not in jscmd=data)
+  if (result && (!result.physicalFormat || !result.pageCount || !result.seriesName)) {
     try {
       const editionResponse = await fetchWithTimeout(
         `https://openlibrary.org/isbn/${isbn}.json`
@@ -166,6 +167,14 @@ export async function lookupISBN(isbn, options = {}) {
         }
         if (!result.pageCount && edition.number_of_pages) {
           result.pageCount = edition.number_of_pages;
+        }
+        // Extract series information
+        if (edition.series) {
+          const seriesInfo = parseSeriesFromAPI(edition.series);
+          if (seriesInfo) {
+            result.seriesName = seriesInfo.name;
+            result.seriesPosition = seriesInfo.position;
+          }
         }
       }
       // 404 responses are expected for ISBNs not in Open Library - silently skip

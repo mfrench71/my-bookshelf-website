@@ -13,6 +13,7 @@ import {
 import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
+import { normalizeSeriesName } from '../utils/series-parser.js';
 
 // Initialize icons once on load
 initIcons();
@@ -35,6 +36,7 @@ let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
 let genreFilter = ''; // Currently selected genre ID for filtering
 let statusFilter = ''; // Currently selected status for filtering
+let seriesFilter = ''; // Currently selected series name for filtering (URL param only)
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -72,6 +74,12 @@ function applyUrlFilters() {
   if (sort && sortSelect) {
     currentSort = sort;
     sortSelect.value = sort;
+  }
+
+  // Series filter (URL param only, no dropdown)
+  const series = params.get('series');
+  if (series) {
+    seriesFilter = series;
   }
 
   // Update filter highlights for URL params
@@ -370,12 +378,20 @@ function filterByStatus(booksArray, status) {
   return booksArray.filter(b => getBookStatus(b) === status);
 }
 
+// Series filter function (matches by normalised series name)
+function filterBySeries(booksArray, seriesName) {
+  if (!seriesName) return booksArray;
+  const normalizedFilter = normalizeSeriesName(seriesName);
+  return booksArray.filter(b => b.seriesName && normalizeSeriesName(b.seriesName) === normalizedFilter);
+}
+
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   let filtered = filterByRating(books, ratingFilter);
   filtered = filterByGenre(filtered, genreFilter);
   filtered = filterByStatus(filtered, statusFilter);
+  filtered = filterBySeries(filtered, seriesFilter);
   cachedFilteredBooks = sortBooks(filtered, currentSort);
   return cachedFilteredBooks;
 }
@@ -502,7 +518,7 @@ if (statusFilterSelect) {
 
 // Check if any filters are active
 function hasActiveFilters() {
-  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '';
+  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '' || seriesFilter !== '';
 }
 
 // Show/hide reset button and update filter highlights
@@ -557,6 +573,10 @@ function getActiveFilterDescription() {
     }
   }
 
+  if (seriesFilter) {
+    parts.push(`${seriesFilter} series`);
+  }
+
   if (parts.length === 0) return 'your filters';
   if (parts.length === 1) return `"${parts[0]}"`;
   return parts.map(p => `"${p}"`).join(' and ');
@@ -570,6 +590,7 @@ async function resetAllFilters() {
   ratingFilter = 0;
   genreFilter = '';
   statusFilter = '';
+  seriesFilter = '';
   sortSelect.value = 'createdAt-desc';
   ratingFilterSelect.value = '0';
   if (genreFilterSelect) genreFilterSelect.value = '';
@@ -577,6 +598,11 @@ async function resetAllFilters() {
   displayLimit = BOOKS_PER_PAGE;
   invalidateFilteredCache(); // Re-filter with reset values
   updateResetButton();
+
+  // Clear URL params (including series)
+  if (window.location.search) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 
   if (needsRefetch) {
     clearCache();

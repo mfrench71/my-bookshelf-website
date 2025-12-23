@@ -75,6 +75,17 @@ describe('BookSchema', () => {
 
     genres: z.array(z.string()).optional().default([]),
 
+    // Series information
+    seriesName: z.string()
+      .max(200, 'Series name must be 200 characters or less')
+      .optional()
+      .transform(s => s?.trim() || ''),
+
+    seriesPosition: z.union([
+      z.number().positive('Series position must be a positive number'),
+      z.null()
+    ]).optional(),
+
     notes: z.string()
       .max(5000, 'Notes must be 5000 characters or less')
       .optional()
@@ -274,6 +285,75 @@ describe('BookSchema', () => {
       const result = BookSchema.safeParse({ title: 'Test', author: 'Test', notes: '  Great book!  ' });
       expect(result.success).toBe(true);
       expect(result.data.notes).toBe('Great book!');
+    });
+  });
+
+  describe('seriesName field', () => {
+    it('should accept valid series name', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesName: 'Harry Potter' });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesName).toBe('Harry Potter');
+    });
+
+    it('should accept empty series name', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesName: '' });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesName).toBe('');
+    });
+
+    it('should trim whitespace from series name', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesName: '  Harry Potter  ' });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesName).toBe('Harry Potter');
+    });
+
+    it('should reject series name over 200 characters', () => {
+      const longName = 'A'.repeat(201);
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesName: longName });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Series name must be 200 characters or less');
+    });
+
+    it('should be optional (defaults to empty string)', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test' });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesName).toBe('');
+    });
+  });
+
+  describe('seriesPosition field', () => {
+    it('should accept positive number', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesPosition: 4 });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesPosition).toBe(4);
+    });
+
+    it('should accept decimal position', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesPosition: 1.5 });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesPosition).toBe(1.5);
+    });
+
+    it('should accept null', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesPosition: null });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesPosition).toBeNull();
+    });
+
+    it('should reject zero', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesPosition: 0 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject negative number', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test', seriesPosition: -1 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should be optional', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Test' });
+      expect(result.success).toBe(true);
+      expect(result.data.seriesPosition).toBeUndefined();
     });
   });
 });

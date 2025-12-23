@@ -72,6 +72,17 @@ export const BookSchema = z.object({
 
   genres: z.array(z.string()).optional().default([]),
 
+  // Series information (from Open Library API)
+  seriesName: z.string()
+    .max(200, 'Series name must be 200 characters or less')
+    .optional()
+    .transform(s => s?.trim() || ''),
+
+  seriesPosition: z.union([
+    z.number().positive('Series position must be a positive number'),
+    z.null()
+  ]).optional(),
+
   notes: z.string()
     .max(5000, 'Notes must be 5000 characters or less')
     .optional()

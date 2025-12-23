@@ -1,10 +1,11 @@
 // Book View Page Logic (Read-only display)
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc, deleteDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, lockBodyScroll, unlockBodyScroll, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
+import { normalizeSeriesName, formatSeriesDisplay } from '../utils/series-parser.js';
 
 // Initialize icons
 initIcons();
@@ -46,6 +47,10 @@ const statusSection = document.getElementById('status-section');
 const readingStatus = document.getElementById('reading-status');
 const genresSection = document.getElementById('genres-section');
 const genreBadges = document.getElementById('genre-badges');
+const seriesSection = document.getElementById('series-section');
+const seriesTitle = document.getElementById('series-title');
+const seriesBooks = document.getElementById('series-books');
+const seriesViewAll = document.getElementById('series-view-all');
 const notesSection = document.getElementById('notes-section');
 const bookNotes = document.getElementById('book-notes');
 const readingHistorySection = document.getElementById('reading-history-section');
@@ -159,6 +164,11 @@ function renderBook() {
     genresSection.classList.remove('hidden');
   }
 
+  // Series
+  if (book.seriesName) {
+    renderSeriesSection();
+  }
+
   // Metadata
   if (book.isbn) {
     bookIsbn.textContent = book.isbn;
@@ -213,6 +223,87 @@ function renderBook() {
   loading.classList.add('hidden');
   content.classList.remove('hidden');
   initIcons();
+}
+
+// Render series section with other books in the same series
+async function renderSeriesSection() {
+  const seriesName = book.seriesName;
+  const normalizedName = normalizeSeriesName(seriesName);
+
+  // Update title with series name
+  seriesTitle.textContent = seriesName;
+
+  // Load all user's books to find others in the same series
+  try {
+    const booksRef = collection(db, 'users', currentUser.uid, 'books');
+    const snapshot = await getDocs(booksRef);
+
+    const seriesBooksData = [];
+    snapshot.forEach(doc => {
+      const bookData = { id: doc.id, ...doc.data() };
+      if (bookData.seriesName && normalizeSeriesName(bookData.seriesName) === normalizedName) {
+        seriesBooksData.push(bookData);
+      }
+    });
+
+    // Sort by position (nulls at end)
+    seriesBooksData.sort((a, b) => {
+      if (a.seriesPosition === null && b.seriesPosition === null) return 0;
+      if (a.seriesPosition === null) return 1;
+      if (b.seriesPosition === null) return -1;
+      return a.seriesPosition - b.seriesPosition;
+    });
+
+    // Render book list
+    if (seriesBooksData.length > 1) {
+      const booksHtml = seriesBooksData.map(b => {
+        const isCurrent = b.id === bookId;
+        const positionStr = b.seriesPosition ? `#${b.seriesPosition}` : '';
+        const displayText = positionStr ? `${positionStr} ${b.title}` : b.title;
+
+        if (isCurrent) {
+          return `
+            <div class="flex items-center gap-2 text-sm py-1 text-primary font-medium">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+              <span>${displayText}</span>
+              <span class="text-xs text-gray-400">(viewing)</span>
+            </div>
+          `;
+        }
+        return `
+          <a href="/books/view/?id=${b.id}" class="flex items-center gap-2 text-sm py-1 text-gray-700 hover:text-primary">
+            <i data-lucide="book" class="w-4 h-4 text-gray-400"></i>
+            <span>${displayText}</span>
+          </a>
+        `;
+      }).join('');
+
+      seriesBooks.innerHTML = booksHtml;
+
+      // Show "View all" link
+      seriesViewAll.href = `/books/?series=${encodeURIComponent(seriesName)}`;
+      seriesViewAll.classList.remove('hidden');
+    } else {
+      // Only current book in series - just show series name
+      seriesBooks.innerHTML = `
+        <p class="text-sm text-gray-500">
+          ${formatSeriesDisplay(seriesName, book.seriesPosition)}
+        </p>
+      `;
+    }
+
+    seriesSection.classList.remove('hidden');
+    initIcons();
+  } catch (error) {
+    console.error('Error loading series books:', error);
+    // Still show series info even if query fails
+    seriesBooks.innerHTML = `
+      <p class="text-sm text-gray-500">
+        ${formatSeriesDisplay(seriesName, book.seriesPosition)}
+      </p>
+    `;
+    seriesSection.classList.remove('hidden');
+  }
 }
 
 // Delete handlers

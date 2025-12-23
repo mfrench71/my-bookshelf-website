@@ -151,10 +151,15 @@ npm test && npm run build
 - [ ] List CRUD (create, read, update, delete)
 - [ ] Drag and drop reordering within lists
 
-### Book Series
-- [ ] Link books to a series (e.g., "Harry Potter #1")
-- [ ] Series view page (all books in a series)
-- [ ] Auto-detect series from API data
+### Book Series (Partial) ✅
+- [x] Auto-detect series from Open Library API
+- [x] Store seriesName and seriesPosition on books
+- [x] Display series on book detail page with links to other books
+- [x] Filter books by series via URL param (/books/?series=Name)
+- [ ] User-created series with CRUD
+- [ ] Add/remove books from series manually
+- [ ] Override API-detected series
+- [ ] Series management page
 - [ ] Series completion progress
 
 ### Reading Timer & Sessions
