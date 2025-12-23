@@ -301,7 +301,14 @@ async function searchBooks(query) {
   const result = await fetchSearchResults();
 
   if (!result.books.length) {
-    searchResultsDiv.innerHTML = '<p class="text-sm text-gray-500">No books found</p>';
+    searchResultsDiv.innerHTML = `
+      <div class="py-8 text-center">
+        <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
+        <p class="text-gray-500 mt-3">No books found</p>
+        <p class="text-gray-400 text-sm mt-1">Try a different search term</p>
+      </div>
+    `;
+    initIcons();
     return;
   }
 

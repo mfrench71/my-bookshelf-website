@@ -294,7 +294,11 @@ function performSearch(queryText) {
 
   let html = results.length
     ? results.map(book => bookCard(book, { showDate: true, genreLookup })).join('')
-    : '<p class="text-gray-500 text-center">No books found</p>';
+    : `<div class="py-8 text-center">
+        <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
+        <p class="text-gray-500 mt-3">No books found</p>
+        <p class="text-gray-400 text-sm mt-1">Try a different search term</p>
+      </div>`;
 
   // Show loading indicator if still loading more books
   if (isLoadingBooks) {
