@@ -6,16 +6,16 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
-    <button id="back-btn" class="p-1 -ml-1 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600">
+    <button id="back-btn" class="p-2 -ml-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600">
       <i data-lucide="arrow-left" class="w-4 h-4"></i>
       <span class="text-sm">Back</span>
     </button>
     <div class="flex items-center gap-2">
-      <a id="edit-btn" href="#" class="p-1 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Edit">
+      <a id="edit-btn" href="#" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Edit">
         <i data-lucide="pencil" class="w-4 h-4"></i>
         <span class="text-sm">Edit</span>
       </a>
-      <button id="delete-btn" class="p-1 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1" title="Delete">
+      <button id="delete-btn" class="p-2 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1" title="Delete">
         <i data-lucide="trash-2" class="w-4 h-4"></i>
         <span class="text-sm">Delete</span>
       </button>
@@ -53,7 +53,7 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
         <div id="cover-placeholder" class="w-full h-full flex items-center justify-center text-gray-300">
           <i data-lucide="book" class="w-16 h-16"></i>
         </div>
-        <img id="cover-image" src="" alt="" class="hidden w-full h-full object-cover">
+        <img id="cover-image" src="" alt="" loading="lazy" class="hidden w-full h-full object-cover">
       </div>
     </div>
 

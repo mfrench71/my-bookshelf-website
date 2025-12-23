@@ -6,11 +6,11 @@ scripts: '<script type="module" src="/js/books/edit.js"></script>'
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
-    <button id="back-btn" class="p-1 -ml-1 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600">
+    <button id="back-btn" class="p-2 -ml-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600">
       <i data-lucide="arrow-left" class="w-4 h-4"></i>
       <span class="text-sm">Cancel</span>
     </button>
-    <button id="refresh-data-btn" class="p-1 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Refresh from API">
+    <button id="refresh-data-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1" title="Refresh from API">
       <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       <span class="text-sm">Refresh Data</span>
     </button>
@@ -63,11 +63,11 @@ scripts: '<script type="module" src="/js/books/edit.js"></script>'
         <div class="flex gap-4 flex-wrap">
           <div id="cover-option-google" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors" data-source="googleBooks">
             <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
-            <img src="" alt="Google Books cover" class="h-24 rounded object-cover mx-auto">
+            <img src="" alt="Google Books cover" loading="lazy" class="h-24 rounded object-cover mx-auto">
           </div>
           <div id="cover-option-openlibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors" data-source="openLibrary">
             <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
-            <img src="" alt="Open Library cover" class="h-24 rounded object-cover mx-auto">
+            <img src="" alt="Open Library cover" loading="lazy" class="h-24 rounded object-cover mx-auto">
           </div>
         </div>
         <p id="cover-picker-hint" class="text-xs text-gray-400 mt-2 hidden">Click to select a different cover</p>
