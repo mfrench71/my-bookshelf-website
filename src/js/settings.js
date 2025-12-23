@@ -1444,6 +1444,7 @@ async function runFetchCovers() {
     let processed = 0;
     let updated = 0;
     let newCoversFound = 0;
+    const updatedBooks = []; // Track which books were updated
 
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
 
@@ -1486,6 +1487,15 @@ async function runFetchCovers() {
               updatedAt: serverTimestamp()
             }, { merge: true });
             updated++;
+
+            // Track updated book with details of what changed
+            const sources = [];
+            if (hasNewGoogle) sources.push('Google Books');
+            if (hasNewOpenLibrary) sources.push('Open Library');
+            updatedBooks.push({
+              title: book.title,
+              sources: sources.length > 0 ? sources : ['updated']
+            });
           }
         }
       } catch (error) {
@@ -1504,10 +1514,22 @@ async function runFetchCovers() {
     coverResults.classList.remove('hidden');
 
     if (updated === 0) {
-      coverResultsText.textContent = `Scanned ${processed} books. No new covers found.`;
+      coverResultsText.innerHTML = `Scanned ${processed} books. No new covers found.`;
       showToast('No new covers found', { type: 'info' });
     } else {
-      coverResultsText.textContent = `Scanned ${processed} books. Updated ${updated} with new cover options (${newCoversFound} new covers found).`;
+      // Build detailed results with list of updated books
+      let html = `<p class="mb-2">Scanned ${processed} books. Updated ${updated} with new cover options.</p>`;
+      html += `<ul class="text-sm text-gray-600 space-y-1 max-h-32 overflow-y-auto">`;
+      for (const book of updatedBooks) {
+        const sourcesText = book.sources.join(', ');
+        html += `<li class="flex items-start gap-2">
+          <i data-lucide="check" class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"></i>
+          <span><strong>${escapeHtml(book.title)}</strong> <span class="text-gray-400">(${sourcesText})</span></span>
+        </li>`;
+      }
+      html += `</ul>`;
+      coverResultsText.innerHTML = html;
+      initIcons();
       showToast(`Found ${newCoversFound} new covers!`, { type: 'success' });
     }
 

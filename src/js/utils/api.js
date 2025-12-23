@@ -144,19 +144,23 @@ export async function lookupISBN(isbn, options = {}) {
       const editionResponse = await fetchWithTimeout(
         `https://openlibrary.org/isbn/${isbn}.json`
       );
-      const edition = await editionResponse.json();
-      if (!result.physicalFormat && edition.physical_format) {
-        // Normalize to title case to match select options (e.g., "paperback" -> "Paperback")
-        result.physicalFormat = edition.physical_format
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
+      // Only parse if response is OK (ISBN exists in Open Library)
+      if (editionResponse.ok) {
+        const edition = await editionResponse.json();
+        if (!result.physicalFormat && edition.physical_format) {
+          // Normalize to title case to match select options (e.g., "paperback" -> "Paperback")
+          result.physicalFormat = edition.physical_format
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+        if (!result.pageCount && edition.number_of_pages) {
+          result.pageCount = edition.number_of_pages;
+        }
       }
-      if (!result.pageCount && edition.number_of_pages) {
-        result.pageCount = edition.number_of_pages;
-      }
+      // 404 responses are expected for ISBNs not in Open Library - silently skip
     } catch (e) {
-      // Edition endpoint may not exist for all ISBNs
+      // Network errors or timeouts - silently skip
     }
   }
 

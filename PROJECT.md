@@ -226,6 +226,27 @@ API fields available but not currently stored (for future features):
 - [x] Genre auto-suggestions from API data (Google Books categories)
 - [x] Genre color coding (64-color palette, unique per genre)
 - [ ] Merge duplicate genres
+- [ ] Improved genre suggestions (see sources below)
+
+### Genre Suggestion Sources
+
+Currently using Google Books `categories` and Open Library `subjects`. These can be inconsistent (e.g., "Fiction / Thrillers / Suspense" vs "Thriller"). Sources must be free with no sign-up required.
+
+| Source | API | Notes |
+|--------|-----|-------|
+| **Google Books** | `categories` field | Already used. Hierarchical (e.g., "Fiction / Fantasy / Epic"). Needs parsing/normalization |
+| **Open Library** | `subjects` field | Already used. User-contributed, can be noisy. Limit to first 5 |
+| **Library of Congress** | `loc.gov/search` | Free, no sign-up. Academic/comprehensive. May be too granular |
+| **BISAC Codes** | Static mapping | Industry standard. Map API results to ~50 top-level categories |
+| **Thema Codes** | Static mapping | International standard. Multilingual. Map for non-English books |
+
+**Improvement ideas:**
+- [ ] Parse hierarchical categories (split on `/`, ` - `, ` > `)
+- [ ] Normalize common variations ("Sci-Fi" → "Science Fiction", "YA" → "Young Adult")
+- [ ] Deduplicate suggestions (case-insensitive)
+- [ ] Prioritize top-level genres over sub-genres
+- [ ] Match suggestions to existing user genres
+- [ ] Build curated genre mapping (map API terms to 20-30 common genres)
 
 ### User Profile & Settings
 - [x] User profile section in Settings
@@ -519,4 +540,4 @@ The current data model supports comprehensive reading statistics:
 - [StoryGraph Features - Everyday Reading](https://everyday-reading.com/storygraph/)
 
 ---
-**Last Updated**: 2025-12-22
+**Last Updated**: 2025-12-23
