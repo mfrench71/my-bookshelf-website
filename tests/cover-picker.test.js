@@ -26,10 +26,10 @@ describe('CoverPicker', () => {
       expect(container.querySelector('[data-source="openLibrary"]')).toBeTruthy();
     });
 
-    it('should render no cover message', () => {
+    it('should render no cover placeholder', () => {
       const picker = new CoverPicker({ container });
 
-      expect(container.querySelector('.no-cover-msg')).toBeTruthy();
+      expect(container.querySelector('.no-cover-placeholder')).toBeTruthy();
     });
 
     it('should hide options by default', () => {
@@ -77,12 +77,12 @@ describe('CoverPicker', () => {
       expect(container.querySelector('[data-source="openLibrary"]').classList.contains('hidden')).toBe(false);
     });
 
-    it('should show no cover message when no covers available', () => {
+    it('should show no cover placeholder when no covers available', () => {
       const picker = new CoverPicker({ container });
 
       picker.setCovers({});
 
-      expect(container.querySelector('.no-cover-msg').classList.contains('hidden')).toBe(false);
+      expect(container.querySelector('.no-cover-placeholder').classList.contains('hidden')).toBe(false);
     });
 
     it('should set image src correctly', () => {

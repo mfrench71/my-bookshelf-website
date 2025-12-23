@@ -35,17 +35,28 @@ export class CoverPicker {
    */
   render() {
     this.container.innerHTML = `
-      <div class="flex gap-4 flex-wrap">
-        <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
+      <div class="cover-options flex gap-4 flex-wrap">
+        <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
           <img src="" alt="Google Books cover" class="w-16 h-24 rounded object-cover mx-auto">
+          <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
+            <i data-lucide="check" class="w-3 h-3 text-white"></i>
+          </div>
         </div>
-        <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
+        <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
           <img src="" alt="Open Library cover" class="w-16 h-24 rounded object-cover mx-auto">
+          <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
+            <i data-lucide="check" class="w-3 h-3 text-white"></i>
+          </div>
         </div>
       </div>
-      <p class="no-cover-msg hidden text-sm text-gray-500 mt-2">No cover images available</p>
+      <div class="no-cover-placeholder hidden">
+        <div class="w-24 h-36 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+          <i data-lucide="book" class="w-10 h-10"></i>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">No cover available</p>
+      </div>
     `;
 
     // Store element references
@@ -53,7 +64,8 @@ export class CoverPicker {
     this.elements.openLibraryOption = this.container.querySelector('[data-source="openLibrary"]');
     this.elements.googleImg = this.elements.googleOption.querySelector('img');
     this.elements.openLibraryImg = this.elements.openLibraryOption.querySelector('img');
-    this.elements.noCoverMsg = this.container.querySelector('.no-cover-msg');
+    this.elements.coverOptions = this.container.querySelector('.cover-options');
+    this.elements.placeholder = this.container.querySelector('.no-cover-placeholder');
 
     // Bind click handlers
     this.elements.googleOption.addEventListener('click', () => this.select('googleBooks'));
@@ -92,15 +104,18 @@ export class CoverPicker {
     const hasOpenLibrary = !!this.covers.openLibrary;
     const hasAnyCovers = hasGoogle || hasOpenLibrary;
 
-    // Reset UI
-    this.container.classList.toggle('hidden', !hasAnyCovers && !this.currentUrl);
-    this.elements.noCoverMsg.classList.toggle('hidden', hasAnyCovers || !!this.currentUrl);
+    // Reset UI - hide cover options, reset selection styles
     this.elements.googleOption.classList.add('hidden');
     this.elements.openLibraryOption.classList.add('hidden');
     this.elements.googleOption.classList.remove('border-primary', 'bg-primary/5');
     this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/5');
 
+    // Show placeholder if no covers available
+    this.elements.coverOptions.classList.toggle('hidden', !hasAnyCovers);
+    this.elements.placeholder.classList.toggle('hidden', hasAnyCovers);
+
     if (!hasAnyCovers) {
+      initIcons();
       return;
     }
 
@@ -125,6 +140,8 @@ export class CoverPicker {
     } else if (hasOpenLibrary) {
       this.highlightOption('openLibrary');
     }
+
+    initIcons();
   }
 
   /**
@@ -145,10 +162,18 @@ export class CoverPicker {
    * @param {string} source - 'googleBooks' or 'openLibrary'
    */
   highlightOption(source) {
+    const googleBadge = this.elements.googleOption.querySelector('.cover-selected-badge');
+    const openLibraryBadge = this.elements.openLibraryOption.querySelector('.cover-selected-badge');
+
     this.elements.googleOption.classList.toggle('border-primary', source === 'googleBooks');
     this.elements.googleOption.classList.toggle('bg-primary/5', source === 'googleBooks');
+    googleBadge?.classList.toggle('hidden', source !== 'googleBooks');
+
     this.elements.openLibraryOption.classList.toggle('border-primary', source === 'openLibrary');
     this.elements.openLibraryOption.classList.toggle('bg-primary/5', source === 'openLibrary');
+    openLibraryBadge?.classList.toggle('hidden', source !== 'openLibrary');
+
+    initIcons();
   }
 
   /**
