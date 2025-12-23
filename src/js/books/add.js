@@ -12,6 +12,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from '../utils.js';
 import { parseHierarchicalGenres } from '../utils/genre-parser.js';
+import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { CoverPicker } from '../components/cover-picker.js';
@@ -101,6 +102,10 @@ const pageCountInput = document.getElementById('page-count');
 const submitBtn = document.getElementById('submit-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
+const seriesSection = document.getElementById('series-section');
+const seriesDisplay = document.getElementById('series-display');
+const seriesNameInput = document.getElementById('series-name');
+const seriesPositionInput = document.getElementById('series-position');
 
 // Auth Check - header.js handles redirect, just capture user
 onAuthStateChanged(auth, (user) => {
@@ -185,6 +190,22 @@ function setCoverPickerCovers(covers) {
   }
 }
 
+// Set series display from API lookup
+function setSeriesDisplay(seriesName, seriesPosition) {
+  if (seriesName) {
+    seriesDisplay.textContent = formatSeriesDisplay(seriesName, seriesPosition);
+    seriesNameInput.value = seriesName;
+    seriesPositionInput.value = seriesPosition ?? '';
+    seriesSection.classList.remove('hidden');
+    initIcons();
+  } else {
+    seriesSection.classList.add('hidden');
+    seriesDisplay.textContent = '';
+    seriesNameInput.value = '';
+    seriesPositionInput.value = '';
+  }
+}
+
 // ISBN Lookup
 lookupBtn.addEventListener('click', handleISBNLookup);
 isbnInput.addEventListener('keypress', (e) => {
@@ -217,11 +238,14 @@ async function handleISBNLookup() {
       publishedDateInput.value = bookData.publishedDate || '';
       physicalFormatInput.value = bookData.physicalFormat || '';
       pageCountInput.value = bookData.pageCount || '';
+      // Show series if detected
+      setSeriesDisplay(bookData.seriesName, bookData.seriesPosition);
       showStatus('Book found!', 'success');
       formDirty = true;
     } else {
       showStatus('Book not found. Try entering details manually.', 'error');
       setCoverPickerCovers(null); // Clear picker
+      setSeriesDisplay(null, null); // Clear series
     }
   } catch (error) {
     console.error('Lookup error:', error);
@@ -487,12 +511,12 @@ async function selectSearchResult(el) {
       console.error('Open Library supplement error:', e);
     }
 
-    // Fetch physical_format from edition endpoint (not in jscmd=data)
-    if (!physicalFormatInput.value) {
-      try {
-        const editionResponse = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+    // Fetch additional data from edition endpoint (physical_format, series, page count)
+    try {
+      const editionResponse = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+      if (editionResponse.ok) {
         const edition = await editionResponse.json();
-        if (edition.physical_format) {
+        if (!physicalFormatInput.value && edition.physical_format) {
           // Normalize to title case to match select options
           physicalFormatInput.value = edition.physical_format
             .split(' ')
@@ -503,10 +527,22 @@ async function selectSearchResult(el) {
         if (!pageCountInput.value && edition.number_of_pages) {
           pageCountInput.value = edition.number_of_pages;
         }
-      } catch (e) {
-        // Edition endpoint may not exist for all ISBNs
+        // Extract series from edition
+        if (edition.series) {
+          const seriesInfo = parseSeriesFromAPI(edition.series);
+          if (seriesInfo) {
+            setSeriesDisplay(seriesInfo.name, seriesInfo.position);
+          }
+        }
       }
+    } catch (e) {
+      // Edition endpoint may not exist for all ISBNs
     }
+  }
+
+  // Clear series if no ISBN or no series found
+  if (!seriesNameInput.value) {
+    setSeriesDisplay(null, null);
   }
 
   // Set covers in picker
@@ -758,6 +794,8 @@ bookForm.addEventListener('submit', async (e) => {
     publishedDate: publishedDateInput.value.trim(),
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
+    seriesName: seriesNameInput.value.trim() || null,
+    seriesPosition: seriesPositionInput.value ? parseInt(seriesPositionInput.value, 10) : null,
     reads: [], // Reading status inferred from reads array
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()

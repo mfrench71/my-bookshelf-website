@@ -8,6 +8,7 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lookupISBN, fetchWithTimeout, migrateBookReads, getBookStatus } from '../utils.js';
+import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
@@ -61,6 +62,10 @@ const saveBtn = document.getElementById('save-btn');
 const refreshDataBtn = document.getElementById('refresh-data-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
+const seriesSection = document.getElementById('series-section');
+const seriesDisplay = document.getElementById('series-display');
+const seriesNameInput = document.getElementById('series-name');
+const seriesPositionInput = document.getElementById('series-position');
 
 // Reading Dates Elements
 const startedDateInput = document.getElementById('started-date');
@@ -167,6 +172,22 @@ function selectCover(source) {
 coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
 coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
 
+// Set series display
+function setSeriesDisplay(seriesName, seriesPosition) {
+  if (seriesName) {
+    seriesDisplay.textContent = formatSeriesDisplay(seriesName, seriesPosition);
+    seriesNameInput.value = seriesName;
+    seriesPositionInput.value = seriesPosition ?? '';
+    seriesSection.classList.remove('hidden');
+    initIcons();
+  } else {
+    seriesSection.classList.add('hidden');
+    seriesDisplay.textContent = '';
+    seriesNameInput.value = '';
+    seriesPositionInput.value = '';
+  }
+}
+
 // Auth Check
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -246,6 +267,9 @@ function renderForm() {
   pageCountInput.value = book.pageCount || '';
   notesInput.value = book.notes || '';
   initRatingInput(book.rating || 0);
+
+  // Series display
+  setSeriesDisplay(book.seriesName, book.seriesPosition);
 
   // Reading dates
   const migratedBook = migrateBookReads(book);
@@ -496,6 +520,8 @@ editForm.addEventListener('submit', async (e) => {
     publishedDate: validation.data.publishedDate || '',
     physicalFormat: validation.data.physicalFormat || '',
     pageCount: validation.data.pageCount || null,
+    seriesName: seriesNameInput.value.trim() || null,
+    seriesPosition: seriesPositionInput.value ? parseInt(seriesPositionInput.value, 10) : null,
     rating: validation.data.rating || null,
     notes: validation.data.notes || '',
     genres: selectedGenres,
@@ -652,6 +678,12 @@ refreshDataBtn.addEventListener('click', async () => {
       } else if (apiData.coverImageUrl && !coverUrlInput.value.trim()) {
         coverUrlInput.value = apiData.coverImageUrl;
         changedFields.push('cover');
+      }
+
+      // Series from API
+      if (apiData.seriesName && !seriesNameInput.value) {
+        setSeriesDisplay(apiData.seriesName, apiData.seriesPosition);
+        changedFields.push('series');
       }
 
       if (changedFields.length > 0) {
