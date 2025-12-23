@@ -32,7 +32,7 @@ export class TopRatedWidget extends BaseWidget {
   }
 
   static getSeeAllParams() {
-    return { sort: 'rating', order: 'desc' };
+    return { sort: 'rating-desc', rating: '4' };
   }
 
   static render(books, config, genreLookup) {

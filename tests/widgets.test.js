@@ -262,8 +262,8 @@ describe('RecentlyAddedWidget', () => {
     expect(result[result.length - 1].id).toBe('1'); // Oldest
   });
 
-  it('should return see all params for newest sort', () => {
-    expect(RecentlyAddedWidget.getSeeAllParams()).toEqual({ sort: 'newest' });
+  it('should return see all params for createdAt sort', () => {
+    expect(RecentlyAddedWidget.getSeeAllParams()).toEqual({ sort: 'createdAt-desc' });
   });
 });
 
@@ -288,7 +288,7 @@ describe('TopRatedWidget', () => {
   });
 
   it('should return see all params for rating sort', () => {
-    expect(TopRatedWidget.getSeeAllParams()).toEqual({ sort: 'rating', order: 'desc' });
+    expect(TopRatedWidget.getSeeAllParams()).toEqual({ sort: 'rating-desc', rating: '4' });
   });
 
   it('should render stars in book cards', () => {
@@ -494,6 +494,97 @@ describe('Widget Settings', () => {
       };
       const enabled = getEnabledWidgets(settings);
       expect(enabled.map(w => w.id)).toEqual(['b', 'c', 'a']);
+    });
+  });
+});
+
+// Valid sort values that the books list page accepts
+const VALID_SORT_VALUES = [
+  'createdAt-desc', 'createdAt-asc',
+  'title-asc', 'title-desc',
+  'author-asc', 'author-desc',
+  'rating-desc', 'rating-asc'
+];
+
+// Valid filter parameter keys
+const VALID_FILTER_KEYS = ['status', 'rating', 'sort', 'genre'];
+
+describe('Widget See All Parameters', () => {
+  describe('RecentlyAddedWidget', () => {
+    it('should return valid sort parameter for books list', () => {
+      const params = RecentlyAddedWidget.getSeeAllParams();
+      expect(params).toHaveProperty('sort');
+      expect(VALID_SORT_VALUES).toContain(params.sort);
+    });
+
+    it('should generate correct See All URL', () => {
+      const link = RecentlyAddedWidget.getSeeAllLink();
+      const params = RecentlyAddedWidget.getSeeAllParams();
+      expect(link).toBe('/books/');
+      expect(params.sort).toBe('createdAt-desc');
+    });
+  });
+
+  describe('TopRatedWidget', () => {
+    it('should return valid sort parameter for books list', () => {
+      const params = TopRatedWidget.getSeeAllParams();
+      expect(params).toHaveProperty('sort');
+      expect(VALID_SORT_VALUES).toContain(params.sort);
+    });
+
+    it('should include rating filter', () => {
+      const params = TopRatedWidget.getSeeAllParams();
+      expect(params).toHaveProperty('rating');
+      expect(params.sort).toBe('rating-desc');
+    });
+  });
+
+  describe('CurrentlyReadingWidget', () => {
+    it('should return valid status filter', () => {
+      const params = CurrentlyReadingWidget.getSeeAllParams();
+      expect(params).toHaveProperty('status');
+      expect(params.status).toBe('reading');
+    });
+  });
+
+  describe('RecentlyFinishedWidget', () => {
+    it('should return valid status filter', () => {
+      const params = RecentlyFinishedWidget.getSeeAllParams();
+      expect(params).toHaveProperty('status');
+      expect(params.status).toBe('finished');
+    });
+  });
+
+  describe('WelcomeWidget', () => {
+    it('should not have See All link', () => {
+      expect(WelcomeWidget.getSeeAllLink()).toBe(null);
+    });
+  });
+
+  describe('All widgets with See All links', () => {
+    const widgetsWithSeeAll = [
+      CurrentlyReadingWidget,
+      RecentlyAddedWidget,
+      TopRatedWidget,
+      RecentlyFinishedWidget
+    ];
+
+    it.each(widgetsWithSeeAll)('%s should have valid parameters', (Widget) => {
+      const link = Widget.getSeeAllLink();
+      const params = Widget.getSeeAllParams();
+
+      expect(link).toBe('/books/');
+      expect(params).toBeTruthy();
+
+      // All parameter keys should be valid
+      Object.keys(params).forEach(key => {
+        expect(VALID_FILTER_KEYS).toContain(key);
+      });
+
+      // If sort is specified, it should be valid
+      if (params.sort) {
+        expect(VALID_SORT_VALUES).toContain(params.sort);
+      }
     });
   });
 });

@@ -33,7 +33,7 @@ export class RecentlyAddedWidget extends BaseWidget {
   }
 
   static getSeeAllParams() {
-    return { sort: 'newest' };
+    return { sort: 'createdAt-desc' };
   }
 
   static render(books, config, genreLookup) {
