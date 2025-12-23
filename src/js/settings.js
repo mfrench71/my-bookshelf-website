@@ -347,6 +347,9 @@ initChangelogAccordions();
 async function loadProfileInfo() {
   if (!currentUser) return;
 
+  const profileLoading = document.getElementById('profile-loading');
+  const profileContent = document.getElementById('profile-content');
+
   // Display email
   profileEmail.textContent = currentUser.email;
 
@@ -381,6 +384,10 @@ async function loadProfileInfo() {
 
   // Update email verification status
   updateVerificationStatus();
+
+  // Hide loading, show content
+  profileLoading?.classList.add('hidden');
+  profileContent?.classList.remove('hidden');
 }
 
 function updateVerificationStatus() {
@@ -1433,6 +1440,9 @@ recountGenresBtn.addEventListener('click', runRecountGenres);
 async function updateCoverStats() {
   if (!coverIsbnCount || !coverMultiCount) return;
 
+  const coverStatsLoading = document.getElementById('cover-stats-loading');
+  const coverStats = document.getElementById('cover-stats');
+
   try {
     await loadAllBooks();
 
@@ -1450,6 +1460,10 @@ async function updateCoverStats() {
     coverIsbnCount.textContent = '-';
     coverMultiCount.textContent = '-';
   }
+
+  // Hide loading, show content
+  coverStatsLoading?.classList.add('hidden');
+  coverStats?.classList.remove('hidden');
 }
 
 /**

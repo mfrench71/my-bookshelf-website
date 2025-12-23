@@ -64,8 +64,19 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
           <div class="p-4 md:p-0">
             <h2 class="hidden md:block text-lg font-semibold text-gray-900 mb-4">Profile</h2>
 
-            <!-- User Info -->
-            <div class="bg-gray-50 rounded-xl p-6 mb-6">
+            <!-- User Info - Loading State -->
+            <div id="profile-loading" class="bg-gray-50 rounded-xl p-6 mb-6">
+              <div class="flex items-center gap-4">
+                <div class="skeleton w-16 h-16 rounded-full"></div>
+                <div class="space-y-2">
+                  <div class="skeleton h-4 w-40 rounded"></div>
+                  <div class="skeleton h-3 w-32 rounded"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Info - Content -->
+            <div id="profile-content" class="hidden bg-gray-50 rounded-xl p-6 mb-6">
               <div class="flex items-center gap-4">
                 <button id="edit-avatar-btn" class="relative group cursor-pointer">
                   <div id="profile-avatar" class="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
@@ -295,7 +306,13 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               <div class="bg-gray-50 rounded-xl p-6">
                 <h3 class="font-medium text-gray-900 mb-2">Fetch Book Covers</h3>
                 <p class="text-gray-600 text-sm mb-4">Scan your library for alternative book covers from Google Books and Open Library. Books with ISBNs will be checked for available cover images.</p>
-                <div id="cover-stats" class="mb-4 text-sm text-gray-600">
+                <!-- Cover Stats - Loading State -->
+                <div id="cover-stats-loading" class="mb-4 space-y-2">
+                  <div class="skeleton h-4 w-36 rounded"></div>
+                  <div class="skeleton h-4 w-44 rounded"></div>
+                </div>
+                <!-- Cover Stats - Content -->
+                <div id="cover-stats" class="hidden mb-4 text-sm text-gray-600">
                   <p>Books with ISBN: <span id="cover-isbn-count" class="font-medium">-</span></p>
                   <p>Books with multiple covers: <span id="cover-multi-count" class="font-medium">-</span></p>
                 </div>
