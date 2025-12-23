@@ -375,20 +375,7 @@
   background-color: #f3f4f6;
 }
 
-/* Accordion Animation */
-.accordion-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s ease-out;
-}
-
-.accordion-content.open {
-  grid-template-rows: 1fr;
-}
-
-.accordion-content > div {
-  overflow: hidden;
-}
+/* Accordion - content visibility controlled by hidden class in JS */
 
 .accordion-icon {
   transition: transform 0.2s ease-out;
@@ -631,4 +618,155 @@ button, a {
 .carousel-scroll {
   scrollbar-width: thin;
   scrollbar-color: #d1d5db #f1f1f1;
+}
+
+/* ============================================
+   WIDGET GRID SYSTEM
+   ============================================ */
+
+/* 12-column responsive widget grid */
+.widget-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(12, 1fr);
+}
+
+/* Widget size classes (desktop: 12-column grid) */
+.widget-col-3 { grid-column: span 3; }   /* Quarter width */
+.widget-col-6 { grid-column: span 6; }   /* Half width */
+.widget-col-9 { grid-column: span 9; }   /* Three-quarter width */
+.widget-col-12 { grid-column: span 12; } /* Full width */
+
+/* Tablet: 6-column grid (widgets span more) */
+@media (max-width: 1023px) {
+  .widget-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .widget-col-3 { grid-column: span 3; }   /* Half width on tablet */
+  .widget-col-6 { grid-column: span 6; }   /* Full width on tablet */
+  .widget-col-9 { grid-column: span 6; }   /* Full width on tablet */
+  .widget-col-12 { grid-column: span 6; }  /* Full width on tablet */
+}
+
+/* Mobile: single column */
+@media (max-width: 767px) {
+  .widget-grid {
+    grid-template-columns: 1fr;
+  }
+  [class*="widget-col-"] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Widget card base styling */
+.widget-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #f3f4f6;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease-out;
+}
+
+.widget-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Widget header */
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.widget-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.widget-count {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+/* Widget content area */
+.widget-content {
+  padding: 1rem;
+}
+
+/* Widget "See all" link */
+.widget-see-all {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.15s;
+}
+
+.widget-see-all:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* Widget skeleton loading state */
+.widget-skeleton {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #f3f4f6;
+  overflow: hidden;
+}
+
+.widget-skeleton .skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.widget-skeleton .skeleton-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+}
+
+.widget-skeleton .skeleton-title {
+  width: 8rem;
+  height: 1rem;
+}
+
+.widget-skeleton .skeleton-content {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.widget-skeleton .skeleton-book {
+  width: 6rem;
+  flex-shrink: 0;
+}
+
+.widget-skeleton .skeleton-book-cover {
+  width: 6rem;
+  height: 9rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.widget-skeleton .skeleton-book-title {
+  height: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.widget-skeleton .skeleton-book-author {
+  height: 0.625rem;
+  width: 70%;
 }
