@@ -66,7 +66,7 @@ export const BookSchema = z.object({
   ]).optional(),
 
   rating: z.union([
-    z.number().int().min(1, 'Rating must be 1-5').max(5, 'Rating must be 1-5'),
+    z.number().int().min(0).max(5).transform(val => val === 0 ? null : val),
     z.null()
   ]).optional(),
 
@@ -111,7 +111,7 @@ export const BookFormSchema = BookSchema.extend({
     }),
 
   rating: z.union([
-    z.number().int().min(1).max(5),
+    z.number().int().min(0).max(5).transform(val => val === 0 ? null : val),
     z.string().transform((val) => val === '' ? null : parseInt(val, 10)),
     z.null()
   ]).optional()
