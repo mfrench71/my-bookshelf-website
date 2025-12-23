@@ -41,7 +41,9 @@ MyBookShelf/
 │   │   ├── md5.js              # MD5 hash for Gravatar
 │   │   ├── components/         # Reusable UI components
 │   │   │   ├── book-card.js    # Book card for list rendering
+│   │   │   ├── cover-picker.js # Cover image source picker
 │   │   │   ├── genre-picker.js # Multi-select genre input
+│   │   │   ├── modal.js        # Modal and ConfirmModal
 │   │   │   └── rating-input.js # Interactive star rating
 │   │   ├── schemas/            # Zod validation schemas
 │   │   │   ├── book.js         # Book form validation

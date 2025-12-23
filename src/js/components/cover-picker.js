@@ -1,0 +1,186 @@
+// Reusable Cover Picker Component
+import { initIcons } from '../utils.js';
+
+/**
+ * CoverPicker - Select book cover from multiple API sources
+ *
+ * @example
+ * const picker = new CoverPicker({
+ *   container: document.getElementById('cover-picker-container'),
+ *   onSelect: (url, source) => console.log('Selected:', url, source)
+ * });
+ * picker.setCovers({ googleBooks: 'url1', openLibrary: 'url2' });
+ */
+export class CoverPicker {
+  /**
+   * @param {Object} options
+   * @param {HTMLElement} options.container - Container element to render into
+   * @param {Function} options.onSelect - Callback when cover is selected (url, source)
+   * @param {string} options.currentUrl - Currently selected cover URL (optional)
+   */
+  constructor(options = {}) {
+    this.container = options.container;
+    this.onSelect = options.onSelect || (() => {});
+    this.currentUrl = options.currentUrl || '';
+    this.covers = {};
+    this.elements = {};
+
+    if (this.container) {
+      this.render();
+    }
+  }
+
+  /**
+   * Render the cover picker UI
+   */
+  render() {
+    this.container.innerHTML = `
+      <div class="flex gap-4 flex-wrap">
+        <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
+          <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
+          <img src="" alt="Google Books cover" class="h-24 rounded object-cover mx-auto">
+        </div>
+        <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
+          <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
+          <img src="" alt="Open Library cover" class="h-24 rounded object-cover mx-auto">
+        </div>
+      </div>
+      <p class="no-cover-msg hidden text-sm text-gray-500 mt-2">No cover images available</p>
+    `;
+
+    // Store element references
+    this.elements.googleOption = this.container.querySelector('[data-source="googleBooks"]');
+    this.elements.openLibraryOption = this.container.querySelector('[data-source="openLibrary"]');
+    this.elements.googleImg = this.elements.googleOption.querySelector('img');
+    this.elements.openLibraryImg = this.elements.openLibraryOption.querySelector('img');
+    this.elements.noCoverMsg = this.container.querySelector('.no-cover-msg');
+
+    // Bind click handlers
+    this.elements.googleOption.addEventListener('click', () => this.select('googleBooks'));
+    this.elements.openLibraryOption.addEventListener('click', () => this.select('openLibrary'));
+
+    // Handle image load errors
+    this.elements.googleImg.onerror = () => {
+      this.elements.googleOption.classList.add('hidden');
+      // Switch to other if this was selected
+      if (this.currentUrl === this.covers.googleBooks && this.covers.openLibrary) {
+        this.select('openLibrary');
+      }
+    };
+
+    this.elements.openLibraryImg.onerror = () => {
+      this.elements.openLibraryOption.classList.add('hidden');
+      // Switch to other if this was selected
+      if (this.currentUrl === this.covers.openLibrary && this.covers.googleBooks) {
+        this.select('googleBooks');
+      }
+    };
+  }
+
+  /**
+   * Set available covers and update display
+   * @param {Object} covers - Object with googleBooks and/or openLibrary URLs
+   * @param {string} currentUrl - Currently selected URL (optional)
+   */
+  setCovers(covers, currentUrl = null) {
+    this.covers = covers || {};
+    if (currentUrl !== null) {
+      this.currentUrl = currentUrl;
+    }
+
+    const hasGoogle = !!this.covers.googleBooks;
+    const hasOpenLibrary = !!this.covers.openLibrary;
+    const hasAnyCovers = hasGoogle || hasOpenLibrary;
+
+    // Reset UI
+    this.container.classList.toggle('hidden', !hasAnyCovers && !this.currentUrl);
+    this.elements.noCoverMsg.classList.toggle('hidden', hasAnyCovers || !!this.currentUrl);
+    this.elements.googleOption.classList.add('hidden');
+    this.elements.openLibraryOption.classList.add('hidden');
+    this.elements.googleOption.classList.remove('border-primary', 'bg-primary/5');
+    this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/5');
+
+    if (!hasAnyCovers) {
+      return;
+    }
+
+    // Show available options
+    if (hasGoogle) {
+      this.elements.googleOption.classList.remove('hidden');
+      this.elements.googleImg.src = this.covers.googleBooks;
+    }
+
+    if (hasOpenLibrary) {
+      this.elements.openLibraryOption.classList.remove('hidden');
+      this.elements.openLibraryImg.src = this.covers.openLibrary;
+    }
+
+    // Highlight current selection or auto-select first
+    if (this.currentUrl === this.covers.googleBooks) {
+      this.highlightOption('googleBooks');
+    } else if (this.currentUrl === this.covers.openLibrary) {
+      this.highlightOption('openLibrary');
+    } else if (hasGoogle) {
+      this.highlightOption('googleBooks');
+    } else if (hasOpenLibrary) {
+      this.highlightOption('openLibrary');
+    }
+  }
+
+  /**
+   * Select a cover source
+   * @param {string} source - 'googleBooks' or 'openLibrary'
+   */
+  select(source) {
+    const url = this.covers[source];
+    if (!url) return;
+
+    this.currentUrl = url;
+    this.highlightOption(source);
+    this.onSelect(url, source);
+  }
+
+  /**
+   * Highlight the selected option
+   * @param {string} source - 'googleBooks' or 'openLibrary'
+   */
+  highlightOption(source) {
+    this.elements.googleOption.classList.toggle('border-primary', source === 'googleBooks');
+    this.elements.googleOption.classList.toggle('bg-primary/5', source === 'googleBooks');
+    this.elements.openLibraryOption.classList.toggle('border-primary', source === 'openLibrary');
+    this.elements.openLibraryOption.classList.toggle('bg-primary/5', source === 'openLibrary');
+  }
+
+  /**
+   * Get the currently selected cover URL
+   * @returns {string} Selected cover URL
+   */
+  getSelectedUrl() {
+    return this.currentUrl;
+  }
+
+  /**
+   * Get all available covers
+   * @returns {Object} Available covers object
+   */
+  getCovers() {
+    return { ...this.covers };
+  }
+
+  /**
+   * Check if any covers are available
+   * @returns {boolean} True if at least one cover is available
+   */
+  hasCovers() {
+    return !!(this.covers.googleBooks || this.covers.openLibrary);
+  }
+
+  /**
+   * Clear covers and reset UI
+   */
+  clear() {
+    this.covers = {};
+    this.currentUrl = '';
+    this.setCovers(null);
+  }
+}
