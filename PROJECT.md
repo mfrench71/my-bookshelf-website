@@ -76,21 +76,24 @@ npm test && npm run build
 
 ---
 
-## Current Sprint: Widget Dashboard (Sprint 4)
+## Completed: Widget Dashboard (Sprint 4) ✅
 
-### Goals
-- Extensible widget system for home dashboard
-- User-configurable widget order, size, visibility
-- 12-column responsive grid (3/6/9/12 column options)
-- Firestore persistence (sync across devices)
-- Settings page configuration (not homepage in-place editing)
+### Delivered
+- ✅ Extensible widget system with registry pattern
+- ✅ User-configurable widget order, size, visibility
+- ✅ 12-column responsive grid (3/6/9/12 column options)
+- ✅ Firestore persistence (syncs across devices)
+- ✅ Settings page configuration with arrow reordering
+- ✅ Auto-merge new widgets for existing users
+- ✅ 49+ widget system tests
 
-### Widget Types (Initial)
+### Widget Types (Shipped)
 | Widget | Description | Default Size |
 |--------|-------------|--------------|
+| Welcome | Greeting with library stats | 12 (full) |
 | Currently Reading | Books in progress | 6 (half) |
 | Recently Added | Latest additions | 12 (full) |
-| Top Rated | Highest rated books | 12 (full) |
+| Top Rated | Highest rated books (4+ stars) | 12 (full) |
 | Recently Finished | Completed books | 12 (full) |
 
 ### Future Widget Ideas
@@ -109,7 +112,7 @@ npm test && npm run build
 ## Roadmap
 
 ### High Priority
-- [ ] Widget dashboard system (Sprint 4 - in progress)
+- [x] Widget dashboard system (Sprint 4) ✅
 - [ ] View mode setting (Card/Compact/List)
 - [ ] Dark mode
 - [ ] Book quick view modal
