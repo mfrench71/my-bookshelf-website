@@ -25,7 +25,7 @@ if (!bookId) {
 
 // DOM Elements
 const loading = document.getElementById('loading');
-const content = document.getElementById('content');
+const content = document.getElementById('main-content');
 const backBtn = document.getElementById('back-btn');
 const editBtn = document.getElementById('edit-btn');
 const deleteBtn = document.getElementById('delete-btn');

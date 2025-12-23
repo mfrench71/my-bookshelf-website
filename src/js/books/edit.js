@@ -39,7 +39,7 @@ if (!bookId) {
 
 // DOM Elements
 const loading = document.getElementById('loading');
-const content = document.getElementById('content');
+const content = document.getElementById('main-content');
 const pageTitle = document.getElementById('page-title');
 const backBtn = document.getElementById('back-btn');
 const cancelBtn = document.getElementById('cancel-btn');
