@@ -40,7 +40,7 @@ export class RatingInput {
     for (let i = 1; i <= 5; i++) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'star-btn p-1';
+      btn.className = 'star-btn p-2';
       btn.dataset.rating = i;
       btn.innerHTML = '<i data-lucide="star" class="w-5 h-5"></i>';
       this.container.appendChild(btn);

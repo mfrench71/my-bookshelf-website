@@ -38,11 +38,11 @@ export class CoverPicker {
       <div class="flex gap-4 flex-wrap">
         <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
           <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
-          <img src="" alt="Google Books cover" class="h-24 rounded object-cover mx-auto">
+          <img src="" alt="Google Books cover" class="w-16 h-24 rounded object-cover mx-auto">
         </div>
         <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors">
           <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
-          <img src="" alt="Open Library cover" class="h-24 rounded object-cover mx-auto">
+          <img src="" alt="Open Library cover" class="w-16 h-24 rounded object-cover mx-auto">
         </div>
       </div>
       <p class="no-cover-msg hidden text-sm text-gray-500 mt-2">No cover images available</p>

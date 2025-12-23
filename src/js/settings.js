@@ -1229,7 +1229,7 @@ async function importBackup(file) {
       }
     }
 
-    // Import books
+    // Import books using batch writes for better performance
     let booksImported = 0;
     let booksSkipped = 0;
 
@@ -1238,6 +1238,8 @@ async function importBackup(file) {
 
       const booksRef = collection(db, 'users', currentUser.uid, 'books');
 
+      // Collect books to import (filter duplicates first)
+      const booksToImport = [];
       for (const book of importBooks) {
         // Check for duplicates by ISBN or title+author
         const isDuplicate = books.some(existing => {
@@ -1261,25 +1263,35 @@ async function importBackup(file) {
             .filter(id => id); // Remove any unmapped genres
         }
 
-        // Create book document
-        const bookData = {
-          ...book,
-          genres: remappedGenres,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        };
-
-        // Remove any timestamp fields that might cause issues
+        // Prepare book data
+        const bookData = { ...book };
         delete bookData.createdAt;
         delete bookData.updatedAt;
 
-        await setDoc(doc(booksRef), {
+        booksToImport.push({
           ...bookData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+          genres: remappedGenres
         });
+      }
 
-        booksImported++;
+      // Import in batches of 500 (Firestore limit)
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < booksToImport.length; i += BATCH_SIZE) {
+        const batchBooks = booksToImport.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+
+        for (const bookData of batchBooks) {
+          const docRef = doc(booksRef);
+          batch.set(docRef, {
+            ...bookData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        await batch.commit();
+        booksImported += batchBooks.length;
+        importStatus.textContent = `Importing books... ${booksImported}/${booksToImport.length}`;
       }
     }
 
