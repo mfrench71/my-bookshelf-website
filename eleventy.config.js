@@ -5,6 +5,7 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/favicon-32.png");
   eleventyConfig.addPassthroughCopy("src/manifest.json");
   eleventyConfig.addPassthroughCopy("src/sw.js");
+  eleventyConfig.addPassthroughCopy("src/robots.txt");
 
   // Vendor files from node_modules (local instead of CDN)
   eleventyConfig.addPassthroughCopy({
