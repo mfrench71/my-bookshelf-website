@@ -80,13 +80,22 @@ describe('Modal', () => {
   });
 
   describe('close', () => {
-    it('should add hidden class when closed', () => {
+    it('should add hidden class after animation timeout', async () => {
+      vi.useFakeTimers();
       const modal = new Modal({ container });
 
       modal.open();
       modal.close();
 
+      // Hidden class is added after animation (200ms timeout)
+      expect(container.classList.contains('modal-exit')).toBe(true);
+      expect(container.classList.contains('hidden')).toBe(false);
+
+      // Advance past the animation timeout
+      await vi.advanceTimersByTimeAsync(250);
+
       expect(container.classList.contains('hidden')).toBe(true);
+      vi.useRealTimers();
     });
 
     it('should set isOpen to false', () => {

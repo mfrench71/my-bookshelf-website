@@ -163,6 +163,10 @@
   object-fit: cover;
 }
 
+/* ============================================
+   ANIMATIONS & TRANSITIONS
+   ============================================ */
+
 /* Toast Animation */
 @keyframes toastIn {
   from {
@@ -175,8 +179,23 @@
   }
 }
 
+@keyframes toastOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
 #toast:not(.hidden) {
   animation: toastIn 0.2s ease-out;
+}
+
+#toast.toast-exit {
+  animation: toastOut 0.15s ease-in forwards;
 }
 
 /* Loading Spinner */
@@ -191,6 +210,291 @@
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* Modal Animations */
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalContentOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+.modal-backdrop {
+  animation: modalBackdropIn 0.2s ease-out;
+}
+
+.modal-backdrop.modal-exit {
+  animation: modalBackdropOut 0.15s ease-in forwards;
+}
+
+.modal-content {
+  animation: modalContentIn 0.2s ease-out;
+}
+
+.modal-backdrop.modal-exit .modal-content {
+  animation: modalContentOut 0.15s ease-in forwards;
+}
+
+/* Page Fade In */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-content {
+  animation: pageIn 0.25s ease-out;
+}
+
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.375rem;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+.skeleton-cover {
+  width: 60px;
+  height: 90px;
+  border-radius: 0.375rem;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+/* Card Stagger Animation */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-animate {
+  animation: cardIn 0.3s ease-out backwards;
+}
+
+/* Stagger delays for list items */
+.card-animate:nth-child(1) { animation-delay: 0ms; }
+.card-animate:nth-child(2) { animation-delay: 50ms; }
+.card-animate:nth-child(3) { animation-delay: 100ms; }
+.card-animate:nth-child(4) { animation-delay: 150ms; }
+.card-animate:nth-child(5) { animation-delay: 200ms; }
+.card-animate:nth-child(n+6) { animation-delay: 250ms; }
+
+/* Button Press Feedback */
+.btn-press {
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* FAB Press Animation */
+.fab-press {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.fab-press:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* List Item Press */
+.list-item-press {
+  transition: background-color 0.1s ease-out;
+}
+
+.list-item-press:active {
+  background-color: #f3f4f6;
+}
+
+/* Accordion Animation */
+.accordion-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease-out;
+}
+
+.accordion-content.open {
+  grid-template-rows: 1fr;
+}
+
+.accordion-content > div {
+  overflow: hidden;
+}
+
+.accordion-icon {
+  transition: transform 0.2s ease-out;
+}
+
+.accordion-icon.open {
+  transform: rotate(180deg);
+}
+
+/* Pulse Animation (for notifications/badges) */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Fade transitions for dynamic content */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 0.15s ease-in;
+}
+
+/* ============================================
+   EMPTY & ERROR STATES
+   ============================================ */
+
+/* Consistent empty state styling */
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 4rem;
+  height: 4rem;
+  color: #d1d5db;
+  margin: 0 auto;
+}
+
+.empty-state-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-top: 1rem;
+}
+
+.empty-state-description {
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.empty-state-action {
+  margin-top: 1rem;
+}
+
+/* Error state styling */
+.error-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+}
+
+.error-state-icon {
+  width: 3rem;
+  height: 3rem;
+  color: #ef4444;
+  margin: 0 auto;
+}
+
+.error-state-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #991b1b;
+  margin-top: 0.75rem;
+}
+
+.error-state-description {
+  font-size: 0.875rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.error-state-action {
+  margin-top: 1rem;
 }
 
 /* Safe area padding for PWA */

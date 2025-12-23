@@ -58,12 +58,14 @@ export class Modal {
   }
 
   /**
-   * Open the modal
+   * Open the modal with animation
    */
   open() {
     if (this.isOpen) return;
 
     this.container.classList.remove('hidden');
+    this.container.classList.remove('modal-exit');
+    this.container.classList.add('modal-backdrop');
     lockBodyScroll();
     this.isOpen = true;
     initIcons();
@@ -71,15 +73,43 @@ export class Modal {
   }
 
   /**
-   * Close the modal
+   * Close the modal with animation
    */
   close() {
     if (!this.isOpen) return;
 
-    this.container.classList.add('hidden');
-    unlockBodyScroll();
+    // Mark as closing immediately for state consistency
     this.isOpen = false;
+    unlockBodyScroll();
     this.onClose();
+
+    // Add exit animation class
+    this.container.classList.add('modal-exit');
+
+    // DOM cleanup function (runs after animation)
+    const cleanup = () => {
+      this.container.classList.add('hidden');
+      this.container.classList.remove('modal-exit', 'modal-backdrop');
+    };
+
+    // Wait for animation to complete before hiding
+    const handleAnimationEnd = (e) => {
+      // Only handle animation on the backdrop itself, not children
+      if (e.target === this.container) {
+        this.container.removeEventListener('animationend', handleAnimationEnd);
+        cleanup();
+      }
+    };
+
+    this.container.addEventListener('animationend', handleAnimationEnd);
+
+    // Fallback in case animation doesn't fire (e.g., in tests or reduced motion)
+    setTimeout(() => {
+      if (!this.container.classList.contains('hidden')) {
+        this.container.removeEventListener('animationend', handleAnimationEnd);
+        cleanup();
+      }
+    }, 200);
   }
 
   /**
@@ -170,14 +200,14 @@ export class ConfirmModal extends Modal {
    */
   render() {
     this.container.innerHTML = `
-      <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
+      <div class="modal-content bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
         <h3 class="confirm-title text-lg font-semibold mb-2">${this.title}</h3>
         <p class="confirm-message text-gray-600 mb-6">${this.message}</p>
         <div class="flex gap-3">
-          <button class="cancel-btn flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button class="cancel-btn flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors btn-press">
             ${this.cancelText}
           </button>
-          <button class="confirm-btn flex-1 px-4 py-2 text-white rounded-lg transition-colors ${this.confirmClass}">
+          <button class="confirm-btn flex-1 px-4 py-2 text-white rounded-lg transition-colors btn-press ${this.confirmClass}">
             ${this.confirmText}
           </button>
         </div>
