@@ -56,6 +56,9 @@ const genreFilterSelect = document.getElementById('genre-filter');
 const statusFilterSelect = document.getElementById('status-filter');
 const seriesFilterSelect = document.getElementById('series-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
+const authorFilterBadge = document.getElementById('author-filter-badge');
+const authorFilterName = document.getElementById('author-filter-name');
+const clearAuthorFilterBtn = document.getElementById('clear-author-filter');
 
 // Parse URL parameters and apply filters
 function applyUrlFilters() {
@@ -711,6 +714,35 @@ function updateFilterHighlights() {
     seriesFilterSelect.classList.toggle('border-primary', isActive);
     seriesFilterSelect.classList.toggle('border-gray-200', !isActive);
   }
+  // Author filter badge
+  updateAuthorFilterBadge();
+}
+
+// Update author filter badge visibility
+function updateAuthorFilterBadge() {
+  if (!authorFilterBadge || !authorFilterName) return;
+
+  if (authorFilter) {
+    authorFilterName.textContent = authorFilter;
+    authorFilterBadge.classList.remove('hidden');
+    initIcons();
+  } else {
+    authorFilterBadge.classList.add('hidden');
+  }
+}
+
+// Clear author filter handler
+if (clearAuthorFilterBtn) {
+  clearAuthorFilterBtn.addEventListener('click', () => {
+    authorFilter = '';
+    invalidateFilteredCache();
+    updateResetButton();
+    // Clear URL param
+    const url = new URL(window.location);
+    url.searchParams.delete('author');
+    window.history.replaceState({}, '', url);
+    renderBooks();
+  });
 }
 
 // Get a human-readable description of active filters

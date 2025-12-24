@@ -65,6 +65,16 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
+    <!-- Active Author Filter Badge -->
+    <div id="author-filter-badge" class="hidden flex items-center gap-2 mt-2">
+      <span class="text-sm text-gray-500">Filtering by author:</span>
+      <span class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+        <span id="author-filter-name"></span>
+        <button id="clear-author-filter" class="hover:bg-primary/20 rounded-full p-0.5" title="Clear author filter">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </span>
+    </div>
   </div>
 </div>
 
