@@ -105,6 +105,7 @@ onAuthStateChanged(auth, async (user) => {
     if (seriesFilter) {
       updateSeriesOrderOption(true);
       switchToSeriesOrder();
+      updateResetButton(); // Show reset button
       renderBooks(); // Re-render with new sort
     }
   }
