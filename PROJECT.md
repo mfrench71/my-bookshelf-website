@@ -312,9 +312,9 @@ Consistent colour usage across buttons, badges, icons, and UI elements:
 | **Google Books** | `books.googleapis.com/.../thumbnail` | ~128×192 | Low-res, reliable availability |
 | **Open Library (S)** | `covers.openlibrary.org/b/id/{id}-S.jpg` | ~40×60 | Too small for display |
 | **Open Library (M)** | `covers.openlibrary.org/b/id/{id}-M.jpg` | ~180×270 | Used by default |
-| **Open Library (L)** | `covers.openlibrary.org/b/id/{id}-L.jpg` | ~300×450 | Better quality, not always available |
+| **Open Library (L)** | `covers.openlibrary.org/b/id/{id}-L.jpg` | ~300×450 | Used on book detail page |
 
-Current implementation uses Open Library medium (-M) covers. Consider upgrading to large (-L) with medium fallback.
+Book detail page automatically upgrades Open Library -M covers to -L for sharper display, with fallback to -M if large unavailable.
 
 ### Genre Normalization
 

@@ -107,8 +107,8 @@ export class CoverPicker {
     // Reset UI - hide cover options, reset selection styles
     this.elements.googleOption.classList.add('hidden');
     this.elements.openLibraryOption.classList.add('hidden');
-    this.elements.googleOption.classList.remove('border-primary', 'bg-primary/5');
-    this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/5');
+    this.elements.googleOption.classList.remove('border-primary', 'bg-primary/15');
+    this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/15');
 
     // Show placeholder if no covers available
     this.elements.coverOptions.classList.toggle('hidden', !hasAnyCovers);
@@ -166,11 +166,11 @@ export class CoverPicker {
     const openLibraryBadge = this.elements.openLibraryOption.querySelector('.cover-selected-badge');
 
     this.elements.googleOption.classList.toggle('border-primary', source === 'googleBooks');
-    this.elements.googleOption.classList.toggle('bg-primary/5', source === 'googleBooks');
+    this.elements.googleOption.classList.toggle('bg-primary/15', source === 'googleBooks');
     googleBadge?.classList.toggle('hidden', source !== 'googleBooks');
 
     this.elements.openLibraryOption.classList.toggle('border-primary', source === 'openLibrary');
-    this.elements.openLibraryOption.classList.toggle('bg-primary/5', source === 'openLibrary');
+    this.elements.openLibraryOption.classList.toggle('bg-primary/15', source === 'openLibrary');
     openLibraryBadge?.classList.toggle('hidden', source !== 'openLibrary');
 
     initIcons();

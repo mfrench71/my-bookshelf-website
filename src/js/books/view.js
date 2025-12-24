@@ -8,6 +8,16 @@ import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 
+// Upgrade Open Library cover URL to large size for detail view
+export function getLargeCoverUrl(url) {
+  if (!url) return url;
+  // Open Library pattern: covers.openlibrary.org/b/id/{id}-M.jpg
+  if (url.includes('covers.openlibrary.org') && url.includes('-M.jpg')) {
+    return url.replace('-M.jpg', '-L.jpg');
+  }
+  return url;
+}
+
 // Initialize icons
 initIcons();
 
@@ -120,13 +130,22 @@ function renderBook() {
   // Set edit button URL
   editBtn.href = `/books/edit/?id=${bookId}`;
 
-  // Cover
+  // Cover - try large Open Library cover, fall back to original
   if (book.coverImageUrl) {
-    coverImage.src = book.coverImageUrl;
+    const largeUrl = getLargeCoverUrl(book.coverImageUrl);
+    const originalUrl = book.coverImageUrl;
+
+    coverImage.src = largeUrl;
     coverImage.classList.remove('hidden');
     coverImage.onerror = () => {
-      coverImage.classList.add('hidden');
-      coverPlaceholder.classList.remove('hidden');
+      // Try original URL if large version fails
+      if (coverImage.src !== originalUrl && largeUrl !== originalUrl) {
+        coverImage.src = originalUrl;
+      } else {
+        // Both failed, show placeholder
+        coverImage.classList.add('hidden');
+        coverPlaceholder.classList.remove('hidden');
+      }
     };
     coverPlaceholder.classList.add('hidden');
   }

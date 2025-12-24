@@ -471,12 +471,6 @@ async function selectSearchResult(el) {
     isbnInput.value = isbn;
   }
 
-  // Collect covers from both APIs
-  const covers = {};
-  if (cover) {
-    covers.googleBooks = cover;
-  }
-
   // Extract and suggest genres from categories
   if (categories) {
     try {
@@ -495,63 +489,47 @@ async function selectSearchResult(el) {
   physicalFormatInput.value = '';
   pageCountInput.value = pagecount || '';
 
-  // Supplement missing data from Open Library if we have an ISBN
+  // If we have an ISBN, use lookupISBN to get complete data from both APIs
+  // This ensures we get covers from both Google Books and Open Library
+  let covers = {};
   if (isbn) {
     try {
-      const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const data = await response.json();
-      const book = data[`ISBN:${isbn}`];
-      if (book) {
+      const bookData = await lookupISBN(isbn);
+      if (bookData) {
         // Supplement missing fields
-        if (!publisherInput.value) publisherInput.value = book.publishers?.[0]?.name || '';
-        if (!publishedDateInput.value) publishedDateInput.value = book.publish_date || '';
-        // Collect Open Library cover
-        if (book.cover?.medium) {
-          covers.openLibrary = book.cover.medium;
-        }
-        // Page count from Open Library
-        if (!pageCountInput.value && book.number_of_pages) {
-          pageCountInput.value = book.number_of_pages;
-        }
-        // Add Open Library genres/subjects to suggestions (parsed and normalized)
-        const rawSubjects = book.subjects?.map(s => s.name || s) || [];
-        const genres = parseHierarchicalGenres(rawSubjects);
-        updateGenreSuggestions(genres);
-      }
-    } catch (e) {
-      console.error('Open Library supplement error:', e);
-    }
+        if (!publisherInput.value && bookData.publisher) publisherInput.value = bookData.publisher;
+        if (!publishedDateInput.value && bookData.publishedDate) publishedDateInput.value = bookData.publishedDate;
+        if (!physicalFormatInput.value && bookData.physicalFormat) physicalFormatInput.value = bookData.physicalFormat;
+        if (!pageCountInput.value && bookData.pageCount) pageCountInput.value = bookData.pageCount;
 
-    // Fetch additional data from edition endpoint (physical_format, series, page count)
-    try {
-      const editionResponse = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
-      if (editionResponse.ok) {
-        const edition = await editionResponse.json();
-        if (!physicalFormatInput.value && edition.physical_format) {
-          // Normalize to title case to match select options
-          physicalFormatInput.value = edition.physical_format
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
+        // Get covers from both APIs
+        if (bookData.covers) {
+          covers = bookData.covers;
         }
-        // Page count from edition endpoint
-        if (!pageCountInput.value && edition.number_of_pages) {
-          pageCountInput.value = edition.number_of_pages;
+
+        // Get genre suggestions
+        if (bookData.genres?.length > 0) {
+          updateGenreSuggestions(bookData.genres);
         }
-        // Extract series from edition
-        if (edition.series) {
-          const seriesInfo = parseSeriesFromAPI(edition.series);
-          if (seriesInfo) {
-            setSeriesSuggestion(seriesInfo.name, seriesInfo.position);
-          }
+
+        // Get series info
+        if (bookData.seriesName) {
+          setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
         }
       }
     } catch (e) {
-      // Edition endpoint may not exist for all ISBNs
+      console.error('ISBN lookup error:', e);
+      // Fall back to search result cover only
+      if (cover) {
+        covers.googleBooks = cover;
+      }
+    }
+  } else {
+    // No ISBN - use search result cover only
+    if (cover) {
+      covers.googleBooks = cover;
     }
   }
-
-  // Note: Series is only set via setSeriesSuggestion when detected from Open Library
 
   // Set covers in picker
   setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);

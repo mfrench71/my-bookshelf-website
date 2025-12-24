@@ -4,6 +4,20 @@ All notable changes to MyBookShelf are documented here.
 
 ## [Unreleased]
 
+---
+
+## 2025-12-24
+
+### Cover Image Improvements
+- **Larger Covers on Detail Page**: Book detail page now uses Open Library large (-L) covers (~360px) for sharper display
+- **Graceful Fallback**: Falls back to medium (-M) if large unavailable, then placeholder
+- **Improved Cover Picker**: Stronger selection highlight (15% opacity), checkmark badge toggles correctly
+- **Both API Covers**: Search results now show covers from both Google Books and Open Library when adding books
+
+---
+
+## 2025-12-23 (Late)
+
 ### Genre Suggestions Improvements
 - **Hierarchical Parsing**: Genre categories like "Fiction / Science Fiction / Space Opera" now split into individual genres
 - **All Open Library Subjects**: Removed 5-subject limit, now includes all available subjects

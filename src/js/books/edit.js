@@ -101,8 +101,8 @@ function renderCoverPicker(covers, currentCoverUrl) {
   noCoverMsg.classList.add('hidden');
   coverOptionGoogle.classList.add('hidden');
   coverOptionOpenLibrary.classList.add('hidden');
-  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/5');
-  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/5');
+  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/15');
+  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/15');
   if (coverPickerHint) coverPickerHint.classList.add('hidden');
 
   if (!hasAnyCovers) {
@@ -140,16 +140,16 @@ function renderCoverPicker(covers, currentCoverUrl) {
   const openLibraryBadge = coverOptionOpenLibrary.querySelector('.cover-selected-badge');
 
   if (currentCoverUrl === availableCovers.googleBooks) {
-    coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+    coverOptionGoogle.classList.add('border-primary', 'bg-primary/15');
     googleBadge?.classList.remove('hidden');
   } else if (currentCoverUrl === availableCovers.openLibrary) {
-    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/15');
     openLibraryBadge?.classList.remove('hidden');
   } else if (hasGoogle) {
-    coverOptionGoogle.classList.add('border-primary', 'bg-primary/5');
+    coverOptionGoogle.classList.add('border-primary', 'bg-primary/15');
     googleBadge?.classList.remove('hidden');
   } else if (hasOpenLibrary) {
-    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/5');
+    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/15');
     openLibraryBadge?.classList.remove('hidden');
   }
 
@@ -162,10 +162,17 @@ function selectCover(source) {
 
   coverUrlInput.value = url;
 
+  // Update border and background
   coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
-  coverOptionGoogle.classList.toggle('bg-primary/5', source === 'googleBooks');
+  coverOptionGoogle.classList.toggle('bg-primary/15', source === 'googleBooks');
   coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
-  coverOptionOpenLibrary.classList.toggle('bg-primary/5', source === 'openLibrary');
+  coverOptionOpenLibrary.classList.toggle('bg-primary/15', source === 'openLibrary');
+
+  // Update checkmark badges
+  const googleBadge = coverOptionGoogle.querySelector('.cover-selected-badge');
+  const openLibraryBadge = coverOptionOpenLibrary.querySelector('.cover-selected-badge');
+  googleBadge?.classList.toggle('hidden', source !== 'googleBooks');
+  openLibraryBadge?.classList.toggle('hidden', source !== 'openLibrary');
 
   updateSaveButtonState();
 }
