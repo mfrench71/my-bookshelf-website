@@ -49,6 +49,7 @@ const confirmDeleteBtn = document.getElementById('confirm-delete');
 // Cover elements
 const coverPlaceholder = document.getElementById('cover-placeholder');
 const coverImage = document.getElementById('cover-image');
+const coverLoading = document.getElementById('cover-loading');
 
 // Detail elements
 const bookTitleEl = document.getElementById('book-title');
@@ -135,19 +136,29 @@ function renderBook() {
     const largeUrl = getLargeCoverUrl(book.coverImageUrl);
     const originalUrl = book.coverImageUrl;
 
-    coverImage.src = largeUrl;
-    coverImage.classList.remove('hidden');
+    // Show loading spinner while image loads
+    coverLoading.classList.remove('hidden');
+    coverPlaceholder.classList.add('hidden');
+
+    coverImage.onload = () => {
+      // Image loaded successfully - hide spinner, show image
+      coverLoading.classList.add('hidden');
+      coverImage.classList.remove('hidden');
+    };
+
     coverImage.onerror = () => {
       // Try original URL if large version fails
       if (coverImage.src !== originalUrl && largeUrl !== originalUrl) {
         coverImage.src = originalUrl;
       } else {
-        // Both failed, show placeholder
+        // Both failed - hide spinner, show placeholder
+        coverLoading.classList.add('hidden');
         coverImage.classList.add('hidden');
         coverPlaceholder.classList.remove('hidden');
       }
     };
-    coverPlaceholder.classList.add('hidden');
+
+    coverImage.src = largeUrl;
   }
 
   // Title & Author
