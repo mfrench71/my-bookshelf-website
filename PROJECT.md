@@ -119,6 +119,7 @@ npm test && npm run build
 - [ ] View mode setting (Card/Compact/List)
 - [ ] Dark mode
 - [ ] Book quick view modal
+- [ ] Books list filters: Sidebar on desktop/tablet, off-canvas drawer on mobile
 
 ### Medium Priority
 - [ ] Custom cover image upload
@@ -175,7 +176,6 @@ npm test && npm run build
 #### Future Series Enhancements
 - [ ] Series widget: Show reading progress (X of Y finished) alongside owned count
 - [ ] Series widget: List which books are owned with read/unread status
-- [ ] Show series badge on search results (requires per-result ISBN lookup - expensive)
 - [ ] External series lookup API (Wikidata SPARQL or similar)
 - [ ] Auto-populate totalBooks from external source
 - [ ] Series detail page with drag-drop reordering and bulk actions

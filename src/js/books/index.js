@@ -26,6 +26,7 @@ const BOOKS_PER_PAGE = 20;
 let currentUser = null;
 let books = [];
 let currentSort = 'createdAt-desc';
+let previousSort = null; // Store sort before switching to series order
 let ratingFilter = 0;
 let displayLimit = BOOKS_PER_PAGE;
 let lastDoc = null;
@@ -37,7 +38,7 @@ let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
 let genreFilter = ''; // Currently selected genre ID for filtering
 let statusFilter = ''; // Currently selected status for filtering
-let seriesFilter = ''; // Currently selected series name for filtering (URL param only)
+let seriesFilter = ''; // Currently selected series ID for filtering
 let series = []; // All user series
 let seriesLookup = null; // Map of seriesId -> series object
 
@@ -99,6 +100,13 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     // Load genres, series, and books in parallel for faster initial load
     await Promise.all([loadGenres(), loadSeries(), loadBooks()]);
+
+    // If series filter was set via URL param, set up Series Order sort
+    if (seriesFilter) {
+      updateSeriesOrderOption(true);
+      switchToSeriesOrder();
+      renderBooks(); // Re-render with new sort
+    }
   }
 });
 
@@ -386,6 +394,18 @@ function getAuthorSurname(author) {
 
 // Sorting function (client-side for cached data)
 function sortBooks(booksArray, sortKey) {
+  // Special case: series order (sort by position, nulls at end)
+  if (sortKey === 'seriesPosition-asc') {
+    return [...booksArray].sort((a, b) => {
+      const aPos = a.seriesPosition;
+      const bPos = b.seriesPosition;
+      if (aPos === null && bPos === null) return 0;
+      if (aPos === null) return 1;
+      if (bPos === null) return -1;
+      return aPos - bPos;
+    });
+  }
+
   const [field, direction] = sortKey.split('-');
   return [...booksArray].sort((a, b) => {
     let aVal, bVal;
@@ -410,6 +430,44 @@ function sortBooks(booksArray, sortKey) {
     const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
     return direction === 'asc' ? comparison : -comparison;
   });
+}
+
+// Manage Series Order sort option visibility
+function updateSeriesOrderOption(showOption) {
+  if (!sortSelect) return;
+
+  const existingOption = sortSelect.querySelector('option[value="seriesPosition-asc"]');
+
+  if (showOption && !existingOption) {
+    // Add Series Order option at the top
+    const option = document.createElement('option');
+    option.value = 'seriesPosition-asc';
+    option.textContent = 'Series Order';
+    sortSelect.insertBefore(option, sortSelect.firstChild);
+  } else if (!showOption && existingOption) {
+    // Remove Series Order option
+    existingOption.remove();
+  }
+}
+
+// Switch to series order sort (stores previous sort for restoration)
+function switchToSeriesOrder() {
+  if (currentSort !== 'seriesPosition-asc') {
+    previousSort = currentSort;
+    currentSort = 'seriesPosition-asc';
+    sortSelect.value = 'seriesPosition-asc';
+    invalidateFilteredCache();
+  }
+}
+
+// Restore previous sort (when series filter is cleared)
+function restorePreviousSort() {
+  if (previousSort && currentSort === 'seriesPosition-asc') {
+    currentSort = previousSort;
+    sortSelect.value = previousSort;
+    previousSort = null;
+    invalidateFilteredCache();
+  }
 }
 
 // Rating filter function
@@ -571,9 +629,25 @@ if (statusFilterSelect) {
 // Series filter
 if (seriesFilterSelect) {
   seriesFilterSelect.addEventListener('change', () => {
-    seriesFilter = seriesFilterSelect.value;
+    const newSeriesFilter = seriesFilterSelect.value;
+    const wasFiltered = seriesFilter !== '';
+    const isFiltered = newSeriesFilter !== '';
+
+    seriesFilter = newSeriesFilter;
     displayLimit = BOOKS_PER_PAGE;
-    invalidateFilteredCache(); // Re-filter with new series
+
+    // Manage Series Order sort option and auto-switch
+    if (isFiltered && !wasFiltered) {
+      // Switching to series filter: show option and auto-select
+      updateSeriesOrderOption(true);
+      switchToSeriesOrder();
+    } else if (!isFiltered && wasFiltered) {
+      // Clearing series filter: restore previous sort and hide option
+      restorePreviousSort();
+      updateSeriesOrderOption(false);
+    }
+
+    invalidateFilteredCache();
     updateResetButton();
     renderBooks();
   });
@@ -656,7 +730,12 @@ function getActiveFilterDescription() {
 
 // Helper to reset all filters
 async function resetAllFilters() {
-  const needsRefetch = currentSort !== 'createdAt-desc';
+  // Check if we need to refetch (ignore seriesPosition-asc as it's client-side only)
+  const needsRefetch = currentSort !== 'createdAt-desc' && currentSort !== 'seriesPosition-asc';
+
+  // Clean up Series Order sort option and state
+  updateSeriesOrderOption(false);
+  previousSort = null;
 
   currentSort = 'createdAt-desc';
   ratingFilter = 0;
