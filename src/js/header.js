@@ -12,6 +12,7 @@ import {
 import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, clearBooksCache } from './utils.js';
 import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
+import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
 
 // Initialize icons once on load
@@ -24,6 +25,8 @@ let allBooksLoaded = false;
 let isLoadingBooks = false;
 let genres = [];
 let genreLookup = null;
+let series = [];
+let seriesLookup = null;
 
 // DOM Elements
 const menuBtn = document.getElementById('menu-btn');
@@ -146,7 +149,7 @@ async function loadAllBooksForSearch() {
 
   isLoadingBooks = true;
 
-  // Load genres in parallel with books
+  // Load genres and series in parallel with books
   const genresPromise = loadUserGenres(currentUser.uid).then(g => {
     genres = g;
     genreLookup = createGenreLookup(genres);
@@ -154,6 +157,15 @@ async function loadAllBooksForSearch() {
     console.error('Error loading genres for search:', e);
     genres = [];
     genreLookup = new Map();
+  });
+
+  const seriesPromise = loadUserSeries(currentUser.uid).then(s => {
+    series = s;
+    seriesLookup = createSeriesLookup(series);
+  }).catch(e => {
+    console.error('Error loading series for search:', e);
+    series = [];
+    seriesLookup = new Map();
   });
 
   // Try cache first (check if it has all books via hasMore flag)
@@ -173,7 +185,7 @@ async function loadAllBooksForSearch() {
         }));
         if (!hasMore) {
           // Cache has all books
-          await genresPromise; // Wait for genres before returning
+          await Promise.all([genresPromise, seriesPromise]); // Wait for genres and series before returning
           allBooksLoaded = true;
           isLoadingBooks = false;
           return;
@@ -201,7 +213,7 @@ async function loadAllBooksForSearch() {
         _normalizedAuthor: normalizeText(data.author)
       };
     });
-    await genresPromise; // Wait for genres
+    await Promise.all([genresPromise, seriesPromise]); // Wait for genres and series
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books for search:', error);
@@ -293,7 +305,7 @@ function performSearch(queryText) {
   );
 
   let html = results.length
-    ? results.map(book => bookCard(book, { showDate: true, genreLookup })).join('')
+    ? results.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('')
     : `<div class="py-8 text-center">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">No books found</p>
