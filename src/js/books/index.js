@@ -39,6 +39,7 @@ let genreLookup = null; // Map of genreId -> genre object
 let genreFilter = ''; // Currently selected genre ID for filtering
 let statusFilter = ''; // Currently selected status for filtering
 let seriesFilter = ''; // Currently selected series ID for filtering
+let authorFilter = ''; // Currently selected author for filtering (URL param only)
 let series = []; // All user series
 let seriesLookup = null; // Map of seriesId -> series object
 
@@ -87,6 +88,12 @@ function applyUrlFilters() {
     seriesFilter = series;
   }
 
+  // Author filter (URL param only, no dropdown)
+  const author = params.get('author');
+  if (author) {
+    authorFilter = author;
+  }
+
   // Update filter highlights for URL params
   updateFilterHighlights();
 }
@@ -107,6 +114,11 @@ onAuthStateChanged(auth, async (user) => {
       switchToSeriesOrder();
       updateResetButton(); // Show reset button
       renderBooks(); // Re-render with new sort
+    }
+
+    // If author filter was set via URL param, show reset button
+    if (authorFilter) {
+      updateResetButton();
     }
   }
 });
@@ -495,6 +507,12 @@ function filterBySeries(booksArray, seriesId) {
   return booksArray.filter(b => b.seriesId === seriesId);
 }
 
+// Author filter function (exact string match)
+function filterByAuthor(booksArray, author) {
+  if (!author) return booksArray;
+  return booksArray.filter(b => b.author === author);
+}
+
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
@@ -502,6 +520,7 @@ function getFilteredBooks() {
   filtered = filterByGenre(filtered, genreFilter);
   filtered = filterByStatus(filtered, statusFilter);
   filtered = filterBySeries(filtered, seriesFilter);
+  filtered = filterByAuthor(filtered, authorFilter);
   cachedFilteredBooks = sortBooks(filtered, currentSort);
   return cachedFilteredBooks;
 }
@@ -656,7 +675,7 @@ if (seriesFilterSelect) {
 
 // Check if any filters are active
 function hasActiveFilters() {
-  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '' || seriesFilter !== '';
+  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '' || seriesFilter !== '' || authorFilter !== '';
 }
 
 // Show/hide reset button and update filter highlights
@@ -724,6 +743,10 @@ function getActiveFilterDescription() {
     }
   }
 
+  if (authorFilter) {
+    parts.push(`by ${authorFilter}`);
+  }
+
   if (parts.length === 0) return 'your filters';
   if (parts.length === 1) return `"${parts[0]}"`;
   return parts.map(p => `"${p}"`).join(' and ');
@@ -743,6 +766,7 @@ async function resetAllFilters() {
   genreFilter = '';
   statusFilter = '';
   seriesFilter = '';
+  authorFilter = '';
   sortSelect.value = 'createdAt-desc';
   ratingFilterSelect.value = '0';
   if (genreFilterSelect) genreFilterSelect.value = '';

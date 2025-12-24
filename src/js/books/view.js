@@ -133,7 +133,14 @@ function renderBook() {
 
   // Title & Author
   bookTitleEl.textContent = book.title;
-  bookAuthorEl.textContent = book.author || 'Unknown author';
+  const authorName = book.author || 'Unknown author';
+  bookAuthorEl.textContent = authorName;
+  if (book.author) {
+    bookAuthorEl.href = `/books/?author=${encodeURIComponent(book.author)}`;
+  } else {
+    bookAuthorEl.removeAttribute('href');
+    bookAuthorEl.style.cursor = 'default';
+  }
 
   // Rating
   if (book.rating) {

@@ -224,3 +224,20 @@ npm test && npm run build
   - `/users/{userId}/books` - User's book library
   - `/users/{userId}/genres` - User's custom genres
   - `/users/{userId}/series` - User's book series
+
+## Competitor Reference
+
+When researching features, check how these apps handle similar functionality:
+
+| App | Focus | URL |
+|-----|-------|-----|
+| **Goodreads** | Largest community, crowdsourced data | [goodreads.com](https://goodreads.com) |
+| **StoryGraph** | Mood/pacing analysis, stats | [thestorygraph.com](https://thestorygraph.com) |
+| **BookTrack.app** | iOS native, reading timer, OCR quotes | [booktrack.app](https://booktrack.app) |
+| **Literal** | Quote-centric, public API | [literal.club](https://literal.club) |
+| **Hardcover** | Modern UI, ad-free, per-book privacy | [hardcover.app](https://hardcover.app) |
+| **Oku** | Minimalist design | [oku.club](https://oku.club) |
+
+Useful research links:
+- [StoryGraph Roadmap](https://roadmap.thestorygraph.com/) - See requested features and planned improvements
+- [Book Riot Comparison](https://bookriot.com/best-book-tracking-app/) - Reviews of book tracking apps
