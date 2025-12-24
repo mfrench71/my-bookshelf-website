@@ -231,7 +231,7 @@ npm test && npm run build
 
 ### Technical Debt
 - [ ] Fix colour inconsistencies in Data Cleanup buttons (should all be amber)
-- [ ] Generate in-app changelog from CHANGELOG.md at build time (11ty data file)
+- [x] Generate in-app changelog from CHANGELOG.md at build time (11ty data file) ✅
 - [ ] Full Zod validation (remove HTML validation attributes)
 - [ ] Tree-shake Lucide icons (387KB → ~30KB)
 - [ ] Minify/bundle JavaScript
@@ -417,4 +417,4 @@ Can calculate: Total books/pages, books per month, genre distribution, reading s
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-23
+**Last Updated**: 2025-12-24

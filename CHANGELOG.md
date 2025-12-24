@@ -16,32 +16,6 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
-## 2025-12-23 (Late)
-
-### Genre Suggestions Improvements
-- **Hierarchical Parsing**: Genre categories like "Fiction / Science Fiction / Space Opera" now split into individual genres
-- **All Open Library Subjects**: Removed 5-subject limit, now includes all available subjects
-- **API Merging**: Genres from both Google Books and Open Library now combined (deduplicated)
-- **Variation Normalization**: Maps abbreviations and synonyms (e.g., "Sci-Fi" → "Science Fiction", "YA" → "Young Adult")
-- **Documentation**: Added Data Enrichment Sources section to PROJECT.md
-
----
-
-## 2025-12-23 (Evening)
-
-### Series System Fixes
-- **Book Detail Page**: Fixed series display to use `seriesId` lookup instead of legacy `seriesName`
-- **Series Widget Links**: Fixed to use series ID for reliable filtering (was using name, causing no results)
-- **Firestore Rules**: Added series subcollection rules
-
-### Documentation
-- **Colour Scheme**: Documented semantic colour usage for buttons, badges, and icons
-- **Cover Image Sources**: Documented Google Books and Open Library cover sizes
-- **API Limitations**: Documented series search limitations and workarounds
-- **Series Features**: Documented current capabilities and future enhancements
-
----
-
 ## 2025-12-23
 
 ### Sprint 4: Widget Dashboard ✅

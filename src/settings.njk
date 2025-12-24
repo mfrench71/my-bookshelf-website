@@ -471,100 +471,26 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
               </h3>
 
               <div class="space-y-2" id="changelog-accordions">
-              <!-- 24 Dec 2025 -->
+              {% for entry in changelog %}
               <div class="border border-gray-200 rounded-lg overflow-hidden">
-                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-24">
+                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="{{ entry.date }}">
                   <div class="flex items-center gap-2">
                     <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                    <span class="font-medium text-gray-900">24 December 2025</span>
+                    <span class="font-medium text-gray-900">{{ entry.displayDate }}</span>
                   </div>
                   <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron flex-shrink-0"></i>
                 </button>
                 <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
                   <ul class="space-y-1 pl-4 list-disc">
-                    <li>Larger covers on book detail page (Open Library -L)</li>
-                    <li>Improved cover picker selection visibility</li>
-                    <li>Both API covers shown when adding books</li>
+                    {% for item in entry.items %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
                   </ul>
                 </div>
               </div>
+              {% endfor %}
 
-              <!-- 23 Dec 2025 -->
-              <div class="border border-gray-200 rounded-lg overflow-hidden">
-                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-23">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                    <span class="font-medium text-gray-900">23 December 2025</span>
-                  </div>
-                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron flex-shrink-0"></i>
-                </button>
-                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
-                  <ul class="space-y-1 pl-4 list-disc">
-                    <li>Full series management system with completion tracking</li>
-                    <li>Series picker in book forms with auto-detect from API</li>
-                    <li>Series Progress widget on home dashboard</li>
-                    <li>Series filter on books list page</li>
-                    <li>Series badges on book cards</li>
-                    <li>Widget dashboard with configurable layout</li>
-                    <li>6 widgets: Welcome, Currently Reading, Recently Added, Top Rated, Recently Finished, Series Progress</li>
-                    <li>Widget settings: reorder, resize, toggle visibility</li>
-                    <li>E2E testing with Playwright (34 tests)</li>
-                    <li>Page animations and skeleton loaders</li>
-                    <li>SEO improvements (Open Graph, sitemap)</li>
-                    <li>Accessibility improvements (skip links, aria-labels)</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- 22 Dec 2025 -->
-              <div class="border border-gray-200 rounded-lg overflow-hidden">
-                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-22">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                    <span class="font-medium text-gray-900">22 December 2025</span>
-                  </div>
-                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron flex-shrink-0"></i>
-                </button>
-                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
-                  <ul class="space-y-1 pl-4 list-disc">
-                    <li>Multi-source cover picker (Google Books, Open Library)</li>
-                    <li>Bulk cover fetch from Settings</li>
-                    <li>Page count field from APIs</li>
-                    <li>Format dropdown (Paperback, Hardcover, etc.)</li>
-                    <li>Date-based reading status inference</li>
-                    <li>Full read history tracking</li>
-                    <li>Re-read button for starting new reads</li>
-                    <li>Codebase audit and dead code removal</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- 21 Dec 2025 -->
-              <div class="border border-gray-200 rounded-lg overflow-hidden">
-                <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="2025-12-21">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                    <span class="font-medium text-gray-900">21 December 2025</span>
-                  </div>
-                  <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron flex-shrink-0"></i>
-                </button>
-                <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
-                  <ul class="space-y-1 pl-4 list-disc">
-                    <li>Home dashboard with carousel sections</li>
-                    <li>Content settings for section visibility</li>
-                    <li>Email verification with banner</li>
-                    <li>Full backup & restore with JSON</li>
-                    <li>Profile section with avatar upload</li>
-                    <li>Password change and account deletion</li>
-                    <li>Mobile accordion layout for settings</li>
-                    <li>Smart back button navigation</li>
-                    <li>Cover image fallback placeholders</li>
-                    <li>601+ unit tests</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- Earlier -->
+              <!-- Earlier (static) -->
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left" data-date="earlier">
                   <div class="flex items-center gap-2">
@@ -588,7 +514,7 @@ scripts: '<script type="module" src="/js/settings.js"></script>'
                   </ul>
                 </div>
               </div>
-            </div>
+              </div>
           </div>
 
             <!-- Links -->
