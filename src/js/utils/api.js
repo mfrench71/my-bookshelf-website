@@ -139,7 +139,11 @@ export async function lookupISBN(isbn, options = {}) {
       }
     }
   } catch (e) {
-    console.error('Open Library API error:', e);
+    // Open Library is supplementary - only warn if we have no result at all
+    if (!result) {
+      console.warn('Open Library API unavailable:', e.message);
+    }
+    // Otherwise silently continue - Google Books data is sufficient
   }
 
   // Add covers object with all available sources
