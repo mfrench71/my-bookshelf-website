@@ -137,6 +137,31 @@ describe('BookSchema', () => {
       expect(result.success).toBe(true);
       expect(result.data.author).toBe('Stephen King');
     });
+
+    it('should reject author over 500 characters', () => {
+      const longAuthor = 'A'.repeat(501);
+      const result = BookSchema.safeParse({ title: 'Test', author: longAuthor });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Author must be 500 characters or less');
+    });
+
+    it('should accept author with special characters', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: "Gabriel García Márquez" });
+      expect(result.success).toBe(true);
+      expect(result.data.author).toBe("Gabriel García Márquez");
+    });
+
+    it('should accept author with apostrophes', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: "Flann O'Brien" });
+      expect(result.success).toBe(true);
+      expect(result.data.author).toBe("Flann O'Brien");
+    });
+
+    it('should accept multiple authors separated by comma', () => {
+      const result = BookSchema.safeParse({ title: 'Test', author: 'Author One, Author Two' });
+      expect(result.success).toBe(true);
+      expect(result.data.author).toBe('Author One, Author Two');
+    });
   });
 
   describe('isbn field', () => {

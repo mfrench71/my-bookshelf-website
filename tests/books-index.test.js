@@ -395,6 +395,72 @@ describe('filterByStatus', () => {
   });
 });
 
+// Replicate author filter function from books/index.js for testing
+function filterByAuthor(booksArray, author) {
+  if (!author) return booksArray;
+  const authorLower = author.toLowerCase();
+  return booksArray.filter(b => b.author?.toLowerCase() === authorLower);
+}
+
+describe('filterByAuthor', () => {
+  const books = [
+    { id: '1', title: 'Book 1', author: 'Stephen King' },
+    { id: '2', title: 'Book 2', author: 'J.K. Rowling' },
+    { id: '3', title: 'Book 3', author: 'Stephen King' },
+    { id: '4', title: 'Book 4', author: null },
+    { id: '5', title: 'Book 5' } // no author property
+  ];
+
+  it('should return all books when author is empty string', () => {
+    const result = filterByAuthor(books, '');
+    expect(result).toHaveLength(5);
+  });
+
+  it('should return all books when author is null', () => {
+    const result = filterByAuthor(books, null);
+    expect(result).toHaveLength(5);
+  });
+
+  it('should return all books when author is undefined', () => {
+    const result = filterByAuthor(books, undefined);
+    expect(result).toHaveLength(5);
+  });
+
+  it('should filter books by author', () => {
+    const result = filterByAuthor(books, 'Stephen King');
+    expect(result).toHaveLength(2);
+    expect(result.map(b => b.id)).toContain('1');
+    expect(result.map(b => b.id)).toContain('3');
+  });
+
+  it('should be case-insensitive', () => {
+    const result = filterByAuthor(books, 'stephen king');
+    expect(result).toHaveLength(2);
+    expect(result.map(b => b.id)).toContain('1');
+    expect(result.map(b => b.id)).toContain('3');
+  });
+
+  it('should handle uppercase filter input', () => {
+    const result = filterByAuthor(books, 'STEPHEN KING');
+    expect(result).toHaveLength(2);
+  });
+
+  it('should return empty array for non-existent author', () => {
+    const result = filterByAuthor(books, 'Unknown Author');
+    expect(result).toHaveLength(0);
+  });
+
+  it('should not match books with null author', () => {
+    const result = filterByAuthor(books, 'Stephen King');
+    expect(result.some(b => b.author === null)).toBe(false);
+  });
+
+  it('should not match books with undefined author', () => {
+    const result = filterByAuthor(books, 'Stephen King');
+    expect(result.some(b => b.author === undefined)).toBe(false);
+  });
+});
+
 describe('combined status and rating filtering', () => {
   const books = [
     { id: '1', title: 'Book 1', status: 'reading', rating: 5 },

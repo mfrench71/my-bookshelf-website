@@ -512,10 +512,11 @@ function filterBySeries(booksArray, seriesId) {
   return booksArray.filter(b => b.seriesId === seriesId);
 }
 
-// Author filter function (exact string match)
+// Author filter function (case-insensitive match)
 function filterByAuthor(booksArray, author) {
   if (!author) return booksArray;
-  return booksArray.filter(b => b.author === author);
+  const authorLower = author.toLowerCase();
+  return booksArray.filter(b => b.author?.toLowerCase() === authorLower);
 }
 
 // Get filtered and sorted books (with caching)
