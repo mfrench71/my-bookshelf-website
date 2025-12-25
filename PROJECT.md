@@ -303,18 +303,32 @@ Consistent colour usage across buttons, badges, icons, and UI elements:
 |---------|------------|------------|
 | **Series in search results** | Google Books and Open Library search APIs don't return series data | Series only shown after ISBN lookup or when book is saved with series |
 | **Series lookup API** | No free external API for series metadata (total books, book list) | Manual series management with user-entered totalBooks |
-| **Cover quality** | Google Books thumbnails are low-res (~128px) | Use Open Library medium covers (~180px) as alternative |
+| **Cover quality** | API cover sizes vary | Fetch largest available at lookup time |
 
 ### Cover Image Sources
 
 | Source | URL Pattern | Size | Notes |
 |--------|-------------|------|-------|
-| **Google Books** | `books.googleapis.com/.../thumbnail` | ~128×192 | Low-res, reliable availability |
-| **Open Library (S)** | `covers.openlibrary.org/b/id/{id}-S.jpg` | ~40×60 | Too small for display |
-| **Open Library (M)** | `covers.openlibrary.org/b/id/{id}-M.jpg` | ~180×270 | Used by default |
-| **Open Library (L)** | `covers.openlibrary.org/b/id/{id}-L.jpg` | ~300×450 | Used on book detail page |
+| **Google Books (large)** | `books.googleapis.com/.../large` | ~300×450 | Preferred, not always available |
+| **Google Books (medium)** | `books.googleapis.com/.../medium` | ~200×300 | Fallback |
+| **Google Books (thumbnail)** | `books.googleapis.com/.../thumbnail` | ~128×192 | Last resort |
+| **Open Library (L)** | `covers.openlibrary.org/b/id/{id}-L.jpg` | ~300×450 | Preferred |
+| **Open Library (M)** | `covers.openlibrary.org/b/id/{id}-M.jpg` | ~180×270 | Fallback |
 
-Book detail page automatically upgrades Open Library -M covers to -L for sharper display, with fallback to -M if large unavailable.
+#### Cover Image Strategy
+
+**At lookup time** (ISBN lookup, book search):
+- API fetches the largest available cover: `large > medium > small > thumbnail`
+- Single URL stored in `coverImageUrl` field
+
+**At display time**:
+- Same URL used everywhere (book cards, detail page, widgets)
+- Book cards display at 60×90px with `loading="lazy"`
+- Trade-off: Slightly more bandwidth, but simpler and cached for detail view
+
+**Bulk update existing books**:
+- Settings → Library Maintenance → Fetch Covers
+- Re-fetches covers from APIs and updates `coverImageUrl` with larger versions
 
 ### Genre Normalization
 

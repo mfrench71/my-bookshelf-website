@@ -1556,8 +1556,11 @@ async function runFetchCovers() {
             (mergedCovers.openLibrary !== existingCovers.openLibrary);
 
           if (coversChanged) {
+            // Use the best available cover as the main coverImageUrl
+            const newCoverImageUrl = mergedCovers.googleBooks || mergedCovers.openLibrary || book.coverImageUrl;
             await setDoc(doc(booksRef, book.id), {
               covers: mergedCovers,
+              coverImageUrl: newCoverImageUrl,
               updatedAt: serverTimestamp()
             }, { merge: true });
             updated++;

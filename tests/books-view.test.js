@@ -6,60 +6,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { parseTimestamp, formatDate, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../src/js/utils.js';
 
-// Replicate getLargeCoverUrl logic from view.js for testing
-// (can't import directly due to Firebase dependencies)
-function getLargeCoverUrl(url) {
-  if (!url) return url;
-  if (url.includes('covers.openlibrary.org') && url.includes('-M.jpg')) {
-    return url.replace('-M.jpg', '-L.jpg');
-  }
-  return url;
-}
-
-describe('getLargeCoverUrl', () => {
-  it('should upgrade Open Library medium URL to large', () => {
-    const mediumUrl = 'https://covers.openlibrary.org/b/id/12345-M.jpg';
-    const result = getLargeCoverUrl(mediumUrl);
-    expect(result).toBe('https://covers.openlibrary.org/b/id/12345-L.jpg');
-  });
-
-  it('should not modify Open Library small URL', () => {
-    const smallUrl = 'https://covers.openlibrary.org/b/id/12345-S.jpg';
-    const result = getLargeCoverUrl(smallUrl);
-    expect(result).toBe(smallUrl);
-  });
-
-  it('should not modify Open Library large URL (already large)', () => {
-    const largeUrl = 'https://covers.openlibrary.org/b/id/12345-L.jpg';
-    const result = getLargeCoverUrl(largeUrl);
-    expect(result).toBe(largeUrl);
-  });
-
-  it('should not modify Google Books URL', () => {
-    const googleUrl = 'https://books.google.com/books/content?id=abc123&printsec=frontcover&img=1&zoom=1';
-    const result = getLargeCoverUrl(googleUrl);
-    expect(result).toBe(googleUrl);
-  });
-
-  it('should handle null URL', () => {
-    expect(getLargeCoverUrl(null)).toBe(null);
-  });
-
-  it('should handle undefined URL', () => {
-    expect(getLargeCoverUrl(undefined)).toBe(undefined);
-  });
-
-  it('should handle empty string', () => {
-    expect(getLargeCoverUrl('')).toBe('');
-  });
-
-  it('should handle URL with -M in path but not Open Library', () => {
-    const otherUrl = 'https://example.com/images/book-M.jpg';
-    const result = getLargeCoverUrl(otherUrl);
-    expect(result).toBe(otherUrl);
-  });
-});
-
 describe('Book View Page', () => {
   describe('renderBook - Cover handling', () => {
     // Replicate cover rendering logic

@@ -78,7 +78,15 @@ export async function lookupISBN(isbn, options = {}) {
 
     if (data.items?.length > 0) {
       const book = data.items[0].volumeInfo;
-      googleBooksCover = book.imageLinks?.thumbnail?.replace('http:', 'https:') || '';
+      // Prefer larger cover images: large > medium > small > thumbnail
+      const imageLinks = book.imageLinks || {};
+      googleBooksCover = (
+        imageLinks.large ||
+        imageLinks.medium ||
+        imageLinks.small ||
+        imageLinks.thumbnail ||
+        ''
+      ).replace('http:', 'https:');
       result = {
         title: normalizeTitle(book.title || ''),
         author: normalizeAuthor(book.authors?.join(', ') || ''),
@@ -107,7 +115,8 @@ export async function lookupISBN(isbn, options = {}) {
       const olGenres = parseHierarchicalGenres(
         book.subjects?.map(s => s.name || s) || []
       );
-      openLibraryCover = book.cover?.medium || '';
+      // Prefer large cover, fall back to medium
+      openLibraryCover = book.cover?.large || book.cover?.medium || '';
 
       if (result) {
         // Supplement missing fields from Open Library
@@ -224,7 +233,7 @@ export async function searchBooks(query, options = {}) {
             return {
               title: normalizeTitle(book.title) || 'Unknown Title',
               author: normalizeAuthor(book.authors?.join(', ') || '') || 'Unknown Author',
-              cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+              cover: (book.imageLinks?.large || book.imageLinks?.medium || book.imageLinks?.small || book.imageLinks?.thumbnail || '').replace('http:', 'https:'),
               publisher: normalizePublisher(book.publisher || ''),
               publishedDate: normalizePublishedDate(book.publishedDate),
               pageCount: book.pageCount || '',

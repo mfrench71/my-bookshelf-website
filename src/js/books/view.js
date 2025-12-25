@@ -8,16 +8,6 @@ import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 
-// Upgrade Open Library cover URL to large size for detail view
-export function getLargeCoverUrl(url) {
-  if (!url) return url;
-  // Open Library pattern: covers.openlibrary.org/b/id/{id}-M.jpg
-  if (url.includes('covers.openlibrary.org') && url.includes('-M.jpg')) {
-    return url.replace('-M.jpg', '-L.jpg');
-  }
-  return url;
-}
-
 // Initialize icons
 initIcons();
 
@@ -131,49 +121,26 @@ function renderBook() {
   // Set edit button URL
   editBtn.href = `/books/edit/?id=${bookId}`;
 
-  // Cover - try large Open Library cover, fall back to original
+  // Cover - use the stored cover URL directly
   if (book.coverImageUrl) {
-    const largeUrl = getLargeCoverUrl(book.coverImageUrl);
-    const originalUrl = book.coverImageUrl;
-
     // Show loading spinner while image loads
     coverLoading.classList.remove('hidden');
     coverPlaceholder.classList.add('hidden');
 
-    // Timeout for image loading (10 seconds)
-    let imageLoaded = false;
-    const imageTimeout = setTimeout(() => {
-      if (!imageLoaded) {
-        // Timeout reached - show placeholder
-        coverLoading.classList.add('hidden');
-        coverImage.classList.add('hidden');
-        coverPlaceholder.classList.remove('hidden');
-      }
-    }, 10000);
-
     coverImage.onload = () => {
       // Image loaded successfully - hide spinner, show image
-      imageLoaded = true;
-      clearTimeout(imageTimeout);
       coverLoading.classList.add('hidden');
       coverImage.classList.remove('hidden');
     };
 
     coverImage.onerror = () => {
-      // Try original URL if large version fails
-      if (coverImage.src !== originalUrl && largeUrl !== originalUrl) {
-        coverImage.src = originalUrl;
-      } else {
-        // Both failed - hide spinner, show placeholder
-        imageLoaded = true;
-        clearTimeout(imageTimeout);
-        coverLoading.classList.add('hidden');
-        coverImage.classList.add('hidden');
-        coverPlaceholder.classList.remove('hidden');
-      }
+      // Failed to load - show placeholder
+      coverLoading.classList.add('hidden');
+      coverImage.classList.add('hidden');
+      coverPlaceholder.classList.remove('hidden');
     };
 
-    coverImage.src = largeUrl;
+    coverImage.src = book.coverImageUrl;
   }
 
   // Title & Author
