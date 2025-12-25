@@ -287,6 +287,22 @@ Consistent colour usage across buttons, badges, icons, and UI elements:
 | Series | `text-purple-600` | Series widget, badges |
 | Warning/caution | `text-amber-500` | Alerts, cleanup |
 
+### Breadcrumb Navigation
+
+Pages use breadcrumbs instead of back buttons to prevent confusing navigation loops.
+
+| Page | Breadcrumb | Notes |
+|------|------------|-------|
+| `/` | None | Home page - top level |
+| `/books/` | None | Top-level destination |
+| `/books/add/` | Books > Add Book | Static (rendered in template) |
+| `/books/view/?id=X` | Books > {Book Title} | Dynamic (rendered by JS) |
+| `/books/edit/?id=X` | Books > {Book Title} > Edit | Dynamic, title links to view |
+| `/settings/` | Home > Settings | Static (rendered in template) |
+
+Component: `src/js/components/breadcrumb.js`
+Tests: `tests/breadcrumb.test.js`
+
 ### Data Enrichment Sources
 
 | Source | API | Notes |

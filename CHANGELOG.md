@@ -6,6 +6,16 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-25
+
+### Breadcrumb Navigation
+- **Replaced Back Buttons**: All sub-pages now use breadcrumbs instead of back buttons
+- **No More Navigation Loops**: Eliminates confusing back/cancel loops when editing books
+- **Static for Static Pages**: Settings and Add Book pages render breadcrumbs in templates (no CLS)
+- **Dynamic for Book Pages**: View and Edit pages render breadcrumbs after loading book title
+
+---
+
 ## 2025-12-24
 
 ### Cover Image Improvements
