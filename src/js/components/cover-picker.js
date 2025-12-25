@@ -1,5 +1,5 @@
 // Reusable Cover Picker Component
-import { initIcons } from '../utils.js';
+import { initIcons, isValidImageUrl } from '../utils.js';
 
 /**
  * CoverPicker - Select book cover from multiple API sources
@@ -100,8 +100,8 @@ export class CoverPicker {
       this.currentUrl = currentUrl;
     }
 
-    const hasGoogle = !!this.covers.googleBooks;
-    const hasOpenLibrary = !!this.covers.openLibrary;
+    const hasGoogle = !!this.covers.googleBooks && isValidImageUrl(this.covers.googleBooks);
+    const hasOpenLibrary = !!this.covers.openLibrary && isValidImageUrl(this.covers.openLibrary);
     const hasAnyCovers = hasGoogle || hasOpenLibrary;
 
     // Reset UI - hide cover options, reset selection styles

@@ -140,8 +140,21 @@ function renderBook() {
     coverLoading.classList.remove('hidden');
     coverPlaceholder.classList.add('hidden');
 
+    // Timeout for image loading (10 seconds)
+    let imageLoaded = false;
+    const imageTimeout = setTimeout(() => {
+      if (!imageLoaded) {
+        // Timeout reached - show placeholder
+        coverLoading.classList.add('hidden');
+        coverImage.classList.add('hidden');
+        coverPlaceholder.classList.remove('hidden');
+      }
+    }, 10000);
+
     coverImage.onload = () => {
       // Image loaded successfully - hide spinner, show image
+      imageLoaded = true;
+      clearTimeout(imageTimeout);
       coverLoading.classList.add('hidden');
       coverImage.classList.remove('hidden');
     };
@@ -152,6 +165,8 @@ function renderBook() {
         coverImage.src = originalUrl;
       } else {
         // Both failed - hide spinner, show placeholder
+        imageLoaded = true;
+        clearTimeout(imageTimeout);
         coverLoading.classList.add('hidden');
         coverImage.classList.add('hidden');
         coverPlaceholder.classList.remove('hidden');

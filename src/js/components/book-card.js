@@ -1,5 +1,5 @@
 // Shared Book Card Component
-import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus } from '../utils.js';
+import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus, isValidImageUrl } from '../utils.js';
 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
@@ -89,10 +89,10 @@ function renderGenreBadges(genreDetails) {
 export function bookCard(book, options = {}) {
   const { showDate = false, genreLookup = null, seriesLookup = null } = options;
 
-  const cover = book.coverImageUrl
+  const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
     ? `<div class="book-cover-wrapper">
         <div class="book-cover-placeholder"><i data-lucide="book"></i></div>
-        <img src="${book.coverImageUrl}" alt="" class="book-cover" loading="lazy" onerror="this.style.display='none'">
+        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="book-cover" loading="lazy" onerror="this.style.display='none'">
       </div>`
     : `<div class="book-cover-placeholder"><i data-lucide="book"></i></div>`;
 

@@ -34,6 +34,15 @@ vi.mock('../src/js/utils.js', () => ({
   formatDate: (date) => date?.toLocaleDateString('en-GB') || '',
   renderStars: (rating) => `<span class="stars">${rating}</span>`,
   initIcons: vi.fn(),
+  isValidImageUrl: (url) => {
+    if (!url || typeof url !== 'string') return false;
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  },
   getBookStatus: (book) => {
     if (!book.readHistory?.length) return 'unread';
     const current = book.readHistory[0];

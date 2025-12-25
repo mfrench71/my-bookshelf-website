@@ -1,5 +1,5 @@
 import { BaseWidget } from '../base-widget.js';
-import { escapeHtml, parseTimestamp, formatDate } from '../../utils.js';
+import { escapeHtml, parseTimestamp, formatDate, isValidImageUrl } from '../../utils.js';
 
 /**
  * Recently Added Widget - Shows most recently added books
@@ -45,7 +45,7 @@ export class RecentlyAddedWidget extends BaseWidget {
   }
 
   static renderBookCard(book) {
-    const cover = book.coverImageUrl
+    const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
       ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
           <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
