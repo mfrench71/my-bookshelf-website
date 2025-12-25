@@ -32,17 +32,17 @@ module.exports = function() {
       continue;
     }
 
-    // Match feature items: - **Title**: Description or - **Title**
-    if (currentEntry && line.startsWith('- **')) {
-      const itemMatch = line.match(/^- \*\*(.+?)\*\*(?::|$)/);
-      if (itemMatch) {
-        currentEntry.items.push(itemMatch[1]);
+    // Match bullet points: - Some text here
+    if (currentEntry && line.startsWith('- ')) {
+      const item = line.slice(2).trim();
+      if (item) {
+        currentEntry.items.push(item);
       }
     }
   }
 
   if (currentEntry) entries.push(currentEntry);
 
-  // Return last 5 dates only
-  return entries.slice(0, 5);
+  // Return all dated entries
+  return entries;
 };
