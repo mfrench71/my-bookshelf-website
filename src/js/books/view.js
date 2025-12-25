@@ -1,7 +1,7 @@
 // Book View Page Logic (Read-only display)
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, getDoc, deleteDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc, deleteDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, lockBodyScroll, unlockBodyScroll, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
@@ -293,18 +293,16 @@ async function renderSeriesSection() {
   // Update title with series name
   seriesTitle.textContent = seriesName;
 
-  // Load all user's books to find others in the same series
+  // Load books in the same series using Firestore query
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const snapshot = await getDocs(booksRef);
+    const seriesQuery = query(booksRef, where('seriesId', '==', book.seriesId));
+    const snapshot = await getDocs(seriesQuery);
 
-    const seriesBooksData = [];
-    snapshot.forEach(doc => {
-      const bookData = { id: doc.id, ...doc.data() };
-      if (bookData.seriesId === book.seriesId) {
-        seriesBooksData.push(bookData);
-      }
-    });
+    const seriesBooksData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
     // Sort by position (nulls at end)
     seriesBooksData.sort((a, b) => {
