@@ -604,7 +604,7 @@ async function refreshBooks() {
     loadSeries(),
     loadBooks(true)
   ]);
-  showToast('Books refreshed');
+  showToast('Books refreshed', { type: 'success' });
 }
 
 // Sort & Filter Controls

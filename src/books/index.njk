@@ -61,8 +61,8 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
         </div>
       </div>
       <!-- Reset Filters -->
-      <button id="reset-filters" class="hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500" title="Reset filters">
-        <i data-lucide="x" class="w-5 h-5"></i>
+      <button id="reset-filters" class="hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500" aria-label="Reset filters">
+        <i data-lucide="x" class="w-5 h-5" aria-hidden="true"></i>
       </button>
     </div>
     <!-- Active Author Filter Badge -->
@@ -70,8 +70,8 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
       <span class="text-sm text-gray-500">Filtering by author:</span>
       <span class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
         <span id="author-filter-name"></span>
-        <button id="clear-author-filter" class="hover:bg-primary/20 rounded-full p-0.5" title="Clear author filter">
-          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        <button id="clear-author-filter" class="hover:bg-primary/20 rounded-full p-0.5" aria-label="Clear author filter">
+          <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>
       </span>
     </div>
@@ -122,8 +122,9 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 
 <!-- FAB - Add Book -->
 <a href="/books/add/"
-  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press">
-  <i data-lucide="plus" class="w-6 h-6"></i>
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press"
+  aria-label="Add new book">
+  <i data-lucide="plus" class="w-6 h-6" aria-hidden="true"></i>
 </a>
 
 <!-- Toast -->

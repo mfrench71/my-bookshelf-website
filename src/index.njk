@@ -18,8 +18,8 @@ bodyClass: bg-gray-100
         Resend verification email
       </button>
     </div>
-    <button id="dismiss-verify-banner" class="p-2 hover:bg-amber-100 rounded text-amber-600" title="Dismiss">
-      <i data-lucide="x" class="w-4 h-4"></i>
+    <button id="dismiss-verify-banner" class="p-2 hover:bg-amber-100 rounded text-amber-600" aria-label="Dismiss">
+      <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
     </button>
   </div>
 
@@ -50,8 +50,9 @@ bodyClass: bg-gray-100
 
 <!-- FAB - Add Book -->
 <a href="/books/add/"
-  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press">
-  <i data-lucide="plus" class="w-6 h-6"></i>
+  class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press"
+  aria-label="Add new book">
+  <i data-lucide="plus" class="w-6 h-6" aria-hidden="true"></i>
 </a>
 
 <!-- Toast -->
