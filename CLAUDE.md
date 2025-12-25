@@ -301,6 +301,18 @@ npm outdated                 # Check for outdated packages
 - [ ] Images optimised and appropriately sized?
 - [ ] Vendor files minified?
 
+### Scalability Audit
+- [ ] Firestore queries use proper indexes?
+- [ ] Pagination implemented for large collections? (don't load all at once)
+- [ ] Caching reduces repeated reads? (localStorage, in-memory)
+- [ ] Batch writes used where possible? (writeBatch for multiple docs)
+- [ ] No N+1 query patterns? (fetching related data in loops)
+- [ ] Images use appropriate sizes? (thumbnails vs full-size)
+- [ ] Search uses efficient indexing? (pre-normalized fields)
+- [ ] Large lists virtualized? (only render visible items)
+- [ ] API calls debounced/throttled where appropriate?
+- [ ] Real-time listeners minimized? (prefer on-demand fetching)
+
 ## Competitor Reference
 
 When researching features, check how these apps handle similar functionality:
