@@ -48,6 +48,27 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 - [ ] Does it feel responsive and snappy on mobile?
 - [ ] Is there immediate visual feedback on interaction?
 
+### Security Checklist
+- [ ] User input escaped before rendering? Use `escapeHtml()` for text, `escapeAttr()` for attributes
+- [ ] No innerHTML with unsanitised user data? Prefer `textContent` or escape first
+- [ ] Form inputs validated? Use Zod schemas from `src/js/schemas/`
+- [ ] Firestore rules enforced? Users can only access their own data (`/users/{userId}/`)
+- [ ] No sensitive data in localStorage? (tokens, passwords, API keys)
+- [ ] External URLs validated? Don't fetch arbitrary user-provided URLs
+- [ ] File uploads validated? Check type, size, and sanitise filenames
+
+### Accessibility Checklist
+- [ ] Interactive elements have accessible names? (`aria-label` for icon-only buttons)
+- [ ] Form inputs have associated labels? (`<label for="">` or `aria-label`)
+- [ ] Images have alt text? (decorative images use `alt=""`)
+- [ ] Colour contrast sufficient? (4.5:1 for text, 3:1 for large text)
+- [ ] Focus visible on all interactive elements? (don't remove outline without replacement)
+- [ ] Keyboard navigable? (all functionality reachable without mouse)
+- [ ] Skip link present? (`#main-content` target on all pages)
+- [ ] ARIA roles used correctly? (don't override semantic HTML)
+- [ ] Dynamic content announced? (`aria-live` regions for async updates)
+- [ ] Touch targets 44px minimum? (mobile tap areas)
+
 ### Design Tokens
 Use the design tokens defined in `src/css/tailwind.css`:
 - Colours: `primary`, `primary-dark`, `primary-light`, `success`, `error`, `warning`, `info`
