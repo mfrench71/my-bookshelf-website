@@ -413,9 +413,13 @@ startedDateInput.addEventListener('change', () => {
   if (finishedDateInput.value && startedValue && finishedDateInput.value < startedValue) {
     readingDateError.textContent = 'Finished date cannot be before started date';
     readingDateError.classList.remove('hidden');
+    startedDateInput.classList.add('border-red-500', 'focus:ring-red-500');
+    finishedDateInput.classList.add('border-red-500', 'focus:ring-red-500');
     return;
   }
   readingDateError.classList.add('hidden');
+  startedDateInput.classList.remove('border-red-500', 'focus:ring-red-500');
+  finishedDateInput.classList.remove('border-red-500', 'focus:ring-red-500');
 
   if (currentReads.length === 0) {
     if (startedValue) {
@@ -436,15 +440,20 @@ finishedDateInput.addEventListener('change', () => {
   if (finishedValue && !startedDateInput.value) {
     readingDateError.textContent = 'Please set a start date first';
     readingDateError.classList.remove('hidden');
+    finishedDateInput.classList.add('border-red-500', 'focus:ring-red-500');
     return;
   }
 
   if (finishedValue && startedDateInput.value && finishedValue < startedDateInput.value) {
     readingDateError.textContent = 'Finished date cannot be before started date';
     readingDateError.classList.remove('hidden');
+    startedDateInput.classList.add('border-red-500', 'focus:ring-red-500');
+    finishedDateInput.classList.add('border-red-500', 'focus:ring-red-500');
     return;
   }
   readingDateError.classList.add('hidden');
+  startedDateInput.classList.remove('border-red-500', 'focus:ring-red-500');
+  finishedDateInput.classList.remove('border-red-500', 'focus:ring-red-500');
 
   if (currentReads.length > 0) {
     const lastRead = currentReads[currentReads.length - 1];
