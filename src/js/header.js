@@ -247,7 +247,12 @@ function closeMenu() {
 // Logout
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      showToast('Error signing out. Please try again.', { type: 'error' });
+    }
   });
 }
 

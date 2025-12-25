@@ -327,7 +327,12 @@ async function loadBooks(forceRefresh = false) {
       renderBooks();
       showToast('Using cached books (connection error)', { type: 'info' });
     } else {
-      showToast('Error loading books: ' + error.message, { type: 'error' });
+      // User-friendly error message instead of raw error
+      const userMessage = error.code === 'permission-denied'
+        ? 'Permission denied. Please log in again.'
+        : 'Unable to load books. Please check your connection.';
+      showToast(userMessage, { type: 'error' });
+      console.error('Error loading books:', error);
     }
   } finally {
     isLoading = false;

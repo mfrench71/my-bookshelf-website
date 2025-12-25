@@ -173,20 +173,25 @@ async function loadBooksData() {
   }
 
   // Fetch from Firebase
-  const booksRef = collection(db, 'users', currentUser.uid, 'books');
-  const q = query(booksRef, orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
+  try {
+    const booksRef = collection(db, 'users', currentUser.uid, 'books');
+    const q = query(booksRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
 
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      ...data,
-      createdAt: serializeTimestamp(data.createdAt),
-      updatedAt: serializeTimestamp(data.updatedAt),
-      startedAt: serializeTimestamp(data.startedAt),
-      finishedAt: serializeTimestamp(data.finishedAt)
-    };
-  });
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: serializeTimestamp(data.createdAt),
+        updatedAt: serializeTimestamp(data.updatedAt),
+        startedAt: serializeTimestamp(data.startedAt),
+        finishedAt: serializeTimestamp(data.finishedAt)
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching books for home page:', error);
+    return []; // Return empty array to allow page to render without books
+  }
 }
 
