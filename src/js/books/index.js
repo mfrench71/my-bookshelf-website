@@ -10,7 +10,7 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus } from '../utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime } from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
@@ -110,6 +110,12 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     // Load genres, series, and books in parallel for faster initial load
     await Promise.all([loadGenres(), loadSeries(), loadBooks()]);
+
+    // Mark this as an initial load for visibility refresh cooldown
+    setLastRefreshTime();
+
+    // Set up auto-refresh when tab becomes visible
+    setupVisibilityRefresh(silentRefreshBooks);
 
     // If series filter was set via URL param, set up Series Order sort
     if (seriesFilter) {
@@ -610,6 +616,18 @@ async function refreshBooks() {
     loadBooks(true)
   ]);
   showToast('Books refreshed', { type: 'success' });
+}
+
+// Silent refresh for auto-sync on tab focus
+async function silentRefreshBooks() {
+  clearCache();
+  displayLimit = BOOKS_PER_PAGE;
+  await Promise.all([
+    loadGenres(),
+    loadSeries(),
+    loadBooks(true)
+  ]);
+  showToast('Library synced', { type: 'info' });
 }
 
 // Sort & Filter Controls

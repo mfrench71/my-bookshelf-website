@@ -41,7 +41,7 @@ import {
   clearSeriesCache,
   findPotentialDuplicates
 } from './series.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN } from './utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN, getSyncSettings, saveSyncSettings } from './utils.js';
 import { md5, getGravatarUrl } from './md5.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from './utils/widget-settings.js';
 import { getWidgetInfo, WIDGET_SIZES } from './widgets/widget-renderer.js';
@@ -2220,4 +2220,117 @@ seriesNavBtn?.addEventListener('click', () => {
 // Load when expanding series accordion (mobile)
 seriesAccordion?.addEventListener('click', () => {
   setTimeout(checkAndLoadSeries, 100);
+});
+
+// ==================== Sync Settings ====================
+
+const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+const hiddenThresholdSelect = document.getElementById('hidden-threshold');
+const cooldownPeriodSelect = document.getElementById('cooldown-period');
+const syncOptionsDiv = document.getElementById('sync-options');
+const refreshLibraryBtn = document.getElementById('refresh-library-btn');
+
+// Load sync settings on page load
+function loadSyncSettingsUI() {
+  const settings = getSyncSettings();
+
+  if (autoRefreshToggle) {
+    autoRefreshToggle.checked = settings.autoRefreshEnabled;
+  }
+
+  if (hiddenThresholdSelect) {
+    hiddenThresholdSelect.value = settings.hiddenThreshold.toString();
+  }
+
+  if (cooldownPeriodSelect) {
+    cooldownPeriodSelect.value = settings.cooldownPeriod.toString();
+  }
+
+  // Show/hide options based on toggle
+  updateSyncOptionsVisibility(settings.autoRefreshEnabled);
+}
+
+// Show/hide sync options based on toggle state
+function updateSyncOptionsVisibility(enabled) {
+  if (syncOptionsDiv) {
+    syncOptionsDiv.classList.toggle('opacity-50', !enabled);
+    syncOptionsDiv.classList.toggle('pointer-events-none', !enabled);
+  }
+}
+
+// Auto-refresh toggle handler
+autoRefreshToggle?.addEventListener('change', () => {
+  const enabled = autoRefreshToggle.checked;
+  saveSyncSettings({ autoRefreshEnabled: enabled });
+  updateSyncOptionsVisibility(enabled);
+  showToast(enabled ? 'Auto-refresh enabled' : 'Auto-refresh disabled', { type: 'info' });
+});
+
+// Hidden threshold change handler
+hiddenThresholdSelect?.addEventListener('change', () => {
+  const value = parseInt(hiddenThresholdSelect.value, 10);
+  saveSyncSettings({ hiddenThreshold: value });
+  showToast('Setting saved', { type: 'info' });
+});
+
+// Cooldown period change handler
+cooldownPeriodSelect?.addEventListener('change', () => {
+  const value = parseInt(cooldownPeriodSelect.value, 10);
+  saveSyncSettings({ cooldownPeriod: value });
+  showToast('Setting saved', { type: 'info' });
+});
+
+// Manual refresh button handler
+refreshLibraryBtn?.addEventListener('click', async () => {
+  if (!currentUser) return;
+
+  // Show loading state
+  const icon = refreshLibraryBtn.querySelector('svg');
+  const originalText = refreshLibraryBtn.querySelector('span')?.textContent;
+  if (icon) icon.classList.add('animate-spin');
+  refreshLibraryBtn.disabled = true;
+  if (refreshLibraryBtn.querySelector('span')) {
+    refreshLibraryBtn.querySelector('span').textContent = 'Refreshing...';
+  }
+
+  try {
+    // Clear the cache
+    clearBooksCache(currentUser.uid);
+
+    // Show toast
+    showToast('Library refreshed', { type: 'success' });
+
+    // Reload page to fetch fresh data
+    window.location.reload();
+  } catch (error) {
+    console.error('Error refreshing library:', error);
+    showToast('Failed to refresh', { type: 'error' });
+    if (icon) icon.classList.remove('animate-spin');
+    refreshLibraryBtn.disabled = false;
+    if (refreshLibraryBtn.querySelector('span') && originalText) {
+      refreshLibraryBtn.querySelector('span').textContent = originalText;
+    }
+  }
+});
+
+// Load sync settings when sync section becomes visible
+const syncSection = document.getElementById('sync-section');
+const syncNavBtn = document.querySelector('[data-section="sync"]');
+const syncAccordion = document.querySelector('[data-accordion="sync"]');
+let syncSettingsLoaded = false;
+
+function checkAndLoadSyncSettings() {
+  if (syncSettingsLoaded) return;
+  syncSettingsLoaded = true;
+  loadSyncSettingsUI();
+}
+
+// Load when switching to sync section (desktop)
+syncNavBtn?.addEventListener('click', () => {
+  setTimeout(checkAndLoadSyncSettings, 100);
+});
+
+// Load when expanding sync accordion (mobile)
+syncAccordion?.addEventListener('click', () => {
+  setTimeout(checkAndLoadSyncSettings, 100);
 });

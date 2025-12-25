@@ -7,7 +7,7 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { initIcons, CACHE_KEY, serializeTimestamp } from './utils.js';
+import { initIcons, CACHE_KEY, serializeTimestamp, showToast, setupVisibilityRefresh, setLastRefreshTime } from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { loadWidgetSettings } from './utils/widget-settings.js';
@@ -41,8 +41,20 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     checkEmailVerification();
     await loadDashboard();
+
+    // Mark this as an initial load for visibility refresh cooldown
+    setLastRefreshTime();
+
+    // Set up auto-refresh when tab becomes visible
+    setupVisibilityRefresh(silentRefreshDashboard);
   }
 });
+
+// Silent refresh for auto-sync on tab focus
+async function silentRefreshDashboard() {
+  await loadDashboard();
+  showToast('Library synced', { type: 'info' });
+}
 
 // Email Verification Banner
 function checkEmailVerification() {

@@ -14,6 +14,9 @@ All notable changes to MyBookShelf are documented here.
 - Fix sub-nav height consistency across all pages
 - Align metadata section with content above on book detail
 - Fix cover image not saving when adding books via ISBN scan
+- Add auto-refresh on tab focus to sync library across devices
+- Add configurable sync settings (threshold, cooldown, toggle)
+- Move "Refresh Library" from header menu to Settings page
 - Icon buttons centred within touch targets
 - Fetch larger cover images from APIs at lookup time
 - Fix series section to use Firestore indexed query

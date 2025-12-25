@@ -65,3 +65,18 @@ export {
 
 // Toast (re-exported from stores for backwards compatibility)
 export { showToast } from './stores/toast.js';
+
+// Sync settings
+export {
+  getSyncSettings,
+  saveSyncSettings,
+  resetSyncSettings,
+  getDefaultSyncSettings
+} from './utils/sync-settings.js';
+
+// Visibility-based refresh
+export {
+  setupVisibilityRefresh,
+  getLastRefreshTime,
+  setLastRefreshTime
+} from './utils/visibility-refresh.js';
