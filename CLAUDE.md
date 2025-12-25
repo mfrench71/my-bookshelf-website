@@ -246,6 +246,61 @@ npm test && npm run build
   - `/users/{userId}/genres` - User's custom genres
   - `/users/{userId}/series` - User's book series
 
+## Periodic Audit Checklists
+
+Run these audits periodically to maintain code quality:
+
+### Dependencies Audit
+```bash
+npm audit                    # Check for vulnerabilities
+npm outdated                 # Check for outdated packages
+```
+- [ ] No high/critical vulnerabilities?
+- [ ] Dependencies reasonably up to date?
+- [ ] No unused dependencies in package.json?
+
+### PWA/Service Worker Audit
+- [ ] Service worker registered successfully?
+- [ ] Offline page works when network unavailable?
+- [ ] Cache strategy appropriate? (network-first for API, cache-first for assets)
+- [ ] manifest.json valid? (icons, theme colours, display mode)
+- [ ] App installable on mobile?
+
+### Error Handling Audit
+- [ ] All async operations have try/catch?
+- [ ] User-friendly error messages shown (not raw errors)?
+- [ ] Errors logged to console for debugging?
+- [ ] Network failures handled gracefully?
+- [ ] Form submission errors don't lose user input?
+
+### Mobile UX Audit
+- [ ] Touch targets minimum 44x44px?
+- [ ] No horizontal scroll on mobile?
+- [ ] Forms usable with mobile keyboard?
+- [ ] Modals scrollable if content overflows?
+- [ ] Pull-to-refresh works where expected?
+- [ ] Viewport meta tag correct? (`width=device-width, initial-scale=1`)
+
+### Form Validation Audit
+- [ ] Required fields clearly marked?
+- [ ] Validation errors shown inline near field?
+- [ ] Error messages are helpful (not just "Invalid")?
+- [ ] Form state preserved on validation failure?
+- [ ] Submit button disabled during submission?
+- [ ] Success feedback shown after submission?
+
+### Memory/Cleanup Audit
+- [ ] Event listeners removed when component unmounts?
+- [ ] Intervals/timeouts cleared on cleanup?
+- [ ] No listeners on removed DOM elements?
+- [ ] Large data structures cleared when no longer needed?
+
+### Bundle Size Audit
+- [ ] No duplicate dependencies?
+- [ ] Large libraries tree-shaken or lazy loaded?
+- [ ] Images optimised and appropriately sized?
+- [ ] Vendor files minified?
+
 ## Competitor Reference
 
 When researching features, check how these apps handle similar functionality:
