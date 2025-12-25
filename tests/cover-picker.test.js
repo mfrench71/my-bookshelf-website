@@ -126,6 +126,28 @@ describe('CoverPicker', () => {
       const googleOption = container.querySelector('[data-source="googleBooks"]');
       expect(googleOption.classList.contains('border-primary')).toBe(true);
     });
+
+    it('should set currentUrl when auto-selecting first cover', () => {
+      const picker = new CoverPicker({ container });
+
+      picker.setCovers({
+        googleBooks: 'https://example.com/google.jpg',
+        openLibrary: 'https://example.com/ol.jpg'
+      });
+
+      // Bug fix: getSelectedUrl should return the auto-selected cover URL
+      expect(picker.getSelectedUrl()).toBe('https://example.com/google.jpg');
+    });
+
+    it('should set currentUrl when only Open Library is available', () => {
+      const picker = new CoverPicker({ container });
+
+      picker.setCovers({
+        openLibrary: 'https://example.com/ol.jpg'
+      });
+
+      expect(picker.getSelectedUrl()).toBe('https://example.com/ol.jpg');
+    });
   });
 
   describe('select', () => {

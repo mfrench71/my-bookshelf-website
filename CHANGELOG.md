@@ -13,6 +13,7 @@ All notable changes to MyBookShelf are documented here.
 - Hide action button labels on mobile (icons only)
 - Fix sub-nav height consistency across all pages
 - Align metadata section with content above on book detail
+- Fix cover image not saving when adding books via ISBN scan
 - Icon buttons centred within touch targets
 - Fetch larger cover images from APIs at lookup time
 - Fix series section to use Firestore indexed query

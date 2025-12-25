@@ -136,8 +136,11 @@ export class CoverPicker {
     } else if (this.currentUrl === this.covers.openLibrary) {
       this.highlightOption('openLibrary');
     } else if (hasGoogle) {
+      // Auto-select first available - use select() to set currentUrl
+      this.currentUrl = this.covers.googleBooks;
       this.highlightOption('googleBooks');
     } else if (hasOpenLibrary) {
+      this.currentUrl = this.covers.openLibrary;
       this.highlightOption('openLibrary');
     }
 
