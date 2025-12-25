@@ -639,7 +639,8 @@ async function fetchBookDataFromAPI(isbn, title, author) {
           coverImageUrl: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
           publisher: normalizePublisher(volumeInfo.publisher || ''),
           publishedDate: normalizePublishedDate(volumeInfo.publishedDate),
-          physicalFormat: ''
+          physicalFormat: '',
+          pageCount: volumeInfo.pageCount || null
         };
       }
     } catch (e) {
@@ -686,7 +687,7 @@ refreshDataBtn.addEventListener('click', async () => {
 
     if (apiData) {
       const fillEmptyField = (input, newValue, fieldName) => {
-        if (newValue && !input.value.trim()) {
+        if (newValue != null && newValue !== '' && !input.value.trim()) {
           input.value = newValue;
           input.classList.add('field-changed');
           if (!changedFields.includes(fieldName)) {

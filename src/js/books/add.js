@@ -500,7 +500,7 @@ async function selectSearchResult(el) {
         if (!publisherInput.value && bookData.publisher) publisherInput.value = bookData.publisher;
         if (!publishedDateInput.value && bookData.publishedDate) publishedDateInput.value = bookData.publishedDate;
         if (!physicalFormatInput.value && bookData.physicalFormat) physicalFormatInput.value = bookData.physicalFormat;
-        if (!pageCountInput.value && bookData.pageCount) pageCountInput.value = bookData.pageCount;
+        if (!pageCountInput.value && bookData.pageCount != null) pageCountInput.value = bookData.pageCount;
 
         // Get covers from both APIs
         if (bookData.covers) {

@@ -190,11 +190,10 @@ const cancelDeleteAccountBtn = document.getElementById('cancel-delete-account');
 const confirmDeleteAccountBtn = document.getElementById('confirm-delete-account');
 
 // Auth Check
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    loadProfileInfo();
-    loadGenres();
+    await Promise.all([loadProfileInfo(), loadGenres()]);
   }
 });
 

@@ -57,9 +57,9 @@ export async function lookupISBN(isbn, options = {}) {
     if (cached !== null) {
       // If cached result is missing physicalFormat or covers, refetch to get complete data
       if (cached && (!cached.physicalFormat || !cached.covers)) {
-        // Return null to trigger a fresh fetch (cache will be updated)
+        // Fall through to trigger a fresh fetch (cache will be updated)
         // This ensures we get covers from both APIs
-      } else {
+      } else if (cached) {
         return cached;
       }
     }

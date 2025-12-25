@@ -270,7 +270,7 @@ function renderBook() {
 
 // Render series section with other books in the same series
 async function renderSeriesSection() {
-  const seriesObj = seriesLookup.get(book.seriesId);
+  const seriesObj = seriesLookup?.get(book.seriesId);
   if (!seriesObj) return;
 
   const seriesName = seriesObj.name;

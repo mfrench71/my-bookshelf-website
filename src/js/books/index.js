@@ -119,9 +119,11 @@ onAuthStateChanged(auth, async (user) => {
       renderBooks(); // Re-render with new sort
     }
 
-    // If author filter was set via URL param, show reset button
+    // If author filter was set via URL param, show reset button and re-render
+    // (re-render needed because loadBooks may have rendered before seriesLookup was ready)
     if (authorFilter) {
       updateResetButton();
+      renderBooks();
     }
   }
 });
