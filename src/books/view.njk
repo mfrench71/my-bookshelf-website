@@ -10,13 +10,13 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
       <ol id="breadcrumb" class="flex items-center text-sm"></ol>
     </nav>
     <div class="flex items-center gap-1">
-      <a id="edit-btn" href="#" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1 min-h-[44px]" aria-label="Edit book">
+      <a id="edit-btn" href="#" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center justify-center sm:justify-start gap-1 min-h-[44px] min-w-[44px]" aria-label="Edit book">
         <i data-lucide="pencil" class="w-5 h-5" aria-hidden="true"></i>
-        <span class="text-sm">Edit</span>
+        <span class="text-sm hidden sm:inline">Edit</span>
       </a>
-      <button id="delete-btn" class="p-2 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1 min-h-[44px]" aria-label="Delete book">
+      <button id="delete-btn" class="p-2 hover:bg-red-50 rounded-lg text-red-600 flex items-center justify-center sm:justify-start gap-1 min-h-[44px] min-w-[44px]" aria-label="Delete book">
         <i data-lucide="trash-2" class="w-5 h-5" aria-hidden="true"></i>
-        <span class="text-sm">Delete</span>
+        <span class="text-sm hidden sm:inline">Delete</span>
       </button>
     </div>
   </div>
