@@ -7,6 +7,7 @@ import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
+import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 
 // Initialize icons
 initIcons();
@@ -29,7 +30,7 @@ if (!bookId) {
 // DOM Elements
 const loading = document.getElementById('loading');
 const content = document.getElementById('main-content');
-const backBtn = document.getElementById('back-btn');
+const breadcrumb = document.getElementById('breadcrumb');
 const editBtn = document.getElementById('edit-btn');
 const deleteBtn = document.getElementById('delete-btn');
 const deleteModal = document.getElementById('delete-modal');
@@ -73,15 +74,6 @@ const bookPublished = document.getElementById('book-published');
 const addedRow = document.getElementById('added-row');
 const bookAdded = document.getElementById('book-added');
 
-// Back button - smart navigation
-backBtn.addEventListener('click', () => {
-  if (history.length > 1) {
-    history.back();
-  } else {
-    window.location.href = '/books/';
-  }
-});
-
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -118,6 +110,9 @@ async function loadBook() {
 }
 
 function renderBook() {
+  // Render breadcrumbs
+  renderBreadcrumbs(breadcrumb, Breadcrumbs.bookView(book.title, bookId));
+
   // Set edit button URL
   editBtn.href = `/books/edit/?id=${bookId}`;
 

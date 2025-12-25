@@ -59,18 +59,6 @@ if (document.readyState === 'loading') {
   setTimeout(initIcons, 0);
 }
 
-// Back button - smart navigation
-const backBtn = document.getElementById('back-btn');
-if (backBtn) {
-  backBtn.addEventListener('click', () => {
-    if (history.length > 1) {
-      history.back();
-    } else {
-      window.location.href = '/';
-    }
-  });
-}
-
 // State
 let currentUser = null;
 let genres = [];

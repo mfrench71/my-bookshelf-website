@@ -16,6 +16,7 @@ import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
+import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 
 // Initialize icons once on load
 initIcons();
@@ -46,7 +47,7 @@ if (!bookId) {
 const loading = document.getElementById('loading');
 const content = document.getElementById('main-content');
 const pageTitle = document.getElementById('page-title');
-const backBtn = document.getElementById('back-btn');
+const breadcrumb = document.getElementById('breadcrumb');
 const cancelBtn = document.getElementById('cancel-btn');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
@@ -80,12 +81,11 @@ const historyChevron = document.getElementById('history-chevron');
 const historyCount = document.getElementById('history-count');
 const readHistoryList = document.getElementById('read-history-list');
 
-// Navigation
+// Navigation - Cancel button goes back to view page
 function goToViewPage() {
   window.location.href = `/books/view/?id=${bookId}`;
 }
 
-backBtn.addEventListener('click', goToViewPage);
 cancelBtn.addEventListener('click', goToViewPage);
 
 // Cover Picker Functions
@@ -278,6 +278,9 @@ async function loadBook() {
 }
 
 function renderForm() {
+  // Render breadcrumbs
+  renderBreadcrumbs(breadcrumb, Breadcrumbs.bookEdit(book.title, bookId));
+
   // Page title
   pageTitle.textContent = `Edit: ${book.title}`;
 

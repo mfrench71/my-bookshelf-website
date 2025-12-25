@@ -6,10 +6,9 @@ scripts: '<script type="module" src="/js/books/edit.js"></script>'
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
-    <button id="back-btn" class="p-2 hover:bg-gray-100 rounded-lg flex items-center gap-2 text-gray-600 min-h-[44px]">
-      <i data-lucide="arrow-left" class="w-5 h-5" aria-hidden="true"></i>
-      <span class="text-sm">Cancel</span>
-    </button>
+    <nav aria-label="Breadcrumb">
+      <ol id="breadcrumb" class="flex items-center text-sm"></ol>
+    </nav>
     <button id="refresh-data-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center gap-1 min-h-[44px]" aria-label="Refresh book data from API">
       <i data-lucide="refresh-cw" class="w-5 h-5" aria-hidden="true"></i>
       <span class="text-sm">Refresh Data</span>
