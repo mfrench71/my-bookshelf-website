@@ -120,18 +120,23 @@ export async function loadUserGenres(userId, forceRefresh = false) {
     return genresCache;
   }
 
-  const genresRef = collection(db, 'users', userId, 'genres');
-  const q = query(genresRef, orderBy('name', 'asc'));
-  const snapshot = await getDocs(q);
+  try {
+    const genresRef = collection(db, 'users', userId, 'genres');
+    const q = query(genresRef, orderBy('name', 'asc'));
+    const snapshot = await getDocs(q);
 
-  genresCache = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-  genresCacheUserId = userId;
-  genresCacheTime = Date.now();
+    genresCache = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    genresCacheUserId = userId;
+    genresCacheTime = Date.now();
 
-  return genresCache;
+    return genresCache;
+  } catch (error) {
+    console.error('Error loading genres:', error);
+    throw error;
+  }
 }
 
 /**
@@ -168,45 +173,53 @@ export function getAvailableColors(genres, excludeGenreId = null) {
  * @throws {Error} If genre with same name or color already exists
  */
 export async function createGenre(userId, name, color = null) {
-  const normalizedName = normalizeGenreName(name);
+  try {
+    const normalizedName = normalizeGenreName(name);
 
-  // Check for duplicate name
-  const genres = await loadUserGenres(userId);
-  const existing = genres.find(g => g.normalizedName === normalizedName);
+    // Check for duplicate name
+    const genres = await loadUserGenres(userId);
+    const existing = genres.find(g => g.normalizedName === normalizedName);
 
-  if (existing) {
-    throw new Error(`Genre "${existing.name}" already exists`);
-  }
-
-  const usedColors = getUsedColors(genres);
-
-  // Validate or auto-assign color
-  if (color) {
-    // Check if color is already used
-    if (usedColors.has(color.toLowerCase())) {
-      throw new Error('This color is already used by another genre');
+    if (existing) {
+      throw new Error(`Genre "${existing.name}" already exists`);
     }
-  } else {
-    // Auto-assign first available color
-    color = GENRE_COLORS.find(c => !usedColors.has(c.toLowerCase())) || GENRE_COLORS[genres.length % GENRE_COLORS.length];
+
+    const usedColors = getUsedColors(genres);
+
+    // Validate or auto-assign color
+    if (color) {
+      // Check if color is already used
+      if (usedColors.has(color.toLowerCase())) {
+        throw new Error('This color is already used by another genre');
+      }
+    } else {
+      // Auto-assign first available color
+      color = GENRE_COLORS.find(c => !usedColors.has(c.toLowerCase())) || GENRE_COLORS[genres.length % GENRE_COLORS.length];
+    }
+
+    const genreData = {
+      name: name.trim(),
+      normalizedName,
+      color,
+      bookCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    const genresRef = collection(db, 'users', userId, 'genres');
+    const docRef = await addDoc(genresRef, genreData);
+
+    // Invalidate cache
+    genresCache = null;
+
+    return { id: docRef.id, ...genreData };
+  } catch (error) {
+    // Re-throw validation errors as-is, log Firebase errors
+    if (!error.message.includes('already exists') && !error.message.includes('already used')) {
+      console.error('Error creating genre:', error);
+    }
+    throw error;
   }
-
-  const genreData = {
-    name: name.trim(),
-    normalizedName,
-    color,
-    bookCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  };
-
-  const genresRef = collection(db, 'users', userId, 'genres');
-  const docRef = await addDoc(genresRef, genreData);
-
-  // Invalidate cache
-  genresCache = null;
-
-  return { id: docRef.id, ...genreData };
 }
 
 /**
@@ -218,39 +231,46 @@ export async function createGenre(userId, name, color = null) {
  * @throws {Error} If renaming to an existing genre name or using a duplicate color
  */
 export async function updateGenre(userId, genreId, updates) {
-  const updateData = { updatedAt: serverTimestamp() };
-  const genres = await loadUserGenres(userId);
+  try {
+    const updateData = { updatedAt: serverTimestamp() };
+    const genres = await loadUserGenres(userId);
 
-  if (updates.name !== undefined) {
-    const normalizedName = normalizeGenreName(updates.name);
+    if (updates.name !== undefined) {
+      const normalizedName = normalizeGenreName(updates.name);
 
-    // Check for duplicate name (excluding self)
-    const existing = genres.find(g => g.normalizedName === normalizedName && g.id !== genreId);
+      // Check for duplicate name (excluding self)
+      const existing = genres.find(g => g.normalizedName === normalizedName && g.id !== genreId);
 
-    if (existing) {
-      throw new Error(`Genre "${existing.name}" already exists`);
+      if (existing) {
+        throw new Error(`Genre "${existing.name}" already exists`);
+      }
+
+      updateData.name = updates.name.trim();
+      updateData.normalizedName = normalizedName;
     }
 
-    updateData.name = updates.name.trim();
-    updateData.normalizedName = normalizedName;
-  }
-
-  if (updates.color !== undefined) {
-    // Check for duplicate color (excluding self)
-    const usedColors = getUsedColors(genres, genreId);
-    if (usedColors.has(updates.color.toLowerCase())) {
-      throw new Error('This color is already used by another genre');
+    if (updates.color !== undefined) {
+      // Check for duplicate color (excluding self)
+      const usedColors = getUsedColors(genres, genreId);
+      if (usedColors.has(updates.color.toLowerCase())) {
+        throw new Error('This color is already used by another genre');
+      }
+      updateData.color = updates.color;
     }
-    updateData.color = updates.color;
+
+    const genreRef = doc(db, 'users', userId, 'genres', genreId);
+    await updateDoc(genreRef, updateData);
+
+    // Invalidate cache
+    genresCache = null;
+
+    return { id: genreId, ...updateData };
+  } catch (error) {
+    if (!error.message.includes('already exists') && !error.message.includes('already used')) {
+      console.error('Error updating genre:', error);
+    }
+    throw error;
   }
-
-  const genreRef = doc(db, 'users', userId, 'genres', genreId);
-  await updateDoc(genreRef, updateData);
-
-  // Invalidate cache
-  genresCache = null;
-
-  return { id: genreId, ...updateData };
 }
 
 /**
@@ -260,33 +280,38 @@ export async function updateGenre(userId, genreId, updates) {
  * @returns {Promise<number>} Number of books updated
  */
 export async function deleteGenre(userId, genreId) {
-  const batch = writeBatch(db);
+  try {
+    const batch = writeBatch(db);
 
-  // Find all books with this genre
-  const booksRef = collection(db, 'users', userId, 'books');
-  const q = query(booksRef, where('genres', 'array-contains', genreId));
-  const snapshot = await getDocs(q);
+    // Find all books with this genre
+    const booksRef = collection(db, 'users', userId, 'books');
+    const q = query(booksRef, where('genres', 'array-contains', genreId));
+    const snapshot = await getDocs(q);
 
-  // Remove genre from each book
-  snapshot.docs.forEach(bookDoc => {
-    const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
-    const currentGenres = bookDoc.data().genres || [];
-    batch.update(bookRef, {
-      genres: currentGenres.filter(g => g !== genreId),
-      updatedAt: serverTimestamp()
+    // Remove genre from each book
+    snapshot.docs.forEach(bookDoc => {
+      const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
+      const currentGenres = bookDoc.data().genres || [];
+      batch.update(bookRef, {
+        genres: currentGenres.filter(g => g !== genreId),
+        updatedAt: serverTimestamp()
+      });
     });
-  });
 
-  // Delete the genre document
-  const genreRef = doc(db, 'users', userId, 'genres', genreId);
-  batch.delete(genreRef);
+    // Delete the genre document
+    const genreRef = doc(db, 'users', userId, 'genres', genreId);
+    batch.delete(genreRef);
 
-  await batch.commit();
+    await batch.commit();
 
-  // Invalidate cache
-  genresCache = null;
+    // Invalidate cache
+    genresCache = null;
 
-  return snapshot.docs.length;
+    return snapshot.docs.length;
+  } catch (error) {
+    console.error('Error deleting genre:', error);
+    throw error;
+  }
 }
 
 /**
@@ -298,38 +323,43 @@ export async function deleteGenre(userId, genreId) {
 export async function updateGenreBookCounts(userId, addedGenreIds = [], removedGenreIds = []) {
   if (addedGenreIds.length === 0 && removedGenreIds.length === 0) return;
 
-  const genres = await loadUserGenres(userId, true);
-  const genreMap = new Map(genres.map(g => [g.id, g]));
-  const batch = writeBatch(db);
+  try {
+    const genres = await loadUserGenres(userId, true);
+    const genreMap = new Map(genres.map(g => [g.id, g]));
+    const batch = writeBatch(db);
 
-  // Increment counts for added genres
-  for (const genreId of addedGenreIds) {
-    const genre = genreMap.get(genreId);
-    if (genre) {
-      const genreRef = doc(db, 'users', userId, 'genres', genreId);
-      batch.update(genreRef, {
-        bookCount: (genre.bookCount || 0) + 1,
-        updatedAt: serverTimestamp()
-      });
+    // Increment counts for added genres
+    for (const genreId of addedGenreIds) {
+      const genre = genreMap.get(genreId);
+      if (genre) {
+        const genreRef = doc(db, 'users', userId, 'genres', genreId);
+        batch.update(genreRef, {
+          bookCount: (genre.bookCount || 0) + 1,
+          updatedAt: serverTimestamp()
+        });
+      }
     }
-  }
 
-  // Decrement counts for removed genres
-  for (const genreId of removedGenreIds) {
-    const genre = genreMap.get(genreId);
-    if (genre) {
-      const genreRef = doc(db, 'users', userId, 'genres', genreId);
-      batch.update(genreRef, {
-        bookCount: Math.max(0, (genre.bookCount || 0) - 1),
-        updatedAt: serverTimestamp()
-      });
+    // Decrement counts for removed genres
+    for (const genreId of removedGenreIds) {
+      const genre = genreMap.get(genreId);
+      if (genre) {
+        const genreRef = doc(db, 'users', userId, 'genres', genreId);
+        batch.update(genreRef, {
+          bookCount: Math.max(0, (genre.bookCount || 0) - 1),
+          updatedAt: serverTimestamp()
+        });
+      }
     }
+
+    await batch.commit();
+
+    // Invalidate cache
+    genresCache = null;
+  } catch (error) {
+    console.error('Error updating genre book counts:', error);
+    throw error;
   }
-
-  await batch.commit();
-
-  // Invalidate cache
-  genresCache = null;
 }
 
 /**
@@ -355,14 +385,24 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
     errors: []
   };
 
-  // Load all books
-  const booksRef = collection(db, 'users', userId, 'books');
-  const booksSnapshot = await getDocs(booksRef);
-  const totalBooks = booksSnapshot.docs.length;
+  let booksSnapshot;
+  let genres;
+  let genreIdSet;
 
-  // Load all genres
-  let genres = await loadUserGenres(userId, true);
-  const genreIdSet = new Set(genres.map(g => g.id));
+  try {
+    // Load all books
+    const booksRef = collection(db, 'users', userId, 'books');
+    booksSnapshot = await getDocs(booksRef);
+
+    // Load all genres
+    genres = await loadUserGenres(userId, true);
+    genreIdSet = new Set(genres.map(g => g.id));
+  } catch (error) {
+    console.error('Error loading data for genre migration:', error);
+    throw error;
+  }
+
+  const totalBooks = booksSnapshot.docs.length;
 
   // Track genre book counts (genreId -> count)
   const genreBookCounts = new Map();
@@ -434,18 +474,23 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
 
   // Update book counts for affected genres
   if (genreBookCounts.size > 0) {
-    const batch = writeBatch(db);
-    for (const [genreId, count] of genreBookCounts) {
-      const genre = genres.find(g => g.id === genreId);
-      if (genre) {
-        const genreRef = doc(db, 'users', userId, 'genres', genreId);
-        batch.update(genreRef, {
-          bookCount: (genre.bookCount || 0) + count,
-          updatedAt: serverTimestamp()
-        });
+    try {
+      const batch = writeBatch(db);
+      for (const [genreId, count] of genreBookCounts) {
+        const genre = genres.find(g => g.id === genreId);
+        if (genre) {
+          const genreRef = doc(db, 'users', userId, 'genres', genreId);
+          batch.update(genreRef, {
+            bookCount: (genre.bookCount || 0) + count,
+            updatedAt: serverTimestamp()
+          });
+        }
       }
+      await batch.commit();
+    } catch (error) {
+      console.error('Error updating genre counts during migration:', error);
+      results.errors.push(`Failed to update genre counts: ${error.message}`);
     }
-    await batch.commit();
   }
 
   // Invalidate cache
@@ -461,57 +506,62 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
  * @returns {Promise<Object>} Results { genresUpdated, totalBooks }
  */
 export async function recalculateGenreBookCounts(userId) {
-  // Load all books
-  const booksRef = collection(db, 'users', userId, 'books');
-  const booksSnapshot = await getDocs(booksRef);
+  try {
+    // Load all books
+    const booksRef = collection(db, 'users', userId, 'books');
+    const booksSnapshot = await getDocs(booksRef);
 
-  // Load all genres
-  const genres = await loadUserGenres(userId, true);
+    // Load all genres
+    const genres = await loadUserGenres(userId, true);
 
-  // Count books per genre
-  const genreCounts = new Map();
-  for (const genre of genres) {
-    genreCounts.set(genre.id, 0);
-  }
+    // Count books per genre
+    const genreCounts = new Map();
+    for (const genre of genres) {
+      genreCounts.set(genre.id, 0);
+    }
 
-  for (const bookDoc of booksSnapshot.docs) {
-    const bookData = bookDoc.data();
-    const bookGenres = bookData.genres || [];
+    for (const bookDoc of booksSnapshot.docs) {
+      const bookData = bookDoc.data();
+      const bookGenres = bookData.genres || [];
 
-    for (const genreId of bookGenres) {
-      if (genreCounts.has(genreId)) {
-        genreCounts.set(genreId, genreCounts.get(genreId) + 1);
+      for (const genreId of bookGenres) {
+        if (genreCounts.has(genreId)) {
+          genreCounts.set(genreId, genreCounts.get(genreId) + 1);
+        }
       }
     }
-  }
 
-  // Update genres with new counts
-  const batch = writeBatch(db);
-  let genresUpdated = 0;
+    // Update genres with new counts
+    const batch = writeBatch(db);
+    let genresUpdated = 0;
 
-  for (const genre of genres) {
-    const newCount = genreCounts.get(genre.id) || 0;
-    if (newCount !== (genre.bookCount || 0)) {
-      const genreRef = doc(db, 'users', userId, 'genres', genre.id);
-      batch.update(genreRef, {
-        bookCount: newCount,
-        updatedAt: serverTimestamp()
-      });
-      genresUpdated++;
+    for (const genre of genres) {
+      const newCount = genreCounts.get(genre.id) || 0;
+      if (newCount !== (genre.bookCount || 0)) {
+        const genreRef = doc(db, 'users', userId, 'genres', genre.id);
+        batch.update(genreRef, {
+          bookCount: newCount,
+          updatedAt: serverTimestamp()
+        });
+        genresUpdated++;
+      }
     }
+
+    if (genresUpdated > 0) {
+      await batch.commit();
+    }
+
+    // Invalidate cache
+    genresCache = null;
+
+    return {
+      genresUpdated,
+      totalBooks: booksSnapshot.docs.length
+    };
+  } catch (error) {
+    console.error('Error recalculating genre book counts:', error);
+    throw error;
   }
-
-  if (genresUpdated > 0) {
-    await batch.commit();
-  }
-
-  // Invalidate cache
-  genresCache = null;
-
-  return {
-    genresUpdated,
-    totalBooks: booksSnapshot.docs.length
-  };
 }
 
 /**
