@@ -34,7 +34,7 @@
   <script src="/vendor/lucide.min.js"></script>
   {{ headScripts | safe }}
 </head>
-<body class="{{ bodyClass | default('bg-gray-50') }} min-h-screen">
+<body class="{{ bodyClass | default('bg-gray-50') }} min-h-screen flex flex-col">
   <!-- Skip to main content link for accessibility -->
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
     Skip to main content
@@ -44,7 +44,13 @@
     {% include "header.njk" %}
   {% endif %}
 
-  {{ content | safe }}
+  <div class="flex-1">
+    {{ content | safe }}
+  </div>
+
+  {% if not hideFooter %}
+    {% include "footer.njk" %}
+  {% endif %}
 
   <script type="module" src="/js/firebase-config.js"></script>
   {% if not hideHeader %}

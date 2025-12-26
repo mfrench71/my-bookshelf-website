@@ -27,6 +27,7 @@ const USED_ICONS = [
   'chevron-up',
   'download',
   'edit-2',
+  'external-link',
   'file-text',
   'git-merge',
   'github',

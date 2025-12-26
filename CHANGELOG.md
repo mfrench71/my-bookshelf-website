@@ -6,6 +6,12 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Add Privacy Policy page at /privacy/
+- Add site-wide footer with copyright, Privacy link, and version
+- Add Privacy & Data section to Profile settings:
+  - Export My Data (download all books, genres, series as JSON)
+  - Clear Local Cache (remove browser-cached data)
+- Version number now sourced from package.json (footer and About page)
 - Security: Fix XSS vulnerability in genre rendering
 - Security: Add colour validation to prevent CSS injection
 - Accessibility: Add ARIA attributes to modals (role, aria-modal, aria-labelledby)

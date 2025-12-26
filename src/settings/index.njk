@@ -92,16 +92,52 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
       </div>
     </div>
 
-    <!-- Privacy Settings -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="font-medium text-gray-900">Privacy Settings</h3>
-          <p class="text-gray-500 text-sm mt-1">Manage your data and privacy preferences</p>
+    <!-- Privacy & Data -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-medium text-gray-900">Privacy & Data</h3>
+        <p class="text-gray-500 text-sm mt-1">Manage your data and privacy preferences</p>
+      </div>
+
+      <!-- Privacy Policy -->
+      <a href="/privacy/" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-100">
+        <div class="flex items-center gap-3">
+          <i data-lucide="file-text" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
+          <div>
+            <p class="font-medium text-gray-900">Privacy Policy</p>
+            <p class="text-gray-500 text-sm">Learn how your data is collected and used</p>
+          </div>
         </div>
-        <button id="privacy-settings-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
-          <i data-lucide="shield" class="w-4 h-4" aria-hidden="true"></i>
-          <span>Manage</span>
+        <i data-lucide="external-link" class="w-4 h-4 text-gray-400" aria-hidden="true"></i>
+      </a>
+
+      <!-- Export My Data -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div class="flex items-center gap-3">
+          <i data-lucide="download" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
+          <div>
+            <p class="font-medium text-gray-900">Export My Data</p>
+            <p class="text-gray-500 text-sm">Download all your books, genres, and settings</p>
+          </div>
+        </div>
+        <button id="export-data-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
+          <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Export</span>
+        </button>
+      </div>
+
+      <!-- Clear Local Cache -->
+      <div class="flex items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <i data-lucide="trash-2" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
+          <div>
+            <p class="font-medium text-gray-900">Clear Local Cache</p>
+            <p class="text-gray-500 text-sm">Clear cached data stored in your browser</p>
+          </div>
+        </div>
+        <button id="clear-cache-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
+          <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Clear</span>
         </button>
       </div>
     </div>
