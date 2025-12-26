@@ -6,6 +6,11 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Fix technical debt issues:
+  - API refresh highlight now persists until save (was fading after 3 seconds)
+  - Add error handling to all Firebase operations in genres.js and series.js
+  - Prevent duplicate event listeners (beforeunload, online/offline, touch)
+  - Add destroy() cleanup methods to CoverPicker and RatingInput components
 - Add Library Health Dashboard to Maintenance page:
   - Shows completeness score with progress bar (weighted by field importance)
   - Lists books with missing data, sorted by most issues first

@@ -259,10 +259,10 @@ npm test && npm run build
 - [x] **E2E validation tests** - Added `e2e/validation.spec.js` with tests for empty form submit, error display, error clearing. Also added `tests/form-html-alignment.test.js` to verify HTML `name` attributes match schema field names.
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
-- [ ] Event listener cleanup in components (142 add vs 8 remove - potential memory leaks)
-- [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines)
-- [ ] Review async functions for missing try/catch (117 async, 97 try blocks)
-- [ ] Book edit: API refresh green highlight should persist, not fade after delay
+- [x] Event listener cleanup - Added guards to prevent duplicate listeners (header.js online/offline, books/index.js touch), fixed beforeunload stacking (add.js, edit.js), added destroy() methods to CoverPicker and RatingInput
+- [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines) - Deferred (risk outweighs benefit)
+- [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
+- [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
 
 ---
 
