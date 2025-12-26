@@ -241,4 +241,31 @@ export class CoverPicker {
     this.currentUrl = '';
     this.setCovers(null);
   }
+
+  /**
+   * Destroy the component and clean up event listeners
+   */
+  destroy() {
+    // Clear image event handlers
+    if (this.elements.googleImg) {
+      this.elements.googleImg.onload = null;
+      this.elements.googleImg.onerror = null;
+    }
+    if (this.elements.openLibraryImg) {
+      this.elements.openLibraryImg.onload = null;
+      this.elements.openLibraryImg.onerror = null;
+    }
+
+    // Clear container
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+
+    // Clear references
+    this.elements = {};
+    this.covers = {};
+    this.currentUrl = '';
+    this.onSelect = null;
+    this.container = null;
+  }
 }

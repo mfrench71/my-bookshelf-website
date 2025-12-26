@@ -100,4 +100,19 @@ export class RatingInput {
   reset() {
     this.setValue(0);
   }
+
+  /**
+   * Destroy the component and clean up event listeners
+   */
+  destroy() {
+    // Clear container (removes buttons and their listeners)
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+
+    // Clear references
+    this.buttons = [];
+    this.onChange = null;
+    this.container = null;
+  }
 }
