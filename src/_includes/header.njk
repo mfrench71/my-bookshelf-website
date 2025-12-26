@@ -32,8 +32,8 @@
 
 <!-- Menu: Bottom sheet on mobile, slide-out on desktop -->
 <div id="menu-overlay" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-50">
-  <!-- Mobile: Bottom sheet -->
-  <div id="menu-panel" class="md:hidden bottom-sheet-content bg-white w-full p-6">
+  <!-- Mobile: Bottom sheet (hidden by default, shown via JS) -->
+  <div id="menu-panel-mobile" class="hidden bottom-sheet-content bg-white w-full p-6">
     <div class="bottom-sheet-handle"></div>
     <div class="flex items-center gap-3 mb-4">
       <div id="menu-avatar-mobile" class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white text-lg font-bold overflow-hidden"></div>
@@ -52,12 +52,9 @@
         <span>Sign Out</span>
       </button>
     </nav>
-    <button id="close-menu-mobile" class="w-full mt-4 py-2 text-gray-500 hover:text-gray-700 text-sm min-h-[44px]">
-      Close
-    </button>
   </div>
-  <!-- Desktop: Slide-out panel -->
-  <div id="menu-panel-desktop" class="hidden md:block absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl translate-x-full transition-transform duration-200">
+  <!-- Desktop: Slide-out panel (hidden by default, shown via JS) -->
+  <div id="menu-panel-desktop" class="hidden absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl translate-x-full transition-transform duration-200">
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">

@@ -14,7 +14,6 @@ import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
-import { BottomSheet } from './components/modal.js';
 
 // Initialize icons once on load
 initIcons();
@@ -33,8 +32,7 @@ let seriesLookup = null;
 const menuBtn = document.getElementById('menu-btn');
 const menuOverlay = document.getElementById('menu-overlay');
 // Mobile bottom sheet elements
-const menuPanel = document.getElementById('menu-panel');
-const closeMenuMobileBtn = document.getElementById('close-menu-mobile');
+const menuPanelMobile = document.getElementById('menu-panel-mobile');
 const logoutBtnMobile = document.getElementById('logout-btn-mobile');
 const userEmailMobile = document.getElementById('user-email-mobile');
 const menuAvatarMobile = document.getElementById('menu-avatar-mobile');
@@ -237,20 +235,13 @@ async function loadAllBooksForSearch() {
   }
 }
 
-// Menu - Mobile uses BottomSheet, Desktop uses slide-out
-const menuSheet = menuOverlay ? new BottomSheet({ container: menuOverlay }) : null;
-
+// Menu - Mobile uses bottom sheet, Desktop uses slide-out
 function isMobileViewport() {
   return window.matchMedia('(max-width: 767px)').matches;
 }
 
 if (menuBtn && menuOverlay) {
   menuBtn.addEventListener('click', openMenu);
-}
-
-// Mobile close button
-if (closeMenuMobileBtn) {
-  closeMenuMobileBtn.addEventListener('click', closeMenu);
 }
 
 // Desktop close button and backdrop click
@@ -264,13 +255,19 @@ if (menuOverlay) {
 }
 
 function openMenu() {
+  menuOverlay?.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
   if (isMobileViewport()) {
-    // Mobile: use bottom sheet
-    menuSheet?.open();
+    // Mobile: show bottom sheet
+    menuOverlay?.classList.add('flex', 'items-end');
+    menuPanelMobile?.classList.remove('hidden');
+    menuPanelDesktop?.classList.add('hidden');
   } else {
-    // Desktop: use slide-out panel
-    menuOverlay.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    // Desktop: show slide-out panel
+    menuOverlay?.classList.remove('flex', 'items-end');
+    menuPanelMobile?.classList.add('hidden');
+    menuPanelDesktop?.classList.remove('hidden');
     requestAnimationFrame(() => {
       menuPanelDesktop?.classList.remove('translate-x-full');
       menuPanelDesktop?.classList.add('translate-x-0');
@@ -281,12 +278,20 @@ function openMenu() {
 
 function closeMenu() {
   if (isMobileViewport()) {
-    menuSheet?.close();
+    // Mobile: hide bottom sheet
+    menuPanelMobile?.classList.add('hidden');
+    menuOverlay?.classList.remove('flex', 'items-end');
+    menuOverlay?.classList.add('hidden');
+    document.body.style.overflow = '';
   } else {
+    // Desktop: slide out panel
     menuPanelDesktop?.classList.remove('translate-x-0');
     menuPanelDesktop?.classList.add('translate-x-full');
     document.body.style.overflow = '';
-    setTimeout(() => menuOverlay?.classList.add('hidden'), 200);
+    setTimeout(() => {
+      menuPanelDesktop?.classList.add('hidden');
+      menuOverlay?.classList.add('hidden');
+    }, 200);
   }
 }
 
