@@ -112,6 +112,9 @@ onAuthStateChanged(auth, async (user) => {
     // Load genres, series, and books in parallel for faster initial load
     await Promise.all([loadGenres(), loadSeries(), loadBooks()]);
 
+    // Re-render now that all lookups are ready (loadBooks may have rendered before genres/series loaded)
+    renderBooks();
+
     // Mark this as an initial load for visibility refresh cooldown
     setLastRefreshTime();
 
@@ -123,14 +126,11 @@ onAuthStateChanged(auth, async (user) => {
       updateSeriesOrderOption(true);
       switchToSeriesOrder();
       updateResetButton(); // Show reset button
-      renderBooks(); // Re-render with new sort
     }
 
-    // If author filter was set via URL param, show reset button and re-render
-    // (re-render needed because loadBooks may have rendered before seriesLookup was ready)
+    // If author filter was set via URL param, show reset button
     if (authorFilter) {
       updateResetButton();
-      renderBooks();
     }
   }
 });
