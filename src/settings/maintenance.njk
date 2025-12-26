@@ -30,6 +30,87 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
 <main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
   <h1 class="text-2xl font-bold text-gray-900 mb-6">Maintenance</h1>
 
+  <!-- Library Health -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+    <h3 class="font-medium text-gray-900 mb-2">Library Health</h3>
+    <p class="text-gray-600 text-sm mb-4">Analyse your library for missing data and fix issues from book APIs.</p>
+
+    <!-- Loading State -->
+    <div id="health-loading" class="space-y-3">
+      <div class="skeleton h-6 w-48 rounded"></div>
+      <div class="skeleton h-4 w-full rounded"></div>
+      <div class="skeleton h-4 w-3/4 rounded"></div>
+    </div>
+
+    <!-- Health Summary -->
+    <div id="health-summary" class="hidden">
+      <!-- Progress Bar -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm font-medium text-gray-700">Library Completeness</span>
+          <span id="health-score" class="text-sm font-medium">--%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div id="health-progress-bar" class="h-3 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+        <p id="health-rating" class="text-sm text-gray-500 mt-1"></p>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="flex flex-wrap gap-4 mb-4 text-sm">
+        <div class="text-gray-600">
+          <span class="font-medium" id="health-total-books">0</span> books
+        </div>
+        <div class="text-gray-600">
+          <span class="font-medium" id="health-issues-count">0</span> missing fields
+        </div>
+        <div class="text-gray-600">
+          <span class="font-medium" id="health-fixable-count">0</span> fixable from API
+        </div>
+      </div>
+
+      <!-- Issues List (expandable sections) -->
+      <div id="health-issues" class="space-y-2 mb-4">
+        <!-- Issue rows will be rendered here by JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="health-complete" class="hidden p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+        <i data-lucide="check-circle" class="w-8 h-8 text-green-500 mx-auto mb-2" aria-hidden="true"></i>
+        <p class="text-green-700 font-medium">Your library is 100% complete!</p>
+        <p class="text-green-600 text-sm">All books have cover images, genres, and metadata.</p>
+      </div>
+
+      <!-- Fix Progress -->
+      <div id="health-fix-progress" class="hidden mb-4">
+        <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+          <div class="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+          <span id="health-fix-status">Fixing books...</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="health-fix-progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Fix Results -->
+      <div id="health-fix-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div id="health-fix-results-text" class="text-sm text-gray-700"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div id="health-actions" class="flex flex-wrap gap-2">
+        <button id="health-fix-all-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="wand-2" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Fix All from API</span>
+        </button>
+        <button id="health-refresh-btn" class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+          <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Genre Migration -->
   <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
     <h3 class="font-medium text-gray-900 mb-2">Fix Genre References</h3>
@@ -65,37 +146,6 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
     </button>
   </div>
 
-  <!-- Fetch Book Covers -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h3 class="font-medium text-gray-900 mb-2">Fetch Book Covers</h3>
-    <p class="text-gray-600 text-sm mb-4">Scan your library for alternative book covers from Google Books and Open Library. Books with ISBNs will be checked for available cover images.</p>
-    <!-- Cover Stats - Loading State -->
-    <div id="cover-stats-loading" class="mb-4 space-y-2">
-      <div class="skeleton h-4 w-36 rounded"></div>
-      <div class="skeleton h-4 w-44 rounded"></div>
-    </div>
-    <!-- Cover Stats - Content -->
-    <div id="cover-stats" class="hidden mb-4 text-sm text-gray-600">
-      <p>Books with ISBN: <span id="cover-isbn-count" class="font-medium">-</span></p>
-      <p>Books with multiple covers: <span id="cover-multi-count" class="font-medium">-</span></p>
-    </div>
-    <div id="cover-progress" class="hidden mb-4">
-      <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-        <div class="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
-        <span id="cover-status">Fetching covers...</span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="cover-progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
-      </div>
-    </div>
-    <div id="cover-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <div id="cover-results-text" class="text-sm text-gray-700"></div>
-    </div>
-    <button id="fetch-covers-btn" class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]">
-      <i data-lucide="image" class="w-4 h-4" aria-hidden="true"></i>
-      <span>Fetch Covers</span>
-    </button>
-  </div>
 </main>
 
 <!-- Toast -->

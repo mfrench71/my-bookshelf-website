@@ -263,6 +263,7 @@ Common utilities are consolidated in shared modules:
 - `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN, getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings, setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
 - `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
+- `utils/library-health.js` - analyzeLibraryHealth, calculateLibraryCompleteness, getCompletenessRating, fixBookFromAPI, fixBooksFromAPI, HEALTH_FIELDS
 
 Reusable UI components in `src/js/components/`:
 - `book-card.js` - BookCard component for rendering book list items with genre/series badges
@@ -297,6 +298,7 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `series-progress-widget.test.js` - Tests for series progress widget
 - `sync-settings.test.js` - Tests for sync settings storage
 - `visibility-refresh.test.js` - Tests for visibility-based auto-refresh
+- `library-health.test.js` - Tests for library health analysis and fix functions
 - `form-html-alignment.test.js` - Tests that HTML form elements match Zod schema field names
 
 ### E2E Tests (Playwright)

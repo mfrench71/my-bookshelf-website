@@ -6,6 +6,12 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Add Library Health Dashboard to Maintenance page:
+  - Shows completeness score with progress bar (weighted by field importance)
+  - Lists books missing cover, genres, page count, format, publisher, date
+  - Expandable inline sections reveal affected books
+  - Fix individual issue types or all from API
+  - Merged "Fetch Book Covers" tool into Health Dashboard
 - Add Bin for deleted books with 30-day restore window:
   - Delete now moves books to bin instead of permanent delete
   - Bin page in Settings shows deleted books with restore/delete options

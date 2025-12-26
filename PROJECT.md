@@ -230,11 +230,14 @@ npm test && npm run build
 - [ ] OCR quote capture (photograph text, transcribe)
 - [ ] Reading journal with progress update notes
 
-### Library Health Dashboard
-- [ ] Books missing cover image
-- [ ] Books missing genre
-- [ ] Books missing publisher/date/format
-- [ ] Quick-fix actions (batch assign genre, refresh from API)
+### Library Health Dashboard ✅
+- [x] Books missing cover image
+- [x] Books missing genre
+- [x] Books missing publisher/date/format/page count
+- [x] Quick-fix actions (refresh from API - individual or bulk)
+- [x] Expandable inline sections showing affected books
+- [x] Completeness score with progress bar (weighted by field importance)
+- [x] Merged old "Fetch Book Covers" tool into Health Dashboard
 
 ### Privacy Settings
 - [ ] Profile visibility (public/private)
