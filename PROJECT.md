@@ -146,6 +146,7 @@ npm test && npm run build
 - [ ] Multiple shelves/lists
 - [ ] Social features (follow, share)
 - [ ] Reading goals/challenges
+- [ ] Trash/bin for deleted books (soft-delete with 30-day restore) - no competitors offer this
 
 ### Bulk Tools
 - [ ] Bulk select mode (checkbox on each book card)
