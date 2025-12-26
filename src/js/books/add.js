@@ -610,7 +610,7 @@ async function openScanner() {
       NotFoundError: 'No camera found.',
       NotReadableError: 'Camera in use by another app.'
     };
-    showToast(errorMessages[err.name] || `Scanner error: ${err.message || err}`, { type: 'error' });
+    showToast(errorMessages[err.name] || 'Scanner error. Please try again.', { type: 'error' });
   }
 }
 

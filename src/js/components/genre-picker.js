@@ -133,15 +133,18 @@ export class GenrePicker {
             placeholder="${this.isLoading ? 'Loading genres...' : 'Add genre...'}"
             value="${escapeHtml(this.searchQuery)}"
             ${this.isLoading ? 'disabled' : ''}
+            aria-expanded="${this.isOpen}"
+            aria-haspopup="listbox"
+            aria-label="Search and select genres"
           >
 
           <!-- Dropdown -->
           ${this.isOpen ? `
-            <div class="genre-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div class="genre-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto" role="listbox" aria-label="Genre options">
               <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">Select genres</span>
-                <button type="button" class="genre-picker-close p-1 hover:bg-gray-200 rounded" title="Close">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <button type="button" class="genre-picker-close p-1 hover:bg-gray-200 rounded" aria-label="Close dropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -180,8 +183,8 @@ export class GenrePicker {
       filteredSuggestions.forEach(name => {
         const isFocused = this.focusedIndex === index;
         items.push(`
-          <button type="button" class="genre-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-suggestion="${escapeHtml(name)}" data-index="${index}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <button type="button" role="option" aria-selected="false" class="genre-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-suggestion="${escapeHtml(name)}" data-index="${index}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             <span>${escapeHtml(name)}</span>
@@ -200,12 +203,13 @@ export class GenrePicker {
       filteredGenres.forEach(genre => {
         const isSelected = this.selected.includes(genre.id);
         const isFocused = this.focusedIndex === index;
+        const safeColor = /^#[0-9A-Fa-f]{6}$/.test(genre.color) ? genre.color : '#6b7280';
         items.push(`
-          <button type="button" class="genre-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-genre-id="${genre.id}" data-index="${index}">
-            <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${genre.color}"></span>
+          <button type="button" role="option" aria-selected="${isSelected}" class="genre-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-genre-id="${genre.id}" data-index="${index}">
+            <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${safeColor}"></span>
             <span class="flex-1">${escapeHtml(genre.name)}</span>
             ${isSelected ? `
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             ` : ''}

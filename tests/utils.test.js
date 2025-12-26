@@ -26,7 +26,8 @@ import {
   updateRatingStars,
   migrateBookReads,
   getCurrentRead,
-  getBookStatus
+  getBookStatus,
+  isValidHexColor
 } from '../src/js/utils.js';
 
 describe('escapeHtml', () => {
@@ -857,5 +858,57 @@ describe('getBookStatus', () => {
       ]
     };
     expect(getBookStatus(book)).toBe('reading');
+  });
+});
+
+describe('isValidHexColor', () => {
+  it('should return false for null/undefined/empty', () => {
+    expect(isValidHexColor(null)).toBe(false);
+    expect(isValidHexColor(undefined)).toBe(false);
+    expect(isValidHexColor('')).toBe(false);
+  });
+
+  it('should return false for non-string values', () => {
+    expect(isValidHexColor(123)).toBe(false);
+    expect(isValidHexColor({})).toBe(false);
+    expect(isValidHexColor([])).toBe(false);
+    expect(isValidHexColor(true)).toBe(false);
+  });
+
+  it('should return true for valid 6-digit hex colours', () => {
+    expect(isValidHexColor('#000000')).toBe(true);
+    expect(isValidHexColor('#ffffff')).toBe(true);
+    expect(isValidHexColor('#FFFFFF')).toBe(true);
+    expect(isValidHexColor('#3b82f6')).toBe(true);
+    expect(isValidHexColor('#ABC123')).toBe(true);
+  });
+
+  it('should return false for hex without # prefix', () => {
+    expect(isValidHexColor('000000')).toBe(false);
+    expect(isValidHexColor('ffffff')).toBe(false);
+  });
+
+  it('should return false for 3-digit hex shorthand', () => {
+    expect(isValidHexColor('#fff')).toBe(false);
+    expect(isValidHexColor('#000')).toBe(false);
+    expect(isValidHexColor('#abc')).toBe(false);
+  });
+
+  it('should return false for invalid hex characters', () => {
+    expect(isValidHexColor('#gggggg')).toBe(false);
+    expect(isValidHexColor('#12345z')).toBe(false);
+    expect(isValidHexColor('#hello!')).toBe(false);
+  });
+
+  it('should return false for wrong length', () => {
+    expect(isValidHexColor('#12345')).toBe(false);
+    expect(isValidHexColor('#1234567')).toBe(false);
+    expect(isValidHexColor('#')).toBe(false);
+  });
+
+  it('should return false for CSS injection attempts', () => {
+    expect(isValidHexColor('#000000; background-image: url(evil.js)')).toBe(false);
+    expect(isValidHexColor('javascript:alert(1)')).toBe(false);
+    expect(isValidHexColor('expression(alert(1))')).toBe(false);
   });
 });

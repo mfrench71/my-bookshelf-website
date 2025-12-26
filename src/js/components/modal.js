@@ -66,6 +66,20 @@ export class Modal {
     this.container.classList.remove('hidden');
     this.container.classList.remove('modal-exit');
     this.container.classList.add('modal-backdrop');
+
+    // Add ARIA attributes for accessibility
+    this.container.setAttribute('role', 'dialog');
+    this.container.setAttribute('aria-modal', 'true');
+
+    // Set aria-labelledby if title element exists
+    const titleEl = this.container.querySelector('[class*="title"], h2, h3');
+    if (titleEl) {
+      if (!titleEl.id) {
+        titleEl.id = `modal-title-${Date.now()}`;
+      }
+      this.container.setAttribute('aria-labelledby', titleEl.id);
+    }
+
     lockBodyScroll();
     this.isOpen = true;
     initIcons();
@@ -327,6 +341,20 @@ export class BottomSheet extends Modal {
     this.container.classList.remove('hidden');
     this.container.classList.remove('modal-exit');
     this.container.classList.add('bottom-sheet-backdrop');
+
+    // Add ARIA attributes for accessibility
+    this.container.setAttribute('role', 'dialog');
+    this.container.setAttribute('aria-modal', 'true');
+
+    // Set aria-labelledby if title element exists
+    const titleEl = this.container.querySelector('[class*="title"], h2, h3');
+    if (titleEl) {
+      if (!titleEl.id) {
+        titleEl.id = `sheet-title-${Date.now()}`;
+      }
+      this.container.setAttribute('aria-labelledby', titleEl.id);
+    }
+
     lockBodyScroll();
     this.isOpen = true;
     initIcons();

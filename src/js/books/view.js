@@ -2,7 +2,7 @@
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { doc, getDoc, deleteDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
+import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
@@ -180,8 +180,9 @@ function renderBook() {
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(g => {
-        const textColor = getContrastColor(g.color);
-        return `<span class="genre-badge" style="background-color: ${g.color}; color: ${textColor}">${g.name}</span>`;
+        const safeColor = isValidHexColor(g.color) ? g.color : '#6b7280';
+        const textColor = getContrastColor(safeColor);
+        return `<span class="genre-badge" style="background-color: ${safeColor}; color: ${textColor}">${escapeHtml(g.name)}</span>`;
       })
       .join('');
     genreBadges.innerHTML = html;

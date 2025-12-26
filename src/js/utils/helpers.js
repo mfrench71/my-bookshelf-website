@@ -74,3 +74,14 @@ export function isValidImageUrl(url) {
     return false;
   }
 }
+
+/**
+ * Validate a hex colour string for safe use in CSS
+ * Prevents CSS injection attacks via style attributes
+ * @param {string} color - Colour string to validate (e.g., '#3b82f6')
+ * @returns {boolean} True if valid hex colour
+ */
+export function isValidHexColor(color) {
+  if (!color || typeof color !== 'string') return false;
+  return /^#[0-9A-Fa-f]{6}$/.test(color);
+}

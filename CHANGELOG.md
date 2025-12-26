@@ -6,6 +6,12 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Security: Fix XSS vulnerability in genre rendering
+- Security: Add colour validation to prevent CSS injection
+- Accessibility: Add ARIA attributes to modals (role, aria-modal, aria-labelledby)
+- Accessibility: Add ARIA to genre picker (aria-expanded, aria-selected, role)
+- Improve scanner error messages (user-friendly instead of raw errors)
+- Use event delegation in library settings (reduces memory usage)
 - Convert modals to bottom sheets on mobile (slide up, swipe to dismiss)
 - Fix double carets on book list filter selects
 - Fix iOS Chrome issues with menu and search overlays

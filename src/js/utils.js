@@ -34,7 +34,8 @@ export {
   throttle,
   checkPasswordStrength,
   isOnline,
-  isValidImageUrl
+  isValidImageUrl,
+  isValidHexColor
 } from './utils/helpers.js';
 
 // Cache utilities

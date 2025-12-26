@@ -31,7 +31,7 @@ import {
   clearSeriesCache,
   findPotentialDuplicates
 } from '../series.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, isMobile } from '../utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, isMobile, isValidHexColor } from '../utils.js';
 import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
@@ -115,6 +115,41 @@ const seriesSheet = seriesModal ? new BottomSheet({ container: seriesModal }) : 
 const deleteSeriesSheet = deleteSeriesModal ? new BottomSheet({ container: deleteSeriesModal }) : null;
 const mergeSeriesSheet = mergeSeriesModal ? new BottomSheet({ container: mergeSeriesModal }) : null;
 
+// Event delegation for genre list (prevents memory leaks from re-adding listeners on each render)
+if (genreList) {
+  genreList.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-btn');
+    if (editBtn) {
+      openEditGenreModal(editBtn.dataset.id);
+      return;
+    }
+    const deleteBtn = e.target.closest('.delete-btn');
+    if (deleteBtn) {
+      openDeleteGenreModal(deleteBtn.dataset.id, deleteBtn.dataset.name, parseInt(deleteBtn.dataset.count));
+    }
+  });
+}
+
+// Event delegation for series list
+if (seriesList) {
+  seriesList.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-series-btn');
+    if (editBtn) {
+      openEditSeriesModal(editBtn.dataset.id);
+      return;
+    }
+    const deleteBtn = e.target.closest('.delete-series-btn');
+    if (deleteBtn) {
+      openDeleteSeriesModal(deleteBtn.dataset.id, deleteBtn.dataset.name, parseInt(deleteBtn.dataset.count));
+      return;
+    }
+    const mergeBtn = e.target.closest('.merge-series-btn');
+    if (mergeBtn) {
+      openMergeSeriesModal(mergeBtn.dataset.id, mergeBtn.dataset.name);
+    }
+  });
+}
+
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -153,11 +188,12 @@ function renderGenres() {
         <table class="w-full">
           <tbody class="divide-y divide-gray-100">
             ${genres.map(genre => {
+              const safeColor = isValidHexColor(genre.color) ? genre.color : '#6b7280';
               return `
                 <tr class="hover:bg-gray-50">
                   <td class="py-1.5 px-3">
                     <div class="flex items-center gap-2">
-                      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${genre.color}" title="${escapeHtml(genre.name)}"></span>
+                      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${safeColor}" title="${escapeHtml(genre.name)}"></span>
                       <span class="text-sm text-gray-900">${escapeHtml(genre.name)}</span>
                     </div>
                   </td>
@@ -178,13 +214,6 @@ function renderGenres() {
       </div>
     `;
 
-    genreList.querySelectorAll('.edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => openEditGenreModal(btn.dataset.id));
-    });
-
-    genreList.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => openDeleteGenreModal(btn.dataset.id, btn.dataset.name, parseInt(btn.dataset.count)));
-    });
   }
 
   initIcons();
@@ -415,17 +444,6 @@ function renderSeries() {
       </div>
     `;
 
-    seriesList.querySelectorAll('.edit-series-btn').forEach(btn => {
-      btn.addEventListener('click', () => openEditSeriesModal(btn.dataset.id));
-    });
-
-    seriesList.querySelectorAll('.merge-series-btn').forEach(btn => {
-      btn.addEventListener('click', () => openMergeSeriesModal(btn.dataset.id, btn.dataset.name));
-    });
-
-    seriesList.querySelectorAll('.delete-series-btn').forEach(btn => {
-      btn.addEventListener('click', () => openDeleteSeriesModal(btn.dataset.id, btn.dataset.name, parseInt(btn.dataset.count)));
-    });
   }
 
   renderDuplicateWarnings();
