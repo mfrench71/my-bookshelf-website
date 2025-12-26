@@ -150,16 +150,16 @@ function renderBinBookCard(book) {
           <span>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left</span>
         </span>
       </div>
-      <div class="flex flex-col gap-2 justify-center">
+      <div class="flex gap-1 items-center">
         <button data-action="restore" data-book-id="${book.id}"
-                class="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                class="p-2 hover:bg-green-50 rounded text-gray-400 hover:text-green-600 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                 aria-label="Restore ${escapeHtml(book.title)}">
-          <i data-lucide="rotate-ccw" class="w-5 h-5" aria-hidden="true"></i>
+          <i data-lucide="rotate-ccw" class="w-4 h-4" aria-hidden="true"></i>
         </button>
         <button data-action="delete" data-book-id="${book.id}"
-                class="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                class="p-2 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                 aria-label="Permanently delete ${escapeHtml(book.title)}">
-          <i data-lucide="trash-2" class="w-5 h-5" aria-hidden="true"></i>
+          <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
         </button>
       </div>
     </div>
