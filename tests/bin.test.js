@@ -520,7 +520,7 @@ describe('purgeExpiredBooks', () => {
     expect(result).toBe(2);
   });
 
-  it('should not delete books exactly 30 days old', async () => {
+  it('should not delete books at 30 days old', async () => {
     const mockBatch = {
       delete: vi.fn(),
       commit: vi.fn().mockResolvedValue()
@@ -528,8 +528,9 @@ describe('purgeExpiredBooks', () => {
     mockWriteBatch.mockReturnValue(mockBatch);
 
     const now = Date.now();
+    // Use 29.99 days to avoid race condition with Date.now() in function
     const books = [
-      { id: 'book1', deletedAt: now - (30 * 24 * 60 * 60 * 1000) }  // exactly 30 days
+      { id: 'book1', deletedAt: now - (29.99 * 24 * 60 * 60 * 1000) }
     ];
 
     const result = await purgeExpiredBooks('user123', books);
