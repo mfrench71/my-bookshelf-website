@@ -87,11 +87,62 @@ Follow the colour scheme documented in PROJECT.md. Key rules:
 - **Gray**: Neutral, secondary actions, cancel buttons
 
 ### Component Patterns
-- Forms: Use validation schemas from `src/js/schemas/` and helpers from `src/js/utils/validation.js`
 - Toasts: Use `showToast(message, { type: 'success' | 'error' | 'info' })`
 - Icons: Use Lucide icons and call `initIcons()` after dynamic insertion
 - Empty states: Show helpful message with icon and action button where appropriate
 - Error states: Red border, error message below input, clear on valid input
+
+### Form Validation (MANDATORY)
+
+**ALL forms must use the validation system** - including modal forms. Never bypass validation for "simple" forms.
+
+```javascript
+// Required imports
+import { validateForm, showFieldError, clearFormErrors } from '/js/utils/validation.js';
+import { SomeSchema } from '/js/schemas/your-schema.js';
+
+// On form submit
+clearFormErrors(form);
+const result = validateForm(SomeSchema, formData);
+if (!result.success) {
+  showFormErrors(form, result.errors);
+  return;
+}
+
+// On modal open - clear previous errors
+clearFormErrors(form);
+
+// On form switch (e.g., login ↔ register) - clear AND reset
+clearFormErrors(previousForm);
+newForm.reset();
+// Reset any dynamic UI (password strength, etc.)
+```
+
+**Validation state must be cleared when:**
+1. Opening a modal form (fresh start)
+2. Switching between alternate forms (login ↔ register)
+3. Closing and reopening a form
+4. Navigating away and back
+
+**Never do this:**
+```javascript
+// ❌ WRONG - Manual validation with toast
+if (!name) {
+  showToast('Name is required', { type: 'error' });
+  return;
+}
+
+// ❌ WRONG - Inline checks without field-level errors
+if (password.length < 8) {
+  showToast('Password too short', { type: 'error' });
+  return;
+}
+```
+
+**Error display hierarchy:**
+1. **Field-level errors**: Red border + error text below input (primary)
+2. **Toast notifications**: For server errors, network failures, success messages (secondary)
+3. **Never**: Toast-only for validation errors
 
 ## Build & Development Commands
 
@@ -103,7 +154,6 @@ npm run build
 npm run start
 
 # Individual build steps
-npm run build:icons     # Generate tree-shaken Lucide bundle
 npm run build:11ty      # Build HTML from Nunjucks templates
 npm run build:js        # Bundle and minify JavaScript
 npm run build:css       # Compile and minify Tailwind CSS
@@ -127,7 +177,6 @@ npm run test:coverage # Run with coverage report
 - **11ty (Eleventy)** generates HTML from Nunjucks templates in `src/` to `_site/`
 - **esbuild** bundles and minifies JavaScript entry points to `_site/js/`
 - **Tailwind CSS v4** compiles `src/css/tailwind.css` to `_site/css/styles.css`
-- Custom Lucide bundle (14KB tree-shaken vs 378KB full) generated at build time
 
 ### Directory Structure
 ```
@@ -230,6 +279,45 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `series-progress-widget.test.js` - Tests for series progress widget
 - `sync-settings.test.js` - Tests for sync settings storage
 - `visibility-refresh.test.js` - Tests for visibility-based auto-refresh
+- `form-html-alignment.test.js` - Tests that HTML form elements match Zod schema field names
+
+### E2E Tests (Playwright)
+- `e2e/auth.spec.js` - Login/register form interactions
+- `e2e/navigation.spec.js` - Page navigation and accessibility
+- `e2e/validation.spec.js` - Form validation flows (empty submit, error display, error clearing)
+- `e2e/accessibility.spec.js` - Automated a11y testing with axe-core (WCAG 2.1 AA)
+
+### Pre-Commit Hooks
+Husky runs on every commit:
+1. **lint-staged**: Runs relevant tests for changed files
+   - `.njk` changes → form-html-alignment tests
+   - `schemas/*.js` changes → schema tests
+2. **Critical tests**: Always runs alignment + schema tests
+
+### Coverage Thresholds
+CI fails if coverage drops below:
+- Lines: 60%
+- Functions: 60%
+- Branches: 50%
+- Statements: 60%
+
+Run `npm run test:coverage` to check locally.
+
+### Testing Limitations (Important!)
+
+Unit tests with mocked DOM **do not catch**:
+- HTML element `name` attributes not matching schema field names
+- Validation errors not displaying due to CSS/DOM structure issues
+- Modal open/close clearing form state incorrectly
+- Real user interaction flows (blur, focus, submit)
+
+**When validation changes are made**, manually test in browser:
+1. Submit empty required fields → verify field-level errors appear
+2. Enter invalid data → verify specific error messages
+3. Fix errors → verify error styling clears
+4. Modal forms: open, submit empty, close, reopen → verify clean state
+
+For comprehensive coverage, add Playwright E2E tests (see `e2e/` directory).
 
 ### Pre-Deployment
 All tests must pass before deploying:
@@ -287,11 +375,16 @@ npm outdated                 # Check for outdated packages
 - [ ] Viewport meta tag correct? (`width=device-width, initial-scale=1`)
 
 ### Form Validation Audit
-- [ ] Required fields clearly marked?
-- [ ] Validation errors shown inline near field?
+- [ ] All forms use Zod schemas (no manual `if (!value)` checks)?
+- [ ] Input `name` attributes match schema field names exactly?
+- [ ] Required fields marked with asterisk (`<span class="text-red-500">*</span>`)?
+- [ ] Validation errors shown inline near field (not toast-only)?
 - [ ] Error messages are helpful (not just "Invalid")?
 - [ ] Form state preserved on validation failure?
 - [ ] Submit button disabled during submission?
+- [ ] Modal forms clear errors when opening (`clearFormErrors()`)?
+- [ ] Form switching clears errors AND resets form (`clearFormErrors()` + `form.reset()`)?
+- [ ] Dynamic UI (password strength, etc.) reset when switching forms?
 - [ ] Success feedback shown after submission?
 
 ### Memory/Cleanup Audit

@@ -233,8 +233,9 @@ npm test && npm run build
 - [x] Fix colour inconsistencies in Data Cleanup buttons (all amber) ✅
 - [x] Generate in-app changelog from CHANGELOG.md at build time (11ty data file) ✅
 - [x] Full Zod validation (remove HTML validation attributes, add novalidate) ✅
-- [x] Tree-shake Lucide icons (378KB → 14KB) ✅
+- [x] Tree-shake Lucide icons (378KB → 14KB) ✅ (reverted - broke at runtime)
 - [x] Minify/bundle JavaScript (797KB → 259KB custom + 265KB vendor) ✅
+- [x] **E2E validation tests** - Added `e2e/validation.spec.js` with tests for empty form submit, error display, error clearing. Also added `tests/form-html-alignment.test.js` to verify HTML `name` attributes match schema field names.
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
 

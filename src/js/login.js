@@ -43,31 +43,35 @@ const reqLength = document.getElementById('req-length');
 const reqUppercase = document.getElementById('req-uppercase');
 const reqNumber = document.getElementById('req-number');
 
+// Reset both forms to clean state
+function resetAllForms() {
+  // Clear validation errors
+  clearFormErrors(loginForm);
+  clearFormErrors(registerForm);
+  // Reset form values
+  loginForm.reset();
+  registerForm.reset();
+  // Reset password strength UI
+  updatePasswordUI('');
+  // Hide auth error
+  authError.classList.add('hidden');
+}
+
 // Toggle between login and register forms
 showRegisterBtn?.addEventListener('click', () => {
+  resetAllForms();
   loginForm.classList.add('hidden');
   registerForm.classList.remove('hidden');
   toggleRegister.classList.add('hidden');
   toggleLogin.classList.remove('hidden');
-  authError.classList.add('hidden');
-  // Clear validation errors from login form
-  clearFormErrors(loginForm);
-  // Reset register form state
-  registerForm.reset();
-  updatePasswordUI('');
 });
 
 showLoginBtn?.addEventListener('click', () => {
+  resetAllForms();
   registerForm.classList.add('hidden');
   loginForm.classList.remove('hidden');
   toggleLogin.classList.add('hidden');
   toggleRegister.classList.remove('hidden');
-  authError.classList.add('hidden');
-  // Clear validation errors from register form
-  clearFormErrors(registerForm);
-  // Reset login form and password strength
-  loginForm.reset();
-  updatePasswordUI('');
 });
 
 // checkPasswordStrength imported from utils.js
