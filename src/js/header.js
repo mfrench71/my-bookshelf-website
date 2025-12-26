@@ -282,6 +282,7 @@ function closeMenu() {
     // Mobile: slide bottom sheet down
     menuPanelMobile?.classList.remove('translate-y-0');
     menuPanelMobile?.classList.add('translate-y-full');
+    menuPanelMobile.style.transform = ''; // Clear any inline transform from swipe
     document.body.style.overflow = '';
     setTimeout(() => {
       menuOverlay?.classList.add('hidden');
@@ -296,6 +297,46 @@ function closeMenu() {
       menuOverlay?.classList.add('hidden');
     }, 200);
   }
+}
+
+// Swipe-to-close for mobile menu bottom sheet
+if (menuPanelMobile) {
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+
+  menuPanelMobile.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    isDragging = true;
+    menuPanelMobile.style.transition = 'none'; // Disable transition during drag
+  }, { passive: true });
+
+  menuPanelMobile.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
+
+    // Only allow dragging downward (positive deltaY)
+    if (deltaY > 0) {
+      menuPanelMobile.style.transform = `translateY(${deltaY}px)`;
+    }
+  }, { passive: true });
+
+  menuPanelMobile.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const deltaY = currentY - startY;
+    menuPanelMobile.style.transition = ''; // Re-enable transition
+    menuPanelMobile.style.transform = ''; // Clear inline transform
+
+    // Close if dragged more than 100px or 30% of panel height
+    const threshold = Math.min(100, menuPanelMobile.offsetHeight * 0.3);
+    if (deltaY > threshold) {
+      closeMenu();
+    }
+  }, { passive: true });
 }
 
 // Logout (both mobile and desktop buttons)
