@@ -12,22 +12,14 @@ import {
   migrateGenreData,
   recalculateGenreBookCounts
 } from '../genres.js';
-import { showToast, initIcons, clearBooksCache, CACHE_KEY, serializeTimestamp, escapeHtml } from '../utils.js';
+import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
 import {
   analyzeLibraryHealth,
-  getCompletenessRating,
-  fixBooksFromAPI,
-  HEALTH_FIELDS
+  getCompletenessRating
 } from '../utils/library-health.js';
 
-// Initialize icons once on load
-initIcons();
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initIcons);
-} else {
-  setTimeout(initIcons, 0);
-}
+// Initialize icons on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', initIcons);
 
 // State
 let currentUser = null;
@@ -54,15 +46,8 @@ const healthProgressBar = document.getElementById('health-progress-bar');
 const healthRating = document.getElementById('health-rating');
 const healthTotalBooks = document.getElementById('health-total-books');
 const healthIssuesCount = document.getElementById('health-issues-count');
-const healthFixableCount = document.getElementById('health-fixable-count');
 const healthIssues = document.getElementById('health-issues');
 const healthComplete = document.getElementById('health-complete');
-const healthFixProgress = document.getElementById('health-fix-progress');
-const healthFixStatus = document.getElementById('health-fix-status');
-const healthFixProgressBar = document.getElementById('health-fix-progress-bar');
-const healthFixResults = document.getElementById('health-fix-results');
-const healthFixResultsText = document.getElementById('health-fix-results-text');
-const healthFixAllBtn = document.getElementById('health-fix-all-btn');
 const healthRefreshBtn = document.getElementById('health-refresh-btn');
 const healthActions = document.getElementById('health-actions');
 
@@ -79,36 +64,12 @@ onAuthStateChanged(auth, async (user) => {
 async function loadAllBooks() {
   if (allBooksLoaded) return;
 
-  try {
-    const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      const cachedBooks = parsed.books || parsed || [];
-      const hasMore = parsed.hasMore ?? true;
-
-      if (cachedBooks.length > 0 && !hasMore) {
-        books = cachedBooks;
-        allBooksLoaded = true;
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn('Cache read error:', e.message);
-  }
-
+  // Fetch fresh data for health analysis
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: serializeTimestamp(data.createdAt),
-        updatedAt: serializeTimestamp(data.updatedAt)
-      };
-    });
+    books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books:', error);
@@ -210,26 +171,17 @@ recountGenresBtn?.addEventListener('click', runRecountGenres);
 // ==================== Library Health ====================
 
 /**
- * Issue type configuration for rendering
- * apiFixable is derived from HEALTH_FIELDS at runtime
+ * Issue type configuration for rendering badges
  */
 const ISSUE_CONFIG = {
-  missingCover: { icon: 'image', label: 'Missing cover image', field: 'coverImageUrl' },
-  missingGenres: { icon: 'tags', label: 'Missing genres', field: 'genres' },
-  missingPageCount: { icon: 'hash', label: 'Missing page count', field: 'pageCount' },
-  missingFormat: { icon: 'book-open', label: 'Missing format', field: 'physicalFormat' },
-  missingPublisher: { icon: 'building', label: 'Missing publisher', field: 'publisher' },
-  missingPublishedDate: { icon: 'calendar', label: 'Missing published date', field: 'publishedDate' },
-  missingIsbn: { icon: 'barcode', label: 'Missing ISBN', field: 'isbn' }
+  missingCover: { icon: 'image', label: 'Cover' },
+  missingGenres: { icon: 'tags', label: 'Genres' },
+  missingPageCount: { icon: 'hash', label: 'Pages' },
+  missingFormat: { icon: 'book-open', label: 'Format' },
+  missingPublisher: { icon: 'building', label: 'Publisher' },
+  missingPublishedDate: { icon: 'calendar', label: 'Date' },
+  missingIsbn: { icon: 'barcode', label: 'ISBN' }
 };
-
-/**
- * Check if an issue type can be fixed via API
- */
-function isApiFixable(issueType) {
-  const field = ISSUE_CONFIG[issueType]?.field;
-  return field && HEALTH_FIELDS[field]?.apiFixable;
-}
 
 /**
  * Update the Library Health dashboard
@@ -262,7 +214,6 @@ async function updateLibraryHealth() {
     // Update stats
     if (healthTotalBooks) healthTotalBooks.textContent = healthReport.totalBooks;
     if (healthIssuesCount) healthIssuesCount.textContent = healthReport.totalIssues;
-    if (healthFixableCount) healthFixableCount.textContent = healthReport.fixableBooks;
 
     // Render issue rows
     renderIssueRows();
@@ -278,11 +229,6 @@ async function updateLibraryHealth() {
       healthActions?.classList.remove('hidden');
     }
 
-    // Update Fix All button state
-    if (healthFixAllBtn) {
-      healthFixAllBtn.disabled = healthReport.fixableBooks === 0;
-    }
-
   } catch (error) {
     console.error('Error analysing library health:', error);
     showToast('Failed to analyse library', { type: 'error' });
@@ -290,281 +236,76 @@ async function updateLibraryHealth() {
 
   healthLoading?.classList.add('hidden');
   healthSummary?.classList.remove('hidden');
-  initIcons();
 }
 
 /**
- * Render issue rows with expandable sections
+ * Render books with issues (grouped by book, sorted by most issues first)
  */
 function renderIssueRows() {
   if (!healthIssues || !healthReport) return;
 
-  let html = '';
+  // Get all books with any issue
+  const booksWithIssues = new Map();
 
   for (const [issueType, config] of Object.entries(ISSUE_CONFIG)) {
     const issueBooks = healthReport.issues[issueType] || [];
-    if (issueBooks.length === 0) continue;
-
-    const canFixViaApi = isApiFixable(issueType);
-    const withIsbnCount = issueBooks.filter(b => b.isbn).length;
-    const summaryText = canFixViaApi && withIsbnCount > 0 ? ` (${withIsbnCount} with ISBN)` : '';
-
-    html += `
-      <div class="issue-section border border-gray-200 rounded-lg overflow-hidden">
-        <button class="issue-row w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                data-issue="${issueType}" aria-expanded="false">
-          <div class="flex items-center gap-3">
-            <i data-lucide="${config.icon}" class="w-4 h-4 text-amber-500 flex-shrink-0" aria-hidden="true"></i>
-            <span class="text-sm text-gray-700">
-              <span class="font-medium">${issueBooks.length}</span> ${config.label.toLowerCase()}${summaryText}
-            </span>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 issue-chevron transition-transform" aria-hidden="true"></i>
-        </button>
-        <div class="issue-details hidden p-3 border-t border-gray-200 bg-white">
-          <div class="space-y-2 max-h-48 overflow-y-auto">
-            ${renderBookList(issueBooks, issueType, canFixViaApi)}
-          </div>
-          ${canFixViaApi ? (withIsbnCount > 0 ? `
-            <button class="fix-issue-btn mt-3 flex items-center gap-2 px-3 py-1.5 text-sm bg-primary hover:bg-primary-dark text-white rounded transition-colors"
-                    data-issue="${issueType}">
-              <i data-lucide="wand-2" class="w-3 h-3" aria-hidden="true"></i>
-              Try API for ${withIsbnCount} book${withIsbnCount !== 1 ? 's' : ''}
-            </button>
-          ` : `
-            <p class="mt-3 text-sm text-gray-500 italic">No books have ISBN for API lookup</p>
-          `) : `
-            <p class="mt-3 text-sm text-gray-500 italic">This field must be entered manually</p>
-          `}
-        </div>
-      </div>
-    `;
+    for (const book of issueBooks) {
+      if (!booksWithIssues.has(book.id)) {
+        booksWithIssues.set(book.id, { book, missing: [] });
+      }
+      booksWithIssues.get(book.id).missing.push({
+        label: config.label,
+        icon: config.icon
+      });
+    }
   }
 
-  healthIssues.innerHTML = html;
+  if (booksWithIssues.size === 0) {
+    healthIssues.innerHTML = '<p class="text-gray-500 text-sm">No issues found.</p>';
+    return;
+  }
+
+  // Sort by most issues first
+  const sorted = [...booksWithIssues.values()].sort((a, b) => b.missing.length - a.missing.length);
+
+  healthIssues.innerHTML = `
+    <div class="space-y-2 max-h-96 overflow-y-auto">
+      ${sorted.map(({ book, missing }) => {
+        const cover = book.coverImageUrl || '';
+        const title = escapeHtml(book.title || 'Untitled');
+        const author = escapeHtml(book.author || 'Unknown');
+
+        // Compact badges for missing fields
+        const badges = missing.map(m =>
+          `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+            <i data-lucide="${m.icon}" class="w-3 h-3" aria-hidden="true"></i>${m.label}
+          </span>`
+        ).join('');
+
+        return `
+          <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
+            <div class="w-8 h-12 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
+              ${cover ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover">` :
+              `<div class="w-full h-full flex items-center justify-center text-gray-400">
+                <i data-lucide="book" class="w-4 h-4" aria-hidden="true"></i>
+              </div>`}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-gray-900 truncate">${title}</div>
+              <div class="text-xs text-gray-500">by ${author}</div>
+              <div class="flex flex-wrap gap-1 mt-1">${badges}</div>
+            </div>
+            <a href="/books/edit/?id=${book.id}" class="flex-shrink-0 px-3 py-1 text-sm text-primary hover:text-primary-dark">Edit</a>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
   initIcons();
-
-  // Add click handlers for expandable rows
-  healthIssues.querySelectorAll('.issue-row').forEach(row => {
-    row.addEventListener('click', () => toggleIssueSection(row));
-  });
-
-  // Add click handlers for fix buttons
-  healthIssues.querySelectorAll('.fix-issue-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      fixIssueType(btn.dataset.issue);
-    });
-  });
-}
-
-/**
- * Render list of books with an issue
- * @param {Array} books - Books to render
- * @param {string} issueType - The issue type
- * @param {boolean} canFixViaApi - Whether this issue can be fixed via API
- */
-function renderBookList(books, issueType, canFixViaApi) {
-  return books.map(book => {
-    const hasIsbn = !!book.isbn;
-    const cover = book.coverImageUrl || '';
-
-    return `
-      <div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
-        <div class="w-8 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
-          ${cover ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover">` :
-          `<div class="w-full h-full flex items-center justify-center text-gray-400">
-            <i data-lucide="book" class="w-4 h-4" aria-hidden="true"></i>
-          </div>`}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(book.title || 'Untitled')}</p>
-          <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown author')}</p>
-        </div>
-        ${canFixViaApi ? (
-          !hasIsbn ? `<span class="text-xs text-gray-400 flex-shrink-0">No ISBN</span>` : ''
-        ) : `
-          <a href="/books/edit/?id=${book.id}" class="text-xs text-primary hover:text-primary-dark flex-shrink-0">
-            Edit
-          </a>
-        `}
-      </div>
-    `;
-  }).join('');
-}
-
-/**
- * Toggle expandable issue section
- */
-function toggleIssueSection(row) {
-  const section = row.closest('.issue-section');
-  const details = section.querySelector('.issue-details');
-  const chevron = row.querySelector('.issue-chevron');
-  const isExpanded = row.getAttribute('aria-expanded') === 'true';
-
-  // Collapse all other sections
-  healthIssues.querySelectorAll('.issue-row[aria-expanded="true"]').forEach(otherRow => {
-    if (otherRow !== row) {
-      otherRow.setAttribute('aria-expanded', 'false');
-      otherRow.closest('.issue-section').querySelector('.issue-details')?.classList.add('hidden');
-      otherRow.querySelector('.issue-chevron')?.classList.remove('rotate-180');
-    }
-  });
-
-  // Toggle this section
-  row.setAttribute('aria-expanded', !isExpanded);
-  details?.classList.toggle('hidden', isExpanded);
-  chevron?.classList.toggle('rotate-180', !isExpanded);
-}
-
-/**
- * Fix all books with a specific issue type
- */
-async function fixIssueType(issueType) {
-  const issueBooks = healthReport?.issues[issueType] || [];
-  const fixableBooks = issueBooks.filter(b => b.isbn);
-
-  if (fixableBooks.length === 0) {
-    showToast('No books with ISBN to fix', { type: 'info' });
-    return;
-  }
-
-  await runFixBooks(fixableBooks, ISSUE_CONFIG[issueType]?.label || issueType);
-}
-
-/**
- * Fix all fixable books
- */
-async function runFixAll() {
-  if (!healthReport || healthReport.fixableBooks === 0) {
-    showToast('No books to fix', { type: 'info' });
-    return;
-  }
-
-  // Get all unique fixable books (have ISBN and at least one missing field)
-  const activeBooks = books.filter(b => !b.deletedAt);
-  const allFixable = activeBooks.filter(b => {
-    if (!b.isbn) return false;
-    // Check if any API-fixable field is missing
-    for (const [field, config] of Object.entries(HEALTH_FIELDS)) {
-      if (config.apiFixable) {
-        const hasValue = field === 'genres' ?
-          (Array.isArray(b.genres) && b.genres.length > 0) :
-          !!b[field];
-        if (!hasValue) return true;
-      }
-    }
-    return false;
-  });
-
-  await runFixBooks(allFixable, 'all missing fields');
-}
-
-/**
- * Run the fix process for a set of books
- */
-async function runFixBooks(booksToFix, description) {
-  if (!booksToFix.length) return;
-
-  // Disable buttons
-  if (healthFixAllBtn) {
-    healthFixAllBtn.disabled = true;
-    healthFixAllBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Fixing...';
-  }
-  healthRefreshBtn?.classList.add('hidden');
-  healthFixProgress?.classList.remove('hidden');
-  healthFixResults?.classList.add('hidden');
-
-  try {
-    const results = await fixBooksFromAPI(
-      currentUser.uid,
-      booksToFix,
-      (current, total, book) => {
-        const percent = Math.round((current / total) * 100);
-        if (healthFixProgressBar) healthFixProgressBar.style.width = `${percent}%`;
-        if (healthFixStatus) healthFixStatus.textContent = `Fixing ${current} of ${total}: ${book.title || 'Untitled'}`;
-      },
-      500 // 500ms delay between API calls
-    );
-
-    // Show results
-    healthFixProgress?.classList.add('hidden');
-    healthFixResults?.classList.remove('hidden');
-
-    if (results.fixed.length === 0) {
-      if (healthFixResultsText) {
-        let html = `<p>Checked ${booksToFix.length} book${booksToFix.length !== 1 ? 's' : ''} - APIs had no new data.</p>`;
-        html += `<p class="text-gray-500 text-sm mt-1">Note: Not all books have complete metadata in Google Books or Open Library.</p>`;
-        if (results.skipped.length > 0) {
-          html += `<p class="text-gray-500 mt-1">${results.skipped.length} book${results.skipped.length !== 1 ? 's' : ''} skipped (no ISBN).</p>`;
-        }
-        if (results.errors.length > 0) {
-          html += `<p class="text-amber-600 mt-1">${results.errors.length} book${results.errors.length !== 1 ? 's' : ''} had API errors.</p>`;
-        }
-        healthFixResultsText.innerHTML = html;
-      }
-      showToast('APIs had no new data', { type: 'info' });
-    } else {
-      // Build results summary
-      let html = `<p class="mb-2">Fixed ${results.fixed.length} book${results.fixed.length !== 1 ? 's' : ''}:</p>`;
-
-      // Show field counts
-      const fieldCounts = Object.entries(results.fieldsFixedCount);
-      if (fieldCounts.length > 0) {
-        html += `<ul class="text-sm text-gray-600 mb-2">`;
-        for (const [field, count] of fieldCounts) {
-          const label = HEALTH_FIELDS[field]?.label || field;
-          html += `<li class="flex items-center gap-2">
-            <i data-lucide="check" class="w-3 h-3 text-green-500" aria-hidden="true"></i>
-            ${count} ${label.toLowerCase()}${count !== 1 ? 's' : ''}
-          </li>`;
-        }
-        html += `</ul>`;
-      }
-
-      // Show fixed books
-      html += `<div class="max-h-32 overflow-y-auto space-y-1">`;
-      for (const { book, fieldsFixed } of results.fixed) {
-        html += `<div class="flex items-center gap-2 text-sm">
-          <i data-lucide="check-circle" class="w-4 h-4 text-green-500 flex-shrink-0" aria-hidden="true"></i>
-          <span class="truncate">${escapeHtml(book.title || 'Untitled')}</span>
-          <span class="text-gray-400 text-xs">(${fieldsFixed.length} field${fieldsFixed.length !== 1 ? 's' : ''})</span>
-        </div>`;
-      }
-      html += `</div>`;
-
-      if (results.errors.length > 0) {
-        html += `<p class="text-amber-600 mt-2">${results.errors.length} book${results.errors.length !== 1 ? 's' : ''} had errors.</p>`;
-      }
-
-      if (healthFixResultsText) healthFixResultsText.innerHTML = html;
-      initIcons();
-      showToast(`Fixed ${results.fixed.length} book${results.fixed.length !== 1 ? 's' : ''}!`, { type: 'success' });
-    }
-
-    // Refresh data
-    clearBooksCache(currentUser.uid);
-    allBooksLoaded = false;
-    await updateLibraryHealth();
-
-  } catch (error) {
-    console.error('Error fixing books:', error);
-    healthFixProgress?.classList.add('hidden');
-    healthFixResults?.classList.remove('hidden');
-    if (healthFixResultsText) healthFixResultsText.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
-    showToast('Fix failed', { type: 'error' });
-  } finally {
-    if (healthFixAllBtn) {
-      healthFixAllBtn.disabled = healthReport?.fixableBooks === 0;
-      healthFixAllBtn.innerHTML = '<i data-lucide="wand-2" class="w-4 h-4"></i><span>Try API for All</span>';
-    }
-    healthRefreshBtn?.classList.remove('hidden');
-    initIcons();
-  }
 }
 
 // Event listeners for Library Health
-healthFixAllBtn?.addEventListener('click', runFixAll);
 healthRefreshBtn?.addEventListener('click', async () => {
   healthLoading?.classList.remove('hidden');
   healthSummary?.classList.add('hidden');

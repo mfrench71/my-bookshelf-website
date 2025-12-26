@@ -64,9 +64,6 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
         <div class="text-gray-600">
           <span class="font-medium" id="health-issues-count">0</span> missing fields
         </div>
-        <div class="text-gray-600">
-          <span class="font-medium" id="health-fixable-count">0</span> with ISBN
-        </div>
       </div>
 
       <!-- Issues List (expandable sections) -->
@@ -81,28 +78,8 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
         <p class="text-green-600 text-sm">All books have cover images, genres, and metadata.</p>
       </div>
 
-      <!-- Fix Progress -->
-      <div id="health-fix-progress" class="hidden mb-4">
-        <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-          <div class="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
-          <span id="health-fix-status">Fixing books...</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div id="health-fix-progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <!-- Fix Results -->
-      <div id="health-fix-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div id="health-fix-results-text" class="text-sm text-gray-700"></div>
-      </div>
-
       <!-- Action Buttons -->
       <div id="health-actions" class="flex flex-wrap gap-2">
-        <button id="health-fix-all-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed">
-          <i data-lucide="wand-2" class="w-4 h-4" aria-hidden="true"></i>
-          <span>Try API for All</span>
-        </button>
         <button id="health-refresh-btn" class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors min-h-[44px]">
           <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
           <span>Refresh</span>

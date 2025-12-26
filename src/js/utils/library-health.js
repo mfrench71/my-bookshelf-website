@@ -88,11 +88,24 @@ export function calculateLibraryCompleteness(books) {
   if (!books || books.length === 0) return 100;
 
   let totalScore = 0;
+  let hasIncompleteBook = false;
+
   for (const book of books) {
-    totalScore += calculateBookCompleteness(book);
+    const bookScore = calculateBookCompleteness(book);
+    totalScore += bookScore;
+    if (bookScore < 100) {
+      hasIncompleteBook = true;
+    }
   }
 
-  return Math.round(totalScore / books.length);
+  const score = Math.round(totalScore / books.length);
+
+  // Cap at 99% if any book has missing fields (avoid rounding to 100% with issues)
+  if (hasIncompleteBook && score === 100) {
+    return 99;
+  }
+
+  return score;
 }
 
 /**
@@ -158,7 +171,172 @@ export function getCompletenessRating(score) {
 }
 
 /**
- * Attempt to fix a book from API data
+ * Preview what changes would be made from API data (does not save)
+ * @param {Object} book - Book object with id and isbn
+ * @returns {Promise<Object>} { hasChanges, changes[], error? }
+ */
+export async function previewBookFix(book) {
+  if (!book.isbn) {
+    return { hasChanges: false, changes: [], error: 'No ISBN' };
+  }
+
+  let apiData;
+  try {
+    apiData = await lookupISBN(book.isbn, { skipCache: true });
+  } catch (e) {
+    return { hasChanges: false, changes: [], error: 'API lookup failed' };
+  }
+
+  if (!apiData) {
+    return { hasChanges: false, changes: [], error: 'No API data' };
+  }
+
+  const changes = [];
+
+  // Check each field for potential updates
+  if (!book.coverImageUrl && apiData.coverImageUrl) {
+    changes.push({ field: 'coverImageUrl', label: 'Cover', oldValue: null, newValue: apiData.coverImageUrl });
+  }
+  if ((!book.genres || book.genres.length === 0) && apiData.genres?.length > 0) {
+    changes.push({ field: 'genres', label: 'Genres', oldValue: null, newValue: apiData.genres.join(', ') });
+  }
+  if (!book.pageCount && apiData.pageCount) {
+    changes.push({ field: 'pageCount', label: 'Page Count', oldValue: null, newValue: apiData.pageCount });
+  }
+  if (!book.physicalFormat && apiData.physicalFormat) {
+    changes.push({ field: 'physicalFormat', label: 'Format', oldValue: null, newValue: apiData.physicalFormat });
+  }
+  if (!book.publisher && apiData.publisher) {
+    changes.push({ field: 'publisher', label: 'Publisher', oldValue: null, newValue: apiData.publisher });
+  }
+  if (!book.publishedDate && apiData.publishedDate) {
+    changes.push({ field: 'publishedDate', label: 'Published', oldValue: null, newValue: apiData.publishedDate });
+  }
+
+  return {
+    hasChanges: changes.length > 0,
+    changes,
+    apiData // Include full API data for later use
+  };
+}
+
+/**
+ * Preview fixes for multiple books
+ * @param {Array<Object>} books - Books to check
+ * @param {Function} onProgress - Progress callback (current, total, book)
+ * @param {number} delayMs - Delay between API calls
+ * @returns {Promise<Object>} { booksWithChanges[], booksNoChanges[], errors[] }
+ */
+export async function previewBooksFromAPI(books, onProgress, delayMs = 500) {
+  const results = {
+    booksWithChanges: [],
+    booksNoChanges: [],
+    errors: []
+  };
+
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+
+    if (onProgress) {
+      onProgress(i + 1, books.length, book);
+    }
+
+    if (!book.isbn) {
+      results.errors.push({ book, error: 'No ISBN' });
+      continue;
+    }
+
+    const preview = await previewBookFix(book);
+
+    if (preview.error && preview.error !== 'No API data') {
+      results.errors.push({ book, error: preview.error });
+    } else if (preview.hasChanges) {
+      results.booksWithChanges.push({ book, changes: preview.changes, apiData: preview.apiData });
+    } else {
+      results.booksNoChanges.push({ book });
+    }
+
+    // Delay between API calls
+    if (i < books.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Apply previewed changes to books
+ * @param {string} userId - User ID
+ * @param {Array<Object>} booksWithChanges - From previewBooksFromAPI results
+ * @param {Function} onProgress - Progress callback (current, total)
+ * @returns {Promise<Object>} { saved, errors }
+ */
+export async function applyPreviewedChanges(userId, booksWithChanges, onProgress) {
+  const results = { saved: [], errors: [] };
+
+  for (let i = 0; i < booksWithChanges.length; i++) {
+    const { book, apiData } = booksWithChanges[i];
+
+    if (onProgress) {
+      onProgress(i + 1, booksWithChanges.length);
+    }
+
+    const updates = {};
+
+    // Build updates from API data
+    if (!book.coverImageUrl && apiData.coverImageUrl) {
+      updates.coverImageUrl = apiData.coverImageUrl;
+    }
+    if ((!book.genres || book.genres.length === 0) && apiData.genres?.length > 0) {
+      updates.genres = apiData.genres;
+    }
+    if (!book.pageCount && apiData.pageCount) {
+      updates.pageCount = apiData.pageCount;
+    }
+    if (!book.physicalFormat && apiData.physicalFormat) {
+      updates.physicalFormat = apiData.physicalFormat;
+    }
+    if (!book.publisher && apiData.publisher) {
+      updates.publisher = apiData.publisher;
+    }
+    if (!book.publishedDate && apiData.publishedDate) {
+      updates.publishedDate = apiData.publishedDate;
+    }
+
+    // Update covers object
+    if (apiData.covers) {
+      const existingCovers = book.covers || {};
+      const newCovers = { ...existingCovers };
+      if (apiData.covers.googleBooks && !existingCovers.googleBooks) {
+        newCovers.googleBooks = apiData.covers.googleBooks;
+      }
+      if (apiData.covers.openLibrary && !existingCovers.openLibrary) {
+        newCovers.openLibrary = apiData.covers.openLibrary;
+      }
+      if (Object.keys(newCovers).length > Object.keys(existingCovers).length) {
+        updates.covers = newCovers;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      continue; // No updates needed
+    }
+
+    try {
+      updates.updatedAt = serverTimestamp();
+      await updateDoc(doc(db, 'users', userId, 'books', book.id), updates);
+      results.saved.push({ book, fieldsUpdated: Object.keys(updates).filter(k => k !== 'updatedAt' && k !== 'covers') });
+    } catch (e) {
+      results.errors.push({ book, error: e.message });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Attempt to fix a book from API data (legacy - still used for single book fixes)
  * Only fills empty fields - never overwrites existing user data
  * @param {string} userId - User ID
  * @param {Object} book - Book object with id and isbn
