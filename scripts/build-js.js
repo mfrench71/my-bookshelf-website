@@ -30,9 +30,9 @@ const STANDALONE_FILES = [
 ];
 
 // Vendor files to copy as-is (already minified)
+// Note: lucide.min.js is copied from node_modules by 11ty
 const VENDOR_FILES = [
-  'vendor/zod.js',
-  'vendor/lucide.min.js'
+  'vendor/zod.js'
 ];
 
 async function build() {

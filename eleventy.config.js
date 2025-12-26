@@ -6,9 +6,9 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/sw.js");
   eleventyConfig.addPassthroughCopy("src/robots.txt");
 
-  // Vendor files
+  // Vendor files (use original Lucide from node_modules - tree-shaking breaks it)
   eleventyConfig.addPassthroughCopy({
-    "src/js/vendor/lucide.min.js": "vendor/lucide.min.js"
+    "node_modules/lucide/dist/umd/lucide.min.js": "vendor/lucide.min.js"
   });
   eleventyConfig.addPassthroughCopy({
     "node_modules/@ericblade/quagga2/dist/quagga.min.js": "vendor/quagga.min.js"
