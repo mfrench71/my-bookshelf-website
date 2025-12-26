@@ -32,8 +32,8 @@
 
 <!-- Menu: Bottom sheet on mobile, slide-out on desktop -->
 <div id="menu-overlay" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-50">
-  <!-- Mobile: Bottom sheet (hidden by default, shown via JS) -->
-  <div id="menu-panel-mobile" class="hidden absolute bottom-0 left-0 right-0 bottom-sheet-content bg-white w-full p-6">
+  <!-- Mobile: Bottom sheet (starts off-screen below, slides up via JS) -->
+  <div id="menu-panel-mobile" class="absolute bottom-0 left-0 right-0 bg-white w-full p-6 rounded-t-2xl translate-y-full transition-transform duration-200">
     <div class="bottom-sheet-handle"></div>
     <div class="flex items-center gap-3 mb-4">
       <div id="menu-avatar-mobile" class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white text-lg font-bold overflow-hidden"></div>

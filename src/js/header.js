@@ -259,12 +259,15 @@ function openMenu() {
   document.body.style.overflow = 'hidden';
 
   if (isMobileViewport()) {
-    // Mobile: show bottom sheet (absolutely positioned at bottom)
-    menuPanelMobile?.classList.remove('hidden');
+    // Mobile: show bottom sheet (slide up from bottom)
     menuPanelDesktop?.classList.add('hidden');
+    requestAnimationFrame(() => {
+      menuPanelMobile?.classList.remove('translate-y-full');
+      menuPanelMobile?.classList.add('translate-y-0');
+    });
   } else {
-    // Desktop: show slide-out panel
-    menuPanelMobile?.classList.add('hidden');
+    // Desktop: show slide-out panel (slide in from right)
+    menuPanelMobile?.classList.add('translate-y-full');
     menuPanelDesktop?.classList.remove('hidden');
     requestAnimationFrame(() => {
       menuPanelDesktop?.classList.remove('translate-x-full');
@@ -276,12 +279,15 @@ function openMenu() {
 
 function closeMenu() {
   if (isMobileViewport()) {
-    // Mobile: hide bottom sheet
-    menuPanelMobile?.classList.add('hidden');
-    menuOverlay?.classList.add('hidden');
+    // Mobile: slide bottom sheet down
+    menuPanelMobile?.classList.remove('translate-y-0');
+    menuPanelMobile?.classList.add('translate-y-full');
     document.body.style.overflow = '';
+    setTimeout(() => {
+      menuOverlay?.classList.add('hidden');
+    }, 200);
   } else {
-    // Desktop: slide out panel
+    // Desktop: slide out panel to right
     menuPanelDesktop?.classList.remove('translate-x-0');
     menuPanelDesktop?.classList.add('translate-x-full');
     document.body.style.overflow = '';
