@@ -2,12 +2,13 @@
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { doc, getDoc, deleteDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, lockBodyScroll, unlockBodyScroll, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
+import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, renderStars, getContrastColor, migrateBookReads, getBookStatus } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
+import { BottomSheet } from '../components/modal.js';
 
 // Initialize icons
 initIcons();
@@ -36,6 +37,9 @@ const deleteBtn = document.getElementById('delete-btn');
 const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
+
+// Bottom Sheet Instance
+const deleteSheet = deleteModal ? new BottomSheet({ container: deleteModal }) : null;
 
 // Cover elements
 const coverPlaceholder = document.getElementById('cover-placeholder');
@@ -328,20 +332,11 @@ async function renderSeriesSection() {
 
 // Delete handlers
 deleteBtn.addEventListener('click', () => {
-  deleteModal.classList.remove('hidden');
-  lockBodyScroll();
+  deleteSheet?.open();
 });
 
 cancelDeleteBtn.addEventListener('click', () => {
-  deleteModal.classList.add('hidden');
-  unlockBodyScroll();
-});
-
-deleteModal.addEventListener('click', (e) => {
-  if (e.target === deleteModal) {
-    deleteModal.classList.add('hidden');
-    unlockBodyScroll();
-  }
+  deleteSheet?.close();
 });
 
 confirmDeleteBtn.addEventListener('click', async () => {
@@ -368,7 +363,6 @@ confirmDeleteBtn.addEventListener('click', async () => {
     showToast('Error deleting book', { type: 'error' });
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = 'Delete';
-    deleteModal.classList.add('hidden');
-    unlockBodyScroll();
+    deleteSheet?.close();
   }
 });
