@@ -339,7 +339,7 @@ select {
   .bottom-sheet-content {
     animation: modalContentIn 0.2s ease-out;
     width: auto;
-    max-width: 28rem; /* max-w-md */
+    /* max-width controlled by inline Tailwind classes (md:max-w-sm/md/lg/xl) */
     border-radius: 0.75rem; /* All corners rounded on tablet+ */
   }
 }
