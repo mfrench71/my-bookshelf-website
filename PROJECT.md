@@ -230,7 +230,7 @@ npm test && npm run build
 - [ ] Clear local cache/data
 
 ### Technical Debt
-- [ ] Fix colour inconsistencies in Data Cleanup buttons (should all be amber)
+- [x] Fix colour inconsistencies in Data Cleanup buttons (all amber) ✅
 - [x] Generate in-app changelog from CHANGELOG.md at build time (11ty data file) ✅
 - [ ] Full Zod validation (remove HTML validation attributes)
 - [ ] Tree-shake Lucide icons (387KB → ~30KB)
@@ -367,7 +367,7 @@ Genres from APIs are automatically processed:
 - [x] Local caching with TTL
 - [x] Firestore offline persistence
 - [x] On-demand fetching (not real-time listeners)
-- [x] Manual refresh instead of auto-sync
+- [x] Auto-refresh on tab focus with configurable threshold/cooldown (Settings → Sync)
 - [ ] Batch writes for multiple updates
 - [ ] Lazy load book details
 
@@ -375,10 +375,10 @@ Genres from APIs are automatically processed:
 | Asset | Size | Status |
 |-------|------|--------|
 | Tailwind CSS | 56KB | OK (minified) |
-| Lucide Icons | 387KB | Needs tree-shaking |
+| Lucide Icons | 378KB | Needs tree-shaking |
 | Quagga | 157KB | OK (lazy loaded) |
-| Zod | 294KB | Consider smaller alt |
-| Custom JS | 772KB | Needs minification |
+| Zod | 251KB | Minified ✅ |
+| Custom JS | 797KB | Needs minification |
 
 ### Scalability (Tested: ~100 books)
 For 500+ books:
@@ -447,4 +447,4 @@ Can calculate: Total books/pages, books per month, genre distribution, reading s
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-25
+**Last Updated**: 2025-12-26

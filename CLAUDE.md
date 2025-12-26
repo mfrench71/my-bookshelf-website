@@ -190,7 +190,7 @@ This project uses Tailwind v4 which has different syntax:
 ## Shared Modules
 
 Common utilities are consolidated in shared modules:
-- `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN
+- `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN, getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings, setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
 - `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
 
@@ -225,6 +225,8 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `series.test.js` - Tests for series CRUD operations
 - `series-picker.test.js` - Tests for series picker component
 - `series-progress-widget.test.js` - Tests for series progress widget
+- `sync-settings.test.js` - Tests for sync settings storage
+- `visibility-refresh.test.js` - Tests for visibility-based auto-refresh
 
 ### Pre-Deployment
 All tests must pass before deploying:
