@@ -2,9 +2,9 @@
 @source "../../src/**/*.{njk,html,js}";
 
 @theme {
-  /* Primary Brand Colours */
-  --color-primary: #3b82f6;
-  --color-primary-dark: #2563eb;
+  /* Primary Brand Colours - blue-600 for WCAG AA contrast (4.56:1 with white) */
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
   --color-primary-light: #dbeafe;
 
   /* Semantic Colours */
