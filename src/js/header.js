@@ -259,13 +259,11 @@ function openMenu() {
   document.body.style.overflow = 'hidden';
 
   if (isMobileViewport()) {
-    // Mobile: show bottom sheet
-    menuOverlay?.classList.add('flex', 'items-end');
+    // Mobile: show bottom sheet (absolutely positioned at bottom)
     menuPanelMobile?.classList.remove('hidden');
     menuPanelDesktop?.classList.add('hidden');
   } else {
     // Desktop: show slide-out panel
-    menuOverlay?.classList.remove('flex', 'items-end');
     menuPanelMobile?.classList.add('hidden');
     menuPanelDesktop?.classList.remove('hidden');
     requestAnimationFrame(() => {
@@ -280,7 +278,6 @@ function closeMenu() {
   if (isMobileViewport()) {
     // Mobile: hide bottom sheet
     menuPanelMobile?.classList.add('hidden');
-    menuOverlay?.classList.remove('flex', 'items-end');
     menuOverlay?.classList.add('hidden');
     document.body.style.overflow = '';
   } else {
