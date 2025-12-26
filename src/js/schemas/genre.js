@@ -1,5 +1,5 @@
 // Genre Validation Schema
-import { z } from '../vendor/zod.js';
+import { z } from '/js/vendor/zod.js';
 import { GENRE_COLORS } from '../genres.js';
 
 /**

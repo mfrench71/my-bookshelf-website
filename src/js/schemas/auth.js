@@ -1,5 +1,5 @@
 // Authentication Validation Schemas
-import { z } from '../vendor/zod.js';
+import { z } from '/js/vendor/zod.js';
 
 /**
  * Email validation - reusable across schemas

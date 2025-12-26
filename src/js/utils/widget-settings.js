@@ -5,7 +5,7 @@
  * from legacy localStorage homeSettings format.
  */
 
-import { db } from '../firebase-config.js';
+import { db } from '/js/firebase-config.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { widgetRegistry } from '../widgets/index.js';
 

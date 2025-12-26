@@ -1,5 +1,5 @@
 // Series Validation Schema
-import { z } from '../vendor/zod.js';
+import { z } from '/js/vendor/zod.js';
 
 /**
  * Schema for expected book entries (books user doesn't own yet)

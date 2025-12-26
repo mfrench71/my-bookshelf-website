@@ -93,13 +93,10 @@ async function build() {
       format: 'esm',
       target: ['es2020'],
       platform: 'browser',
-      // External packages that are loaded separately
+      // External packages that are loaded separately (use absolute paths)
       external: [
-        './firebase-config.js',
-        '../firebase-config.js',
         '/js/firebase-config.js',
-        './vendor/zod.js',
-        '../vendor/zod.js',
+        '/js/vendor/zod.js',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore'
