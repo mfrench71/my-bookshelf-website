@@ -98,7 +98,13 @@ export const BookSchema = z.object({
   covers: z.object({
     googleBooks: z.string().url().optional().or(z.literal('')),
     openLibrary: z.string().url().optional().or(z.literal(''))
-  }).optional()
+  }).optional(),
+
+  // Soft delete timestamp (null = active, number = deleted at this time)
+  deletedAt: z.union([
+    z.number().positive(),
+    z.null()
+  ]).optional().default(null)
 });
 
 /**

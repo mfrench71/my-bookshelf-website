@@ -15,6 +15,7 @@ import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
+import { filterActivebooks } from '../bin.js';
 
 // Initialize icons once on load
 initIcons();
@@ -533,7 +534,9 @@ function filterByAuthor(booksArray, author) {
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
-  let filtered = filterByRating(books, ratingFilter);
+  // First filter out binned (soft-deleted) books
+  let filtered = filterActivebooks(books);
+  filtered = filterByRating(filtered, ratingFilter);
   filtered = filterByGenre(filtered, genreFilter);
   filtered = filterByStatus(filtered, statusFilter);
   filtered = filterBySeries(filtered, seriesFilter);

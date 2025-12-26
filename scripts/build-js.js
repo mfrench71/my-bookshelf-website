@@ -25,6 +25,7 @@ const ENTRY_POINTS = [
   'settings/library.js',
   'settings/preferences.js',
   'settings/maintenance.js',
+  'settings/bin.js',
   'settings/about.js'
 ];
 

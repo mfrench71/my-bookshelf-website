@@ -1,14 +1,14 @@
 // Book View Page Logic (Read-only display)
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, getDoc, deleteDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
+import { doc, getDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { parseTimestamp, formatDate, showToast, initIcons, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
-import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
+import { softDeleteBook } from '../bin.js';
 
 // Initialize icons
 initIcons();
@@ -106,6 +106,14 @@ async function loadBook() {
     }
 
     book = { id: bookSnap.id, ...bookSnap.data() };
+
+    // Redirect to bin if book is in bin
+    if (book.deletedAt) {
+      showToast('This book is in the bin', { type: 'info' });
+      setTimeout(() => window.location.href = '/settings/bin/', 1500);
+      return;
+    }
+
     renderBook();
   } catch (error) {
     console.error('Error loading book:', error);
@@ -342,28 +350,18 @@ cancelDeleteBtn.addEventListener('click', () => {
 
 confirmDeleteBtn.addEventListener('click', async () => {
   confirmDeleteBtn.disabled = true;
-  confirmDeleteBtn.textContent = 'Deleting...';
+  confirmDeleteBtn.textContent = 'Moving...';
 
   try {
-    const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
-    await deleteDoc(bookRef);
+    await softDeleteBook(currentUser.uid, bookId, book);
 
-    // Decrement genre book counts
-    const bookGenres = book.genres || [];
-    if (bookGenres.length > 0) {
-      await updateGenreBookCounts(currentUser.uid, [], bookGenres);
-    }
-
-    clearBooksCache(currentUser.uid);
-    clearGenresCache();
-
-    showToast('Book deleted', { type: 'success' });
+    showToast('Book moved to bin', { type: 'success' });
     setTimeout(() => window.location.href = '/books/', 1000);
   } catch (error) {
-    console.error('Error deleting:', error);
-    showToast('Error deleting book', { type: 'error' });
+    console.error('Error moving to bin:', error);
+    showToast('Error moving book to bin', { type: 'error' });
     confirmDeleteBtn.disabled = false;
-    confirmDeleteBtn.textContent = 'Delete';
+    confirmDeleteBtn.textContent = 'Move to Bin';
     deleteSheet?.close();
   }
 });

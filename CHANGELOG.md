@@ -6,6 +6,13 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Add Bin for deleted books with 30-day restore window:
+  - Delete now moves books to bin instead of permanent delete
+  - Bin page in Settings shows deleted books with restore/delete options
+  - Days remaining badge (amber when less than 7 days)
+  - Auto-purge expired books (older than 30 days)
+  - Empty Bin button to permanently delete all
+  - Handles orphan genres/series on restore (removes invalid references)
 - Add Privacy Policy page at /privacy/
 - Add site-wide footer with copyright, Privacy link, and version
 - Add Privacy & Data section to Profile settings:

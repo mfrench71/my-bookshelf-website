@@ -147,18 +147,18 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
   </div>
 </main>
 
-<!-- Delete Confirmation Bottom Sheet -->
+<!-- Move to Bin Confirmation Bottom Sheet -->
 <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4">
   <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
-    <h3 class="text-lg font-semibold mb-2">Delete Book?</h3>
-    <p class="text-gray-500 mb-6">This action cannot be undone.</p>
+    <h3 class="text-lg font-semibold mb-2">Move to Bin?</h3>
+    <p class="text-gray-500 mb-6">This book will be moved to the bin and automatically deleted after 30 days. You can restore it from Settings.</p>
     <div class="flex gap-3">
       <button id="cancel-delete" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
         Cancel
       </button>
       <button id="confirm-delete" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
-        Delete
+        Move to Bin
       </button>
     </div>
   </div>
