@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Keep PROJECT.md up to date as features are added or changed. Update roadmap, architecture notes, and current sprint status.
 - Keep CHANGELOG.md up to date with notable changes, grouped by date. Include features, bug fixes, and breaking changes. The in-app changelog is auto-generated from this file at build time.
 - Keep README.md up to date with current features, tech stack, and setup instructions.
+- Keep `src/privacy.njk` up to date when data collection or storage practices change. Update the "Last updated" date and relevant sections (e.g., if adding analytics, new APIs, or changing data retention).
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 
@@ -182,10 +183,16 @@ npm run test:coverage # Run with coverage report
 ### Directory Structure
 ```
 src/
-├── _layouts/base.njk     # Base HTML template (conditionally includes header)
-├── _includes/header.njk  # Common header partial (menu, search overlay)
+├── _layouts/base.njk     # Base HTML template (header, footer, flex layout)
+├── _includes/
+│   ├── header.njk        # Common header partial (menu, search overlay)
+│   └── footer.njk        # Site-wide footer (copyright, privacy link, version)
+├── _data/
+│   ├── changelog.js      # Parses CHANGELOG.md for in-app display
+│   └── package.js        # Exposes package.json version to templates
 ├── index.njk             # Home page (/)
 ├── login.njk             # Login/register page (/login/)
+├── privacy.njk           # Privacy policy page (/privacy/)
 ├── books/
 │   ├── index.njk         # Book list (/books/)
 │   ├── add.njk           # Add book form (/books/add/)
