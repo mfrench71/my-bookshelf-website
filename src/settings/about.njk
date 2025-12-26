@@ -1,0 +1,93 @@
+---
+layout: base.njk
+title: About
+scripts: '<script type="module" src="/js/settings/about.js"></script>'
+---
+<!-- Sub-navigation -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-30">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
+    <nav aria-label="Breadcrumb">
+      <ol class="flex items-center text-sm">
+        <li class="flex items-center min-w-0">
+          <a href="/" class="text-gray-500 hover:text-primary hover:underline">Home</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <a href="/settings/" class="text-gray-500 hover:text-primary hover:underline">Settings</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <span class="text-gray-900 font-medium" aria-current="page">About</span>
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+{% set activePage = 'about' %}
+{% include "settings-nav.njk" %}
+
+<main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">About</h1>
+
+  <!-- App Info -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <div class="flex items-center gap-4 mb-4">
+      <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
+        <i data-lucide="book-open" class="w-8 h-8 text-white" aria-hidden="true"></i>
+      </div>
+      <div>
+        <h2 class="font-semibold text-gray-900 text-lg">MyBookShelf</h2>
+        <p class="text-gray-500 text-sm">Version 0.7.0</p>
+      </div>
+    </div>
+    <p class="text-gray-600 text-sm">A mobile-friendly book tracking PWA with barcode scanning. Track your reading, organise by genre, and never lose track of your library.</p>
+  </div>
+
+  <!-- Changelog -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h3 class="font-medium text-gray-900 mb-4 flex items-center gap-2">
+      <i data-lucide="history" class="w-4 h-4 text-purple-600" aria-hidden="true"></i>
+      Changelog
+    </h3>
+
+    <div class="space-y-2" id="changelog-accordions">
+    {% for entry in changelog %}
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+      <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left min-h-[44px]" data-date="{{ entry.date }}">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" aria-hidden="true"></span>
+          <span class="font-medium text-gray-900">{{ entry.displayDate }}</span>
+        </div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform changelog-chevron flex-shrink-0" aria-hidden="true"></i>
+      </button>
+      <div class="changelog-content hidden px-3 pb-3 text-sm text-gray-600 bg-white">
+        <ul class="space-y-1 pl-4 list-disc">
+          {% for item in entry.items %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+  </div>
+
+  <!-- Resources -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h3 class="font-medium text-gray-900 mb-3">Resources</h3>
+    <div class="space-y-2">
+      <a href="https://github.com/mfrench71/mybookshelf" target="_blank" rel="noopener" class="flex items-center gap-2 text-primary hover:underline text-sm min-h-[44px]">
+        <i data-lucide="github" class="w-4 h-4" aria-hidden="true"></i>
+        View on GitHub
+      </a>
+      <a href="/CHANGELOG.md" target="_blank" class="flex items-center gap-2 text-primary hover:underline text-sm min-h-[44px]">
+        <i data-lucide="file-text" class="w-4 h-4" aria-hidden="true"></i>
+        Full Changelog
+      </a>
+    </div>
+  </div>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

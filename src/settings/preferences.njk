@@ -1,0 +1,127 @@
+---
+layout: base.njk
+title: Preferences
+scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
+---
+<!-- Sub-navigation -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-30">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
+    <nav aria-label="Breadcrumb">
+      <ol class="flex items-center text-sm">
+        <li class="flex items-center min-w-0">
+          <a href="/" class="text-gray-500 hover:text-primary hover:underline">Home</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <a href="/settings/" class="text-gray-500 hover:text-primary hover:underline">Settings</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <span class="text-gray-900 font-medium" aria-current="page">Preferences</span>
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+{% set activePage = 'preferences' %}
+{% include "settings-nav.njk" %}
+
+<main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Preferences</h1>
+
+  <!-- Sync Section -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Sync</h2>
+
+    <!-- Auto-Refresh Settings -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+      <h3 class="font-medium text-gray-900 mb-4">Auto-Refresh Settings</h3>
+      <p class="text-gray-600 text-sm mb-4">When you switch back to the app after being away, your library can automatically refresh to sync changes from other devices.</p>
+
+      <div class="space-y-4">
+        <!-- Toggle -->
+        <div class="flex items-center justify-between">
+          <label for="auto-refresh-toggle" class="text-sm text-gray-700">Enable auto-refresh on tab focus</label>
+          <input type="checkbox" id="auto-refresh-toggle" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary">
+        </div>
+
+        <!-- Options (shown when enabled) -->
+        <div id="sync-options" class="space-y-4">
+          <div>
+            <label for="hidden-threshold" class="block text-sm text-gray-700 mb-1">Refresh after hidden for</label>
+            <select id="hidden-threshold" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+              <option value="30">30 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="300">5 minutes</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="cooldown-period" class="block text-sm text-gray-700 mb-1">Minimum time between refreshes</label>
+            <select id="cooldown-period" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+              <option value="60">1 minute</option>
+              <option value="300">5 minutes</option>
+              <option value="600">10 minutes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Refresh -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="font-medium text-gray-900 mb-2">Manual Refresh</h3>
+      <p class="text-gray-600 text-sm mb-4">Force a full refresh of your library from the server to sync the latest changes.</p>
+      <button id="refresh-library-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
+        <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Refresh Library Now</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Home Content Section -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Home Page Widgets</h2>
+    <p class="text-gray-600 text-sm mb-4">Configure which widgets appear on your home page. Use the arrows to reorder.</p>
+
+    <!-- Loading State -->
+    <div id="widgets-loading" class="space-y-3">
+      {% for i in range(0, 4) %}
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="flex items-center gap-3">
+          <div class="skeleton w-5 h-5 rounded"></div>
+          <div class="skeleton h-4 w-32 rounded"></div>
+          <div class="flex-1"></div>
+          <div class="skeleton w-11 h-6 rounded-full"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Widget List (populated by JS) -->
+    <div id="widget-settings-list" class="hidden space-y-3"></div>
+  </section>
+
+  <!-- Privacy Section -->
+  <section>
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Privacy</h2>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <i data-lucide="shield" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
+        <h3 class="font-medium text-gray-900">Privacy Settings</h3>
+      </div>
+      <p class="text-gray-600 text-sm mb-4">More privacy options are coming soon, including:</p>
+      <ul class="text-gray-500 text-sm space-y-2 ml-4 list-disc">
+        <li>Profile visibility (public/private)</li>
+        <li>Download your data</li>
+        <li>Clear local cache</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

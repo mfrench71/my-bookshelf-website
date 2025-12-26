@@ -1,0 +1,255 @@
+---
+layout: base.njk
+title: Library Settings
+scripts: '<script type="module" src="/js/settings/library.js"></script>'
+---
+<!-- Sub-navigation -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-30">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
+    <nav aria-label="Breadcrumb">
+      <ol class="flex items-center text-sm">
+        <li class="flex items-center min-w-0">
+          <a href="/" class="text-gray-500 hover:text-primary hover:underline">Home</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <a href="/settings/" class="text-gray-500 hover:text-primary hover:underline">Settings</a>
+        </li>
+        <li class="flex items-center min-w-0">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" aria-hidden="true"></i>
+          <span class="text-gray-900 font-medium" aria-current="page">Library</span>
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+{% set activePage = 'library' %}
+{% include "settings-nav.njk" %}
+
+<main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Library</h1>
+
+  <!-- Genres Section -->
+  <section class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-900">Genres</h2>
+      <button id="add-genre-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
+        <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Add</span>
+      </button>
+    </div>
+
+    <!-- Loading State (Skeleton) -->
+    <div id="genres-loading" class="space-y-2">
+      {% for i in range(0, 4) %}
+      <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div class="skeleton w-4 h-4 rounded-full"></div>
+        <div class="skeleton skeleton-text flex-1 w-24"></div>
+        <div class="skeleton skeleton-text w-8"></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    <div id="genres-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200">
+      <i data-lucide="tags" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
+      <h3 class="text-base font-medium text-gray-600 mt-3">No genres yet</h3>
+      <p class="text-gray-400 text-sm mt-1">Create your first genre to organise books</p>
+    </div>
+
+    <!-- Genre List -->
+    <div id="genre-list" class="space-y-2"></div>
+  </section>
+
+  <!-- Series Section -->
+  <section class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-900">Series</h2>
+      <button id="add-series-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
+        <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Add</span>
+      </button>
+    </div>
+
+    <!-- Loading State (Skeleton) -->
+    <div id="series-loading" class="space-y-2">
+      {% for i in range(0, 4) %}
+      <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div class="skeleton skeleton-text flex-1 w-32"></div>
+        <div class="skeleton skeleton-text w-16"></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    <div id="series-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200">
+      <i data-lucide="library" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
+      <h3 class="text-base font-medium text-gray-600 mt-3">No series yet</h3>
+      <p class="text-gray-400 text-sm mt-1">Add series to track book collections</p>
+    </div>
+
+    <!-- Series List -->
+    <div id="series-list" class="space-y-2"></div>
+
+    <!-- Duplicate Detection -->
+    <div id="series-duplicates" class="hidden mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+      <div class="flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true"></i>
+        <div>
+          <h4 class="font-medium text-amber-900">Potential Duplicates Found</h4>
+          <p class="text-sm text-amber-700 mt-1">The following series may be duplicates. Consider merging them.</p>
+          <div id="duplicate-list" class="mt-2 space-y-1"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Backup & Restore Section -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Backup & Restore</h2>
+
+    <!-- Export -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+      <h3 class="font-medium text-gray-900 mb-2">Export Backup</h3>
+      <p class="text-gray-600 text-sm mb-4">Download all your books and genres as a JSON file.</p>
+      <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
+        <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Download Backup</span>
+      </button>
+    </div>
+
+    <!-- Import -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="font-medium text-gray-900 mb-2">Import Backup</h3>
+      <p class="text-gray-600 text-sm mb-4">Restore books and genres from a backup file. Duplicates will be skipped.</p>
+      <input type="file" id="import-file" accept=".json" class="hidden">
+      <button id="import-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+        <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Select Backup File</span>
+      </button>
+      <div id="import-progress" class="hidden mt-4">
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></span>
+          <span id="import-status">Importing...</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Create/Edit Genre Modal -->
+<div id="genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-md p-6">
+    <h3 id="genre-modal-title" class="text-lg font-semibold mb-4">Add Genre</h3>
+    <form id="genre-form" class="space-y-4" novalidate>
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+        <input type="text" id="genre-name" name="name" placeholder="e.g., Science Fiction"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      </div>
+      <div>
+        <label class="block font-semibold text-gray-700 mb-2">Colour</label>
+        <div id="color-picker" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" id="cancel-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+          Cancel
+        </button>
+        <button type="submit" id="save-genre" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Genre Confirmation Modal -->
+<div id="delete-genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+    <h3 class="text-lg font-semibold mb-2">Delete Genre?</h3>
+    <p id="delete-genre-message" class="text-gray-500 mb-6">This will remove the genre from all books.</p>
+    <div class="flex gap-3">
+      <button id="cancel-delete-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+        Cancel
+      </button>
+      <button id="confirm-delete-genre" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Series Modal -->
+<div id="series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-md p-6">
+    <h3 id="series-modal-title" class="text-lg font-semibold mb-4">Add Series</h3>
+    <form id="series-form" class="space-y-4" novalidate>
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+        <input type="text" id="series-name" name="name" placeholder="e.g., Harry Potter"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      </div>
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Description <span class="font-normal text-gray-400">(optional)</span></label>
+        <textarea id="series-description" name="description" rows="2" placeholder="Notes about this series"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Total Books <span class="font-normal text-gray-400">(optional)</span></label>
+        <input type="number" id="series-total-books" name="totalBooks" placeholder="e.g., 7" inputmode="numeric"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        <p class="text-xs text-gray-400 mt-1">How many books are in the complete series?</p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" id="cancel-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+          Cancel
+        </button>
+        <button type="submit" id="save-series" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Series Confirmation Modal -->
+<div id="delete-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+    <h3 class="text-lg font-semibold mb-2">Delete Series?</h3>
+    <p id="delete-series-message" class="text-gray-500 mb-6">This will unlink the series from all books.</p>
+    <div class="flex gap-3">
+      <button id="cancel-delete-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+        Cancel
+      </button>
+      <button id="confirm-delete-series" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Merge Series Modal -->
+<div id="merge-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-md p-6">
+    <h3 class="text-lg font-semibold mb-4">Merge Series</h3>
+    <p class="text-gray-600 text-sm mb-4">Merge "<span id="merge-source-name" class="font-medium"></span>" into another series. All books will be moved to the target series.</p>
+    <div class="mb-4">
+      <label class="block font-semibold text-gray-700 mb-1">Target Series</label>
+      <select id="merge-target-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+        <option value="">Select a series...</option>
+      </select>
+    </div>
+    <div class="flex gap-3">
+      <button id="cancel-merge-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+        Cancel
+      </button>
+      <button id="confirm-merge-series" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]" disabled>
+        Merge
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

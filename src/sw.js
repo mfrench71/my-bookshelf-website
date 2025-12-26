@@ -1,5 +1,5 @@
 // Service Worker for MyBookShelf PWA
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v7';
 const STATIC_CACHE = `mybookshelf-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mybookshelf-images-${CACHE_VERSION}`;
 const API_CACHE = `mybookshelf-api-${CACHE_VERSION}`;
@@ -12,25 +12,25 @@ const STATIC_ASSETS = [
   '/books/view/',
   '/books/edit/',
   '/settings/',
+  '/settings/library/',
+  '/settings/preferences/',
+  '/settings/maintenance/',
+  '/settings/about/',
   '/css/styles.css',
   '/js/firebase-config.js',
-  '/js/utils.js',
   '/js/header.js',
   '/js/index.js',
-  '/js/auth.js',
-  '/js/settings.js',
-  '/js/genres.js',
-  '/js/series.js',
+  '/js/login.js',
   '/js/books/index.js',
   '/js/books/add.js',
   '/js/books/view.js',
   '/js/books/edit.js',
-  '/js/components/book-card.js',
-  '/js/components/genre-picker.js',
-  '/js/components/series-picker.js',
-  '/js/components/cover-picker.js',
-  '/js/components/modal.js',
-  '/js/components/rating-input.js',
+  '/js/settings/profile.js',
+  '/js/settings/library.js',
+  '/js/settings/preferences.js',
+  '/js/settings/maintenance.js',
+  '/js/settings/about.js',
+  '/js/vendor/zod.js',
   '/manifest.json',
   '/vendor/lucide.min.js',
   '/vendor/quagga.min.js'

@@ -49,62 +49,70 @@ const hasRequiredIndicator = (html, labelText) => {
 };
 
 describe('Form HTML Alignment', () => {
-  describe('Settings Page Modals', () => {
-    let settingsHtml;
+  describe('Profile Page Modals', () => {
+    let profileHtml;
 
     beforeAll(() => {
-      settingsHtml = readHtmlFile('settings.njk');
-    });
-
-    describe('Genre Form', () => {
-      it('should have name attribute matching GenreSchema fields', () => {
-        const names = extractInputNames(settingsHtml, 'genre-form');
-        expect(names).toContain('name');
-      });
-
-      it('should mark Name field as required', () => {
-        expect(hasRequiredIndicator(settingsHtml, 'Name')).toBe(true);
-      });
+      profileHtml = readHtmlFile('settings/index.njk');
     });
 
     describe('Password Form', () => {
       it('should have name attributes matching ChangePasswordSchema fields', () => {
-        const names = extractInputNames(settingsHtml, 'password-form');
+        const names = extractInputNames(profileHtml, 'password-form');
         expect(names).toContain('currentPassword');
         expect(names).toContain('newPassword');
         expect(names).toContain('confirmPassword');
       });
 
       it('should mark all password fields as required', () => {
-        expect(hasRequiredIndicator(settingsHtml, 'Current Password')).toBe(true);
-        expect(hasRequiredIndicator(settingsHtml, 'New Password')).toBe(true);
-        expect(hasRequiredIndicator(settingsHtml, 'Confirm New Password')).toBe(true);
+        expect(hasRequiredIndicator(profileHtml, 'Current Password')).toBe(true);
+        expect(hasRequiredIndicator(profileHtml, 'New Password')).toBe(true);
+        expect(hasRequiredIndicator(profileHtml, 'Confirm New Password')).toBe(true);
       });
     });
 
     describe('Delete Account Form', () => {
       it('should have name attributes matching DeleteAccountSchema fields', () => {
-        const names = extractInputNames(settingsHtml, 'delete-account-form');
+        const names = extractInputNames(profileHtml, 'delete-account-form');
         expect(names).toContain('password');
         expect(names).toContain('confirmText');
       });
 
       it('should mark confirmation fields as required', () => {
-        expect(hasRequiredIndicator(settingsHtml, 'Enter your password')).toBe(true);
-        expect(hasRequiredIndicator(settingsHtml, 'Type "DELETE"')).toBe(true);
+        expect(hasRequiredIndicator(profileHtml, 'Enter your password')).toBe(true);
+        expect(hasRequiredIndicator(profileHtml, 'Type "DELETE"')).toBe(true);
+      });
+    });
+  });
+
+  describe('Library Page Modals', () => {
+    let libraryHtml;
+
+    beforeAll(() => {
+      libraryHtml = readHtmlFile('settings/library.njk');
+    });
+
+    describe('Genre Form', () => {
+      it('should have name attribute matching GenreSchema fields', () => {
+        const names = extractInputNames(libraryHtml, 'genre-form');
+        expect(names).toContain('name');
+      });
+
+      it('should mark Name field as required', () => {
+        expect(hasRequiredIndicator(libraryHtml, 'Name')).toBe(true);
       });
     });
 
     describe('Series Form', () => {
       it('should have name attributes matching SeriesFormSchema fields', () => {
-        const names = extractInputNames(settingsHtml, 'series-form');
+        const names = extractInputNames(libraryHtml, 'series-form');
         expect(names).toContain('name');
         expect(names).toContain('description');
         expect(names).toContain('totalBooks');
       });
 
       it('should mark Name field as required', () => {
-        expect(hasRequiredIndicator(settingsHtml, 'Name')).toBe(true);
+        expect(hasRequiredIndicator(libraryHtml, 'Name')).toBe(true);
       });
     });
   });
@@ -195,7 +203,8 @@ describe('Form HTML Alignment', () => {
 describe('All Forms Have novalidate', () => {
   it('should have novalidate on all forms to rely on Zod validation', () => {
     const files = [
-      'settings.njk',
+      'settings/index.njk',
+      'settings/library.njk',
       'login.njk',
       'books/add.njk',
       'books/edit.njk'

@@ -6,6 +6,13 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Split Settings into 5 focused pages:
+  - Profile: Account info, avatar, password, delete account
+  - Library: Genres, series, backup & restore
+  - Preferences: Sync settings, widget configuration
+  - Maintenance: Genre cleanup, recount, cover fetch
+  - About: App info, changelog
+- Add tabbed navigation for settings pages
 - Tree-shake Lucide icons (378KB → 14KB)
 - Bundle and minify JavaScript with esbuild (797KB → 259KB)
 - Add novalidate to forms, rely fully on Zod validation

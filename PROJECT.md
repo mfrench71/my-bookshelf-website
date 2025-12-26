@@ -24,10 +24,17 @@ A mobile-friendly book tracking PWA with barcode scanning. Built with vanilla HT
 MyBookShelf/
 ├── src/
 │   ├── _layouts/base.njk       # Base HTML template
-│   ├── _includes/header.njk    # Common header partial
+│   ├── _includes/
+│   │   ├── header.njk          # Common header partial
+│   │   └── settings-nav.njk    # Settings tab navigation
 │   ├── index.njk               # Home dashboard (/)
 │   ├── login.njk               # Login/register (/login/)
-│   ├── settings.njk            # Settings (/settings/)
+│   ├── settings/               # Settings pages
+│   │   ├── index.njk           # Profile settings (/settings/)
+│   │   ├── library.njk         # Library settings (/settings/library/)
+│   │   ├── preferences.njk     # Preferences (/settings/preferences/)
+│   │   ├── maintenance.njk     # Maintenance tools (/settings/maintenance/)
+│   │   └── about.njk           # About page (/settings/about/)
 │   ├── books/
 │   │   ├── index.njk           # Book list (/books/)
 │   │   ├── add.njk             # Add book (/books/add/)
@@ -39,7 +46,12 @@ MyBookShelf/
 │   │   ├── index.js            # Home page logic
 │   │   ├── login.js            # Auth logic
 │   │   ├── header.js           # Header (auth, menu, search)
-│   │   ├── settings.js         # Settings page
+│   │   ├── settings/           # Settings page modules
+│   │   │   ├── profile.js      # Profile & account settings
+│   │   │   ├── library.js      # Genres, series, backup
+│   │   │   ├── preferences.js  # Sync, widgets, privacy
+│   │   │   ├── maintenance.js  # Data cleanup, cover fetch
+│   │   │   └── about.js        # Changelog accordions
 │   │   ├── genres.js           # Genre CRUD
 │   │   ├── series.js           # Series CRUD
 │   │   ├── books/              # Book page modules

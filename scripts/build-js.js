@@ -17,11 +17,15 @@ const ENTRY_POINTS = [
   'index.js',
   'login.js',
   'header.js',
-  'settings.js',
   'books/index.js',
   'books/add.js',
   'books/view.js',
-  'books/edit.js'
+  'books/edit.js',
+  'settings/profile.js',
+  'settings/library.js',
+  'settings/preferences.js',
+  'settings/maintenance.js',
+  'settings/about.js'
 ];
 
 // Files to copy without bundling (loaded separately via script tag)
