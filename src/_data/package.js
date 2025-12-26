@@ -1,5 +1,10 @@
 /**
- * Expose package.json data to Nunjucks templates
- * Usage in templates: {{ package.version }}
+ * Expose package.json data and build-time values to Nunjucks templates
+ * Usage in templates: {{ package.version }}, {{ package.year }}
  */
-module.exports = require('../../package.json');
+const pkg = require('../../package.json');
+
+module.exports = {
+  ...pkg,
+  year: new Date().getFullYear()
+};
