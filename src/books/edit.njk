@@ -58,26 +58,8 @@ scripts: '<script type="module" src="/js/books/edit.js"></script>'
     <div>
       <label class="block font-semibold text-gray-700 mb-1">Cover Image</label>
       <input type="hidden" id="cover-url">
-      <div id="cover-picker" class="hidden">
-        <div class="flex gap-4 flex-wrap">
-          <div id="cover-option-google" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative" data-source="googleBooks">
-            <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
-            <img src="" alt="Google Books cover" loading="lazy" class="w-16 h-24 rounded object-cover mx-auto">
-            <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
-              <i data-lucide="check" class="w-3 h-3 text-white"></i>
-            </div>
-          </div>
-          <div id="cover-option-openlibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative" data-source="openLibrary">
-            <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
-            <img src="" alt="Open Library cover" loading="lazy" class="w-16 h-24 rounded object-cover mx-auto">
-            <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
-              <i data-lucide="check" class="w-3 h-3 text-white"></i>
-            </div>
-          </div>
-        </div>
-        <p id="cover-picker-hint" class="text-xs text-gray-400 mt-2 hidden">Click to select a different cover</p>
-      </div>
-      <p id="no-cover-msg" class="text-sm text-gray-400 hidden">No cover available</p>
+      <div id="cover-picker-container"></div>
+      <p id="cover-picker-hint" class="text-xs text-gray-400 mt-2 hidden">Click to select a different cover</p>
     </div>
 
     <div id="series-picker-container"></div>

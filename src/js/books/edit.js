@@ -12,6 +12,7 @@ import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { SeriesPicker } from '../components/series-picker.js';
+import { CoverPicker } from '../components/cover-picker.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
@@ -28,12 +29,12 @@ let book = null;
 let ratingInput = null;
 let genrePicker = null;
 let seriesPicker = null;
+let coverPicker = null;
 let originalGenres = [];
 let originalSeriesId = null;
 let originalValues = {};
 let formDirty = false;
 let currentReads = [];
-let availableCovers = {};
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -53,11 +54,8 @@ const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
 const coverUrlInput = document.getElementById('cover-url');
-const coverPicker = document.getElementById('cover-picker');
+const coverPickerContainer = document.getElementById('cover-picker-container');
 const coverPickerHint = document.getElementById('cover-picker-hint');
-const coverOptionGoogle = document.getElementById('cover-option-google');
-const coverOptionOpenLibrary = document.getElementById('cover-option-openlibrary');
-const noCoverMsg = document.getElementById('no-cover-msg');
 const publisherInput = document.getElementById('publisher');
 const publishedDateInput = document.getElementById('published-date');
 const physicalFormatInput = document.getElementById('physical-format');
@@ -89,96 +87,33 @@ function goToViewPage() {
 cancelBtn.addEventListener('click', goToViewPage);
 
 // Cover Picker Functions
-function renderCoverPicker(covers, currentCoverUrl) {
-  availableCovers = covers || {};
-  const hasGoogle = availableCovers.googleBooks;
-  const hasOpenLibrary = availableCovers.openLibrary;
-  const hasAnyCovers = hasGoogle || hasOpenLibrary;
-  const hasMultipleCovers = hasGoogle && hasOpenLibrary;
+function initCoverPicker() {
+  if (coverPicker) return; // Already initialized
 
-  // Reset UI
-  coverPicker.classList.add('hidden');
-  noCoverMsg.classList.add('hidden');
-  coverOptionGoogle.classList.add('hidden');
-  coverOptionOpenLibrary.classList.add('hidden');
-  coverOptionGoogle.classList.remove('border-primary', 'bg-primary/15');
-  coverOptionOpenLibrary.classList.remove('border-primary', 'bg-primary/15');
-  if (coverPickerHint) coverPickerHint.classList.add('hidden');
-
-  if (!hasAnyCovers) {
-    if (!currentCoverUrl) {
-      noCoverMsg.classList.remove('hidden');
+  coverPicker = new CoverPicker({
+    container: coverPickerContainer,
+    onSelect: (url) => {
+      coverUrlInput.value = url;
+      updateCoverPickerHint();
+      updateSaveButtonState();
     }
-    return;
-  }
-
-  coverPicker.classList.remove('hidden');
-
-  if (hasGoogle) {
-    coverOptionGoogle.classList.remove('hidden');
-    coverOptionGoogle.querySelector('img').src = availableCovers.googleBooks;
-    coverOptionGoogle.querySelector('img').onerror = () => {
-      coverOptionGoogle.classList.add('hidden');
-    };
-  }
-
-  if (hasOpenLibrary) {
-    coverOptionOpenLibrary.classList.remove('hidden');
-    coverOptionOpenLibrary.querySelector('img').src = availableCovers.openLibrary;
-    coverOptionOpenLibrary.querySelector('img').onerror = () => {
-      coverOptionOpenLibrary.classList.add('hidden');
-    };
-  }
-
-  // Show hint only if there are multiple covers to choose from
-  if (hasMultipleCovers && coverPickerHint) {
-    coverPickerHint.classList.remove('hidden');
-  }
-
-  // Highlight currently selected
-  const googleBadge = coverOptionGoogle.querySelector('.cover-selected-badge');
-  const openLibraryBadge = coverOptionOpenLibrary.querySelector('.cover-selected-badge');
-
-  if (currentCoverUrl === availableCovers.googleBooks) {
-    coverOptionGoogle.classList.add('border-primary', 'bg-primary/15');
-    googleBadge?.classList.remove('hidden');
-  } else if (currentCoverUrl === availableCovers.openLibrary) {
-    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/15');
-    openLibraryBadge?.classList.remove('hidden');
-  } else if (hasGoogle) {
-    coverOptionGoogle.classList.add('border-primary', 'bg-primary/15');
-    googleBadge?.classList.remove('hidden');
-  } else if (hasOpenLibrary) {
-    coverOptionOpenLibrary.classList.add('border-primary', 'bg-primary/15');
-    openLibraryBadge?.classList.remove('hidden');
-  }
-
-  initIcons();
+  });
 }
 
-function selectCover(source) {
-  const url = availableCovers[source];
-  if (!url) return;
+function setCoverPickerCovers(covers, currentUrl = null) {
+  if (!coverPicker) initCoverPicker();
 
-  coverUrlInput.value = url;
-
-  // Update border and background
-  coverOptionGoogle.classList.toggle('border-primary', source === 'googleBooks');
-  coverOptionGoogle.classList.toggle('bg-primary/15', source === 'googleBooks');
-  coverOptionOpenLibrary.classList.toggle('border-primary', source === 'openLibrary');
-  coverOptionOpenLibrary.classList.toggle('bg-primary/15', source === 'openLibrary');
-
-  // Update checkmark badges
-  const googleBadge = coverOptionGoogle.querySelector('.cover-selected-badge');
-  const openLibraryBadge = coverOptionOpenLibrary.querySelector('.cover-selected-badge');
-  googleBadge?.classList.toggle('hidden', source !== 'googleBooks');
-  openLibraryBadge?.classList.toggle('hidden', source !== 'openLibrary');
-
-  updateSaveButtonState();
+  const url = currentUrl !== null ? currentUrl : coverUrlInput.value;
+  coverPicker.setCovers(covers, url);
+  updateCoverPickerHint();
 }
 
-coverOptionGoogle.addEventListener('click', () => selectCover('googleBooks'));
-coverOptionOpenLibrary.addEventListener('click', () => selectCover('openLibrary'));
+function updateCoverPickerHint() {
+  if (!coverPickerHint || !coverPicker) return;
+  const covers = coverPicker.getCovers();
+  const hasMultiple = covers.googleBooks && covers.openLibrary;
+  coverPickerHint.classList.toggle('hidden', !hasMultiple);
+}
 
 // Set series suggestion from API lookup
 function setSeriesSuggestion(seriesName, seriesPosition) {
@@ -327,8 +262,9 @@ function renderForm() {
   initSeriesPicker();
 
   // Cover picker
+  initCoverPicker();
   if (book.covers && Object.keys(book.covers).length > 0) {
-    renderCoverPicker(book.covers, book.coverImageUrl);
+    setCoverPickerCovers(book.covers, book.coverImageUrl);
   } else if (book.isbn) {
     fetchBookCovers(book.isbn);
   }
@@ -338,7 +274,7 @@ async function fetchBookCovers(isbn) {
   try {
     const result = await lookupISBN(isbn);
     if (result && result.covers) {
-      renderCoverPicker(result.covers, book.coverImageUrl);
+      setCoverPickerCovers(result.covers, book.coverImageUrl);
     }
   } catch (e) {
     console.warn('Error fetching covers:', e);
@@ -551,6 +487,7 @@ editForm.addEventListener('submit', async (e) => {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
 
+  const availableCovers = coverPicker ? coverPicker.getCovers() : {};
   const updates = {
     title: validation.data.title,
     author: validation.data.author,
@@ -716,13 +653,12 @@ refreshDataBtn.addEventListener('click', async () => {
       fillEmptyField(pageCountInput, apiData.pageCount, 'pages');
 
       if (apiData.covers && Object.keys(apiData.covers).length > 0) {
-        renderCoverPicker(apiData.covers, coverUrlInput.value);
+        setCoverPickerCovers(apiData.covers, coverUrlInput.value);
         if (!coverUrlInput.value.trim()) {
-          if (apiData.covers.googleBooks) {
-            selectCover('googleBooks');
-            changedFields.push('cover');
-          } else if (apiData.covers.openLibrary) {
-            selectCover('openLibrary');
+          // Auto-select first available cover
+          const selectedUrl = coverPicker.getSelectedUrl();
+          if (selectedUrl) {
+            coverUrlInput.value = selectedUrl;
             changedFields.push('cover');
           }
         }
