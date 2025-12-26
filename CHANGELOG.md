@@ -6,6 +6,7 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Convert modals to bottom sheets on mobile (slide up, swipe to dismiss)
 - Split Settings into 5 focused pages:
   - Profile: Account info, avatar, password, delete account
   - Library: Genres, series, backup & restore
