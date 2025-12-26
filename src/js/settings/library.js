@@ -154,12 +154,12 @@ function renderGenres() {
                     </div>
                   </td>
                   <td class="py-1.5 px-3 text-xs text-gray-500 whitespace-nowrap text-right">${genre.bookCount || 0}</td>
-                  <td class="py-1.5 px-1 text-right whitespace-nowrap">
-                    <button class="edit-btn p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600" data-id="${genre.id}" aria-label="Edit ${escapeHtml(genre.name)}">
-                      <i data-lucide="edit-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                  <td class="py-0 px-0 text-right whitespace-nowrap">
+                    <button class="edit-btn p-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${genre.id}" aria-label="Edit ${escapeHtml(genre.name)}">
+                      <i data-lucide="edit-2" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
-                    <button class="delete-btn p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" data-count="${genre.bookCount || 0}" aria-label="Delete ${escapeHtml(genre.name)}">
-                      <i data-lucide="trash-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    <button class="delete-btn p-2 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" data-count="${genre.bookCount || 0}" aria-label="Delete ${escapeHtml(genre.name)}">
+                      <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
                   </td>
                 </tr>
@@ -399,15 +399,15 @@ function renderSeries() {
                     <span class="text-sm text-gray-900">${escapeHtml(s.name)}</span>
                   </td>
                   <td class="py-1.5 px-3 text-xs text-gray-500 whitespace-nowrap text-right">${completionText}</td>
-                  <td class="py-1.5 px-1 text-right whitespace-nowrap">
-                    <button class="edit-series-btn p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600" data-id="${s.id}" aria-label="Edit ${escapeHtml(s.name)}">
-                      <i data-lucide="edit-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                  <td class="py-0 px-0 text-right whitespace-nowrap">
+                    <button class="edit-series-btn p-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${s.id}" aria-label="Edit ${escapeHtml(s.name)}">
+                      <i data-lucide="edit-2" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
-                    <button class="merge-series-btn p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" aria-label="Merge ${escapeHtml(s.name)}">
-                      <i data-lucide="git-merge" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    <button class="merge-series-btn p-2 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${s.id}" data-name="${escapeHtml(s.name)}" aria-label="Merge ${escapeHtml(s.name)}">
+                      <i data-lucide="git-merge" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
-                    <button class="delete-series-btn p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" data-count="${s.bookCount || 0}" aria-label="Delete ${escapeHtml(s.name)}">
-                      <i data-lucide="trash-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    <button class="delete-series-btn p-2 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${s.id}" data-name="${escapeHtml(s.name)}" data-count="${s.bookCount || 0}" aria-label="Delete ${escapeHtml(s.name)}">
+                      <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
                   </td>
                 </tr>
