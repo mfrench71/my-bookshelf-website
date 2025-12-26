@@ -50,6 +50,11 @@ showRegisterBtn?.addEventListener('click', () => {
   toggleRegister.classList.add('hidden');
   toggleLogin.classList.remove('hidden');
   authError.classList.add('hidden');
+  // Clear validation errors from login form
+  clearFormErrors(loginForm);
+  // Reset register form state
+  registerForm.reset();
+  updatePasswordUI('');
 });
 
 showLoginBtn?.addEventListener('click', () => {
@@ -58,6 +63,11 @@ showLoginBtn?.addEventListener('click', () => {
   toggleLogin.classList.add('hidden');
   toggleRegister.classList.remove('hidden');
   authError.classList.add('hidden');
+  // Clear validation errors from register form
+  clearFormErrors(registerForm);
+  // Reset login form and password strength
+  loginForm.reset();
+  updatePasswordUI('');
 });
 
 // checkPasswordStrength imported from utils.js
