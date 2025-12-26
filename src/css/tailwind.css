@@ -288,6 +288,87 @@ select {
   animation: modalContentOut 0.15s ease-in forwards;
 }
 
+/* Bottom Sheet Animations (Mobile-first) */
+@keyframes bottomSheetIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes bottomSheetOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Bottom Sheet Container - mobile: bottom aligned, tablet+: centered */
+.bottom-sheet-backdrop {
+  animation: modalBackdropIn 0.2s ease-out;
+  display: flex;
+  align-items: flex-end; /* Mobile: align to bottom */
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-backdrop {
+    align-items: center; /* Tablet+: center vertically */
+    justify-content: center;
+  }
+}
+
+.bottom-sheet-backdrop.modal-exit {
+  animation: modalBackdropOut 0.15s ease-in forwards;
+}
+
+/* Bottom Sheet Content */
+.bottom-sheet-content {
+  animation: bottomSheetIn 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 1rem 1rem 0 0; /* Rounded top corners */
+  touch-action: pan-y; /* Enable vertical touch scrolling */
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-content {
+    animation: modalContentIn 0.2s ease-out;
+    width: auto;
+    max-width: 28rem; /* max-w-md */
+    border-radius: 0.75rem; /* All corners rounded on tablet+ */
+  }
+}
+
+.bottom-sheet-backdrop.modal-exit .bottom-sheet-content {
+  animation: bottomSheetOut 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-backdrop.modal-exit .bottom-sheet-content {
+    animation: modalContentOut 0.15s ease-in forwards;
+  }
+}
+
+/* Drag handle for bottom sheet */
+.bottom-sheet-handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  margin: 0.5rem auto 1rem;
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-handle {
+    display: none; /* Hide on tablet+ */
+  }
+}
+
 /* Page Fade In */
 @keyframes pageIn {
   from {

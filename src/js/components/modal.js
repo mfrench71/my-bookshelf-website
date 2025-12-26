@@ -1,5 +1,5 @@
-// Reusable Modal Component
-import { lockBodyScroll, unlockBodyScroll, initIcons } from '../utils.js';
+// Reusable Modal and BottomSheet Components
+import { lockBodyScroll, unlockBodyScroll, initIcons, isMobile } from '../utils.js';
 
 /**
  * Modal - Reusable modal dialog component
@@ -262,6 +262,296 @@ export class ConfirmModal extends Modal {
 
   /**
    * Show the modal (alias for open)
+   */
+  show() {
+    this.open();
+  }
+
+  /**
+   * Set loading state on confirm button
+   * @param {boolean} loading
+   */
+  setLoading(loading) {
+    this.elements.confirmBtn.disabled = loading;
+    this.elements.cancelBtn.disabled = loading;
+    if (loading) {
+      this.elements.confirmBtn.textContent = 'Loading...';
+    } else {
+      this.elements.confirmBtn.textContent = this.confirmText;
+    }
+  }
+}
+
+/**
+ * BottomSheet - Mobile-friendly bottom sheet that slides up
+ * On desktop, falls back to centered modal behavior.
+ *
+ * @example
+ * const sheet = new BottomSheet({
+ *   container: document.getElementById('my-sheet'),
+ *   onClose: () => console.log('Sheet closed')
+ * });
+ * sheet.open();
+ */
+export class BottomSheet extends Modal {
+  /**
+   * @param {Object} options
+   * @param {HTMLElement} options.container - Existing sheet element
+   * @param {Function} options.onOpen - Callback when sheet opens
+   * @param {Function} options.onClose - Callback when sheet closes
+   * @param {boolean} options.closeOnBackdrop - Close when clicking backdrop (default: true)
+   * @param {boolean} options.closeOnEscape - Close on Escape key (default: true)
+   * @param {boolean} options.swipeToDismiss - Enable swipe down to dismiss (default: true)
+   * @param {number} options.swipeThreshold - Pixels to swipe before dismissing (default: 100)
+   */
+  constructor(options = {}) {
+    super(options);
+    this.swipeToDismiss = options.swipeToDismiss !== false;
+    this.swipeThreshold = options.swipeThreshold || 100;
+    this.contentEl = null;
+    this.startY = 0;
+    this.currentY = 0;
+    this.isDragging = false;
+
+    if (this.container && this.swipeToDismiss) {
+      this.setupSwipeGesture();
+    }
+  }
+
+  /**
+   * Open the bottom sheet with animation
+   */
+  open() {
+    if (this.isOpen) return;
+
+    this.container.classList.remove('hidden');
+    this.container.classList.remove('modal-exit');
+    this.container.classList.add('bottom-sheet-backdrop');
+    lockBodyScroll();
+    this.isOpen = true;
+    initIcons();
+    this.onOpen();
+
+    // Find content element for swipe gesture
+    this.contentEl = this.container.querySelector('.bottom-sheet-content');
+  }
+
+  /**
+   * Close the bottom sheet with animation
+   */
+  close() {
+    if (!this.isOpen) return;
+
+    this.isOpen = false;
+    unlockBodyScroll();
+    this.onClose();
+
+    // Reset any transform from dragging
+    if (this.contentEl) {
+      this.contentEl.style.transform = '';
+    }
+
+    this.container.classList.add('modal-exit');
+
+    const cleanup = () => {
+      this.container.classList.add('hidden');
+      this.container.classList.remove('modal-exit', 'bottom-sheet-backdrop');
+    };
+
+    const handleAnimationEnd = (e) => {
+      if (e.target === this.container || e.target === this.contentEl) {
+        this.container.removeEventListener('animationend', handleAnimationEnd);
+        cleanup();
+      }
+    };
+
+    this.container.addEventListener('animationend', handleAnimationEnd);
+
+    // Fallback timeout
+    setTimeout(() => {
+      if (!this.container.classList.contains('hidden')) {
+        this.container.removeEventListener('animationend', handleAnimationEnd);
+        cleanup();
+      }
+    }, 250);
+  }
+
+  /**
+   * Setup swipe-to-dismiss gesture for mobile
+   */
+  setupSwipeGesture() {
+    // Only enable on touch devices
+    if (!('ontouchstart' in window)) return;
+
+    this.container.addEventListener('touchstart', (e) => {
+      if (!this.isOpen) return;
+
+      this.contentEl = this.container.querySelector('.bottom-sheet-content');
+      if (!this.contentEl) return;
+
+      // Only start drag from the handle area or top of content
+      const handle = this.container.querySelector('.bottom-sheet-handle');
+      const target = e.target;
+
+      // Allow drag from handle or if content is scrolled to top
+      const isHandle = handle && handle.contains(target);
+      const isScrolledToTop = this.contentEl.scrollTop === 0;
+
+      if (isHandle || isScrolledToTop) {
+        this.isDragging = true;
+        this.startY = e.touches[0].clientY;
+        this.currentY = 0;
+        this.contentEl.style.transition = 'none';
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchmove', (e) => {
+      if (!this.isDragging || !this.contentEl) return;
+
+      const deltaY = e.touches[0].clientY - this.startY;
+
+      // Only allow dragging down (positive deltaY)
+      if (deltaY > 0) {
+        this.currentY = deltaY;
+        this.contentEl.style.transform = `translateY(${deltaY}px)`;
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchend', () => {
+      if (!this.isDragging || !this.contentEl) return;
+
+      this.isDragging = false;
+      this.contentEl.style.transition = '';
+
+      // If dragged past threshold, close; otherwise snap back
+      if (this.currentY > this.swipeThreshold) {
+        this.close();
+      } else {
+        this.contentEl.style.transform = '';
+      }
+    }, { passive: true });
+  }
+}
+
+/**
+ * ConfirmSheet - Confirmation bottom sheet with cancel/confirm buttons
+ * Mobile-friendly alternative to ConfirmModal.
+ *
+ * @example
+ * const confirm = new ConfirmSheet({
+ *   title: 'Delete Book?',
+ *   message: 'This action cannot be undone.',
+ *   confirmText: 'Delete',
+ *   confirmClass: 'bg-red-600 hover:bg-red-700',
+ *   onConfirm: () => deleteBook()
+ * });
+ * confirm.show();
+ */
+export class ConfirmSheet extends BottomSheet {
+  /**
+   * @param {Object} options
+   * @param {string} options.title - Sheet title
+   * @param {string} options.message - Confirmation message
+   * @param {string} options.confirmText - Confirm button text (default: 'Confirm')
+   * @param {string} options.cancelText - Cancel button text (default: 'Cancel')
+   * @param {string} options.confirmClass - Confirm button CSS classes
+   * @param {Function} options.onConfirm - Callback when confirmed
+   * @param {Function} options.onCancel - Callback when cancelled
+   */
+  constructor(options = {}) {
+    const container = options.container || ConfirmSheet.createContainer();
+    super({ ...options, container });
+
+    this.title = options.title || 'Confirm';
+    this.message = options.message || 'Are you sure?';
+    this.confirmText = options.confirmText || 'Confirm';
+    this.cancelText = options.cancelText || 'Cancel';
+    this.confirmClass = options.confirmClass || 'bg-primary hover:bg-primary-dark';
+    this.onConfirm = options.onConfirm || (() => {});
+    this.onCancel = options.onCancel || (() => {});
+
+    this.render();
+    this.bindConfirmEvents();
+  }
+
+  /**
+   * Create a bottom sheet container element
+   */
+  static createContainer() {
+    const container = document.createElement('div');
+    container.className = 'hidden fixed inset-0 bg-black/50 z-50 p-4 lg:p-4';
+    document.body.appendChild(container);
+    return container;
+  }
+
+  /**
+   * Render sheet content
+   */
+  render() {
+    this.container.innerHTML = `
+      <div class="bottom-sheet-content bg-white p-6 max-w-md w-full shadow-xl lg:mx-auto">
+        <div class="bottom-sheet-handle"></div>
+        <h3 class="confirm-title text-lg font-semibold mb-2">${this.title}</h3>
+        <p class="confirm-message text-gray-600 mb-6">${this.message}</p>
+        <div class="flex gap-3">
+          <button class="cancel-btn flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors btn-press min-h-[44px]">
+            ${this.cancelText}
+          </button>
+          <button class="confirm-btn flex-1 px-4 py-2 text-white rounded-lg transition-colors btn-press min-h-[44px] ${this.confirmClass}">
+            ${this.confirmText}
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.elements = {
+      title: this.container.querySelector('.confirm-title'),
+      message: this.container.querySelector('.confirm-message'),
+      cancelBtn: this.container.querySelector('.cancel-btn'),
+      confirmBtn: this.container.querySelector('.confirm-btn')
+    };
+  }
+
+  /**
+   * Bind confirm/cancel button events
+   */
+  bindConfirmEvents() {
+    this.elements.cancelBtn.addEventListener('click', () => {
+      this.onCancel();
+      this.close();
+    });
+
+    this.elements.confirmBtn.addEventListener('click', () => {
+      this.onConfirm();
+      this.close();
+    });
+  }
+
+  /**
+   * Update sheet content
+   * @param {Object} options - title, message, confirmText, cancelText
+   */
+  setContent(options) {
+    if (options.title) {
+      this.title = options.title;
+      this.elements.title.textContent = options.title;
+    }
+    if (options.message) {
+      this.message = options.message;
+      this.elements.message.textContent = options.message;
+    }
+    if (options.confirmText) {
+      this.confirmText = options.confirmText;
+      this.elements.confirmBtn.textContent = options.confirmText;
+    }
+    if (options.cancelText) {
+      this.cancelText = options.cancelText;
+      this.elements.cancelBtn.textContent = options.cancelText;
+    }
+  }
+
+  /**
+   * Show the sheet (alias for open)
    */
   show() {
     this.open();
