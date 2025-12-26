@@ -296,8 +296,8 @@ function renderIssueRows() {
     const issueBooks = healthReport.issues[issueType] || [];
     if (issueBooks.length === 0) continue;
 
-    const fixableCount = issueBooks.filter(b => b.isbn).length;
-    const fixableText = fixableCount > 0 ? ` (${fixableCount} fixable)` : '';
+    const withIsbnCount = issueBooks.filter(b => b.isbn).length;
+    const isbnText = withIsbnCount > 0 ? ` (${withIsbnCount} with ISBN)` : '';
 
     html += `
       <div class="issue-section border border-gray-200 rounded-lg overflow-hidden">
@@ -306,7 +306,7 @@ function renderIssueRows() {
           <div class="flex items-center gap-3">
             <i data-lucide="${config.icon}" class="w-4 h-4 text-amber-500 flex-shrink-0" aria-hidden="true"></i>
             <span class="text-sm text-gray-700">
-              <span class="font-medium">${issueBooks.length}</span> ${config.label.toLowerCase()}${fixableText}
+              <span class="font-medium">${issueBooks.length}</span> ${config.label.toLowerCase()}${isbnText}
             </span>
           </div>
           <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 issue-chevron transition-transform" aria-hidden="true"></i>
@@ -315,11 +315,11 @@ function renderIssueRows() {
           <div class="space-y-2 max-h-48 overflow-y-auto">
             ${renderBookList(issueBooks, issueType)}
           </div>
-          ${fixableCount > 0 ? `
+          ${withIsbnCount > 0 ? `
             <button class="fix-issue-btn mt-3 flex items-center gap-2 px-3 py-1.5 text-sm bg-primary hover:bg-primary-dark text-white rounded transition-colors"
                     data-issue="${issueType}">
               <i data-lucide="wand-2" class="w-3 h-3" aria-hidden="true"></i>
-              Fix ${fixableCount} from API
+              Try API for ${withIsbnCount} book${withIsbnCount !== 1 ? 's' : ''}
             </button>
           ` : `
             <p class="mt-3 text-sm text-gray-500 italic">No books have ISBN for API lookup</p>
@@ -472,12 +472,17 @@ async function runFixBooks(booksToFix, description) {
 
     if (results.fixed.length === 0) {
       if (healthFixResultsText) {
-        healthFixResultsText.innerHTML = `<p>No new data found for ${description}.</p>`;
+        let html = `<p>Checked ${booksToFix.length} book${booksToFix.length !== 1 ? 's' : ''} - APIs had no new data.</p>`;
+        html += `<p class="text-gray-500 text-sm mt-1">Note: Not all books have complete metadata in Google Books or Open Library.</p>`;
         if (results.skipped.length > 0) {
-          healthFixResultsText.innerHTML += `<p class="text-gray-500 mt-1">${results.skipped.length} book${results.skipped.length !== 1 ? 's' : ''} skipped (no ISBN).</p>`;
+          html += `<p class="text-gray-500 mt-1">${results.skipped.length} book${results.skipped.length !== 1 ? 's' : ''} skipped (no ISBN).</p>`;
         }
+        if (results.errors.length > 0) {
+          html += `<p class="text-amber-600 mt-1">${results.errors.length} book${results.errors.length !== 1 ? 's' : ''} had API errors.</p>`;
+        }
+        healthFixResultsText.innerHTML = html;
       }
-      showToast('No new data found', { type: 'info' });
+      showToast('APIs had no new data', { type: 'info' });
     } else {
       // Build results summary
       let html = `<p class="mb-2">Fixed ${results.fixed.length} book${results.fixed.length !== 1 ? 's' : ''}:</p>`;
@@ -530,7 +535,7 @@ async function runFixBooks(booksToFix, description) {
   } finally {
     if (healthFixAllBtn) {
       healthFixAllBtn.disabled = healthReport?.fixableBooks === 0;
-      healthFixAllBtn.innerHTML = '<i data-lucide="wand-2" class="w-4 h-4"></i><span>Fix All from API</span>';
+      healthFixAllBtn.innerHTML = '<i data-lucide="wand-2" class="w-4 h-4"></i><span>Try API for All</span>';
     }
     healthRefreshBtn?.classList.remove('hidden');
     initIcons();

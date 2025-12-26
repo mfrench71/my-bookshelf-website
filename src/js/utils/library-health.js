@@ -10,12 +10,20 @@ import { lookupISBN } from './api.js';
 /**
  * Fields to check for completeness, with weights for scoring
  * Higher weight = more important for completeness score
+ *
+ * API availability notes:
+ * - coverImageUrl: Good availability from both Google Books and Open Library
+ * - genres: Good from Google Books categories, supplemented by Open Library subjects
+ * - pageCount: Available from both APIs, but not all books have it
+ * - physicalFormat: Only from Open Library edition endpoint - many books lack this
+ * - publisher: Good availability from both APIs
+ * - publishedDate: Good availability from both APIs
  */
 export const HEALTH_FIELDS = {
   coverImageUrl: { weight: 2, label: 'Cover Image', apiFixable: true },
   genres: { weight: 2, label: 'Genres', apiFixable: true },
   pageCount: { weight: 1, label: 'Page Count', apiFixable: true },
-  physicalFormat: { weight: 1, label: 'Format', apiFixable: true },
+  physicalFormat: { weight: 1, label: 'Format', apiFixable: true }, // Open Library only - less reliable
   publisher: { weight: 1, label: 'Publisher', apiFixable: true },
   publishedDate: { weight: 1, label: 'Published Date', apiFixable: true },
   isbn: { weight: 0, label: 'ISBN', apiFixable: false } // Not counted in score, but tracked
