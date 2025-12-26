@@ -251,6 +251,9 @@ npm test && npm run build
 - [x] **E2E validation tests** - Added `e2e/validation.spec.js` with tests for empty form submit, error display, error clearing. Also added `tests/form-html-alignment.test.js` to verify HTML `name` attributes match schema field names.
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
+- [ ] Event listener cleanup in components (142 add vs 8 remove - potential memory leaks)
+- [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines)
+- [ ] Review async functions for missing try/catch (117 async, 97 try blocks)
 
 ---
 
