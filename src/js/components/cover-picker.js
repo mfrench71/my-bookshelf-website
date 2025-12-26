@@ -38,14 +38,24 @@ export class CoverPicker {
       <div class="cover-options flex gap-4 flex-wrap">
         <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
-          <img src="" alt="Google Books cover" class="w-16 h-24 rounded object-cover mx-auto">
+          <div class="relative w-16 h-24 mx-auto">
+            <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+              <i data-lucide="loader-2" class="w-5 h-5 text-gray-400 animate-spin"></i>
+            </div>
+            <img src="" alt="Google Books cover" class="w-16 h-24 rounded object-cover hidden">
+          </div>
           <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
             <i data-lucide="check" class="w-3 h-3 text-white"></i>
           </div>
         </div>
         <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
-          <img src="" alt="Open Library cover" class="w-16 h-24 rounded object-cover mx-auto">
+          <div class="relative w-16 h-24 mx-auto">
+            <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+              <i data-lucide="loader-2" class="w-5 h-5 text-gray-400 animate-spin"></i>
+            </div>
+            <img src="" alt="Open Library cover" class="w-16 h-24 rounded object-cover hidden">
+          </div>
           <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
             <i data-lucide="check" class="w-3 h-3 text-white"></i>
           </div>
@@ -64,6 +74,8 @@ export class CoverPicker {
     this.elements.openLibraryOption = this.container.querySelector('[data-source="openLibrary"]');
     this.elements.googleImg = this.elements.googleOption.querySelector('img');
     this.elements.openLibraryImg = this.elements.openLibraryOption.querySelector('img');
+    this.elements.googleLoading = this.elements.googleOption.querySelector('.cover-loading');
+    this.elements.openLibraryLoading = this.elements.openLibraryOption.querySelector('.cover-loading');
     this.elements.coverOptions = this.container.querySelector('.cover-options');
     this.elements.placeholder = this.container.querySelector('.no-cover-placeholder');
 
@@ -71,8 +83,20 @@ export class CoverPicker {
     this.elements.googleOption.addEventListener('click', () => this.select('googleBooks'));
     this.elements.openLibraryOption.addEventListener('click', () => this.select('openLibrary'));
 
+    // Handle image load success - show image, hide spinner
+    this.elements.googleImg.onload = () => {
+      this.elements.googleLoading.classList.add('hidden');
+      this.elements.googleImg.classList.remove('hidden');
+    };
+
+    this.elements.openLibraryImg.onload = () => {
+      this.elements.openLibraryLoading.classList.add('hidden');
+      this.elements.openLibraryImg.classList.remove('hidden');
+    };
+
     // Handle image load errors
     this.elements.googleImg.onerror = () => {
+      this.elements.googleLoading.classList.add('hidden');
       this.elements.googleOption.classList.add('hidden');
       // Switch to other if this was selected
       if (this.currentUrl === this.covers.googleBooks && this.covers.openLibrary) {
@@ -81,6 +105,7 @@ export class CoverPicker {
     };
 
     this.elements.openLibraryImg.onerror = () => {
+      this.elements.openLibraryLoading.classList.add('hidden');
       this.elements.openLibraryOption.classList.add('hidden');
       // Switch to other if this was selected
       if (this.currentUrl === this.covers.openLibrary && this.covers.googleBooks) {
@@ -104,11 +129,16 @@ export class CoverPicker {
     const hasOpenLibrary = !!this.covers.openLibrary && isValidImageUrl(this.covers.openLibrary);
     const hasAnyCovers = hasGoogle || hasOpenLibrary;
 
-    // Reset UI - hide cover options, reset selection styles
+    // Reset UI - hide cover options, reset selection styles, reset loading state
     this.elements.googleOption.classList.add('hidden');
     this.elements.openLibraryOption.classList.add('hidden');
     this.elements.googleOption.classList.remove('border-primary', 'bg-primary/15');
     this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/15');
+    // Reset images to loading state
+    this.elements.googleImg.classList.add('hidden');
+    this.elements.openLibraryImg.classList.add('hidden');
+    this.elements.googleLoading.classList.remove('hidden');
+    this.elements.openLibraryLoading.classList.remove('hidden');
 
     // Show placeholder if no covers available
     this.elements.coverOptions.classList.toggle('hidden', !hasAnyCovers);
