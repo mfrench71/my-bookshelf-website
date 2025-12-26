@@ -31,10 +31,11 @@ import {
   clearSeriesCache,
   findPotentialDuplicates
 } from '../series.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, lockBodyScroll, unlockBodyScroll, isMobile } from '../utils.js';
+import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, isMobile } from '../utils.js';
 import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
+import { BottomSheet } from '../components/modal.js';
 
 // Initialize icons once on load
 initIcons();
@@ -106,6 +107,13 @@ const importBtn = document.getElementById('import-btn');
 const importFileInput = document.getElementById('import-file');
 const importProgress = document.getElementById('import-progress');
 const importStatus = document.getElementById('import-status');
+
+// Bottom Sheet Instances
+const genreSheet = genreModal ? new BottomSheet({ container: genreModal }) : null;
+const deleteGenreSheet = deleteGenreModal ? new BottomSheet({ container: deleteGenreModal }) : null;
+const seriesSheet = seriesModal ? new BottomSheet({ container: seriesModal }) : null;
+const deleteSeriesSheet = deleteSeriesModal ? new BottomSheet({ container: deleteSeriesModal }) : null;
+const mergeSeriesSheet = mergeSeriesModal ? new BottomSheet({ container: mergeSeriesModal }) : null;
 
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
@@ -226,8 +234,7 @@ function openAddGenreModal() {
   saveGenreBtn.textContent = 'Add';
   clearFormErrors(genreForm);
   renderColorPicker();
-  genreModal.classList.remove('hidden');
-  lockBodyScroll();
+  genreSheet?.open();
   if (!isMobile()) genreNameInput.focus();
 }
 
@@ -242,14 +249,12 @@ function openEditGenreModal(genreId) {
   saveGenreBtn.textContent = 'Save';
   clearFormErrors(genreForm);
   renderColorPicker();
-  genreModal.classList.remove('hidden');
-  lockBodyScroll();
+  genreSheet?.open();
   if (!isMobile()) genreNameInput.focus();
 }
 
 function closeGenreModal() {
-  genreModal?.classList.add('hidden');
-  unlockBodyScroll();
+  genreSheet?.close();
   editingGenreId = null;
 }
 
@@ -258,26 +263,18 @@ function openDeleteGenreModal(genreId, name, bookCount) {
   deleteGenreMessage.textContent = bookCount > 0
     ? `This will remove "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
     : `Are you sure you want to delete "${name}"?`;
-  deleteGenreModal?.classList.remove('hidden');
-  lockBodyScroll();
+  deleteGenreSheet?.open();
 }
 
 function closeDeleteGenreModal() {
-  deleteGenreModal?.classList.add('hidden');
-  unlockBodyScroll();
+  deleteGenreSheet?.close();
   deletingGenreId = null;
 }
 
 // Genre Event Listeners
 addGenreBtn?.addEventListener('click', openAddGenreModal);
 cancelGenreBtn?.addEventListener('click', closeGenreModal);
-genreModal?.addEventListener('click', (e) => {
-  if (e.target === genreModal) closeGenreModal();
-});
 cancelDeleteGenreBtn?.addEventListener('click', closeDeleteGenreModal);
-deleteGenreModal?.addEventListener('click', (e) => {
-  if (e.target === deleteGenreModal) closeDeleteGenreModal();
-});
 
 genreForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -462,8 +459,7 @@ function openAddSeriesModal() {
   seriesTotalBooksInput.value = '';
   saveSeriesBtn.textContent = 'Add';
   clearFormErrors(seriesForm);
-  seriesModal.classList.remove('hidden');
-  lockBodyScroll();
+  seriesSheet?.open();
   if (!isMobile()) seriesNameInput.focus();
 }
 
@@ -478,14 +474,12 @@ function openEditSeriesModal(seriesId) {
   seriesTotalBooksInput.value = s.totalBooks || '';
   saveSeriesBtn.textContent = 'Save';
   clearFormErrors(seriesForm);
-  seriesModal.classList.remove('hidden');
-  lockBodyScroll();
+  seriesSheet?.open();
   if (!isMobile()) seriesNameInput.focus();
 }
 
 function closeSeriesModal() {
-  seriesModal?.classList.add('hidden');
-  unlockBodyScroll();
+  seriesSheet?.close();
   editingSeriesId = null;
 }
 
@@ -494,13 +488,11 @@ function openDeleteSeriesModal(seriesId, name, bookCount) {
   deleteSeriesMessage.textContent = bookCount > 0
     ? `This will unlink "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
     : `Are you sure you want to delete "${name}"?`;
-  deleteSeriesModal?.classList.remove('hidden');
-  lockBodyScroll();
+  deleteSeriesSheet?.open();
 }
 
 function closeDeleteSeriesModal() {
-  deleteSeriesModal?.classList.add('hidden');
-  unlockBodyScroll();
+  deleteSeriesSheet?.close();
   deletingSeriesId = null;
 }
 
@@ -515,30 +507,19 @@ function openMergeSeriesModal(seriesId, name) {
       .join('');
 
   confirmMergeSeriesBtn.disabled = true;
-  mergeSeriesModal?.classList.remove('hidden');
-  lockBodyScroll();
+  mergeSeriesSheet?.open();
 }
 
 function closeMergeSeriesModal() {
-  mergeSeriesModal?.classList.add('hidden');
-  unlockBodyScroll();
+  mergeSeriesSheet?.close();
   mergingSeriesId = null;
 }
 
 // Series Event Listeners
 addSeriesBtn?.addEventListener('click', openAddSeriesModal);
 cancelSeriesBtn?.addEventListener('click', closeSeriesModal);
-seriesModal?.addEventListener('click', (e) => {
-  if (e.target === seriesModal) closeSeriesModal();
-});
 cancelDeleteSeriesBtn?.addEventListener('click', closeDeleteSeriesModal);
-deleteSeriesModal?.addEventListener('click', (e) => {
-  if (e.target === deleteSeriesModal) closeDeleteSeriesModal();
-});
 cancelMergeSeriesBtn?.addEventListener('click', closeMergeSeriesModal);
-mergeSeriesModal?.addEventListener('click', (e) => {
-  if (e.target === mergeSeriesModal) closeMergeSeriesModal();
-});
 
 mergeTargetSelect?.addEventListener('change', () => {
   confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;

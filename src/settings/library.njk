@@ -178,9 +178,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-<!-- Create/Edit Genre Modal -->
-<div id="genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6">
+<!-- Create/Edit Genre Bottom Sheet -->
+<div id="genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-md p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 id="genre-modal-title" class="text-lg font-semibold mb-4">Add Genre</h3>
     <form id="genre-form" class="space-y-4" novalidate>
       <div>
@@ -204,9 +205,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-<!-- Delete Genre Confirmation Modal -->
-<div id="delete-genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+<!-- Delete Genre Confirmation Bottom Sheet -->
+<div id="delete-genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-sm p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-2">Delete Genre?</h3>
     <p id="delete-genre-message" class="text-gray-500 mb-6">This will remove the genre from all books.</p>
     <div class="flex gap-3">
@@ -220,9 +222,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-<!-- Create/Edit Series Modal -->
-<div id="series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6">
+<!-- Create/Edit Series Bottom Sheet -->
+<div id="series-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-md p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 id="series-modal-title" class="text-lg font-semibold mb-4">Add Series</h3>
     <form id="series-form" class="space-y-4" novalidate>
       <div>
@@ -253,9 +256,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-<!-- Delete Series Confirmation Modal -->
-<div id="delete-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+<!-- Delete Series Confirmation Bottom Sheet -->
+<div id="delete-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-sm p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-2">Delete Series?</h3>
     <p id="delete-series-message" class="text-gray-500 mb-6">This will unlink the series from all books.</p>
     <div class="flex gap-3">
@@ -269,9 +273,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-<!-- Merge Series Modal -->
-<div id="merge-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6">
+<!-- Merge Series Bottom Sheet -->
+<div id="merge-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-md p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-4">Merge Series</h3>
     <p class="text-gray-600 text-sm mb-4">Merge "<span id="merge-source-name" class="font-medium"></span>" into another series. All books will be moved to the target series.</p>
     <div class="mb-4">
