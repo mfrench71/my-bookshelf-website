@@ -140,25 +140,35 @@ function renderGenres() {
   genresEmpty?.classList.add('hidden');
 
   if (genreList) {
-    genreList.innerHTML = genres.map(genre => {
-      const textColor = getContrastColor(genre.color);
-      return `
-        <div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
-          <div class="flex items-center gap-3 min-w-0 flex-1">
-            <span class="genre-badge max-w-[200px] truncate" style="background-color: ${genre.color}; color: ${textColor}" title="${escapeHtml(genre.name)}">${escapeHtml(genre.name)}</span>
-            <span class="text-sm text-gray-500 whitespace-nowrap">${genre.bookCount || 0} book${(genre.bookCount || 0) !== 1 ? 's' : ''}</span>
-          </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
-            <button class="edit-btn p-2 hover:bg-gray-100 rounded-lg text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center" data-id="${genre.id}" aria-label="Edit ${escapeHtml(genre.name)}">
-              <i data-lucide="edit-2" class="w-4 h-4" aria-hidden="true"></i>
-            </button>
-            <button class="delete-btn p-2 hover:bg-red-50 rounded-lg text-red-500 min-w-[44px] min-h-[44px] flex items-center justify-center" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" data-count="${genre.bookCount || 0}" aria-label="Delete ${escapeHtml(genre.name)}">
-              <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    genreList.innerHTML = `
+      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <tbody class="divide-y divide-gray-100">
+            ${genres.map(genre => {
+              return `
+                <tr class="hover:bg-gray-50">
+                  <td class="py-1.5 px-3">
+                    <div class="flex items-center gap-2">
+                      <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${genre.color}" title="${escapeHtml(genre.name)}"></span>
+                      <span class="text-sm text-gray-900">${escapeHtml(genre.name)}</span>
+                    </div>
+                  </td>
+                  <td class="py-1.5 px-3 text-xs text-gray-500 whitespace-nowrap text-right">${genre.bookCount || 0}</td>
+                  <td class="py-1.5 px-1 text-right whitespace-nowrap">
+                    <button class="edit-btn p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600" data-id="${genre.id}" aria-label="Edit ${escapeHtml(genre.name)}">
+                      <i data-lucide="edit-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    </button>
+                    <button class="delete-btn p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" data-count="${genre.bookCount || 0}" aria-label="Delete ${escapeHtml(genre.name)}">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
 
     genreList.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openEditGenreModal(btn.dataset.id));
@@ -374,30 +384,39 @@ function renderSeries() {
   seriesEmpty?.classList.add('hidden');
 
   if (seriesList) {
-    seriesList.innerHTML = series.map(s => {
-      const completionText = s.totalBooks
-        ? `${s.bookCount || 0} of ${s.totalBooks}`
-        : `${s.bookCount || 0} book${(s.bookCount || 0) !== 1 ? 's' : ''}`;
+    seriesList.innerHTML = `
+      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <tbody class="divide-y divide-gray-100">
+            ${series.map(s => {
+              const completionText = s.totalBooks
+                ? `${s.bookCount || 0}/${s.totalBooks}`
+                : `${s.bookCount || 0}`;
 
-      return `
-        <div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-gray-900 truncate">${escapeHtml(s.name)}</div>
-            ${s.description ? `<p class="text-xs text-gray-400 truncate">${escapeHtml(s.description)}</p>` : ''}
-          </div>
-          <span class="text-sm text-gray-500 whitespace-nowrap">${completionText}</span>
-          <button class="edit-series-btn p-2 hover:bg-gray-100 rounded-lg text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center" data-id="${s.id}" aria-label="Edit ${escapeHtml(s.name)}">
-            <i data-lucide="edit-2" class="w-4 h-4" aria-hidden="true"></i>
-          </button>
-          <button class="merge-series-btn p-2 hover:bg-blue-50 rounded-lg text-blue-500 min-w-[44px] min-h-[44px] flex items-center justify-center" data-id="${s.id}" data-name="${escapeHtml(s.name)}" aria-label="Merge ${escapeHtml(s.name)}">
-            <i data-lucide="git-merge" class="w-4 h-4" aria-hidden="true"></i>
-          </button>
-          <button class="delete-series-btn p-2 hover:bg-red-50 rounded-lg text-red-500 min-w-[44px] min-h-[44px] flex items-center justify-center" data-id="${s.id}" data-name="${escapeHtml(s.name)}" data-count="${s.bookCount || 0}" aria-label="Delete ${escapeHtml(s.name)}">
-            <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
-          </button>
-        </div>
-      `;
-    }).join('');
+              return `
+                <tr class="hover:bg-gray-50">
+                  <td class="py-1.5 px-3">
+                    <span class="text-sm text-gray-900">${escapeHtml(s.name)}</span>
+                  </td>
+                  <td class="py-1.5 px-3 text-xs text-gray-500 whitespace-nowrap text-right">${completionText}</td>
+                  <td class="py-1.5 px-1 text-right whitespace-nowrap">
+                    <button class="edit-series-btn p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600" data-id="${s.id}" aria-label="Edit ${escapeHtml(s.name)}">
+                      <i data-lucide="edit-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    </button>
+                    <button class="merge-series-btn p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" aria-label="Merge ${escapeHtml(s.name)}">
+                      <i data-lucide="git-merge" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    </button>
+                    <button class="delete-series-btn p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500" data-id="${s.id}" data-name="${escapeHtml(s.name)}" data-count="${s.bookCount || 0}" aria-label="Delete ${escapeHtml(s.name)}">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
 
     seriesList.querySelectorAll('.edit-series-btn').forEach(btn => {
       btn.addEventListener('click', () => openEditSeriesModal(btn.dataset.id));
