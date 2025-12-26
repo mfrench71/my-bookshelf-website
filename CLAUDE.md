@@ -190,7 +190,12 @@ src/
 │   ├── add.njk           # Add book form (/books/add/)
 │   ├── view.njk          # Book view page (/books/view/?id=X)
 │   └── edit.njk          # Book edit page (/books/edit/?id=X)
-├── settings.njk          # Settings page (/settings/)
+├── settings/
+│   ├── index.njk         # Profile settings (/settings/)
+│   ├── library.njk       # Library settings (/settings/library/)
+│   ├── preferences.njk   # Preferences (/settings/preferences/)
+│   ├── maintenance.njk   # Maintenance tools (/settings/maintenance/)
+│   └── about.njk         # About & changelog (/settings/about/)
 ├── js/
 │   ├── firebase-config.js  # Firebase initialization
 │   ├── index.js            # Home page logic
@@ -201,6 +206,12 @@ src/
 │   │   ├── add.js          # Add book form, ISBN lookup, barcode scanner
 │   │   ├── view.js         # Book view page (read-only display)
 │   │   └── edit.js         # Book edit page (form-based editing)
+│   ├── settings/           # Settings page logic (split by section)
+│   │   ├── profile.js      # Profile, password, account deletion
+│   │   ├── library.js      # Genres, series, backup/restore
+│   │   ├── preferences.js  # Sync settings, widgets
+│   │   ├── maintenance.js  # Data cleanup, cover fetch
+│   │   └── about.js        # Changelog accordion
 │   ├── components/         # Reusable UI components
 │   │   ├── book-card.js    # Book card for list display
 │   │   ├── cover-picker.js # Cover image source picker
@@ -209,8 +220,7 @@ src/
 │   │   └── rating-input.js # Star rating input
 │   ├── genres.js           # Genre CRUD operations and utilities
 │   ├── series.js           # Series CRUD operations and utilities
-│   ├── widgets/            # Dashboard widget system
-│   └── settings.js         # Settings page logic
+│   └── widgets/            # Dashboard widget system
 ├── css/tailwind.css      # Tailwind v4 with custom theme
 └── sw.js                 # Service worker for PWA
 ```
