@@ -42,6 +42,10 @@ import {
   findPotentialDuplicates
 } from './series.js';
 import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile, getHomeSettings, saveHomeSettings, lookupISBN, getSyncSettings, saveSyncSettings } from './utils.js';
+import { validateForm, showFormErrors, clearFormErrors } from './utils/validation.js';
+import { ChangePasswordSchema, DeleteAccountSchema } from './schemas/auth.js';
+import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from './schemas/genre.js';
+import { SeriesFormSchema } from './schemas/series.js';
 import { md5, getGravatarUrl } from './md5.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from './utils/widget-settings.js';
 import { getWidgetInfo, WIDGET_SIZES } from './widgets/widget-renderer.js';
@@ -624,6 +628,8 @@ changePasswordBtn.addEventListener('click', () => {
   confirmPasswordInput.value = '';
   // Reset password strength UI
   updateNewPasswordUI('');
+  // Clear any previous validation errors
+  clearFormErrors(passwordForm);
   passwordModal.classList.remove('hidden');
   lockBodyScroll();
   if (!isMobile()) currentPasswordInput.focus();
@@ -699,17 +705,17 @@ newPasswordInput?.addEventListener('input', (e) => {
 passwordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const currentPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const confirmPassword = confirmPasswordInput.value;
+  // Validate form data with schema
+  clearFormErrors(passwordForm);
+  const formData = {
+    currentPassword: currentPasswordInput.value,
+    newPassword: newPasswordInput.value,
+    confirmPassword: confirmPasswordInput.value
+  };
 
-  if (newPassword !== confirmPassword) {
-    showToast('New passwords do not match', { type: 'error' });
-    return;
-  }
-
-  if (newPassword.length < 6) {
-    showToast('Password must be at least 6 characters', { type: 'error' });
+  const result = validateForm(ChangePasswordSchema, formData);
+  if (!result.success) {
+    showFormErrors(passwordForm, result.errors);
     return;
   }
 
@@ -718,11 +724,11 @@ passwordForm.addEventListener('submit', async (e) => {
 
   try {
     // Re-authenticate user
-    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    const credential = EmailAuthProvider.credential(currentUser.email, result.data.currentPassword);
     await reauthenticateWithCredential(currentUser, credential);
 
     // Update password
-    await updatePassword(currentUser, newPassword);
+    await updatePassword(currentUser, result.data.newPassword);
 
     showToast('Password updated successfully!', { type: 'success' });
     passwordModal.classList.add('hidden');
@@ -751,6 +757,8 @@ privacySettingsBtn.addEventListener('click', () => {
 deleteAccountBtn.addEventListener('click', () => {
   deleteConfirmPasswordInput.value = '';
   deleteConfirmTextInput.value = '';
+  // Clear any previous validation errors
+  clearFormErrors(deleteAccountForm);
   deleteAccountModal.classList.remove('hidden');
   lockBodyScroll();
   if (!isMobile()) deleteConfirmPasswordInput.focus();
@@ -771,11 +779,16 @@ deleteAccountModal.addEventListener('click', (e) => {
 deleteAccountForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const password = deleteConfirmPasswordInput.value;
-  const confirmText = deleteConfirmTextInput.value;
+  // Validate form data with schema
+  clearFormErrors(deleteAccountForm);
+  const formData = {
+    password: deleteConfirmPasswordInput.value,
+    confirmText: deleteConfirmTextInput.value
+  };
 
-  if (confirmText !== 'DELETE') {
-    showToast('Please type DELETE to confirm', { type: 'error' });
+  const result = validateForm(DeleteAccountSchema, formData);
+  if (!result.success) {
+    showFormErrors(deleteAccountForm, result.errors);
     return;
   }
 
@@ -784,7 +797,7 @@ deleteAccountForm.addEventListener('submit', async (e) => {
 
   try {
     // Re-authenticate user
-    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    const credential = EmailAuthProvider.credential(currentUser.email, result.data.password);
     await reauthenticateWithCredential(currentUser, credential);
 
     // Delete all user data from Firestore
@@ -937,6 +950,8 @@ function openAddModal() {
   const availableColors = getAvailableColors(genres);
   selectedColor = availableColors[0] || GENRE_COLORS[0];
   saveGenreBtn.textContent = 'Add';
+  // Clear any previous validation errors
+  clearFormErrors(genreForm);
   renderColorPicker();
   genreModal.classList.remove('hidden');
   lockBodyScroll();
@@ -952,6 +967,8 @@ function openEditModal(genreId) {
   genreNameInput.value = genre.name;
   selectedColor = genre.color;
   saveGenreBtn.textContent = 'Save';
+  // Clear any previous validation errors
+  clearFormErrors(genreForm);
   renderColorPicker();
   genreModal.classList.remove('hidden');
   lockBodyScroll();
@@ -995,9 +1012,30 @@ deleteModal.addEventListener('click', (e) => {
 genreForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const name = genreNameInput.value.trim();
-  if (!name) {
-    showToast('Please enter a genre name', { type: 'error' });
+  // Validate form data with schema
+  clearFormErrors(genreForm);
+  const formData = {
+    name: genreNameInput.value,
+    color: selectedColor
+  };
+
+  const result = validateForm(GenreSchema, formData);
+  if (!result.success) {
+    showFormErrors(genreForm, result.errors);
+    return;
+  }
+
+  // Check for duplicate name
+  const nameError = validateGenreUniqueness(result.data.name, genres, editingGenreId);
+  if (nameError) {
+    showFormErrors(genreForm, { name: nameError });
+    return;
+  }
+
+  // Check for duplicate colour
+  const colourError = validateColourUniqueness(result.data.color, genres, editingGenreId);
+  if (colourError) {
+    showFormErrors(genreForm, { color: colourError });
     return;
   }
 
@@ -1006,10 +1044,10 @@ genreForm.addEventListener('submit', async (e) => {
 
   try {
     if (editingGenreId) {
-      await updateGenre(currentUser.uid, editingGenreId, { name, color: selectedColor });
+      await updateGenre(currentUser.uid, editingGenreId, { name: result.data.name, color: result.data.color });
       showToast('Genre updated!', { type: 'success' });
     } else {
-      await createGenre(currentUser.uid, name, selectedColor);
+      await createGenre(currentUser.uid, result.data.name, result.data.color);
       showToast('Genre created!', { type: 'success' });
     }
 
@@ -2008,6 +2046,8 @@ function openAddSeriesModal() {
   seriesDescriptionInput.value = '';
   seriesTotalBooksInput.value = '';
   saveSeriesBtn.textContent = 'Add';
+  // Clear any previous validation errors
+  clearFormErrors(seriesForm);
   seriesModal.classList.remove('hidden');
   lockBodyScroll();
   if (!isMobile()) seriesNameInput.focus();
@@ -2026,6 +2066,8 @@ function openEditSeriesModal(seriesId) {
   seriesDescriptionInput.value = s.description || '';
   seriesTotalBooksInput.value = s.totalBooks || '';
   saveSeriesBtn.textContent = 'Save';
+  // Clear any previous validation errors
+  clearFormErrors(seriesForm);
   seriesModal.classList.remove('hidden');
   lockBodyScroll();
   if (!isMobile()) seriesNameInput.focus();
@@ -2113,24 +2155,33 @@ mergeTargetSelect?.addEventListener('change', () => {
 seriesForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const name = seriesNameInput.value.trim();
-  if (!name) {
-    showToast('Please enter a series name', { type: 'error' });
+  // Validate form data with schema
+  clearFormErrors(seriesForm);
+  const formData = {
+    name: seriesNameInput.value,
+    description: seriesDescriptionInput.value || null,
+    totalBooks: seriesTotalBooksInput.value
+  };
+
+  const result = validateForm(SeriesFormSchema, formData);
+  if (!result.success) {
+    showFormErrors(seriesForm, result.errors);
     return;
   }
-
-  const description = seriesDescriptionInput.value.trim() || null;
-  const totalBooks = seriesTotalBooksInput.value ? parseInt(seriesTotalBooksInput.value, 10) : null;
 
   saveSeriesBtn.disabled = true;
   saveSeriesBtn.textContent = 'Saving...';
 
   try {
     if (editingSeriesId) {
-      await updateSeries(currentUser.uid, editingSeriesId, { name, description, totalBooks });
+      await updateSeries(currentUser.uid, editingSeriesId, {
+        name: result.data.name,
+        description: result.data.description,
+        totalBooks: result.data.totalBooks
+      });
       showToast('Series updated!', { type: 'success' });
     } else {
-      await createSeries(currentUser.uid, name, description, totalBooks);
+      await createSeries(currentUser.uid, result.data.name, result.data.description, result.data.totalBooks);
       showToast('Series created!', { type: 'success' });
     }
 
