@@ -28,7 +28,7 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 {% include "settings-nav.njk" %}
 
 <div class="max-w-6xl mx-auto px-4 py-6">
-  <div class="flex gap-8">
+  <div class="lg:flex lg:gap-8">
     <!-- Sidebar Navigation (Desktop Only) -->
     <aside class="hidden lg:block w-48 flex-shrink-0">
       <nav class="sticky top-36" aria-label="In this section">
@@ -42,8 +42,17 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     </aside>
 
     <!-- Main Content -->
-    <main id="main-content" class="flex-1 min-w-0 max-w-2xl page-content">
-      <h1 class="text-2xl font-bold text-gray-900 mb-6">Library</h1>
+    <main id="main-content" class="flex-1 min-w-0 max-w-2xl mx-auto lg:mx-0 page-content">
+      <h1 class="text-2xl font-bold text-gray-900 mb-4">Library</h1>
+
+      <!-- Mobile Section Navigation (Pills) -->
+      <nav class="lg:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar" aria-label="Jump to section">
+        <div class="flex gap-2">
+          <a href="#genres" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Genres</a>
+          <a href="#series" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Series</a>
+          <a href="#backup" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Backup</a>
+        </div>
+      </nav>
 
       <!-- Genres Section -->
       <section id="genres" class="mb-8 scroll-mt-36">
