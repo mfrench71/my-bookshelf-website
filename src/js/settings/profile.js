@@ -17,10 +17,11 @@ import {
   deleteDoc,
   writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, lockBodyScroll, unlockBodyScroll, isMobile } from '../utils.js';
+import { showToast, initIcons, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, isMobile } from '../utils.js';
 import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
 import { ChangePasswordSchema, DeleteAccountSchema } from '../schemas/auth.js';
 import { getGravatarUrl } from '../md5.js';
+import { BottomSheet } from '../components/modal.js';
 
 // Initialize icons once on load
 initIcons();
@@ -94,6 +95,11 @@ const confirmDeleteAccountBtn = document.getElementById('confirm-delete-account'
 // Photo upload constants
 const MAX_FILE_SIZE = 500 * 1024; // 500KB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Bottom Sheet Instances
+const photoSheet = photoModal ? new BottomSheet({ container: photoModal }) : null;
+const passwordSheet = passwordModal ? new BottomSheet({ container: passwordModal }) : null;
+const deleteAccountSheet = deleteAccountModal ? new BottomSheet({ container: deleteAccountModal }) : null;
 
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
@@ -234,14 +240,11 @@ async function updateAvatarDisplay() {
 
 function openPhotoModal() {
   updatePhotoPreview();
-  photoModal.classList.remove('hidden');
-  lockBodyScroll();
-  initIcons();
+  photoSheet?.open();
 }
 
 function closePhotoModal() {
-  photoModal.classList.add('hidden');
-  unlockBodyScroll();
+  photoSheet?.close();
 }
 
 function updatePhotoPreview() {
@@ -377,21 +380,12 @@ changePasswordBtn?.addEventListener('click', () => {
   confirmPasswordInput.value = '';
   updateNewPasswordUI('');
   clearFormErrors(passwordForm);
-  passwordModal.classList.remove('hidden');
-  lockBodyScroll();
+  passwordSheet?.open();
   if (!isMobile()) currentPasswordInput.focus();
 });
 
 cancelPasswordBtn?.addEventListener('click', () => {
-  passwordModal.classList.add('hidden');
-  unlockBodyScroll();
-});
-
-passwordModal?.addEventListener('click', (e) => {
-  if (e.target === passwordModal) {
-    passwordModal.classList.add('hidden');
-    unlockBodyScroll();
-  }
+  passwordSheet?.close();
 });
 
 function updateNewPasswordUI(password) {
@@ -472,8 +466,7 @@ passwordForm?.addEventListener('submit', async (e) => {
     await updatePassword(currentUser, result.data.newPassword);
 
     showToast('Password updated successfully!', { type: 'success' });
-    passwordModal.classList.add('hidden');
-    unlockBodyScroll();
+    passwordSheet?.close();
   } catch (error) {
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       showToast('Current password is incorrect', { type: 'error' });
@@ -501,21 +494,12 @@ deleteAccountBtn?.addEventListener('click', () => {
   deleteConfirmPasswordInput.value = '';
   deleteConfirmTextInput.value = '';
   clearFormErrors(deleteAccountForm);
-  deleteAccountModal.classList.remove('hidden');
-  lockBodyScroll();
+  deleteAccountSheet?.open();
   if (!isMobile()) deleteConfirmPasswordInput.focus();
 });
 
 cancelDeleteAccountBtn?.addEventListener('click', () => {
-  deleteAccountModal.classList.add('hidden');
-  unlockBodyScroll();
-});
-
-deleteAccountModal?.addEventListener('click', (e) => {
-  if (e.target === deleteAccountModal) {
-    deleteAccountModal.classList.add('hidden');
-    unlockBodyScroll();
-  }
+  deleteAccountSheet?.close();
 });
 
 deleteAccountForm?.addEventListener('submit', async (e) => {

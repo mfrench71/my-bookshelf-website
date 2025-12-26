@@ -122,9 +122,10 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
   </div>
 </main>
 
-<!-- Profile Photo Modal -->
-<div id="photo-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-sm p-6">
+<!-- Profile Photo Bottom Sheet -->
+<div id="photo-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-sm p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-4">Profile Photo</h3>
     <div class="flex flex-col items-center">
       <div id="photo-preview" class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden mb-4">
@@ -150,9 +151,10 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
   </div>
 </div>
 
-<!-- Change Password Modal -->
-<div id="password-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6">
+<!-- Change Password Bottom Sheet -->
+<div id="password-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-md p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-4">Change Password</h3>
     <form id="password-form" class="space-y-4" novalidate>
       <div>
@@ -198,9 +200,10 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
   </div>
 </div>
 
-<!-- Delete Account Modal -->
-<div id="delete-account-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6">
+<!-- Delete Account Bottom Sheet -->
+<div id="delete-account-modal" class="hidden fixed inset-0 bg-black/50 z-50 p-4">
+  <div class="bottom-sheet-content bg-white w-full max-w-md p-6 md:mx-auto">
+    <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold text-red-600 mb-2">Delete Account</h3>
     <p class="text-gray-600 mb-4">This action is permanent and cannot be undone. All your books, genres, and data will be permanently deleted.</p>
     <form id="delete-account-form" class="space-y-4" novalidate>
