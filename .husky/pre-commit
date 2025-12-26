@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Run lint-staged for staged files
+npx lint-staged
+
+# Run fast critical tests (HTML alignment catches schema/form mismatches)
+npm test -- tests/form-html-alignment.test.js tests/schemas.test.js --run

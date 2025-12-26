@@ -16,7 +16,14 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/js/**/*.js'],
-      exclude: ['src/js/firebase-config.js', 'src/js/app.js']
+      exclude: ['src/js/firebase-config.js', 'src/js/app.js'],
+      thresholds: {
+        // Enforce minimum coverage - fail CI if below these
+        lines: 60,
+        functions: 60,
+        branches: 50,
+        statements: 60
+      }
     }
   }
 });
