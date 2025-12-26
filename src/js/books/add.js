@@ -76,6 +76,7 @@ let coverPicker = null;
 let seriesPicker = null;
 let scannerRunning = false;
 let formDirty = false;
+let beforeUnloadHandler = null;
 let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
@@ -840,9 +841,13 @@ document.querySelectorAll('#book-form input, #book-form textarea, #book-form sel
   }));
 
 // Warn before leaving with unsaved changes
-window.addEventListener('beforeunload', (e) => {
+if (beforeUnloadHandler) {
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+}
+beforeUnloadHandler = (e) => {
   if (formDirty) {
     e.preventDefault();
     e.returnValue = '';
   }
-});
+};
+window.addEventListener('beforeunload', beforeUnloadHandler);

@@ -27,6 +27,7 @@ let genres = [];
 let genreLookup = null;
 let series = [];
 let seriesLookup = null;
+let onlineListenersAttached = false;
 
 // DOM Elements
 const menuBtn = document.getElementById('menu-btn');
@@ -62,9 +63,12 @@ function updateOnlineStatus() {
 // Initial check
 updateOnlineStatus();
 
-// Listen for online/offline events
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
+// Listen for online/offline events (with guard to prevent duplicates)
+if (!onlineListenersAttached) {
+  onlineListenersAttached = true;
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+}
 
 // Auth State
 onAuthStateChanged(auth, async (user) => {

@@ -34,6 +34,7 @@ let originalGenres = [];
 let originalSeriesId = null;
 let originalValues = {};
 let formDirty = false;
+let beforeUnloadHandler = null;
 let currentReads = [];
 
 // Get book ID from URL
@@ -553,12 +554,16 @@ editForm.addEventListener('submit', async (e) => {
 });
 
 // Warn before leaving with unsaved changes
-window.addEventListener('beforeunload', (e) => {
+if (beforeUnloadHandler) {
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+}
+beforeUnloadHandler = (e) => {
   if (formDirty) {
     e.preventDefault();
     e.returnValue = '';
   }
-});
+};
+window.addEventListener('beforeunload', beforeUnloadHandler);
 
 // Refresh Data from APIs
 async function fetchBookDataFromAPI(isbn, title, author) {
@@ -675,14 +680,6 @@ refreshDataBtn.addEventListener('click', async () => {
       }
 
       if (changedFields.length > 0) {
-        setTimeout(() => {
-          document.querySelectorAll('.field-changed').forEach(el => {
-            el.classList.remove('field-changed');
-          });
-        }, 3000);
-      }
-
-      if (changedFields.length > 0) {
         updateSaveButtonState();
         showToast(`Updated: ${changedFields.join(', ')}`, { type: 'success' });
       } else {
@@ -690,12 +687,6 @@ refreshDataBtn.addEventListener('click', async () => {
       }
     } else {
       if (changedFields.length > 0) {
-        setTimeout(() => {
-          document.querySelectorAll('.field-changed').forEach(el => {
-            el.classList.remove('field-changed');
-          });
-        }, 3000);
-
         updateSaveButtonState();
         showToast(`Normalized: ${changedFields.join(', ')}`, { type: 'success' });
       } else {

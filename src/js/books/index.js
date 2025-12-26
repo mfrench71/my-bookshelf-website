@@ -869,9 +869,11 @@ let pullStartY = 0;
 let pullCurrentY = 0;
 let isPulling = false;
 let pullThreshold = 80; // Pixels to pull before triggering refresh
+let touchListenersAttached = false;
 
-// Only enable on touch devices
-if ('ontouchstart' in window && pullIndicator && mainContent) {
+// Only enable on touch devices (with guard to prevent duplicates)
+if ('ontouchstart' in window && pullIndicator && mainContent && !touchListenersAttached) {
+  touchListenersAttached = true;
   document.addEventListener('touchstart', handleTouchStart, { passive: true });
   document.addEventListener('touchmove', handleTouchMove, { passive: false });
   document.addEventListener('touchend', handleTouchEnd, { passive: true });
