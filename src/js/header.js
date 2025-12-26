@@ -234,11 +234,16 @@ if (menuBtn && menuOverlay && menuPanel && closeMenuBtn) {
 function openMenu() {
   menuOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden'; // Prevent body scroll
-  setTimeout(() => menuPanel.classList.remove('translate-x-full'), 10);
+  // Use requestAnimationFrame to ensure the hidden class is removed before animating
+  requestAnimationFrame(() => {
+    menuPanel.classList.remove('translate-x-full');
+    menuPanel.classList.add('translate-x-0');
+  });
   initIcons();
 }
 
 function closeMenu() {
+  menuPanel.classList.remove('translate-x-0');
   menuPanel.classList.add('translate-x-full');
   document.body.style.overflow = ''; // Restore body scroll
   setTimeout(() => menuOverlay.classList.add('hidden'), 200);

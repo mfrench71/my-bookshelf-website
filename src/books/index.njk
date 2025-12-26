@@ -8,9 +8,9 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
   <div class="max-w-6xl mx-auto px-4 py-3">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
       <!-- Sort -->
-      <div class="relative flex-1 md:flex-none md:w-48">
+      <div class="flex-1 md:flex-none md:w-48">
         <select id="sort-select"
-          class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+          class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
           <option value="title-asc">Title (A-Z)</option>
@@ -20,13 +20,12 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
           <option value="rating-desc">Rating (High-Low)</option>
           <option value="rating-asc">Rating (Low-High)</option>
         </select>
-        <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
       </div>
       <!-- Filters -->
       <div class="flex items-center gap-2 flex-1 md:flex-none">
-        <div class="relative flex-1 md:flex-none">
+        <div class="flex-1 md:flex-none">
           <select id="rating-filter"
-            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
             <option value="0">All Ratings</option>
             <option value="5">5 Stars</option>
             <option value="4">4+ Stars</option>
@@ -34,30 +33,26 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
             <option value="2">2+ Stars</option>
             <option value="1">1+ Stars</option>
           </select>
-          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
         </div>
-        <div class="relative flex-1 md:flex-none">
+        <div class="flex-1 md:flex-none">
           <select id="genre-filter"
-            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
             <option value="">All Genres</option>
           </select>
-          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
         </div>
-        <div class="relative flex-1 md:flex-none">
+        <div class="flex-1 md:flex-none">
           <select id="status-filter"
-            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
             <option value="">All Status</option>
             <option value="reading">Reading</option>
             <option value="finished">Finished</option>
           </select>
-          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
         </div>
-        <div class="relative flex-1 md:flex-none">
+        <div class="flex-1 md:flex-none">
           <select id="series-filter"
-            class="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
             <option value="">All Series</option>
           </select>
-          <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
         </div>
       </div>
       <!-- Reset Filters -->
