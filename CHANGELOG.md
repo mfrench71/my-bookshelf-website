@@ -9,6 +9,7 @@ All notable changes to MyBookShelf are documented here.
 - Convert modals to bottom sheets on mobile (slide up, swipe to dismiss)
 - Fix double carets on book list filter selects
 - Fix iOS Chrome issues with menu and search overlays
+- Make header menu responsive (bottom sheet on mobile, slide-out on desktop)
 - Split Settings into 5 focused pages:
   - Profile: Account info, avatar, password, delete account
   - Library: Genres, series, backup & restore

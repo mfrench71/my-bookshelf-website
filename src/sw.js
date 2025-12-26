@@ -1,5 +1,5 @@
 // Service Worker for MyBookShelf PWA
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const STATIC_CACHE = `mybookshelf-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mybookshelf-images-${CACHE_VERSION}`;
 const API_CACHE = `mybookshelf-api-${CACHE_VERSION}`;

@@ -14,6 +14,7 @@ import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
+import { BottomSheet } from './components/modal.js';
 
 // Initialize icons once on load
 initIcons();
@@ -31,7 +32,14 @@ let seriesLookup = null;
 // DOM Elements
 const menuBtn = document.getElementById('menu-btn');
 const menuOverlay = document.getElementById('menu-overlay');
+// Mobile bottom sheet elements
 const menuPanel = document.getElementById('menu-panel');
+const closeMenuMobileBtn = document.getElementById('close-menu-mobile');
+const logoutBtnMobile = document.getElementById('logout-btn-mobile');
+const userEmailMobile = document.getElementById('user-email-mobile');
+const menuAvatarMobile = document.getElementById('menu-avatar-mobile');
+// Desktop slide-out elements
+const menuPanelDesktop = document.getElementById('menu-panel-desktop');
 const closeMenuBtn = document.getElementById('close-menu');
 const logoutBtn = document.getElementById('logout-btn');
 const userEmail = document.getElementById('user-email');
@@ -64,11 +72,11 @@ window.addEventListener('offline', updateOnlineStatus);
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
+    // Set email in both mobile and desktop menus
     if (userEmail) userEmail.textContent = user.email;
-    // Update menu avatar
-    if (menuAvatar) {
-      await updateMenuAvatar(user);
-    }
+    if (userEmailMobile) userEmailMobile.textContent = user.email;
+    // Update menu avatars (both mobile and desktop)
+    await updateMenuAvatar(user);
     // Don't load all books upfront - load when search opens
   } else {
     window.location.href = '/login/';
@@ -78,6 +86,25 @@ onAuthStateChanged(auth, async (user) => {
 // Update menu avatar with user photo, Gravatar, or initial
 async function updateMenuAvatar(user) {
   const initial = user.email ? user.email.charAt(0).toUpperCase() : '?';
+  const avatars = [menuAvatar, menuAvatarMobile].filter(Boolean);
+
+  // Helper to set avatar content
+  function setAvatarImage(src) {
+    avatars.forEach(avatar => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Profile';
+      img.className = 'w-full h-full object-cover';
+      avatar.innerHTML = '';
+      avatar.appendChild(img);
+    });
+  }
+
+  function setAvatarInitial() {
+    avatars.forEach(avatar => {
+      avatar.textContent = initial;
+    });
+  }
 
   // Try to load user profile photo from Firestore
   try {
@@ -85,13 +112,7 @@ async function updateMenuAvatar(user) {
     const userData = userDoc.exists() ? userDoc.data() : {};
 
     if (userData.photoUrl && isValidImageUrl(userData.photoUrl)) {
-      // Use createElement to prevent XSS
-      const img = document.createElement('img');
-      img.src = userData.photoUrl;
-      img.alt = 'Profile';
-      img.className = 'w-full h-full object-cover';
-      menuAvatar.innerHTML = '';
-      menuAvatar.appendChild(img);
+      setAvatarImage(userData.photoUrl);
       return;
     }
   } catch (e) {
@@ -126,13 +147,7 @@ async function updateMenuAvatar(user) {
     }
 
     if (gravatarExists) {
-      // Use createElement to prevent XSS
-      const img = document.createElement('img');
-      img.src = gravatarUrl;
-      img.alt = 'Profile';
-      img.className = 'w-full h-full object-cover';
-      menuAvatar.innerHTML = '';
-      menuAvatar.appendChild(img);
+      setAvatarImage(gravatarUrl);
       return;
     }
   } catch (e) {
@@ -140,7 +155,7 @@ async function updateMenuAvatar(user) {
   }
 
   // Fall back to initial
-  menuAvatar.textContent = initial;
+  setAvatarInitial();
 }
 
 // Load all books for search - called when search opens
@@ -222,42 +237,74 @@ async function loadAllBooksForSearch() {
   }
 }
 
-// Menu
-if (menuBtn && menuOverlay && menuPanel && closeMenuBtn) {
+// Menu - Mobile uses BottomSheet, Desktop uses slide-out
+const menuSheet = menuOverlay ? new BottomSheet({ container: menuOverlay }) : null;
+
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 767px)').matches;
+}
+
+if (menuBtn && menuOverlay) {
   menuBtn.addEventListener('click', openMenu);
+}
+
+// Mobile close button
+if (closeMenuMobileBtn) {
+  closeMenuMobileBtn.addEventListener('click', closeMenu);
+}
+
+// Desktop close button and backdrop click
+if (closeMenuBtn) {
   closeMenuBtn.addEventListener('click', closeMenu);
+}
+if (menuOverlay) {
   menuOverlay.addEventListener('click', (e) => {
     if (e.target === menuOverlay) closeMenu();
   });
 }
 
 function openMenu() {
-  menuOverlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  requestAnimationFrame(() => {
-    menuPanel.classList.remove('translate-x-full');
-    menuPanel.classList.add('translate-x-0');
-  });
+  if (isMobileViewport()) {
+    // Mobile: use bottom sheet
+    menuSheet?.open();
+  } else {
+    // Desktop: use slide-out panel
+    menuOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+      menuPanelDesktop?.classList.remove('translate-x-full');
+      menuPanelDesktop?.classList.add('translate-x-0');
+    });
+  }
   initIcons();
 }
 
 function closeMenu() {
-  menuPanel.classList.remove('translate-x-0');
-  menuPanel.classList.add('translate-x-full');
-  document.body.style.overflow = '';
-  setTimeout(() => menuOverlay.classList.add('hidden'), 200);
+  if (isMobileViewport()) {
+    menuSheet?.close();
+  } else {
+    menuPanelDesktop?.classList.remove('translate-x-0');
+    menuPanelDesktop?.classList.add('translate-x-full');
+    document.body.style.overflow = '';
+    setTimeout(() => menuOverlay?.classList.add('hidden'), 200);
+  }
 }
 
-// Logout
+// Logout (both mobile and desktop buttons)
+async function handleLogout() {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('Error signing out:', error);
+    showToast('Error signing out. Please try again.', { type: 'error' });
+  }
+}
+
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      showToast('Error signing out. Please try again.', { type: 'error' });
-    }
-  });
+  logoutBtn.addEventListener('click', handleLogout);
+}
+if (logoutBtnMobile) {
+  logoutBtnMobile.addEventListener('click', handleLogout);
 }
 
 // Search
