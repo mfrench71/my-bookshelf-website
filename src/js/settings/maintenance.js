@@ -211,6 +211,7 @@ recountGenresBtn?.addEventListener('click', runRecountGenres);
 
 /**
  * Issue type configuration for rendering
+ * apiFixable is derived from HEALTH_FIELDS at runtime
  */
 const ISSUE_CONFIG = {
   missingCover: { icon: 'image', label: 'Missing cover image', field: 'coverImageUrl' },
@@ -221,6 +222,14 @@ const ISSUE_CONFIG = {
   missingPublishedDate: { icon: 'calendar', label: 'Missing published date', field: 'publishedDate' },
   missingIsbn: { icon: 'barcode', label: 'Missing ISBN', field: 'isbn' }
 };
+
+/**
+ * Check if an issue type can be fixed via API
+ */
+function isApiFixable(issueType) {
+  const field = ISSUE_CONFIG[issueType]?.field;
+  return field && HEALTH_FIELDS[field]?.apiFixable;
+}
 
 /**
  * Update the Library Health dashboard
@@ -296,8 +305,9 @@ function renderIssueRows() {
     const issueBooks = healthReport.issues[issueType] || [];
     if (issueBooks.length === 0) continue;
 
+    const canFixViaApi = isApiFixable(issueType);
     const withIsbnCount = issueBooks.filter(b => b.isbn).length;
-    const isbnText = withIsbnCount > 0 ? ` (${withIsbnCount} with ISBN)` : '';
+    const summaryText = canFixViaApi && withIsbnCount > 0 ? ` (${withIsbnCount} with ISBN)` : '';
 
     html += `
       <div class="issue-section border border-gray-200 rounded-lg overflow-hidden">
@@ -306,16 +316,16 @@ function renderIssueRows() {
           <div class="flex items-center gap-3">
             <i data-lucide="${config.icon}" class="w-4 h-4 text-amber-500 flex-shrink-0" aria-hidden="true"></i>
             <span class="text-sm text-gray-700">
-              <span class="font-medium">${issueBooks.length}</span> ${config.label.toLowerCase()}${isbnText}
+              <span class="font-medium">${issueBooks.length}</span> ${config.label.toLowerCase()}${summaryText}
             </span>
           </div>
           <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 issue-chevron transition-transform" aria-hidden="true"></i>
         </button>
         <div class="issue-details hidden p-3 border-t border-gray-200 bg-white">
           <div class="space-y-2 max-h-48 overflow-y-auto">
-            ${renderBookList(issueBooks, issueType)}
+            ${renderBookList(issueBooks, issueType, canFixViaApi)}
           </div>
-          ${withIsbnCount > 0 ? `
+          ${canFixViaApi ? (withIsbnCount > 0 ? `
             <button class="fix-issue-btn mt-3 flex items-center gap-2 px-3 py-1.5 text-sm bg-primary hover:bg-primary-dark text-white rounded transition-colors"
                     data-issue="${issueType}">
               <i data-lucide="wand-2" class="w-3 h-3" aria-hidden="true"></i>
@@ -323,6 +333,8 @@ function renderIssueRows() {
             </button>
           ` : `
             <p class="mt-3 text-sm text-gray-500 italic">No books have ISBN for API lookup</p>
+          `) : `
+            <p class="mt-3 text-sm text-gray-500 italic">This field must be entered manually</p>
           `}
         </div>
       </div>
@@ -348,8 +360,11 @@ function renderIssueRows() {
 
 /**
  * Render list of books with an issue
+ * @param {Array} books - Books to render
+ * @param {string} issueType - The issue type
+ * @param {boolean} canFixViaApi - Whether this issue can be fixed via API
  */
-function renderBookList(books, issueType) {
+function renderBookList(books, issueType, canFixViaApi) {
   return books.map(book => {
     const hasIsbn = !!book.isbn;
     const cover = book.coverImageUrl || '';
@@ -366,7 +381,13 @@ function renderBookList(books, issueType) {
           <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(book.title || 'Untitled')}</p>
           <p class="text-xs text-gray-500 truncate">${escapeHtml(book.author || 'Unknown author')}</p>
         </div>
-        ${!hasIsbn ? `<span class="text-xs text-gray-400 flex-shrink-0">No ISBN</span>` : ''}
+        ${canFixViaApi ? (
+          !hasIsbn ? `<span class="text-xs text-gray-400 flex-shrink-0">No ISBN</span>` : ''
+        ) : `
+          <a href="/books/edit/?id=${book.id}" class="text-xs text-primary hover:text-primary-dark flex-shrink-0">
+            Edit
+          </a>
+        `}
       </div>
     `;
   }).join('');

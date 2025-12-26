@@ -14,16 +14,16 @@ import { lookupISBN } from './api.js';
  * API availability notes:
  * - coverImageUrl: Good availability from both Google Books and Open Library
  * - genres: Good from Google Books categories, supplemented by Open Library subjects
- * - pageCount: Available from both APIs, but not all books have it
- * - physicalFormat: Only from Open Library edition endpoint - many books lack this
+ * - pageCount: Poor coverage - many books don't have this in APIs
+ * - physicalFormat: Very poor - only Open Library edition endpoint, rarely available
  * - publisher: Good availability from both APIs
  * - publishedDate: Good availability from both APIs
  */
 export const HEALTH_FIELDS = {
   coverImageUrl: { weight: 2, label: 'Cover Image', apiFixable: true },
   genres: { weight: 2, label: 'Genres', apiFixable: true },
-  pageCount: { weight: 1, label: 'Page Count', apiFixable: true },
-  physicalFormat: { weight: 1, label: 'Format', apiFixable: true }, // Open Library only - less reliable
+  pageCount: { weight: 1, label: 'Page Count', apiFixable: false }, // Poor API coverage
+  physicalFormat: { weight: 1, label: 'Format', apiFixable: false }, // Very poor API coverage
   publisher: { weight: 1, label: 'Publisher', apiFixable: true },
   publishedDate: { weight: 1, label: 'Published Date', apiFixable: true },
   isbn: { weight: 0, label: 'ISBN', apiFixable: false } // Not counted in score, but tracked
