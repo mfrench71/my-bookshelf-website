@@ -146,6 +146,9 @@ npm test && npm run build
 - [ ] Multiple shelves/lists
 - [ ] Social features (follow, share)
 - [ ] Reading goals/challenges
+- [ ] Show modified date (updatedAt) on book view page
+- [ ] Quick edit on book card (link direct to book edit page)
+- [ ] Settings tab indicators: Maintenance (attention dot if issues), Bin (count badge if items)
 - [x] Bin for deleted books (soft-delete with 30-day restore) - unique feature, no competitors offer this
 
 ### Bulk Tools
@@ -187,6 +190,8 @@ npm test && npm run build
 - **Books list**: Filter by series via dropdown
 
 #### Future Series Enhancements
+- [ ] Auto-create series when accepting API suggestion (create series if not exists, link book automatically)
+- [ ] Limit series position to totalBooks max (if series has totalBooks=7, position dropdown shows 1-7 only)
 - [ ] Series widget: Show reading progress (X of Y finished) alongside owned count
 - [ ] Series widget: List which books are owned with read/unread status
 - [ ] External series lookup API (Wikidata SPARQL or similar)
@@ -257,6 +262,7 @@ npm test && npm run build
 - [ ] Event listener cleanup in components (142 add vs 8 remove - potential memory leaks)
 - [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines)
 - [ ] Review async functions for missing try/catch (117 async, 97 try blocks)
+- [ ] Book edit: API refresh green highlight should persist, not fade after delay
 
 ---
 
