@@ -103,7 +103,9 @@ npm run build
 npm run start
 
 # Individual build steps
+npm run build:icons     # Generate tree-shaken Lucide bundle
 npm run build:11ty      # Build HTML from Nunjucks templates
+npm run build:js        # Bundle and minify JavaScript
 npm run build:css       # Compile and minify Tailwind CSS
 
 # Watch modes (for development)
@@ -123,8 +125,9 @@ npm run test:coverage # Run with coverage report
 
 ### Build System
 - **11ty (Eleventy)** generates HTML from Nunjucks templates in `src/` to `_site/`
+- **esbuild** bundles and minifies JavaScript entry points to `_site/js/`
 - **Tailwind CSS v4** compiles `src/css/tailwind.css` to `_site/css/styles.css`
-- Static files (JS, icons, manifest, service worker) are passed through unchanged
+- Custom Lucide bundle (14KB tree-shaken vs 378KB full) generated at build time
 
 ### Directory Structure
 ```

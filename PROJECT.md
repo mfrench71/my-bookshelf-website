@@ -232,9 +232,9 @@ npm test && npm run build
 ### Technical Debt
 - [x] Fix colour inconsistencies in Data Cleanup buttons (all amber) ✅
 - [x] Generate in-app changelog from CHANGELOG.md at build time (11ty data file) ✅
-- [ ] Full Zod validation (remove HTML validation attributes)
-- [ ] Tree-shake Lucide icons (387KB → ~30KB)
-- [ ] Minify/bundle JavaScript
+- [x] Full Zod validation (remove HTML validation attributes, add novalidate) ✅
+- [x] Tree-shake Lucide icons (378KB → 14KB) ✅
+- [x] Minify/bundle JavaScript (797KB → 259KB custom + 265KB vendor) ✅
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
 
@@ -375,10 +375,10 @@ Genres from APIs are automatically processed:
 | Asset | Size | Status |
 |-------|------|--------|
 | Tailwind CSS | 56KB | OK (minified) |
-| Lucide Icons | 378KB | Needs tree-shaking |
+| Lucide Icons | 14KB | Tree-shaken ✅ |
 | Quagga | 157KB | OK (lazy loaded) |
 | Zod | 251KB | Minified ✅ |
-| Custom JS | 797KB | Needs minification |
+| Custom JS | 259KB | Minified & bundled ✅ |
 
 ### Scalability (Tested: ~100 books)
 For 500+ books:

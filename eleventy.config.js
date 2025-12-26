@@ -1,15 +1,14 @@
 module.exports = function(eleventyConfig) {
-  // Pass through static files
-  eleventyConfig.addPassthroughCopy("src/js");
+  // Pass through static files (JS is bundled separately by build:js)
   eleventyConfig.addPassthroughCopy("src/icons");
   eleventyConfig.addPassthroughCopy("src/favicon-32.png");
   eleventyConfig.addPassthroughCopy("src/manifest.json");
   eleventyConfig.addPassthroughCopy("src/sw.js");
   eleventyConfig.addPassthroughCopy("src/robots.txt");
 
-  // Vendor files from node_modules (local instead of CDN)
+  // Vendor files
   eleventyConfig.addPassthroughCopy({
-    "node_modules/lucide/dist/umd/lucide.min.js": "vendor/lucide.min.js"
+    "src/js/vendor/lucide.min.js": "vendor/lucide.min.js"
   });
   eleventyConfig.addPassthroughCopy({
     "node_modules/@ericblade/quagga2/dist/quagga.min.js": "vendor/quagga.min.js"

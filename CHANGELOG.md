@@ -4,6 +4,16 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-26
+
+- Tree-shake Lucide icons (378KB → 14KB)
+- Bundle and minify JavaScript with esbuild (797KB → 259KB)
+- Add novalidate to forms, rely fully on Zod validation
+- Update password requirements hint to 8+ characters
+- Update documentation and build commands
+
+---
+
 ## 2025-12-25
 
 - Replace back buttons with breadcrumb navigation
