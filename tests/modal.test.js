@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Modal, ConfirmModal } from '../src/js/components/modal.js';
+import { Modal, ConfirmModal, BottomSheet, ConfirmSheet } from '../src/js/components/modal.js';
 
 describe('Modal', () => {
   let container;
@@ -428,6 +428,335 @@ describe('ConfirmModal', () => {
       modal.show();
 
       expect(modal.isOpen).toBe(true);
+    });
+  });
+});
+
+describe('BottomSheet', () => {
+  let container;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    container.className = 'hidden fixed inset-0 bg-black/50 z-50 p-4';
+    container.innerHTML = '<div class="bottom-sheet-content bg-white p-6"></div>';
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    document.body.style.overflow = '';
+  });
+
+  describe('initialization', () => {
+    it('should initialize with container', () => {
+      const sheet = new BottomSheet({ container });
+
+      expect(sheet.container).toBe(container);
+      expect(sheet.isOpen).toBe(false);
+    });
+
+    it('should default swipeToDismiss to true', () => {
+      const sheet = new BottomSheet({ container });
+
+      expect(sheet.swipeToDismiss).toBe(true);
+    });
+
+    it('should allow disabling swipeToDismiss', () => {
+      const sheet = new BottomSheet({ container, swipeToDismiss: false });
+
+      expect(sheet.swipeToDismiss).toBe(false);
+    });
+
+    it('should have default swipe threshold of 100', () => {
+      const sheet = new BottomSheet({ container });
+
+      expect(sheet.swipeThreshold).toBe(100);
+    });
+
+    it('should allow custom swipe threshold', () => {
+      const sheet = new BottomSheet({ container, swipeThreshold: 50 });
+
+      expect(sheet.swipeThreshold).toBe(50);
+    });
+  });
+
+  describe('open', () => {
+    it('should add bottom-sheet-backdrop class', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      expect(container.classList.contains('bottom-sheet-backdrop')).toBe(true);
+    });
+
+    it('should remove hidden class', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      expect(container.classList.contains('hidden')).toBe(false);
+    });
+
+    it('should find content element', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      expect(sheet.contentEl).toBe(container.querySelector('.bottom-sheet-content'));
+    });
+
+    it('should lock body scroll', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    it('should call onOpen callback', () => {
+      const onOpen = vi.fn();
+      const sheet = new BottomSheet({ container, onOpen });
+
+      sheet.open();
+
+      expect(onOpen).toHaveBeenCalled();
+    });
+  });
+
+  describe('close', () => {
+    it('should add modal-exit class for animation', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+      sheet.close();
+
+      expect(container.classList.contains('modal-exit')).toBe(true);
+    });
+
+    it('should reset content transform', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+      // Simulate a drag
+      sheet.contentEl.style.transform = 'translateY(50px)';
+      sheet.close();
+
+      expect(sheet.contentEl.style.transform).toBe('');
+    });
+
+    it('should set isOpen to false', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+      sheet.close();
+
+      expect(sheet.isOpen).toBe(false);
+    });
+
+    it('should unlock body scroll', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+      sheet.close();
+
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    it('should add hidden class after timeout', async () => {
+      vi.useFakeTimers();
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+      sheet.close();
+
+      await vi.advanceTimersByTimeAsync(300);
+
+      expect(container.classList.contains('hidden')).toBe(true);
+      vi.useRealTimers();
+    });
+  });
+
+  describe('backdrop click', () => {
+    it('should close when clicking backdrop', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: container });
+      container.dispatchEvent(event);
+
+      expect(sheet.isOpen).toBe(false);
+    });
+  });
+
+  describe('escape key', () => {
+    it('should close on Escape key', () => {
+      const sheet = new BottomSheet({ container });
+
+      sheet.open();
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      document.dispatchEvent(event);
+
+      expect(sheet.isOpen).toBe(false);
+    });
+  });
+});
+
+describe('ConfirmSheet', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    document.body.style.overflow = '';
+  });
+
+  describe('initialization', () => {
+    it('should create container if not provided', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test message'
+      });
+
+      expect(sheet.container).toBeTruthy();
+      expect(document.body.contains(sheet.container)).toBe(true);
+    });
+
+    it('should render with bottom-sheet-content class', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      expect(sheet.container.querySelector('.bottom-sheet-content')).toBeTruthy();
+    });
+
+    it('should render drag handle', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      expect(sheet.container.querySelector('.bottom-sheet-handle')).toBeTruthy();
+    });
+
+    it('should render title and message', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Delete Book?',
+        message: 'This cannot be undone.'
+      });
+
+      expect(sheet.container.querySelector('.confirm-title').textContent).toBe('Delete Book?');
+      expect(sheet.container.querySelector('.confirm-message').textContent).toBe('This cannot be undone.');
+    });
+
+    it('should render buttons with 44px touch targets', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      const confirmBtn = sheet.container.querySelector('.confirm-btn');
+      const cancelBtn = sheet.container.querySelector('.cancel-btn');
+
+      expect(confirmBtn.classList.contains('min-h-[44px]')).toBe(true);
+      expect(cancelBtn.classList.contains('min-h-[44px]')).toBe(true);
+    });
+  });
+
+  describe('confirm action', () => {
+    it('should call onConfirm when confirm clicked', () => {
+      const onConfirm = vi.fn();
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test',
+        onConfirm
+      });
+
+      sheet.open();
+      sheet.container.querySelector('.confirm-btn').click();
+
+      expect(onConfirm).toHaveBeenCalled();
+    });
+
+    it('should close after confirm', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      sheet.open();
+      sheet.container.querySelector('.confirm-btn').click();
+
+      expect(sheet.isOpen).toBe(false);
+    });
+  });
+
+  describe('cancel action', () => {
+    it('should call onCancel when cancel clicked', () => {
+      const onCancel = vi.fn();
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test',
+        onCancel
+      });
+
+      sheet.open();
+      sheet.container.querySelector('.cancel-btn').click();
+
+      expect(onCancel).toHaveBeenCalled();
+    });
+
+    it('should close after cancel', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      sheet.open();
+      sheet.container.querySelector('.cancel-btn').click();
+
+      expect(sheet.isOpen).toBe(false);
+    });
+  });
+
+  describe('setContent', () => {
+    it('should update title and message', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Original',
+        message: 'Original'
+      });
+
+      sheet.setContent({ title: 'Updated', message: 'New message' });
+
+      expect(sheet.container.querySelector('.confirm-title').textContent).toBe('Updated');
+      expect(sheet.container.querySelector('.confirm-message').textContent).toBe('New message');
+    });
+  });
+
+  describe('setLoading', () => {
+    it('should disable buttons when loading', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      sheet.setLoading(true);
+
+      expect(sheet.container.querySelector('.confirm-btn').disabled).toBe(true);
+      expect(sheet.container.querySelector('.cancel-btn').disabled).toBe(true);
+    });
+  });
+
+  describe('show alias', () => {
+    it('should open sheet', () => {
+      const sheet = new ConfirmSheet({
+        title: 'Test',
+        message: 'Test'
+      });
+
+      sheet.show();
+
+      expect(sheet.isOpen).toBe(true);
     });
   });
 });
