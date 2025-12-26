@@ -27,29 +27,53 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 {% set activePage = 'library' %}
 {% include "settings-nav.njk" %}
 
-<main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">Library</h1>
+<div class="max-w-6xl mx-auto px-4 py-6">
+  <div class="flex gap-8">
+    <!-- Sidebar Navigation (Desktop Only) -->
+    <aside class="hidden lg:block w-48 flex-shrink-0">
+      <nav class="sticky top-36" aria-label="In this section">
+        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">In this section</h2>
+        <ul class="space-y-1">
+          <li><a href="#genres" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Genres</a></li>
+          <li><a href="#series" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Series</a></li>
+          <li><a href="#backup" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Backup & Restore</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-  <!-- Genres Section -->
-  <section class="mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Genres</h2>
+    <!-- Main Content -->
+    <main id="main-content" class="flex-1 min-w-0 max-w-2xl page-content">
+      <h1 class="text-2xl font-bold text-gray-900 mb-6">Library</h1>
+
+      <!-- Genres Section -->
+      <section id="genres" class="mb-8 scroll-mt-36">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Genres</h2>
       <button id="add-genre-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
         <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
         <span>Add</span>
       </button>
     </div>
 
-    <!-- Loading State (Skeleton) -->
-    <div id="genres-loading" class="space-y-2">
-      {% for i in range(0, 4) %}
-      <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
-        <div class="skeleton w-4 h-4 rounded-full"></div>
-        <div class="skeleton skeleton-text flex-1 w-24"></div>
-        <div class="skeleton skeleton-text w-8"></div>
-      </div>
-      {% endfor %}
-    </div>
+        <!-- Loading State (Skeleton) -->
+        <div id="genres-loading" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table class="w-full">
+            <tbody class="divide-y divide-gray-100">
+              {% for i in range(0, 4) %}
+              <tr>
+                <td class="py-1.5 px-3">
+                  <div class="flex items-center gap-2">
+                    <div class="skeleton w-3 h-3 rounded-full"></div>
+                    <div class="skeleton skeleton-text w-24"></div>
+                  </div>
+                </td>
+                <td class="py-1.5 px-3 text-right"><div class="skeleton skeleton-text w-4 ml-auto"></div></td>
+                <td class="py-1.5 px-1"><div class="skeleton w-14 h-5 ml-auto"></div></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
     <!-- Empty State -->
     <div id="genres-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200">
@@ -62,25 +86,30 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     <div id="genre-list" class="space-y-2"></div>
   </section>
 
-  <!-- Series Section -->
-  <section class="mb-8">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Series</h2>
+      <!-- Series Section -->
+      <section id="series" class="mb-8 scroll-mt-36">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Series</h2>
       <button id="add-series-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
         <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
         <span>Add</span>
       </button>
     </div>
 
-    <!-- Loading State (Skeleton) -->
-    <div id="series-loading" class="space-y-2">
-      {% for i in range(0, 4) %}
-      <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
-        <div class="skeleton skeleton-text flex-1 w-32"></div>
-        <div class="skeleton skeleton-text w-16"></div>
-      </div>
-      {% endfor %}
-    </div>
+        <!-- Loading State (Skeleton) -->
+        <div id="series-loading" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table class="w-full">
+            <tbody class="divide-y divide-gray-100">
+              {% for i in range(0, 4) %}
+              <tr>
+                <td class="py-1.5 px-3"><div class="skeleton skeleton-text w-32"></div></td>
+                <td class="py-1.5 px-3 text-right"><div class="skeleton skeleton-text w-6 ml-auto"></div></td>
+                <td class="py-1.5 px-1"><div class="skeleton w-20 h-5 ml-auto"></div></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
     <!-- Empty State -->
     <div id="series-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200">
@@ -105,38 +134,40 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     </div>
   </section>
 
-  <!-- Backup & Restore Section -->
-  <section class="mb-8">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Backup & Restore</h2>
+      <!-- Backup & Restore Section -->
+      <section id="backup" class="mb-8 scroll-mt-36">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Backup & Restore</h2>
 
-    <!-- Export -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-      <h3 class="font-medium text-gray-900 mb-2">Export Backup</h3>
-      <p class="text-gray-600 text-sm mb-4">Download all your books and genres as a JSON file.</p>
-      <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
-        <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
-        <span>Download Backup</span>
-      </button>
-    </div>
-
-    <!-- Import -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 class="font-medium text-gray-900 mb-2">Import Backup</h3>
-      <p class="text-gray-600 text-sm mb-4">Restore books and genres from a backup file. Duplicates will be skipped.</p>
-      <input type="file" id="import-file" accept=".json" class="hidden">
-      <button id="import-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
-        <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
-        <span>Select Backup File</span>
-      </button>
-      <div id="import-progress" class="hidden mt-4">
-        <div class="flex items-center gap-2 text-sm text-gray-600">
-          <span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></span>
-          <span id="import-status">Importing...</span>
+        <!-- Export -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+          <h3 class="font-medium text-gray-900 mb-2">Export Backup</h3>
+          <p class="text-gray-600 text-sm mb-4">Download all your books and genres as a JSON file.</p>
+          <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
+            <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Download Backup</span>
+          </button>
         </div>
-      </div>
-    </div>
-  </section>
-</main>
+
+        <!-- Import -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-medium text-gray-900 mb-2">Import Backup</h3>
+          <p class="text-gray-600 text-sm mb-4">Restore books and genres from a backup file. Duplicates will be skipped.</p>
+          <input type="file" id="import-file" accept=".json" class="hidden">
+          <button id="import-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+            <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Select Backup File</span>
+          </button>
+          <div id="import-progress" class="hidden mt-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></span>
+              <span id="import-status">Importing...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
 
 <!-- Create/Edit Genre Modal -->
 <div id="genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
