@@ -31,8 +31,8 @@
 </header>
 
 <!-- Menu Overlay -->
-<div id="menu-overlay" class="hidden fixed inset-0 bg-black/50 z-50">
-  <div id="menu-panel" class="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl translate-x-full transition-transform duration-200">
+<div id="menu-overlay" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-50">
+  <div id="menu-panel" class="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl translate-x-full transition-transform duration-200">
     <div class="p-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -50,13 +50,13 @@
       </div>
     </div>
     <nav class="p-2">
-      <a href="/settings/" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg">
-        <i data-lucide="settings" class="w-5 h-5 text-gray-600"></i>
+      <a href="/settings/" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg min-h-[44px]">
+        <i data-lucide="settings" class="w-5 h-5 text-gray-600" aria-hidden="true"></i>
         <span>Settings</span>
       </a>
       <hr class="my-2">
-      <button id="logout-btn" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg text-left text-red-600">
-        <i data-lucide="log-out" class="w-5 h-5"></i>
+      <button id="logout-btn" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg text-left text-red-600 min-h-[44px]">
+        <i data-lucide="log-out" class="w-5 h-5" aria-hidden="true"></i>
         <span>Sign Out</span>
       </button>
     </nav>
@@ -64,7 +64,7 @@
 </div>
 
 <!-- Search Overlay -->
-<div id="search-overlay" class="hidden fixed inset-0 bg-white z-50 flex flex-col overflow-hidden">
+<div id="search-overlay" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-white z-50 flex flex-col overflow-hidden">
   <div class="flex items-center gap-2 p-4 border-b border-gray-200 flex-shrink-0">
     <button id="close-search" class="p-2.5 hover:bg-gray-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Close search">
       <i data-lucide="arrow-left" class="w-5 h-5" aria-hidden="true"></i>

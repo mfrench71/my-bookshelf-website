@@ -233,8 +233,7 @@ if (menuBtn && menuOverlay && menuPanel && closeMenuBtn) {
 
 function openMenu() {
   menuOverlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden'; // Prevent body scroll
-  // Use requestAnimationFrame to ensure the hidden class is removed before animating
+  document.body.style.overflow = 'hidden';
   requestAnimationFrame(() => {
     menuPanel.classList.remove('translate-x-full');
     menuPanel.classList.add('translate-x-0');
@@ -245,7 +244,7 @@ function openMenu() {
 function closeMenu() {
   menuPanel.classList.remove('translate-x-0');
   menuPanel.classList.add('translate-x-full');
-  document.body.style.overflow = ''; // Restore body scroll
+  document.body.style.overflow = '';
   setTimeout(() => menuOverlay.classList.add('hidden'), 200);
 }
 
