@@ -26,7 +26,8 @@ const ENTRY_POINTS = [
   'settings/preferences.js',
   'settings/maintenance.js',
   'settings/bin.js',
-  'settings/about.js'
+  'settings/about.js',
+  'wishlist/index.js'
 ];
 
 // Files to copy without bundling (loaded separately via script tag)

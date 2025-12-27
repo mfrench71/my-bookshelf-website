@@ -54,7 +54,9 @@ MyBookShelf/
 │   │   │   └── about.js        # Changelog accordions
 │   │   ├── genres.js           # Genre CRUD
 │   │   ├── series.js           # Series CRUD
+│   │   ├── wishlist.js         # Wishlist CRUD
 │   │   ├── books/              # Book page modules
+│   │   ├── wishlist/           # Wishlist page modules
 │   │   ├── components/         # Reusable UI components
 │   │   ├── schemas/            # Zod validation schemas
 │   │   ├── widgets/            # Dashboard widget system
@@ -86,7 +88,7 @@ npm test && npm run build
 
 ### Firebase
 - **Project**: book-tracker-b786e
-- **Firestore**: `/users/{userId}/books`, `/users/{userId}/genres`, `/users/{userId}/series`
+- **Firestore**: `/users/{userId}/books`, `/users/{userId}/genres`, `/users/{userId}/series`, `/users/{userId}/wishlist`
 
 ---
 
@@ -121,6 +123,33 @@ npm test && npm run build
 | TBR Stack | To-be-read with random pick | 6 (half) |
 | Author Spotlight | Featured author's books | 12 (full) |
 | Reading Calendar | Activity heatmap | 12 (full) |
+
+---
+
+## Completed: Wishlist Feature ✅
+
+### Delivered
+- ✅ Separate wishlist collection for books user wants to buy (not owned)
+- ✅ Wishlist page with card list, sorting, and item management
+- ✅ Add to wishlist button on book search results (heart icon)
+- ✅ Edit priority (high/medium/low) and notes on wishlist items
+- ✅ "I bought this" action to move item to library (with ISBN data enrichment)
+- ✅ Delete wishlist items with confirmation
+- ✅ Wishlist link in offcanvas menu with dynamic count badge
+- ✅ Duplicate detection (by ISBN or title+author)
+- ✅ Compact card layout with inline action buttons
+- ✅ Author sort by surname (consistent with book list)
+- ✅ 23 wishlist unit tests
+
+### Data Model
+```
+/users/{userId}/wishlist/{itemId}
+  - title, author, isbn, coverImageUrl, covers
+  - publisher, publishedDate, pageCount
+  - priority: 'high' | 'medium' | 'low' | null
+  - notes, addedFrom: 'search' | 'isbn' | 'manual'
+  - createdAt, updatedAt
+```
 
 ---
 

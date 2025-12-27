@@ -6,6 +6,17 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-27
 
+- Add Wishlist feature for books user wants to buy:
+  - Separate collection from owned books
+  - Wishlist page with sorting (date, priority, title, author by surname)
+  - Add to wishlist button on book search results (heart icon)
+  - Edit priority (high/medium/low) and notes
+  - "I bought this" action moves item to library with ISBN data enrichment
+  - Delete items with confirmation
+  - Wishlist link in offcanvas menu with dynamic count badge
+  - Duplicate detection by ISBN or title+author
+  - Compact card layout with action buttons
+  - 23 unit tests
 - Add multi-select checkbox filters with OR logic:
   - Status, genre, and series filters now support multiple selections
   - Faceted search shows count on each checkbox option

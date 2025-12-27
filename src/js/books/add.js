@@ -21,6 +21,7 @@ import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
+import { addWishlistItem, checkWishlistDuplicate } from '../wishlist.js';
 
 // Initialize icons once on load
 initIcons();
@@ -428,6 +429,10 @@ function renderSearchResults(books, append = false) {
           ${[book.publisher, book.publishedDate, book.pageCount ? `${book.pageCount} pages` : ''].filter(Boolean).join(' · ')}
         </p>
       </div>
+      <button type="button" class="wishlist-btn flex-shrink-0 p-2 text-gray-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+        title="Add to wishlist" aria-label="Add to wishlist">
+        <i data-lucide="heart" class="w-5 h-5"></i>
+      </button>
     </div>
   `;}).join('');
 
@@ -444,6 +449,16 @@ function renderSearchResults(books, append = false) {
 
     // Set up click delegation once
     searchResultsDiv.onclick = (e) => {
+      // Handle wishlist button click
+      const wishlistBtn = e.target.closest('.wishlist-btn');
+      if (wishlistBtn) {
+        e.stopPropagation();
+        const result = wishlistBtn.closest('.search-result');
+        if (result) handleAddToWishlist(result, wishlistBtn);
+        return;
+      }
+
+      // Handle card click to select book
       const result = e.target.closest('.search-result');
       if (result) selectSearchResult(result);
     };
@@ -541,6 +556,66 @@ async function selectSearchResult(el) {
 
   showToast('Book selected!', { type: 'success' });
   formDirty = true;
+}
+
+/**
+ * Handle adding a book to the wishlist from search results
+ */
+async function handleAddToWishlist(resultEl, btn) {
+  if (!currentUser) {
+    showToast('Please sign in first', { type: 'error' });
+    return;
+  }
+
+  // Check for offline before attempting Firebase operation
+  if (!isOnline()) {
+    showToast('You are offline. Please check your connection.', { type: 'error' });
+    return;
+  }
+
+  const { title, author, cover, publisher, published, isbn, pagecount } = resultEl.dataset;
+
+  // Disable button and show loading state
+  btn.disabled = true;
+  btn.classList.add('opacity-50');
+
+  try {
+    // Check for duplicates first
+    const existing = await checkWishlistDuplicate(currentUser.uid, isbn, title, author);
+    if (existing) {
+      showToast(`"${existing.title}" is already in your wishlist`, { type: 'error' });
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+      return;
+    }
+
+    // Add to wishlist
+    await addWishlistItem(currentUser.uid, {
+      title,
+      author,
+      isbn: isbn || null,
+      coverImageUrl: cover || null,
+      covers: cover ? { googleBooks: cover } : null,
+      publisher: publisher || null,
+      publishedDate: published || null,
+      pageCount: pagecount ? parseInt(pagecount, 10) : null,
+      addedFrom: 'search'
+    });
+
+    // Update button to show success (filled heart)
+    btn.innerHTML = '<i data-lucide="heart" class="w-5 h-5 fill-current"></i>';
+    btn.classList.remove('text-gray-400', 'hover:text-pink-500', 'hover:bg-pink-50');
+    btn.classList.add('text-pink-500');
+    btn.disabled = true;
+    initIcons();
+
+    showToast(`"${title}" added to wishlist`, { type: 'success' });
+  } catch (error) {
+    console.error('Error adding to wishlist:', error);
+    showToast('Failed to add to wishlist', { type: 'error' });
+    btn.disabled = false;
+    btn.classList.remove('opacity-50');
+  }
 }
 
 // Debounced search with error handling

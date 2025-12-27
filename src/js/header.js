@@ -14,6 +14,7 @@ import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
+import { getWishlistCount, clearWishlistCache } from './wishlist.js';
 
 // Initialize icons once on load
 initIcons();
@@ -50,6 +51,9 @@ const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
 const offlineBanner = document.getElementById('offline-banner');
+// Wishlist count badges
+const wishlistCountMobile = document.getElementById('wishlist-count-mobile');
+const wishlistCountDesktop = document.getElementById('wishlist-count-desktop');
 
 // Offline Detection
 function updateOnlineStatus() {
@@ -79,9 +83,39 @@ onAuthStateChanged(auth, async (user) => {
     if (userEmailMobile) userEmailMobile.textContent = user.email;
     // Update menu avatars (both mobile and desktop)
     await updateMenuAvatar(user);
+    // Load wishlist count for badge
+    await updateWishlistBadge(user.uid);
     // Don't load all books upfront - load when search opens
   } else {
     window.location.href = '/login/';
+  }
+});
+
+// Update wishlist count badge in menu
+async function updateWishlistBadge(userId) {
+  try {
+    const count = await getWishlistCount(userId);
+    const badges = [wishlistCountMobile, wishlistCountDesktop].filter(Boolean);
+
+    badges.forEach(badge => {
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    });
+  } catch (e) {
+    console.warn('Failed to load wishlist count:', e.message);
+  }
+}
+
+// Listen for wishlist updates from other modules
+window.addEventListener('wishlist-updated', () => {
+  if (currentUser) {
+    // Clear local cache (each bundle has its own copy)
+    clearWishlistCache();
+    updateWishlistBadge(currentUser.uid);
   }
 });
 
