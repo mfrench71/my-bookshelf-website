@@ -17,7 +17,7 @@ All notable changes to MyBookShelf are documented here.
 - Fix duplicate filter chips on mobile
 - Fix raw error.message exposure to users (14 occurrences)
 - Add CLAUDE.md guideline for user-friendly error messages
-- Add .claude/settings.local.json to .gitignore
+- Add .claude/settings.local.json to .gitignore.
 
 ---
 
