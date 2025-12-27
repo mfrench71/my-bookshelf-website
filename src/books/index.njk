@@ -72,8 +72,7 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 <main id="main-content" class="max-w-6xl mx-auto px-4 pt-6 pb-24 page-content">
   <div class="flex gap-4 md:gap-6">
     <!-- Desktop: Filter Sidebar -->
-    <aside class="hidden md:block w-60 flex-shrink-0">
-      <div class="sticky top-20">
+    <aside class="hidden md:block w-72 flex-shrink-0">
         <!-- Skeleton loader -->
         <div id="filter-sidebar-skeleton" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
           <div>
@@ -102,15 +101,14 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
         <div id="filter-sidebar" class="hidden bg-white rounded-xl border border-gray-200 p-4">
           <!-- FilterPanel renders here -->
         </div>
-        <!-- Active Filter Chips (desktop) -->
-        <div id="active-filters-desktop" class="hidden mt-3">
-          <div class="flex flex-wrap gap-2"></div>
-        </div>
-      </div>
     </aside>
 
     <!-- Book Grid -->
     <div class="flex-1 min-w-0">
+      <!-- Active Filter Chips (desktop) - above book list, hidden on mobile -->
+      <div id="active-filters-desktop" class="hidden mb-4 max-md:!hidden">
+        <div class="flex flex-wrap items-center gap-2"></div>
+      </div>
       <!-- Loading State (Skeleton Cards) -->
       <div id="loading-state" class="space-y-3">
         {% for i in range(0, 5) %}

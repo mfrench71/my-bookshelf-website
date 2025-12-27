@@ -92,7 +92,8 @@ export function bookCard(book, options = {}) {
   const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
     ? `<div class="book-cover-wrapper">
         <div class="book-cover-placeholder"><i data-lucide="book"></i></div>
-        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="book-cover" loading="lazy" onerror="this.style.display='none'">
+        <div class="book-cover-spinner"><i data-lucide="loader-2" class="w-6 h-6 text-gray-400 animate-spin"></i></div>
+        <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="book-cover" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='none'">
       </div>`
     : `<div class="book-cover-placeholder"><i data-lucide="book"></i></div>`;
 

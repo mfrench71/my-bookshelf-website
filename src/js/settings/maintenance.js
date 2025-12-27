@@ -295,7 +295,7 @@ function renderIssueRows() {
               <div class="text-xs text-gray-500">by ${author}</div>
               <div class="flex flex-wrap gap-1 mt-1">${badges}</div>
             </div>
-            <a href="/books/edit/?id=${book.id}" class="flex-shrink-0 px-3 py-1 text-sm text-primary hover:text-primary-dark">Edit</a>
+            <a href="/books/edit/?id=${book.id}" class="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Edit book"><i data-lucide="pencil" class="w-4 h-4" aria-hidden="true"></i></a>
           </div>
         `;
       }).join('')}

@@ -78,7 +78,7 @@ export class FilterPanel {
   render() {
     const sortSection = this.showSort ? `
       <div class="filter-group">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+        <label class="block text-sm font-semibold text-gray-900 mb-2">Sort By</label>
         <select id="filter-sort" class="filter-select">
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
@@ -102,24 +102,28 @@ export class FilterPanel {
 
         <!-- Status: Checkboxes -->
         <div class="filter-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-          <div class="space-y-2" id="status-checkboxes">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" value="reading" class="filter-checkbox w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
-              <span class="filter-label">Reading</span>
-              <span class="filter-count text-xs text-gray-400"></span>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">Status</label>
+          <div class="space-y-3" id="status-checkboxes">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="filter-label text-sm text-gray-900">Reading</span>
+              <span class="flex items-center gap-3">
+                <span class="filter-count text-sm text-gray-500"></span>
+                <input type="checkbox" value="reading" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+              </span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" value="finished" class="filter-checkbox w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
-              <span class="filter-label">Finished</span>
-              <span class="filter-count text-xs text-gray-400"></span>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="filter-label text-sm text-gray-900">Finished</span>
+              <span class="flex items-center gap-3">
+                <span class="filter-count text-sm text-gray-500"></span>
+                <input type="checkbox" value="finished" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+              </span>
             </label>
           </div>
         </div>
 
         <!-- Rating: Dropdown (single-select, minimum threshold) -->
         <div class="filter-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">Rating</label>
           <select id="filter-rating" class="filter-select">
             <option value="0">All Ratings</option>
             <option value="5">5 Stars</option>
@@ -127,34 +131,35 @@ export class FilterPanel {
             <option value="3">3+ Stars</option>
             <option value="2">2+ Stars</option>
             <option value="1">1+ Stars</option>
+            <option value="unrated">Unrated</option>
           </select>
         </div>
 
         <!-- Genre: Checkboxes (scrollable if many) -->
         <div class="filter-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Genre</label>
-          <div class="space-y-2 max-h-40 overflow-y-auto" id="genre-checkboxes">
+          <label class="block text-sm font-semibold text-gray-900 mb-2">Genre</label>
+          <div class="space-y-3 max-h-48 overflow-y-auto pr-4" id="genre-checkboxes">
             <!-- Dynamically populated -->
           </div>
         </div>
 
         <!-- More Filters Toggle -->
-        <button id="toggle-more-filters" class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1">
+        <button id="toggle-more-filters" class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 mt-3">
           <i data-lucide="chevron-down" class="w-4 h-4 transition-transform ${hasActiveSecondaryFilter ? 'rotate-180' : ''}" aria-hidden="true"></i>
-          <span>${hasActiveSecondaryFilter ? 'Less filters' : 'More filters'}</span>
+          <span>${hasActiveSecondaryFilter ? 'Less' : 'More'}</span>
         </button>
 
         <!-- Secondary Filters (collapsible) -->
         <div id="secondary-filters" class="${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
           <div class="filter-group">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Series</label>
-            <div class="space-y-2 max-h-40 overflow-y-auto" id="series-checkboxes">
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Series</label>
+            <div class="space-y-3 max-h-48 overflow-y-auto pr-4" id="series-checkboxes">
               <!-- Dynamically populated -->
             </div>
           </div>
         </div>
 
-        <button id="filter-reset" class="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+        <button id="filter-reset" class="w-full py-2 px-4 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition-colors">
           Reset Filters
         </button>
       </div>
@@ -205,7 +210,8 @@ export class FilterPanel {
     // Rating: dropdown change (single-select)
     if (this.elements.rating) {
       this.elements.rating.addEventListener('change', () => {
-        this.filters.rating = parseInt(this.elements.rating.value, 10);
+        const val = this.elements.rating.value;
+        this.filters.rating = val === 'unrated' ? 'unrated' : parseInt(val, 10);
         this.emitChange();
       });
     }
@@ -263,16 +269,17 @@ export class FilterPanel {
     const isHidden = this.elements.secondaryFilters.classList.contains('hidden');
     this.elements.secondaryFilters.classList.toggle('hidden');
 
-    // Update toggle button text and icon
-    const icon = this.elements.moreFiltersToggle.querySelector('i');
+    // Update toggle button text
     const text = this.elements.moreFiltersToggle.querySelector('span');
+    if (text) {
+      text.textContent = isHidden ? 'Less' : 'More';
+    }
+
+    // Update icon rotation (find svg or i element)
+    const icon = this.elements.moreFiltersToggle.querySelector('svg, i');
     if (icon) {
       icon.classList.toggle('rotate-180', isHidden);
     }
-    if (text) {
-      text.textContent = isHidden ? 'Less filters' : 'More filters';
-    }
-    initIcons();
   }
 
   /**
@@ -290,11 +297,13 @@ export class FilterPanel {
 
     for (const genre of this.genres) {
       const label = document.createElement('label');
-      label.className = 'flex items-center gap-2 cursor-pointer';
+      label.className = 'flex items-center justify-between cursor-pointer';
       label.innerHTML = `
-        <input type="checkbox" value="${genre.id}" class="filter-checkbox w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
-        <span class="filter-label">${genre.name}</span>
-        <span class="filter-count text-xs text-gray-400"></span>
+        <span class="filter-label text-sm text-gray-900">${genre.name}</span>
+        <span class="flex items-center gap-3">
+          <span class="filter-count text-sm text-gray-500"></span>
+          <input type="checkbox" value="${genre.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+        </span>
       `;
       this.elements.genreCheckboxes.appendChild(label);
     }
@@ -315,11 +324,13 @@ export class FilterPanel {
 
     for (const s of this.series) {
       const label = document.createElement('label');
-      label.className = 'flex items-center gap-2 cursor-pointer';
+      label.className = 'flex items-center justify-between cursor-pointer';
       label.innerHTML = `
-        <input type="checkbox" value="${s.id}" class="filter-checkbox w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
-        <span class="filter-label">${s.name}</span>
-        <span class="filter-count text-xs text-gray-400"></span>
+        <span class="filter-label text-sm text-gray-900">${s.name}</span>
+        <span class="flex items-center gap-3">
+          <span class="filter-count text-sm text-gray-500"></span>
+          <input type="checkbox" value="${s.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+        </span>
       `;
       this.elements.seriesCheckboxes.appendChild(label);
     }
@@ -372,6 +383,9 @@ export class FilterPanel {
   setBookCounts(counts) {
     if (!counts) return;
 
+    // Track if we need to emit change due to auto-deselection of 0-count filters
+    let filtersChanged = false;
+
     // Update status checkboxes with counts
     if (this.elements.statusCheckboxes && counts.status) {
       const labels = this.elements.statusCheckboxes.querySelectorAll('label');
@@ -390,6 +404,14 @@ export class FilterPanel {
         if (countSpan) {
           countSpan.textContent = `(${count})`;
         }
+
+        // Auto-deselect if count is 0 and currently selected
+        if (count === 0 && checkbox.checked) {
+          checkbox.checked = false;
+          this.filters.statuses = this.filters.statuses.filter(s => s !== val);
+          filtersChanged = true;
+        }
+
         checkbox.disabled = count === 0;
         label.classList.toggle('opacity-50', count === 0);
         label.classList.toggle('cursor-not-allowed', count === 0);
@@ -406,7 +428,8 @@ export class FilterPanel {
       const r3 = (counts.ratings['3'] || 0) + r4;
       const r2 = (counts.ratings['2'] || 0) + r3;
       const r1 = (counts.ratings['1'] || 0) + r2;
-      const cumulative = { '0': counts.ratingTotal || 0, '5': r5, '4': r4, '3': r3, '2': r2, '1': r1 };
+      const unrated = counts.ratings['unrated'] || 0;
+      const cumulative = { '0': counts.ratingTotal || 0, '5': r5, '4': r4, '3': r3, '2': r2, '1': r1, 'unrated': unrated };
 
       options.forEach(opt => {
         const val = opt.value;
@@ -416,6 +439,9 @@ export class FilterPanel {
           opt.disabled = false; // "All" always enabled
         } else if (val === '5') {
           opt.textContent = `5 Stars (${count})`;
+          opt.disabled = count === 0;
+        } else if (val === 'unrated') {
+          opt.textContent = `Unrated (${count})`;
           opt.disabled = count === 0;
         } else {
           opt.textContent = `${val}+ Stars (${count})`;
@@ -436,6 +462,14 @@ export class FilterPanel {
         if (countSpan) {
           countSpan.textContent = `(${count})`;
         }
+
+        // Auto-deselect if count is 0 and currently selected
+        if (count === 0 && checkbox.checked) {
+          checkbox.checked = false;
+          this.filters.genres = this.filters.genres.filter(id => id !== genreId);
+          filtersChanged = true;
+        }
+
         checkbox.disabled = count === 0;
         label.classList.toggle('opacity-50', count === 0);
         label.classList.toggle('cursor-not-allowed', count === 0);
@@ -455,6 +489,14 @@ export class FilterPanel {
         if (countSpan) {
           countSpan.textContent = `(${count})`;
         }
+
+        // Auto-deselect if count is 0 and currently selected
+        if (count === 0 && checkbox.checked) {
+          checkbox.checked = false;
+          this.filters.seriesIds = this.filters.seriesIds.filter(id => id !== seriesId);
+          filtersChanged = true;
+        }
+
         checkbox.disabled = count === 0;
         label.classList.toggle('opacity-50', count === 0);
         label.classList.toggle('cursor-not-allowed', count === 0);
@@ -464,6 +506,11 @@ export class FilterPanel {
 
     // Store counts
     this.bookCounts = counts;
+
+    // Emit change if filters were auto-deselected
+    if (filtersChanged) {
+      this.emitChange();
+    }
   }
 
   /**
@@ -566,6 +613,54 @@ export class FilterPanel {
       seriesIds: []
     };
     this.syncUIFromState();
+    this.clearDisabledStates();
+  }
+
+  /**
+   * Clear all disabled states from checkboxes (re-enable all options)
+   * Called during reset to allow re-selection before counts are recalculated
+   */
+  clearDisabledStates() {
+    // Status checkboxes
+    if (this.elements.statusCheckboxes) {
+      const labels = this.elements.statusCheckboxes.querySelectorAll('label');
+      labels.forEach(label => {
+        const checkbox = label.querySelector('input');
+        checkbox.disabled = false;
+        label.classList.remove('opacity-50', 'cursor-not-allowed');
+        label.classList.add('cursor-pointer');
+      });
+    }
+
+    // Genre checkboxes
+    if (this.elements.genreCheckboxes) {
+      const labels = this.elements.genreCheckboxes.querySelectorAll('label');
+      labels.forEach(label => {
+        const checkbox = label.querySelector('input');
+        checkbox.disabled = false;
+        label.classList.remove('opacity-50', 'cursor-not-allowed');
+        label.classList.add('cursor-pointer');
+      });
+    }
+
+    // Series checkboxes
+    if (this.elements.seriesCheckboxes) {
+      const labels = this.elements.seriesCheckboxes.querySelectorAll('label');
+      labels.forEach(label => {
+        const checkbox = label.querySelector('input');
+        checkbox.disabled = false;
+        label.classList.remove('opacity-50', 'cursor-not-allowed');
+        label.classList.add('cursor-pointer');
+      });
+    }
+
+    // Rating dropdown options
+    if (this.elements.rating) {
+      const options = this.elements.rating.querySelectorAll('option');
+      options.forEach(opt => {
+        opt.disabled = false;
+      });
+    }
   }
 
   /**

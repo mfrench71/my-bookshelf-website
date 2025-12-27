@@ -600,7 +600,7 @@ describe('FilterPanel', () => {
 
       const toggleBtn = container.querySelector('#toggle-more-filters');
       expect(toggleBtn).toBeTruthy();
-      expect(toggleBtn.textContent).toContain('More filters');
+      expect(toggleBtn.textContent).toContain('More');
     });
 
     it('should hide secondary filters by default', () => {
@@ -618,7 +618,7 @@ describe('FilterPanel', () => {
 
       const secondaryFilters = container.querySelector('#secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(false);
-      expect(toggleBtn.textContent).toContain('Less filters');
+      expect(toggleBtn.textContent).toContain('Less');
     });
 
     it('should hide secondary filters when toggle is clicked again', () => {
@@ -630,7 +630,7 @@ describe('FilterPanel', () => {
 
       const secondaryFilters = container.querySelector('#secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(true);
-      expect(toggleBtn.textContent).toContain('More filters');
+      expect(toggleBtn.textContent).toContain('More');
     });
 
     it('should auto-expand secondary filters when series filter is active', () => {
@@ -645,7 +645,7 @@ describe('FilterPanel', () => {
       expect(secondaryFilters.classList.contains('hidden')).toBe(false);
 
       const toggleBtn = container.querySelector('#toggle-more-filters');
-      expect(toggleBtn.textContent).toContain('Less filters');
+      expect(toggleBtn.textContent).toContain('Less');
     });
 
     it('should place series filter in secondary filters section', () => {

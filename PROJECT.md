@@ -243,6 +243,7 @@ npm test && npm run build
 - [x] Expandable inline sections showing affected books
 - [x] Completeness score with progress bar (weighted by field importance)
 - [x] Merged old "Fetch Book Covers" tool into Health Dashboard
+- [ ] "Mark as fixed" option for books where data will never be available (e.g., pre-ISBN editions)
 
 ### Privacy Settings
 - [ ] Profile visibility (public/private)

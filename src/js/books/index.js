@@ -78,16 +78,16 @@ let mobilePanel = null;
 function applyUrlFilters() {
   const params = new URLSearchParams(window.location.search);
 
-  // Status filter (single value from URL → array)
+  // Status filter (comma-separated for multi-select)
   const status = params.get('status');
   if (status) {
-    statusFilters = [status];
+    statusFilters = status.split(',').filter(Boolean);
   }
 
-  // Rating filter
+  // Rating filter (supports 'unrated')
   const rating = params.get('rating');
   if (rating) {
-    ratingFilter = parseInt(rating, 10) || 0;
+    ratingFilter = rating === 'unrated' ? 'unrated' : parseInt(rating, 10) || 0;
   }
 
   // Sort order
@@ -97,10 +97,16 @@ function applyUrlFilters() {
     if (sortSelectMobile) sortSelectMobile.value = sort;
   }
 
-  // Series filter (URL param → array)
+  // Genre filter (comma-separated for multi-select)
+  const genres = params.get('genres');
+  if (genres) {
+    genreFilters = genres.split(',').filter(Boolean);
+  }
+
+  // Series filter (comma-separated for multi-select)
   const seriesParam = params.get('series');
   if (seriesParam) {
-    seriesFilters = [seriesParam];
+    seriesFilters = seriesParam.split(',').filter(Boolean);
   }
 
   // Author filter (URL param only)
@@ -111,6 +117,43 @@ function applyUrlFilters() {
 
   // Update author filter badge visibility
   renderActiveFilterChips();
+}
+
+// Build URL params from current filter state
+function buildFilterParams() {
+  const params = new URLSearchParams();
+
+  // Only add non-default values to keep URLs clean
+  if (currentSort !== 'createdAt-desc') {
+    params.set('sort', currentSort);
+  }
+  if (ratingFilter && ratingFilter !== 0) {
+    params.set('rating', ratingFilter);
+  }
+  if (statusFilters.length > 0) {
+    params.set('status', statusFilters.join(','));
+  }
+  if (genreFilters.length > 0) {
+    params.set('genres', genreFilters.join(','));
+  }
+  if (seriesFilters.length > 0) {
+    params.set('series', seriesFilters.join(','));
+  }
+  if (authorFilter) {
+    params.set('author', authorFilter);
+  }
+
+  return params;
+}
+
+// Update URL without page reload
+function updateUrlWithFilters() {
+  const params = buildFilterParams();
+  const newUrl = params.toString()
+    ? `${window.location.pathname}?${params}`
+    : window.location.pathname;
+
+  window.history.replaceState({}, '', newUrl);
 }
 
 // Apply URL filters on page load
@@ -477,10 +520,13 @@ function restorePreviousSort() {
   }
 }
 
-// Rating filter function (single-select, minimum threshold)
-function filterByRating(booksArray, minRating) {
-  if (minRating === 0) return booksArray;
-  return booksArray.filter(b => (b.rating || 0) >= minRating);
+// Rating filter function (single-select, minimum threshold or unrated)
+function filterByRating(booksArray, ratingValue) {
+  if (ratingValue === 0) return booksArray;
+  if (ratingValue === 'unrated') {
+    return booksArray.filter(b => !b.rating || b.rating === 0);
+  }
+  return booksArray.filter(b => (b.rating || 0) >= ratingValue);
 }
 
 // Genre filter function (multi-select, OR logic)
@@ -545,10 +591,14 @@ function calculateFilterCounts() {
   booksForRating = filterBySeriesIds(booksForRating, seriesFilters);
   booksForRating = filterByAuthor(booksForRating, authorFilter);
 
-  const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unrated: 0 };
   booksForRating.forEach(b => {
     const r = b.rating || 0;
-    if (r >= 1 && r <= 5) ratings[r]++;
+    if (r >= 1 && r <= 5) {
+      ratings[r]++;
+    } else {
+      ratings.unrated++;
+    }
   });
   // "All Ratings" count = total books matching other filters
   const ratingTotal = booksForRating.length;
@@ -800,12 +850,14 @@ async function handleSidebarFilterChange(filters) {
   updateFilterCountBadge();
   renderActiveFilterChips();
   updateFilterCounts();
+  updateUrlWithFilters();
 }
 
 /**
  * Apply filters from mobile bottom sheet
+ * @param {boolean} keepSheetOpen - If true, don't close the sheet (used by Reset)
  */
-async function applyMobileFilters() {
+async function applyMobileFilters(keepSheetOpen = false) {
   if (!mobilePanel) return;
 
   const filters = mobilePanel.getFilters();
@@ -845,7 +897,11 @@ async function applyMobileFilters() {
   updateFilterCountBadge();
   renderActiveFilterChips();
   updateFilterCounts();
-  closeFilterSheet();
+  updateUrlWithFilters();
+
+  if (!keepSheetOpen) {
+    closeFilterSheet();
+  }
 }
 
 // Mobile sort select handler
@@ -872,13 +928,14 @@ if (sortSelectMobile) {
       }
 
       updateFilterCountBadge();
+      updateUrlWithFilters();
     }
   });
 }
 
 // Check if any filters are active
 function hasActiveFilters() {
-  return ratingFilter !== 0 ||
+  return (ratingFilter !== 0 && ratingFilter !== '') ||
          genreFilters.length > 0 ||
          statusFilters.length > 0 ||
          seriesFilters.length > 0 ||
@@ -906,7 +963,9 @@ function renderActiveFilterChips() {
   const chips = [];
 
   // Rating (single-select)
-  if (ratingFilter > 0) {
+  if (ratingFilter === 'unrated') {
+    chips.push({ type: 'rating', value: 'unrated', label: 'Unrated' });
+  } else if (ratingFilter > 0) {
     chips.push({ type: 'rating', value: ratingFilter, label: `${ratingFilter}+ Stars` });
   }
 
@@ -951,13 +1010,25 @@ function renderActiveFilterChips() {
 
     container.classList.remove('hidden');
 
+    // Colour classes by filter type
+    const chipColours = {
+      rating: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+      genre: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+      status: 'bg-green-100 text-green-800 hover:bg-green-200',
+      series: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+      author: 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+    };
+
     // Render chips with value attribute for targeted removal
-    let html = chips.map(chip => `
-      <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors">
-        <span>${chip.label}</span>
-        <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
-      </button>
-    `).join('');
+    let html = chips.map(chip => {
+      const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      return `
+        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 ${colours} rounded-full text-sm font-medium transition-colors">
+          <span>${chip.label}</span>
+          <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
+        </button>
+      `;
+    }).join('');
 
     // Add "Clear all" if more than one filter
     if (chips.length > 1) {
@@ -1010,10 +1081,6 @@ async function clearFilter(filterType, filterValue = null) {
       break;
     case 'author':
       authorFilter = '';
-      // Clear URL param
-      const url = new URL(window.location);
-      url.searchParams.delete('author');
-      window.history.replaceState({}, '', url);
       break;
     case 'all':
       await resetAllFilters();
@@ -1043,6 +1110,7 @@ async function clearFilter(filterType, filterValue = null) {
   renderActiveFilterChips();
   renderBooks();
   updateFilterCounts();
+  updateUrlWithFilters();
 }
 
 // Event delegation for filter chip clicks
@@ -1066,7 +1134,9 @@ function getActiveFilterDescription() {
     parts.push(statusLabels[status] || status);
   }
 
-  if (ratingFilter) {
+  if (ratingFilter === 'unrated') {
+    parts.push('unrated');
+  } else if (ratingFilter) {
     parts.push(`${ratingFilter}+ stars`);
   }
 
@@ -1197,7 +1267,18 @@ if (closeFilterSheetBtn) {
 
 // Apply filters button in bottom sheet
 if (applyFiltersMobileBtn) {
-  applyFiltersMobileBtn.addEventListener('click', applyMobileFilters);
+  applyFiltersMobileBtn.addEventListener('click', () => applyMobileFilters());
+}
+
+// Reset button in mobile bottom sheet - apply but keep sheet open
+const mobileFilterPanel = document.getElementById('filter-panel-mobile');
+if (mobileFilterPanel) {
+  mobileFilterPanel.addEventListener('click', (e) => {
+    if (e.target.closest('#filter-reset')) {
+      // Panel already reset via its own handler, now apply to update counts
+      applyMobileFilters(true); // keepSheetOpen = true
+    }
+  });
 }
 
 // Close on backdrop click
