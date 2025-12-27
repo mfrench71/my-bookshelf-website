@@ -3,13 +3,18 @@ layout: base.njk
 title: My Books
 scripts: '<script type="module" src="/js/books/index.js"></script>'
 ---
-<!-- Sort & Filter Controls -->
-<div class="bg-white border-b border-gray-200 sticky top-14 z-30">
+<!-- Mobile: Sort & Filter Controls -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-30 md:hidden">
   <div class="max-w-6xl mx-auto px-4 py-3">
-    <div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-      <!-- Sort -->
-      <div class="flex-1 md:flex-none md:w-48">
-        <select id="sort-select"
+    <div class="flex items-center gap-2">
+      <!-- Filter trigger button -->
+      <button id="filter-trigger" class="relative p-2.5 hover:bg-gray-100 rounded-lg text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Open filters">
+        <i data-lucide="sliders-horizontal" class="w-5 h-5" aria-hidden="true"></i>
+        <span id="filter-count-badge" class="hidden absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-medium">0</span>
+      </button>
+      <!-- Sort dropdown (always visible on mobile) -->
+      <div class="flex-1">
+        <select id="sort-select-mobile"
           class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
@@ -19,56 +24,38 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
           <option value="author-desc">Author (Z-A)</option>
           <option value="rating-desc">Rating (High-Low)</option>
           <option value="rating-asc">Rating (Low-High)</option>
+          <option value="seriesPosition-asc" class="series-sort-option hidden">Series Order</option>
         </select>
       </div>
-      <!-- Filters -->
-      <div class="flex items-center gap-2 flex-1 md:flex-none">
-        <div class="flex-1 md:flex-none">
-          <select id="rating-filter"
-            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-            <option value="0">All Ratings</option>
-            <option value="5">5 Stars</option>
-            <option value="4">4+ Stars</option>
-            <option value="3">3+ Stars</option>
-            <option value="2">2+ Stars</option>
-            <option value="1">1+ Stars</option>
-          </select>
-        </div>
-        <div class="flex-1 md:flex-none">
-          <select id="genre-filter"
-            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-            <option value="">All Genres</option>
-          </select>
-        </div>
-        <div class="flex-1 md:flex-none">
-          <select id="status-filter"
-            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-            <option value="">All Status</option>
-            <option value="reading">Reading</option>
-            <option value="finished">Finished</option>
-          </select>
-        </div>
-        <div class="flex-1 md:flex-none">
-          <select id="series-filter"
-            class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
-            <option value="">All Series</option>
-          </select>
-        </div>
-      </div>
-      <!-- Reset Filters -->
-      <button id="reset-filters" class="hidden p-2.5 hover:bg-gray-100 rounded-lg text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Reset filters">
+    </div>
+    <!-- Active Filter Chips (mobile) -->
+    <div id="active-filters-mobile" class="hidden mt-2">
+      <div class="flex flex-wrap gap-2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile: Filter Bottom Sheet -->
+<div id="filter-sheet" class="hidden fixed inset-0 bg-black/50 z-50 md:hidden" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title">
+  <div id="filter-sheet-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col translate-y-full transition-transform duration-300">
+    <!-- Handle -->
+    <div class="flex justify-center py-3 flex-shrink-0">
+      <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+    </div>
+    <!-- Header -->
+    <div class="flex items-center justify-between px-4 pb-3 border-b border-gray-200 flex-shrink-0">
+      <h2 id="filter-sheet-title" class="text-lg font-semibold">Filters</h2>
+      <button id="close-filter-sheet" class="p-2 hover:bg-gray-100 rounded-lg text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Close filters">
         <i data-lucide="x" class="w-5 h-5" aria-hidden="true"></i>
       </button>
     </div>
-    <!-- Active Author Filter Badge -->
-    <div id="author-filter-badge" class="hidden flex items-center gap-2 mt-2">
-      <span class="text-sm text-gray-500">Filtering by author:</span>
-      <span class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-        <span id="author-filter-name"></span>
-        <button id="clear-author-filter" class="hover:bg-primary/20 rounded-full p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center" aria-label="Clear author filter">
-          <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
-        </button>
-      </span>
+    <!-- Filter content (scrollable) -->
+    <div id="filter-panel-mobile" class="flex-1 overflow-y-auto p-4"></div>
+    <!-- Apply button -->
+    <div class="p-4 border-t border-gray-200 flex-shrink-0">
+      <button id="apply-filters-mobile" class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors">
+        Apply Filters
+      </button>
     </div>
   </div>
 </div>
@@ -82,37 +69,80 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 </div>
 
 <!-- Main Content -->
-<main id="main-content" class="max-w-6xl mx-auto px-4 py-4 pb-24 page-content">
-  <!-- Loading State (Skeleton Cards) -->
-  <div id="loading-state" class="space-y-3">
-    {% for i in range(0, 5) %}
-    <div class="skeleton-card">
-      <div class="skeleton skeleton-cover"></div>
-      <div class="flex-1 min-w-0 py-1">
-        <div class="skeleton skeleton-text w-3/4"></div>
-        <div class="skeleton skeleton-text w-1/2"></div>
-        <div class="skeleton skeleton-text w-1/4 mt-2"></div>
+<main id="main-content" class="max-w-6xl mx-auto px-4 pt-6 pb-24 page-content">
+  <div class="flex gap-4 md:gap-6">
+    <!-- Desktop: Filter Sidebar -->
+    <aside class="hidden md:block w-60 flex-shrink-0">
+      <div class="sticky top-20">
+        <!-- Skeleton loader -->
+        <div id="filter-sidebar-skeleton" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          <div>
+            <div class="skeleton skeleton-text w-16 h-4 mb-2"></div>
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+          </div>
+          <div>
+            <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+          </div>
+          <div>
+            <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+          </div>
+          <div>
+            <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+          </div>
+          <div>
+            <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+          </div>
+          <div class="skeleton h-10 w-full rounded-lg"></div>
+        </div>
+        <!-- Actual filter panel (hidden until loaded) -->
+        <div id="filter-sidebar" class="hidden bg-white rounded-xl border border-gray-200 p-4">
+          <!-- FilterPanel renders here -->
+        </div>
+        <!-- Active Filter Chips (desktop) -->
+        <div id="active-filters-desktop" class="hidden mt-3">
+          <div class="flex flex-wrap gap-2"></div>
+        </div>
       </div>
+    </aside>
+
+    <!-- Book Grid -->
+    <div class="flex-1 min-w-0">
+      <!-- Loading State (Skeleton Cards) -->
+      <div id="loading-state" class="space-y-3">
+        {% for i in range(0, 5) %}
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-cover"></div>
+          <div class="flex-1 min-w-0 py-1">
+            <div class="skeleton skeleton-text w-3/4"></div>
+            <div class="skeleton skeleton-text w-1/2"></div>
+            <div class="skeleton skeleton-text w-1/4 mt-2"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Empty State (no books in library) -->
+      <div id="empty-state" class="hidden py-12 text-center">
+        <i data-lucide="book-open" class="w-16 h-16 text-gray-300 mx-auto"></i>
+        <h3 class="text-lg font-medium text-gray-600 mt-4">No books yet</h3>
+        <p class="text-gray-400 mt-1">Tap the + button to add your first book</p>
+      </div>
+
+      <!-- No Results State (filters active, no matches) -->
+      <div id="no-results-state" class="hidden py-12 text-center">
+        <i data-lucide="search-x" class="w-16 h-16 text-gray-300 mx-auto"></i>
+        <h3 id="no-results-title" class="text-lg font-medium text-gray-600 mt-4">No books match your filters</h3>
+        <p class="text-gray-400 mt-1">Try adjusting your filters or <button id="clear-filters-link" class="text-primary hover:underline">clear all filters</button></p>
+      </div>
+
+      <!-- Book List -->
+      <div id="book-list" class="space-y-3"></div>
     </div>
-    {% endfor %}
   </div>
-
-  <!-- Empty State (no books in library) -->
-  <div id="empty-state" class="hidden py-12 text-center">
-    <i data-lucide="book-open" class="w-16 h-16 text-gray-300 mx-auto"></i>
-    <h3 class="text-lg font-medium text-gray-600 mt-4">No books yet</h3>
-    <p class="text-gray-400 mt-1">Tap the + button to add your first book</p>
-  </div>
-
-  <!-- No Results State (filters active, no matches) -->
-  <div id="no-results-state" class="hidden py-12 text-center">
-    <i data-lucide="search-x" class="w-16 h-16 text-gray-300 mx-auto"></i>
-    <h3 id="no-results-title" class="text-lg font-medium text-gray-600 mt-4">No books match your filters</h3>
-    <p class="text-gray-400 mt-1">Try adjusting your filters or <button id="clear-filters-link" class="text-primary hover:underline">clear all filters</button></p>
-  </div>
-
-  <!-- Book List -->
-  <div id="book-list" class="space-y-3"></div>
 </main>
 
 <!-- FAB - Add Book -->

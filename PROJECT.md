@@ -131,7 +131,7 @@ npm test && npm run build
 - [ ] View mode setting (Card/Compact/List)
 - [ ] Dark mode
 - [ ] Book quick view modal
-- [ ] Books list filters: Sidebar on desktop/tablet, off-canvas drawer on mobile
+- [x] Books list filters: Sidebar on desktop/tablet, bottom sheet on mobile
 
 ### Medium Priority
 - [ ] Custom cover image upload

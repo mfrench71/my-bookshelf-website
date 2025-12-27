@@ -267,11 +267,13 @@ Common utilities are consolidated in shared modules:
 
 Reusable UI components in `src/js/components/`:
 - `book-card.js` - BookCard component for rendering book list items with genre/series badges
+- `breadcrumb.js` - Breadcrumb navigation with presets for each page type
 - `cover-picker.js` - CoverPicker for selecting from Google Books or Open Library covers
+- `filter-panel.js` - FilterPanel for sort/rating/genre/status/series filters (sidebar + bottom sheet)
 - `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead
-- `series-picker.js` - SeriesPicker class for single-select series input with position
 - `modal.js` - Modal and ConfirmModal components with escape/backdrop handling
 - `rating-input.js` - RatingInput for star rating selection
+- `series-picker.js` - SeriesPicker class for single-select series input with position
 
 Toast notifications support types: `showToast('message', { type: 'success' | 'error' | 'info' })`
 
@@ -292,6 +294,7 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `index.test.js` - Tests for home page dashboard
 - `login.test.js` - Tests for authentication page (login, register, password strength)
 - `settings.test.js` - Tests for settings page (profile, genres, series, export, cleanup)
+- `filter-panel.test.js` - Tests for FilterPanel component (render, filters, onChange, reset)
 - `genre-picker.test.js` - Tests for genre picker component (filtering, selection, keyboard nav)
 - `series.test.js` - Tests for series CRUD operations
 - `series-picker.test.js` - Tests for series picker component

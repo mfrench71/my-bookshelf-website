@@ -10,12 +10,13 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime } from '../utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime, lockBodyScroll, unlockBodyScroll } from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 import { filterActivebooks } from '../bin.js';
+import { FilterPanel } from '../components/filter-panel.js';
 
 // Initialize icons once on load
 initIcons();
@@ -37,9 +38,9 @@ let forceServerFetch = false;
 let cachedFilteredBooks = null; // Cache for filtered/sorted results
 let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
-let genreFilter = ''; // Currently selected genre ID for filtering
-let statusFilter = ''; // Currently selected status for filtering
-let seriesFilter = ''; // Currently selected series ID for filtering
+let genreFilters = []; // Array of selected genre IDs for filtering (multi-select)
+let statusFilters = []; // Array of selected statuses for filtering (multi-select)
+let seriesFilters = []; // Array of selected series IDs for filtering (multi-select)
 let authorFilter = ''; // Currently selected author for filtering (URL param only)
 let series = []; // All user series
 let seriesLookup = null; // Map of seriesId -> series object
@@ -51,55 +52,65 @@ const noResultsState = document.getElementById('no-results-state');
 const noResultsTitle = document.getElementById('no-results-title');
 const clearFiltersLink = document.getElementById('clear-filters-link');
 const bookList = document.getElementById('book-list');
-const sortSelect = document.getElementById('sort-select');
-const ratingFilterSelect = document.getElementById('rating-filter');
-const genreFilterSelect = document.getElementById('genre-filter');
-const statusFilterSelect = document.getElementById('status-filter');
-const seriesFilterSelect = document.getElementById('series-filter');
-const resetFiltersBtn = document.getElementById('reset-filters');
-const authorFilterBadge = document.getElementById('author-filter-badge');
-const authorFilterName = document.getElementById('author-filter-name');
-const clearAuthorFilterBtn = document.getElementById('clear-author-filter');
+
+// Mobile elements
+const filterTriggerBtn = document.getElementById('filter-trigger');
+const filterCountBadge = document.getElementById('filter-count-badge');
+const sortSelectMobile = document.getElementById('sort-select-mobile');
+const filterSheet = document.getElementById('filter-sheet');
+const filterSheetContent = document.getElementById('filter-sheet-content');
+const closeFilterSheetBtn = document.getElementById('close-filter-sheet');
+const applyFiltersMobileBtn = document.getElementById('apply-filters-mobile');
+
+// Desktop sidebar
+const filterSidebar = document.getElementById('filter-sidebar');
+const filterSidebarSkeleton = document.getElementById('filter-sidebar-skeleton');
+
+// Active filter chips containers (both mobile and desktop)
+const activeFiltersMobile = document.getElementById('active-filters-mobile');
+const activeFiltersDesktop = document.getElementById('active-filters-desktop');
+
+// FilterPanel instances
+let sidebarPanel = null;
+let mobilePanel = null;
 
 // Parse URL parameters and apply filters
 function applyUrlFilters() {
   const params = new URLSearchParams(window.location.search);
 
-  // Status filter
+  // Status filter (single value from URL → array)
   const status = params.get('status');
-  if (status && statusFilterSelect) {
-    statusFilter = status;
-    statusFilterSelect.value = status;
+  if (status) {
+    statusFilters = [status];
   }
 
   // Rating filter
   const rating = params.get('rating');
-  if (rating && ratingFilterSelect) {
+  if (rating) {
     ratingFilter = parseInt(rating, 10) || 0;
-    ratingFilterSelect.value = ratingFilter;
   }
 
   // Sort order
   const sort = params.get('sort');
-  if (sort && sortSelect) {
+  if (sort) {
     currentSort = sort;
-    sortSelect.value = sort;
+    if (sortSelectMobile) sortSelectMobile.value = sort;
   }
 
-  // Series filter (URL param only, no dropdown)
-  const series = params.get('series');
-  if (series) {
-    seriesFilter = series;
+  // Series filter (URL param → array)
+  const seriesParam = params.get('series');
+  if (seriesParam) {
+    seriesFilters = [seriesParam];
   }
 
-  // Author filter (URL param only, no dropdown)
+  // Author filter (URL param only)
   const author = params.get('author');
   if (author) {
     authorFilter = author;
   }
 
-  // Update filter highlights for URL params
-  updateFilterHighlights();
+  // Update author filter badge visibility
+  renderActiveFilterChips();
 }
 
 // Apply URL filters on page load
@@ -112,6 +123,9 @@ onAuthStateChanged(auth, async (user) => {
     // Load genres, series, and books in parallel for faster initial load
     await Promise.all([loadGenres(), loadSeries(), loadBooks()]);
 
+    // Initialize filter panels with loaded data
+    initializeFilterPanels();
+
     // Re-render now that all lookups are ready (loadBooks may have rendered before genres/series loaded)
     renderBooks();
 
@@ -121,17 +135,15 @@ onAuthStateChanged(auth, async (user) => {
     // Set up auto-refresh when tab becomes visible
     setupVisibilityRefresh(silentRefreshBooks);
 
-    // If series filter was set via URL param, set up Series Order sort
-    if (seriesFilter) {
+    // If exactly one series filter was set via URL param, set up Series Order sort
+    if (seriesFilters.length === 1) {
       updateSeriesOrderOption(true);
       switchToSeriesOrder();
-      updateResetButton(); // Show reset button
     }
 
-    // If author filter was set via URL param, show reset button
-    if (authorFilter) {
-      updateResetButton();
-    }
+    // Update filter count badge and chips
+    updateFilterCountBadge();
+    renderActiveFilterChips();
   }
 });
 
@@ -140,7 +152,9 @@ async function loadGenres() {
   try {
     genres = await loadUserGenres(currentUser.uid);
     genreLookup = createGenreLookup(genres);
-    populateGenreFilter();
+    // Update filter panels if already initialized
+    if (sidebarPanel) sidebarPanel.setGenres(genres);
+    if (mobilePanel) mobilePanel.setGenres(genres);
   } catch (error) {
     console.error('Error loading genres:', error);
     genres = [];
@@ -153,66 +167,28 @@ async function loadSeries() {
   try {
     series = await loadUserSeries(currentUser.uid);
     seriesLookup = createSeriesLookup(series);
-    populateSeriesFilter();
+
+    // Handle URL param with series name (from widget links)
+    // If seriesFilters has entries that are not valid series IDs, try to match by name
+    seriesFilters = seriesFilters.map(filterVal => {
+      if (!seriesLookup.has(filterVal)) {
+        const matchedSeries = series.find(s =>
+          s.name.toLowerCase() === filterVal.toLowerCase() ||
+          s.normalizedName === filterVal.toLowerCase().replace(/[^a-z0-9]/g, '')
+        );
+        return matchedSeries ? matchedSeries.id : filterVal;
+      }
+      return filterVal;
+    });
+
+    // Update filter panels if already initialized
+    if (sidebarPanel) sidebarPanel.setSeries(series);
+    if (mobilePanel) mobilePanel.setSeries(series);
   } catch (error) {
     console.error('Error loading series:', error);
     series = [];
     seriesLookup = new Map();
   }
-}
-
-// Populate series filter dropdown
-function populateSeriesFilter() {
-  if (!seriesFilterSelect) return;
-
-  // Keep the "All Series" option
-  seriesFilterSelect.innerHTML = '<option value="">All Series</option>';
-
-  // Sort series by name for the dropdown
-  const sortedSeries = [...series].sort((a, b) => a.name.localeCompare(b.name));
-
-  // Add options for each series
-  sortedSeries.forEach(s => {
-    const option = document.createElement('option');
-    option.value = s.id;
-    option.textContent = s.name;
-    if (s.id === seriesFilter) {
-      option.selected = true;
-    }
-    seriesFilterSelect.appendChild(option);
-  });
-
-  // Handle URL param with series name (from widget links)
-  // If seriesFilter is set but not a valid series ID, try to match by name
-  if (seriesFilter && !seriesLookup.has(seriesFilter)) {
-    const matchedSeries = series.find(s =>
-      s.name.toLowerCase() === seriesFilter.toLowerCase() ||
-      s.normalizedName === seriesFilter.toLowerCase().replace(/[^a-z0-9]/g, '')
-    );
-    if (matchedSeries) {
-      seriesFilter = matchedSeries.id;
-      seriesFilterSelect.value = matchedSeries.id;
-    }
-  }
-}
-
-// Populate genre filter dropdown
-function populateGenreFilter() {
-  if (!genreFilterSelect) return;
-
-  // Keep the "All Genres" option
-  genreFilterSelect.innerHTML = '<option value="">All Genres</option>';
-
-  // Add options for each genre
-  genres.forEach(genre => {
-    const option = document.createElement('option');
-    option.value = genre.id;
-    option.textContent = genre.name;
-    if (genre.id === genreFilter) {
-      option.selected = true;
-    }
-    genreFilterSelect.appendChild(option);
-  });
 }
 
 // Cache functions
@@ -464,19 +440,12 @@ function sortBooks(booksArray, sortKey) {
 
 // Manage Series Order sort option visibility
 function updateSeriesOrderOption(showOption) {
-  if (!sortSelect) return;
-
-  const existingOption = sortSelect.querySelector('option[value="seriesPosition-asc"]');
-
-  if (showOption && !existingOption) {
-    // Add Series Order option at the top
-    const option = document.createElement('option');
-    option.value = 'seriesPosition-asc';
-    option.textContent = 'Series Order';
-    sortSelect.insertBefore(option, sortSelect.firstChild);
-  } else if (!showOption && existingOption) {
-    // Remove Series Order option
-    existingOption.remove();
+  // Update mobile sort select
+  if (sortSelectMobile) {
+    const mobileOption = sortSelectMobile.querySelector('.series-sort-option');
+    if (mobileOption) {
+      mobileOption.classList.toggle('hidden', !showOption);
+    }
   }
 }
 
@@ -485,7 +454,11 @@ function switchToSeriesOrder() {
   if (currentSort !== 'seriesPosition-asc') {
     previousSort = currentSort;
     currentSort = 'seriesPosition-asc';
-    sortSelect.value = 'seriesPosition-asc';
+    if (sortSelectMobile) sortSelectMobile.value = 'seriesPosition-asc';
+    // Update sidebar panel sort if it exists
+    if (sidebarPanel) {
+      sidebarPanel.setFilters({ sort: 'seriesPosition-asc' });
+    }
     invalidateFilteredCache();
   }
 }
@@ -494,34 +467,43 @@ function switchToSeriesOrder() {
 function restorePreviousSort() {
   if (previousSort && currentSort === 'seriesPosition-asc') {
     currentSort = previousSort;
-    sortSelect.value = previousSort;
+    if (sortSelectMobile) sortSelectMobile.value = previousSort;
+    // Update sidebar panel sort if it exists
+    if (sidebarPanel) {
+      sidebarPanel.setFilters({ sort: previousSort });
+    }
     previousSort = null;
     invalidateFilteredCache();
   }
 }
 
-// Rating filter function
+// Rating filter function (single-select, minimum threshold)
 function filterByRating(booksArray, minRating) {
   if (minRating === 0) return booksArray;
   return booksArray.filter(b => (b.rating || 0) >= minRating);
 }
 
-// Genre filter function
-function filterByGenre(booksArray, genreId) {
-  if (!genreId) return booksArray;
-  return booksArray.filter(b => b.genres && b.genres.includes(genreId));
+// Genre filter function (multi-select, OR logic)
+// Returns books that have ANY of the selected genres
+function filterByGenres(booksArray, genreIds) {
+  if (!genreIds || genreIds.length === 0) return booksArray;
+  return booksArray.filter(b =>
+    b.genres && b.genres.some(gId => genreIds.includes(gId))
+  );
 }
 
-// Status filter function (uses inferred status from reads array)
-function filterByStatus(booksArray, status) {
-  if (!status) return booksArray;
-  return booksArray.filter(b => getBookStatus(b) === status);
+// Status filter function (multi-select, OR logic)
+// Returns books that match ANY of the selected statuses
+function filterByStatuses(booksArray, statuses) {
+  if (!statuses || statuses.length === 0) return booksArray;
+  return booksArray.filter(b => statuses.includes(getBookStatus(b)));
 }
 
-// Series filter function (matches by series ID)
-function filterBySeries(booksArray, seriesId) {
-  if (!seriesId) return booksArray;
-  return booksArray.filter(b => b.seriesId === seriesId);
+// Series filter function (multi-select, OR logic)
+// Returns books that are in ANY of the selected series
+function filterBySeriesIds(booksArray, seriesIds) {
+  if (!seriesIds || seriesIds.length === 0) return booksArray;
+  return booksArray.filter(b => b.seriesId && seriesIds.includes(b.seriesId));
 }
 
 // Author filter function (case-insensitive match)
@@ -537,9 +519,9 @@ function getFilteredBooks() {
   // First filter out binned (soft-deleted) books
   let filtered = filterActivebooks(books);
   filtered = filterByRating(filtered, ratingFilter);
-  filtered = filterByGenre(filtered, genreFilter);
-  filtered = filterByStatus(filtered, statusFilter);
-  filtered = filterBySeries(filtered, seriesFilter);
+  filtered = filterByGenres(filtered, genreFilters);
+  filtered = filterByStatuses(filtered, statusFilters);
+  filtered = filterBySeriesIds(filtered, seriesFilters);
   filtered = filterByAuthor(filtered, authorFilter);
   cachedFilteredBooks = sortBooks(filtered, currentSort);
   return cachedFilteredBooks;
@@ -548,6 +530,96 @@ function getFilteredBooks() {
 // Invalidate filtered cache when filters change
 function invalidateFilteredCache() {
   cachedFilteredBooks = null;
+}
+
+// Calculate dynamic book counts for filter checkboxes (faceted search)
+// Each count shows how many books would match if that option were toggled
+// while keeping all OTHER active filters applied
+function calculateFilterCounts() {
+  const activeBooks = filterActivebooks(books);
+
+  // For rating counts: apply all filters EXCEPT rating
+  let booksForRating = activeBooks;
+  booksForRating = filterByGenres(booksForRating, genreFilters);
+  booksForRating = filterByStatuses(booksForRating, statusFilters);
+  booksForRating = filterBySeriesIds(booksForRating, seriesFilters);
+  booksForRating = filterByAuthor(booksForRating, authorFilter);
+
+  const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  booksForRating.forEach(b => {
+    const r = b.rating || 0;
+    if (r >= 1 && r <= 5) ratings[r]++;
+  });
+  // "All Ratings" count = total books matching other filters
+  const ratingTotal = booksForRating.length;
+
+  // For genre counts: apply all filters EXCEPT genres
+  let booksForGenre = activeBooks;
+  booksForGenre = filterByRating(booksForGenre, ratingFilter);
+  booksForGenre = filterByStatuses(booksForGenre, statusFilters);
+  booksForGenre = filterBySeriesIds(booksForGenre, seriesFilters);
+  booksForGenre = filterByAuthor(booksForGenre, authorFilter);
+
+  const genresCounts = {};
+  booksForGenre.forEach(b => {
+    if (b.genres && Array.isArray(b.genres)) {
+      b.genres.forEach(gId => {
+        genresCounts[gId] = (genresCounts[gId] || 0) + 1;
+      });
+    }
+  });
+  // "All Genres" count = total books matching other filters
+  const genreTotal = booksForGenre.length;
+
+  // For status counts: apply all filters EXCEPT statuses
+  let booksForStatus = activeBooks;
+  booksForStatus = filterByRating(booksForStatus, ratingFilter);
+  booksForStatus = filterByGenres(booksForStatus, genreFilters);
+  booksForStatus = filterBySeriesIds(booksForStatus, seriesFilters);
+  booksForStatus = filterByAuthor(booksForStatus, authorFilter);
+
+  const statusCounts = { reading: 0, finished: 0 };
+  booksForStatus.forEach(b => {
+    const status = getBookStatus(b);
+    if (status === 'reading') statusCounts.reading++;
+    else if (status === 'finished') statusCounts.finished++;
+  });
+  // "All Status" count = total books matching other filters
+  const statusTotal = booksForStatus.length;
+
+  // For series counts: apply all filters EXCEPT series
+  let booksForSeries = activeBooks;
+  booksForSeries = filterByRating(booksForSeries, ratingFilter);
+  booksForSeries = filterByGenres(booksForSeries, genreFilters);
+  booksForSeries = filterByStatuses(booksForSeries, statusFilters);
+  booksForSeries = filterByAuthor(booksForSeries, authorFilter);
+
+  const seriesCounts = {};
+  booksForSeries.forEach(b => {
+    if (b.seriesId) {
+      seriesCounts[b.seriesId] = (seriesCounts[b.seriesId] || 0) + 1;
+    }
+  });
+  // "All Series" count = total books matching other filters
+  const seriesTotal = booksForSeries.length;
+
+  return {
+    ratingTotal,
+    genreTotal,
+    statusTotal,
+    seriesTotal,
+    ratings,
+    genres: genresCounts,
+    status: statusCounts,
+    series: seriesCounts
+  };
+}
+
+// Update filter panel counts
+function updateFilterCounts() {
+  const counts = calculateFilterCounts();
+  if (sidebarPanel) sidebarPanel.setBookCounts(counts);
+  if (mobilePanel) mobilePanel.setBookCounts(counts);
 }
 
 // Render Books
@@ -633,172 +705,382 @@ async function silentRefreshBooks() {
   showToast('Library synced', { type: 'info' });
 }
 
-// Sort & Filter Controls
-sortSelect.addEventListener('change', async () => {
-  const newSort = sortSelect.value;
+// ==================== Filter Panel Initialization ====================
 
-  // If sort changed, need to refetch from Firebase with new order
-  if (newSort !== currentSort) {
-    currentSort = newSort;
-    displayLimit = BOOKS_PER_PAGE;
-    clearCache();
-    await loadBooks(true);
+/**
+ * Initialize FilterPanel instances for desktop sidebar and mobile bottom sheet
+ */
+function initializeFilterPanels() {
+  // Get initial filter state from URL params (arrays for multi-select)
+  const initialFilters = {
+    sort: currentSort,
+    rating: ratingFilter,
+    genres: genreFilters,
+    statuses: statusFilters,
+    seriesIds: seriesFilters
+  };
+
+  // Desktop sidebar panel
+  if (filterSidebar) {
+    sidebarPanel = new FilterPanel({
+      container: filterSidebar,
+      genres,
+      series,
+      showSort: true,
+      initialFilters,
+      onChange: handleSidebarFilterChange
+    });
+
+    // Hide skeleton, show actual filters
+    if (filterSidebarSkeleton) {
+      filterSidebarSkeleton.classList.add('hidden');
+    }
+    filterSidebar.classList.remove('hidden');
   }
 
-  updateResetButton();
-});
+  // Mobile bottom sheet panel (no sort, that's in the header)
+  const mobileContainer = document.getElementById('filter-panel-mobile');
+  if (mobileContainer) {
+    mobilePanel = new FilterPanel({
+      container: mobileContainer,
+      genres,
+      series,
+      showSort: false,
+      initialFilters,
+      onChange: null // Don't auto-apply, wait for Apply button
+    });
+  }
 
-ratingFilterSelect.addEventListener('change', () => {
-  ratingFilter = parseInt(ratingFilterSelect.value) || 0;
+  // Update filter counts
+  updateFilterCounts();
+
+  initIcons();
+}
+
+/**
+ * Handle filter changes from desktop sidebar (immediate apply)
+ */
+async function handleSidebarFilterChange(filters) {
+  const sortChanged = filters.sort !== currentSort;
+  const wasSeriesFiltered = seriesFilters.length > 0;
+  const isSeriesFiltered = filters.seriesIds.length > 0;
+  const hasSingleSeries = filters.seriesIds.length === 1;
+
+  // Update global filter state (arrays for multi-select)
+  currentSort = filters.sort;
+  ratingFilter = filters.rating;
+  genreFilters = [...filters.genres];
+  statusFilters = [...filters.statuses];
+  seriesFilters = [...filters.seriesIds];
   displayLimit = BOOKS_PER_PAGE;
-  invalidateFilteredCache(); // Re-filter with new rating
-  updateResetButton();
-  renderBooks();
-});
 
-// Genre filter
-if (genreFilterSelect) {
-  genreFilterSelect.addEventListener('change', () => {
-    genreFilter = genreFilterSelect.value;
-    displayLimit = BOOKS_PER_PAGE;
-    invalidateFilteredCache(); // Re-filter with new genre
-    updateResetButton();
-    renderBooks();
-  });
-}
+  // Handle series filter change (auto-switch to Series Order only if exactly one series)
+  if (hasSingleSeries && !wasSeriesFiltered) {
+    updateSeriesOrderOption(true);
+    switchToSeriesOrder();
+  } else if (!hasSingleSeries && wasSeriesFiltered && seriesFilters.length !== 1) {
+    restorePreviousSort();
+    updateSeriesOrderOption(false);
+  }
 
-// Status filter
-if (statusFilterSelect) {
-  statusFilterSelect.addEventListener('change', () => {
-    statusFilter = statusFilterSelect.value;
-    displayLimit = BOOKS_PER_PAGE;
-    invalidateFilteredCache(); // Re-filter with new status
-    updateResetButton();
-    renderBooks();
-  });
-}
-
-// Series filter
-if (seriesFilterSelect) {
-  seriesFilterSelect.addEventListener('change', () => {
-    const newSeriesFilter = seriesFilterSelect.value;
-    const wasFiltered = seriesFilter !== '';
-    const isFiltered = newSeriesFilter !== '';
-
-    seriesFilter = newSeriesFilter;
-    displayLimit = BOOKS_PER_PAGE;
-
-    // Manage Series Order sort option and auto-switch
-    if (isFiltered && !wasFiltered) {
-      // Switching to series filter: show option and auto-select
-      updateSeriesOrderOption(true);
-      switchToSeriesOrder();
-    } else if (!isFiltered && wasFiltered) {
-      // Clearing series filter: restore previous sort and hide option
-      restorePreviousSort();
-      updateSeriesOrderOption(false);
-    }
-
+  // If sort changed significantly, refetch from Firebase
+  if (sortChanged && currentSort !== 'seriesPosition-asc') {
+    clearCache();
+    await loadBooks(true);
+  } else {
     invalidateFilteredCache();
-    updateResetButton();
     renderBooks();
+  }
+
+  // Sync mobile sort dropdown
+  if (sortSelectMobile) {
+    sortSelectMobile.value = currentSort;
+  }
+
+  updateFilterCountBadge();
+  renderActiveFilterChips();
+  updateFilterCounts();
+}
+
+/**
+ * Apply filters from mobile bottom sheet
+ */
+async function applyMobileFilters() {
+  if (!mobilePanel) return;
+
+  const filters = mobilePanel.getFilters();
+  const wasSeriesFiltered = seriesFilters.length > 0;
+  const isSeriesFiltered = filters.seriesIds.length > 0;
+  const hasSingleSeries = filters.seriesIds.length === 1;
+
+  // Update global filter state (sort comes from mobile header, not panel)
+  ratingFilter = filters.rating;
+  genreFilters = [...filters.genres];
+  statusFilters = [...filters.statuses];
+  seriesFilters = [...filters.seriesIds];
+  displayLimit = BOOKS_PER_PAGE;
+
+  // Handle series filter change (auto-switch to Series Order only if exactly one series)
+  if (hasSingleSeries && !wasSeriesFiltered) {
+    updateSeriesOrderOption(true);
+    switchToSeriesOrder();
+  } else if (!hasSingleSeries && wasSeriesFiltered && seriesFilters.length !== 1) {
+    restorePreviousSort();
+    updateSeriesOrderOption(false);
+  }
+
+  // Sync to desktop sidebar panel
+  if (sidebarPanel) {
+    sidebarPanel.setFilters({
+      sort: currentSort,
+      rating: ratingFilter,
+      genres: genreFilters,
+      statuses: statusFilters,
+      seriesIds: seriesFilters
+    });
+  }
+
+  invalidateFilteredCache();
+  renderBooks();
+  updateFilterCountBadge();
+  renderActiveFilterChips();
+  updateFilterCounts();
+  closeFilterSheet();
+}
+
+// Mobile sort select handler
+if (sortSelectMobile) {
+  sortSelectMobile.addEventListener('change', async () => {
+    const newSort = sortSelectMobile.value;
+
+    if (newSort !== currentSort) {
+      currentSort = newSort;
+      displayLimit = BOOKS_PER_PAGE;
+
+      // Sync to desktop sidebar panel
+      if (sidebarPanel) {
+        sidebarPanel.setFilters({ sort: newSort });
+      }
+
+      // Refetch if sort changed (except seriesPosition which is client-side)
+      if (newSort !== 'seriesPosition-asc') {
+        clearCache();
+        await loadBooks(true);
+      } else {
+        invalidateFilteredCache();
+        renderBooks();
+      }
+
+      updateFilterCountBadge();
+    }
   });
 }
 
 // Check if any filters are active
 function hasActiveFilters() {
-  return ratingFilter !== 0 || genreFilter !== '' || statusFilter !== '' || seriesFilter !== '' || authorFilter !== '';
+  return ratingFilter !== 0 ||
+         genreFilters.length > 0 ||
+         statusFilters.length > 0 ||
+         seriesFilters.length > 0 ||
+         authorFilter !== '';
 }
 
-// Show/hide reset button and update filter highlights
-function updateResetButton() {
-  const isDefault = currentSort === 'createdAt-desc' && !hasActiveFilters();
-  resetFiltersBtn.classList.toggle('hidden', isDefault);
-  updateFilterHighlights();
+// Update filter count badge on mobile trigger button
+function updateFilterCountBadge() {
+  if (!filterCountBadge) return;
+
+  // Count individual selections (not filter types)
+  const count = (ratingFilter !== 0 ? 1 : 0) +
+                genreFilters.length +
+                statusFilters.length +
+                seriesFilters.length +
+                (authorFilter !== '' ? 1 : 0);
+
+  filterCountBadge.textContent = count.toString();
+  filterCountBadge.classList.toggle('hidden', count === 0);
 }
 
-// Highlight active filter dropdowns
-function updateFilterHighlights() {
-  // Rating filter
-  if (ratingFilterSelect) {
-    const isActive = ratingFilter !== 0;
-    ratingFilterSelect.classList.toggle('border-primary', isActive);
-    ratingFilterSelect.classList.toggle('border-gray-200', !isActive);
-  }
-  // Genre filter
-  if (genreFilterSelect) {
-    const isActive = genreFilter !== '';
-    genreFilterSelect.classList.toggle('border-primary', isActive);
-    genreFilterSelect.classList.toggle('border-gray-200', !isActive);
-  }
-  // Status filter
-  if (statusFilterSelect) {
-    const isActive = statusFilter !== '';
-    statusFilterSelect.classList.toggle('border-primary', isActive);
-    statusFilterSelect.classList.toggle('border-gray-200', !isActive);
-  }
-  // Series filter
-  if (seriesFilterSelect) {
-    const isActive = seriesFilter !== '';
-    seriesFilterSelect.classList.toggle('border-primary', isActive);
-    seriesFilterSelect.classList.toggle('border-gray-200', !isActive);
-  }
-  // Author filter badge
-  updateAuthorFilterBadge();
-}
+// Render active filter chips (both mobile and desktop)
+// Now supports multiple chips per filter type for multi-select
+function renderActiveFilterChips() {
+  const chips = [];
 
-// Update author filter badge visibility
-function updateAuthorFilterBadge() {
-  if (!authorFilterBadge || !authorFilterName) return;
+  // Rating (single-select)
+  if (ratingFilter > 0) {
+    chips.push({ type: 'rating', value: ratingFilter, label: `${ratingFilter}+ Stars` });
+  }
 
+  // Genres (multi-select)
+  for (const genreId of genreFilters) {
+    const genre = genreLookup?.get(genreId);
+    if (genre) {
+      chips.push({ type: 'genre', value: genreId, label: genre.name });
+    }
+  }
+
+  // Statuses (multi-select)
+  const statusLabels = { 'reading': 'Reading', 'finished': 'Finished' };
+  for (const status of statusFilters) {
+    chips.push({ type: 'status', value: status, label: statusLabels[status] || status });
+  }
+
+  // Series (multi-select)
+  for (const seriesId of seriesFilters) {
+    const s = seriesLookup?.get(seriesId);
+    if (s) {
+      chips.push({ type: 'series', value: seriesId, label: s.name });
+    }
+  }
+
+  // Author (single from URL)
   if (authorFilter) {
-    authorFilterName.textContent = authorFilter;
-    authorFilterBadge.classList.remove('hidden');
-    initIcons();
-  } else {
-    authorFilterBadge.classList.add('hidden');
+    chips.push({ type: 'author', value: authorFilter, label: authorFilter });
   }
-}
 
-// Clear author filter handler
-if (clearAuthorFilterBtn) {
-  clearAuthorFilterBtn.addEventListener('click', () => {
-    authorFilter = '';
-    invalidateFilteredCache();
-    updateResetButton();
-    // Clear URL param
-    const url = new URL(window.location);
-    url.searchParams.delete('author');
-    window.history.replaceState({}, '', url);
-    renderBooks();
+  // Render to both containers
+  [activeFiltersMobile, activeFiltersDesktop].forEach(container => {
+    if (!container) return;
+    const chipsContainer = container.querySelector('div');
+    if (!chipsContainer) return;
+
+    if (chips.length === 0) {
+      container.classList.add('hidden');
+      chipsContainer.innerHTML = '';
+      return;
+    }
+
+    container.classList.remove('hidden');
+
+    // Render chips with value attribute for targeted removal
+    let html = chips.map(chip => `
+      <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors">
+        <span>${chip.label}</span>
+        <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
+      </button>
+    `).join('');
+
+    // Add "Clear all" if more than one filter
+    if (chips.length > 1) {
+      html += `
+        <button data-filter-type="all" class="inline-flex items-center gap-1 px-3 py-1 text-gray-500 hover:text-gray-700 text-sm transition-colors">
+          Clear all
+        </button>
+      `;
+    }
+
+    chipsContainer.innerHTML = html;
+    initIcons();
   });
 }
+
+// Clear a single filter value (or all values of a type)
+async function clearFilter(filterType, filterValue = null) {
+  switch (filterType) {
+    case 'rating':
+      ratingFilter = 0;
+      break;
+    case 'genre':
+      if (filterValue) {
+        // Remove specific genre from array
+        genreFilters = genreFilters.filter(id => id !== filterValue);
+      } else {
+        genreFilters = [];
+      }
+      break;
+    case 'status':
+      if (filterValue) {
+        // Remove specific status from array
+        statusFilters = statusFilters.filter(s => s !== filterValue);
+      } else {
+        statusFilters = [];
+      }
+      break;
+    case 'series':
+      if (filterValue) {
+        // Remove specific series from array
+        seriesFilters = seriesFilters.filter(id => id !== filterValue);
+      } else {
+        seriesFilters = [];
+      }
+      // Update series sort if no longer filtering by exactly one series
+      if (seriesFilters.length !== 1) {
+        restorePreviousSort();
+        updateSeriesOrderOption(false);
+      }
+      break;
+    case 'author':
+      authorFilter = '';
+      // Clear URL param
+      const url = new URL(window.location);
+      url.searchParams.delete('author');
+      window.history.replaceState({}, '', url);
+      break;
+    case 'all':
+      await resetAllFilters();
+      return; // resetAllFilters handles everything
+  }
+
+  // Update filter panels
+  if (sidebarPanel) {
+    sidebarPanel.setFilters({
+      rating: ratingFilter,
+      genres: genreFilters,
+      statuses: statusFilters,
+      seriesIds: seriesFilters
+    });
+  }
+  if (mobilePanel) {
+    mobilePanel.setFilters({
+      rating: ratingFilter,
+      genres: genreFilters,
+      statuses: statusFilters,
+      seriesIds: seriesFilters
+    });
+  }
+
+  invalidateFilteredCache();
+  updateFilterCountBadge();
+  renderActiveFilterChips();
+  renderBooks();
+  updateFilterCounts();
+}
+
+// Event delegation for filter chip clicks
+[activeFiltersMobile, activeFiltersDesktop].forEach(container => {
+  if (!container) return;
+  container.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-filter-type]');
+    if (button) {
+      clearFilter(button.dataset.filterType, button.dataset.filterValue);
+    }
+  });
+});
 
 // Get a human-readable description of active filters
 function getActiveFilterDescription() {
   const parts = [];
 
-  if (statusFilter) {
-    const statusLabels = {
-      'reading': 'Reading',
-      'finished': 'Finished'
-    };
-    parts.push(statusLabels[statusFilter] || statusFilter);
+  // Statuses (multi-select)
+  const statusLabels = { 'reading': 'Reading', 'finished': 'Finished' };
+  for (const status of statusFilters) {
+    parts.push(statusLabels[status] || status);
   }
 
   if (ratingFilter) {
     parts.push(`${ratingFilter}+ stars`);
   }
 
-  if (genreFilter && genreLookup) {
-    const genre = genreLookup.get(genreFilter);
+  // Genres (multi-select)
+  for (const genreId of genreFilters) {
+    const genre = genreLookup?.get(genreId);
     if (genre) {
       parts.push(genre.name);
     }
   }
 
-  if (seriesFilter && seriesLookup) {
-    const seriesObj = seriesLookup.get(seriesFilter);
+  // Series (multi-select)
+  for (const seriesId of seriesFilters) {
+    const seriesObj = seriesLookup?.get(seriesId);
     if (seriesObj) {
       parts.push(`${seriesObj.name} series`);
     }
@@ -824,18 +1106,22 @@ async function resetAllFilters() {
 
   currentSort = 'createdAt-desc';
   ratingFilter = 0;
-  genreFilter = '';
-  statusFilter = '';
-  seriesFilter = '';
+  genreFilters = [];
+  statusFilters = [];
+  seriesFilters = [];
   authorFilter = '';
-  sortSelect.value = 'createdAt-desc';
-  ratingFilterSelect.value = '0';
-  if (genreFilterSelect) genreFilterSelect.value = '';
-  if (statusFilterSelect) statusFilterSelect.value = '';
-  if (seriesFilterSelect) seriesFilterSelect.value = '';
+
+  // Reset mobile sort select
+  if (sortSelectMobile) sortSelectMobile.value = 'createdAt-desc';
+
+  // Reset filter panels
+  if (sidebarPanel) sidebarPanel.reset();
+  if (mobilePanel) mobilePanel.reset();
+
   displayLimit = BOOKS_PER_PAGE;
-  invalidateFilteredCache(); // Re-filter with reset values
-  updateResetButton();
+  invalidateFilteredCache();
+  updateFilterCountBadge();
+  renderActiveFilterChips();
 
   // Clear URL params (including series)
   if (window.location.search) {
@@ -848,13 +1134,114 @@ async function resetAllFilters() {
   } else {
     renderBooks();
   }
+  updateFilterCounts();
 }
-
-resetFiltersBtn.addEventListener('click', resetAllFilters);
 
 // Clear filters link in no-results state
 if (clearFiltersLink) {
   clearFiltersLink.addEventListener('click', resetAllFilters);
+}
+
+// ==================== Bottom Sheet for Mobile Filters ====================
+
+/**
+ * Open the filter bottom sheet
+ */
+function openFilterSheet() {
+  if (!filterSheet || !filterSheetContent) return;
+
+  // Sync mobile panel to current filter state before opening
+  if (mobilePanel) {
+    mobilePanel.setFilters({
+      rating: ratingFilter,
+      genres: genreFilters,
+      statuses: statusFilters,
+      seriesIds: seriesFilters
+    });
+  }
+
+  filterSheet.classList.remove('hidden');
+  lockBodyScroll();
+
+  // Animate in
+  requestAnimationFrame(() => {
+    filterSheetContent.classList.remove('translate-y-full');
+  });
+
+  initIcons();
+}
+
+/**
+ * Close the filter bottom sheet
+ */
+function closeFilterSheet() {
+  if (!filterSheet || !filterSheetContent) return;
+
+  filterSheetContent.classList.add('translate-y-full');
+
+  setTimeout(() => {
+    filterSheet.classList.add('hidden');
+    unlockBodyScroll();
+  }, 300);
+}
+
+// Filter trigger button opens bottom sheet
+if (filterTriggerBtn) {
+  filterTriggerBtn.addEventListener('click', openFilterSheet);
+}
+
+// Close button in bottom sheet
+if (closeFilterSheetBtn) {
+  closeFilterSheetBtn.addEventListener('click', closeFilterSheet);
+}
+
+// Apply filters button in bottom sheet
+if (applyFiltersMobileBtn) {
+  applyFiltersMobileBtn.addEventListener('click', applyMobileFilters);
+}
+
+// Close on backdrop click
+if (filterSheet) {
+  filterSheet.addEventListener('click', (e) => {
+    if (e.target === filterSheet) {
+      closeFilterSheet();
+    }
+  });
+}
+
+// Swipe to dismiss bottom sheet
+let sheetStartY = 0;
+let sheetCurrentY = 0;
+
+if (filterSheetContent) {
+  filterSheetContent.addEventListener('touchstart', (e) => {
+    sheetStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  filterSheetContent.addEventListener('touchmove', (e) => {
+    sheetCurrentY = e.touches[0].clientY;
+    const deltaY = sheetCurrentY - sheetStartY;
+
+    // Only allow dragging down
+    if (deltaY > 0) {
+      filterSheetContent.style.transform = `translateY(${deltaY}px)`;
+    }
+  }, { passive: true });
+
+  filterSheetContent.addEventListener('touchend', () => {
+    const deltaY = sheetCurrentY - sheetStartY;
+
+    // If dragged more than 100px down, close the sheet
+    if (deltaY > 100) {
+      closeFilterSheet();
+    } else {
+      // Snap back
+      filterSheetContent.style.transform = '';
+    }
+
+    sheetStartY = 0;
+    sheetCurrentY = 0;
+  }, { passive: true });
 }
 
 // ==================== Pull to Refresh ====================

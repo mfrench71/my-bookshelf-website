@@ -6,6 +6,14 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-26
 
+- Redesign book list filters:
+  - Desktop/tablet: Always-visible sidebar on left with all filter controls
+  - Mobile: Bottom sheet triggered by filter button in sticky header
+  - Filter count badge shows number of active filters on mobile
+  - Create reusable FilterPanel component for consistent UI
+  - Swipe-to-dismiss gesture for mobile filter sheet
+  - Add 36 FilterPanel component tests
+- Move genre picker above series picker on add/edit book forms
 - Fix technical debt issues:
   - API refresh highlight now persists until save (was fading after 3 seconds)
   - Add error handling to all Firebase operations in genres.js and series.js

@@ -1331,3 +1331,177 @@ describe('pagination and infinite scroll', () => {
     });
   });
 });
+
+// Helper for getBookStatus (replicated from books/index.js)
+function getBookStatus(book) {
+  if (!book.reads || !Array.isArray(book.reads) || book.reads.length === 0) {
+    return null;
+  }
+  const lastRead = book.reads[book.reads.length - 1];
+  if (lastRead.startDate && !lastRead.finishDate) {
+    return 'reading';
+  }
+  if (lastRead.finishDate) {
+    return 'finished';
+  }
+  return null;
+}
+
+// Replicate genre filter function
+function filterByGenre(booksArray, genreId) {
+  if (!genreId) return booksArray;
+  return booksArray.filter(b => b.genres && b.genres.includes(genreId));
+}
+
+// Replicate series filter function
+function filterBySeries(booksArray, seriesId) {
+  if (!seriesId) return booksArray;
+  return booksArray.filter(b => b.seriesId === seriesId);
+}
+
+// Status filter using inferred status from reads array (matches production)
+function filterByStatusInferred(booksArray, status) {
+  if (!status) return booksArray;
+  return booksArray.filter(b => getBookStatus(b) === status);
+}
+
+describe('calculateDynamicFilterCounts', () => {
+  // Replicate dynamic count logic from books/index.js
+  function calculateDynamicCounts(books, filters) {
+    const { ratingFilter = 0, genreFilter = '', statusFilter = '', seriesFilter = '' } = filters;
+
+    // For rating counts: apply all filters EXCEPT rating
+    let booksForRating = books;
+    booksForRating = filterByGenre(booksForRating, genreFilter);
+    booksForRating = filterByStatusInferred(booksForRating, statusFilter);
+    booksForRating = filterBySeries(booksForRating, seriesFilter);
+
+    const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    booksForRating.forEach(b => {
+      const r = b.rating || 0;
+      if (r >= 1 && r <= 5) ratings[r]++;
+    });
+
+    // For genre counts: apply all filters EXCEPT genre
+    let booksForGenre = books;
+    booksForGenre = filterByRating(booksForGenre, ratingFilter);
+    booksForGenre = filterByStatusInferred(booksForGenre, statusFilter);
+    booksForGenre = filterBySeries(booksForGenre, seriesFilter);
+
+    const genresCounts = {};
+    booksForGenre.forEach(b => {
+      if (b.genres && Array.isArray(b.genres)) {
+        b.genres.forEach(gId => {
+          genresCounts[gId] = (genresCounts[gId] || 0) + 1;
+        });
+      }
+    });
+
+    // For status counts: apply all filters EXCEPT status
+    let booksForStatus = books;
+    booksForStatus = filterByRating(booksForStatus, ratingFilter);
+    booksForStatus = filterByGenre(booksForStatus, genreFilter);
+    booksForStatus = filterBySeries(booksForStatus, seriesFilter);
+
+    const statusCounts = { reading: 0, finished: 0 };
+    booksForStatus.forEach(b => {
+      const status = getBookStatus(b);
+      if (status === 'reading') statusCounts.reading++;
+      else if (status === 'finished') statusCounts.finished++;
+    });
+
+    // For series counts: apply all filters EXCEPT series
+    let booksForSeries = books;
+    booksForSeries = filterByRating(booksForSeries, ratingFilter);
+    booksForSeries = filterByGenre(booksForSeries, genreFilter);
+    booksForSeries = filterByStatusInferred(booksForSeries, statusFilter);
+
+    const seriesCounts = {};
+    booksForSeries.forEach(b => {
+      if (b.seriesId) {
+        seriesCounts[b.seriesId] = (seriesCounts[b.seriesId] || 0) + 1;
+      }
+    });
+
+    return { ratings, genres: genresCounts, status: statusCounts, series: seriesCounts };
+  }
+
+  const books = [
+    { id: '1', title: 'Fantasy Book 1', rating: 5, genres: ['g1'], seriesId: 's1', reads: [{ startDate: '2024-01-01' }] },
+    { id: '2', title: 'Fantasy Book 2', rating: 4, genres: ['g1'], seriesId: 's1', reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] },
+    { id: '3', title: 'Sci-Fi Book 1', rating: 5, genres: ['g2'], seriesId: 's2', reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] },
+    { id: '4', title: 'Sci-Fi Book 2', rating: 3, genres: ['g2'], reads: [{ startDate: '2024-01-01' }] },
+    { id: '5', title: 'Mystery Book', rating: 4, genres: ['g3'], reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] }
+  ];
+
+  it('should show all counts with no filters active', () => {
+    const counts = calculateDynamicCounts(books, {});
+
+    expect(counts.ratings[5]).toBe(2);
+    expect(counts.ratings[4]).toBe(2);
+    expect(counts.ratings[3]).toBe(1);
+    expect(counts.genres['g1']).toBe(2);
+    expect(counts.genres['g2']).toBe(2);
+    expect(counts.genres['g3']).toBe(1);
+    expect(counts.status.reading).toBe(2);
+    expect(counts.status.finished).toBe(3);
+  });
+
+  it('should update genre counts when rating filter applied', () => {
+    const counts = calculateDynamicCounts(books, { ratingFilter: 5 });
+
+    // Only 2 books have 5 stars: Fantasy Book 1 (g1) and Sci-Fi Book 1 (g2)
+    expect(counts.genres['g1']).toBe(1);
+    expect(counts.genres['g2']).toBe(1);
+    expect(counts.genres['g3']).toBeUndefined(); // Mystery Book has 4 stars
+  });
+
+  it('should update rating counts when genre filter applied', () => {
+    const counts = calculateDynamicCounts(books, { genreFilter: 'g2' });
+
+    // Sci-Fi books: one 5-star, one 3-star
+    expect(counts.ratings[5]).toBe(1);
+    expect(counts.ratings[3]).toBe(1);
+    expect(counts.ratings[4]).toBe(0); // No 4-star sci-fi books
+  });
+
+  it('should update status counts when rating filter applied', () => {
+    const counts = calculateDynamicCounts(books, { ratingFilter: 5 });
+
+    // 5-star books: Fantasy Book 1 (reading), Sci-Fi Book 1 (finished)
+    expect(counts.status.reading).toBe(1);
+    expect(counts.status.finished).toBe(1);
+  });
+
+  it('should update series counts when status filter applied', () => {
+    const counts = calculateDynamicCounts(books, { statusFilter: 'reading' });
+
+    // Reading books: Fantasy Book 1 (s1), Sci-Fi Book 2 (no series)
+    expect(counts.series['s1']).toBe(1);
+    expect(counts.series['s2']).toBeUndefined();
+  });
+
+  it('should update all counts when multiple filters applied', () => {
+    // Filter to 4+ stars AND finished
+    const counts = calculateDynamicCounts(books, { ratingFilter: 4, statusFilter: 'finished' });
+
+    // Finished 4+ star books: Fantasy Book 2 (g1, s1), Sci-Fi Book 1 (g2, s2), Mystery Book (g3)
+    // Genre counts (for finished books, ignoring rating filter)
+    expect(counts.genres['g1']).toBe(1); // Fantasy Book 2
+    expect(counts.genres['g2']).toBe(1); // Sci-Fi Book 1
+    expect(counts.genres['g3']).toBe(1); // Mystery Book
+
+    // Series counts (for finished books, ignoring rating but respecting status)
+    expect(counts.series['s1']).toBe(1); // Fantasy Book 2
+    expect(counts.series['s2']).toBe(1); // Sci-Fi Book 1
+  });
+
+  it('should handle empty results gracefully', () => {
+    const counts = calculateDynamicCounts(books, { genreFilter: 'nonexistent' });
+
+    // All counts should be 0 or empty since no books match
+    expect(counts.ratings[5]).toBe(0);
+    expect(counts.status.reading).toBe(0);
+    expect(counts.status.finished).toBe(0);
+  });
+});
