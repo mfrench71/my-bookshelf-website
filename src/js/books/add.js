@@ -21,7 +21,7 @@ import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
-import { addWishlistItem, checkWishlistDuplicate } from '../wishlist.js';
+import { addWishlistItem, checkWishlistDuplicate, loadWishlistItems, createWishlistLookup } from '../wishlist.js';
 
 // Initialize icons once on load
 initIcons();
@@ -81,6 +81,7 @@ let beforeUnloadHandler = null;
 let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
+let wishlistLookup = null; // Map of ISBN -> wishlist item
 
 // DOM Elements
 const scanBtn = document.getElementById('scan-btn');
@@ -110,13 +111,21 @@ const genrePickerContainer = document.getElementById('genre-picker-container');
 const seriesPickerContainer = document.getElementById('series-picker-container');
 
 // Auth Check - header.js handles redirect, just capture user
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     initRatingInput();
     initCoverPicker();
     initGenrePicker();
     initSeriesPicker();
+    // Load wishlist for pre-checking search results
+    try {
+      const wishlistItems = await loadWishlistItems(user.uid);
+      wishlistLookup = createWishlistLookup(wishlistItems);
+    } catch (e) {
+      console.warn('Failed to load wishlist for search:', e.message);
+      wishlistLookup = new Map();
+    }
   }
 });
 
@@ -407,6 +416,7 @@ async function loadMoreSearchResults() {
 function renderSearchResults(books, append = false) {
   const html = books.map(book => {
     const hasCover = book.cover && isValidImageUrl(book.cover);
+    const isWishlisted = book.isbn && wishlistLookup?.has(book.isbn);
     return `
     <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
          data-title="${escapeAttr(book.title)}"
@@ -429,9 +439,10 @@ function renderSearchResults(books, append = false) {
           ${[book.publisher, book.publishedDate, book.pageCount ? `${book.pageCount} pages` : ''].filter(Boolean).join(' · ')}
         </p>
       </div>
-      <button type="button" class="wishlist-btn flex-shrink-0 p-2 text-gray-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-        title="Add to wishlist" aria-label="Add to wishlist">
-        <i data-lucide="heart" class="w-5 h-5"></i>
+      <button type="button" class="wishlist-btn flex-shrink-0 p-2 ${isWishlisted ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500 hover:bg-pink-50'} rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+        title="${isWishlisted ? 'Already in wishlist' : 'Add to wishlist'}" aria-label="${isWishlisted ? 'Already in wishlist' : 'Add to wishlist'}"
+        ${isWishlisted ? 'disabled' : ''}>
+        <i data-lucide="heart" class="w-5 h-5${isWishlisted ? ' fill-current' : ''}"></i>
       </button>
     </div>
   `;}).join('');
@@ -602,11 +613,18 @@ async function handleAddToWishlist(resultEl, btn) {
       addedFrom: 'search'
     });
 
+    // Update local lookup so subsequent searches show this item as wishlisted
+    if (isbn && wishlistLookup) {
+      wishlistLookup.set(isbn, { title, author, isbn });
+    }
+
     // Update button to show success (filled heart)
     btn.innerHTML = '<i data-lucide="heart" class="w-5 h-5 fill-current"></i>';
     btn.classList.remove('text-gray-400', 'hover:text-pink-500', 'hover:bg-pink-50');
     btn.classList.add('text-pink-500');
     btn.disabled = true;
+    btn.title = 'Already in wishlist';
+    btn.setAttribute('aria-label', 'Already in wishlist');
     initIcons();
 
     showToast(`"${title}" added to wishlist`, { type: 'success' });
