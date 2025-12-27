@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Keep `src/privacy.njk` up to date when data collection or storage practices change. Update the "Last updated" date and relevant sections (e.g., if adding analytics, new APIs, or changing data retention).
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
+- Always show user-friendly error messages, never expose raw `error.message` to users. Log technical details to console for debugging, but display helpful messages like "Failed to save. Please try again." instead of technical errors.
 
 ## UI/UX Principles (CRITICAL)
 

@@ -4,6 +4,23 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-27
+
+- Add multi-select checkbox filters with OR logic:
+  - Status, genre, and series filters now support multiple selections
+  - Faceted search shows count on each checkbox option
+  - Options with 0 results are disabled
+  - Active filter chips with individual removal
+  - 225 new filter tests (51 FilterPanel + 174 filter logic)
+- Add URL filter persistence for bookmarking/sharing filtered views
+- Add loading spinner to book cover images
+- Fix duplicate filter chips on mobile
+- Fix raw error.message exposure to users (14 occurrences)
+- Add CLAUDE.md guideline for user-friendly error messages
+- Add .claude/settings.local.json to .gitignore
+
+---
+
 ## 2025-12-26
 
 - Redesign book list filters:

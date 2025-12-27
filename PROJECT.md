@@ -474,4 +474,4 @@ Can calculate: Total books/pages, books per month, genre distribution, reading s
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-26
+**Last Updated**: 2025-12-27

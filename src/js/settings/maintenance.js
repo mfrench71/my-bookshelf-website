@@ -124,7 +124,7 @@ async function runGenreCleanup() {
     console.error('Error during cleanup:', error);
     cleanupProgress?.classList.add('hidden');
     cleanupResults?.classList.remove('hidden');
-    if (cleanupResultsText) cleanupResultsText.textContent = `Error: ${error.message}`;
+    if (cleanupResultsText) cleanupResultsText.textContent = 'An error occurred during cleanup. Please try again.';
     showToast('Cleanup failed', { type: 'error' });
   } finally {
     cleanupGenresBtn.disabled = false;
@@ -156,7 +156,7 @@ async function runRecountGenres() {
   } catch (error) {
     console.error('Error recounting genres:', error);
     recountResults?.classList.remove('hidden');
-    if (recountResultsText) recountResultsText.textContent = `Error: ${error.message}`;
+    if (recountResultsText) recountResultsText.textContent = 'An error occurred while recounting. Please try again.';
     showToast('Recount failed', { type: 'error' });
   } finally {
     recountGenresBtn.disabled = false;

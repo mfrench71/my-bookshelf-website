@@ -580,7 +580,7 @@ export class SeriesPicker {
       this.onChange(this.getSelected());
     } catch (error) {
       console.error('Error creating series:', error);
-      showToast(error.message || 'Failed to create series', { type: 'error' });
+      showToast('Failed to create series. Please try again.', { type: 'error' });
     }
   }
 }

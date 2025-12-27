@@ -349,7 +349,7 @@ genreForm?.addEventListener('submit', async (e) => {
     await loadGenres();
   } catch (error) {
     console.error('Error saving genre:', error);
-    showToast(error.message || 'Error saving genre', { type: 'error' });
+    showToast('Failed to save genre. Please try again.', { type: 'error' });
   } finally {
     saveGenreBtn.disabled = false;
     saveGenreBtn.textContent = editingGenreId ? 'Save' : 'Add';
@@ -580,7 +580,7 @@ seriesForm?.addEventListener('submit', async (e) => {
     await loadSeries();
   } catch (error) {
     console.error('Error saving series:', error);
-    showToast(error.message || 'Error saving series', { type: 'error' });
+    showToast('Failed to save series. Please try again.', { type: 'error' });
   } finally {
     saveSeriesBtn.disabled = false;
     saveSeriesBtn.textContent = editingSeriesId ? 'Save' : 'Add';
@@ -633,7 +633,7 @@ confirmMergeSeriesBtn?.addEventListener('click', async () => {
     await loadSeries();
   } catch (error) {
     console.error('Error merging series:', error);
-    showToast(error.message || 'Error merging series', { type: 'error' });
+    showToast('Failed to merge series. Please try again.', { type: 'error' });
   } finally {
     confirmMergeSeriesBtn.disabled = false;
     confirmMergeSeriesBtn.textContent = 'Merge';
@@ -858,7 +858,7 @@ async function importBackup(file) {
 
   } catch (error) {
     console.error('Error importing backup:', error);
-    showToast(error.message || 'Error importing backup', { type: 'error' });
+    showToast('Failed to import backup. Please check the file format.', { type: 'error' });
     importProgress?.classList.add('hidden');
   } finally {
     importBtn.disabled = false;

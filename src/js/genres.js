@@ -441,7 +441,7 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
               newGenreIds.push(matchingGenre.id);
             }
           } catch (error) {
-            results.errors.push(`Book "${bookData.title}": ${error.message}`);
+            results.errors.push(`Book "${bookData.title}": Failed to process genre`);
           }
         }
       }
@@ -463,7 +463,7 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
             }
           }
         } catch (error) {
-          results.errors.push(`Failed to update book "${bookData.title}": ${error.message}`);
+          results.errors.push(`Failed to update book "${bookData.title}"`);
         }
       }
     }
@@ -489,7 +489,7 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
       await batch.commit();
     } catch (error) {
       console.error('Error updating genre counts during migration:', error);
-      results.errors.push(`Failed to update genre counts: ${error.message}`);
+      results.errors.push('Failed to update genre counts');
     }
   }
 
