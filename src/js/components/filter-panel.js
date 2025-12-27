@@ -79,7 +79,7 @@ export class FilterPanel {
     const sortSection = this.showSort ? `
       <div class="filter-group">
         <label class="block text-sm font-semibold text-gray-900 mb-2">Sort By</label>
-        <select id="filter-sort" class="filter-select">
+        <select class="filter-sort filter-select">
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
           <option value="title-asc">Title (A-Z)</option>
@@ -103,7 +103,7 @@ export class FilterPanel {
         <!-- Status: Checkboxes -->
         <div class="filter-group">
           <label class="block text-sm font-semibold text-gray-900 mb-2">Status</label>
-          <div class="space-y-3" id="status-checkboxes">
+          <div class="space-y-3 status-checkboxes">
             <label class="flex items-center justify-between cursor-pointer">
               <span class="filter-label text-sm text-gray-900">Reading</span>
               <span class="flex items-center gap-3">
@@ -124,7 +124,7 @@ export class FilterPanel {
         <!-- Rating: Dropdown (single-select, minimum threshold) -->
         <div class="filter-group">
           <label class="block text-sm font-semibold text-gray-900 mb-2">Rating</label>
-          <select id="filter-rating" class="filter-select">
+          <select class="filter-rating filter-select">
             <option value="0">All Ratings</option>
             <option value="5">5 Stars</option>
             <option value="4">4+ Stars</option>
@@ -138,28 +138,28 @@ export class FilterPanel {
         <!-- Genre: Checkboxes (scrollable if many) -->
         <div class="filter-group">
           <label class="block text-sm font-semibold text-gray-900 mb-2">Genre</label>
-          <div class="space-y-3 max-h-48 overflow-y-auto pr-4" id="genre-checkboxes">
+          <div class="space-y-3 max-h-48 overflow-y-auto pr-4 genre-checkboxes">
             <!-- Dynamically populated -->
           </div>
         </div>
 
         <!-- More Filters Toggle -->
-        <button id="toggle-more-filters" class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 mt-3">
+        <button class="toggle-more-filters flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 mt-3">
           <i data-lucide="chevron-down" class="w-4 h-4 transition-transform ${hasActiveSecondaryFilter ? 'rotate-180' : ''}" aria-hidden="true"></i>
           <span>${hasActiveSecondaryFilter ? 'Less' : 'More'}</span>
         </button>
 
         <!-- Secondary Filters (collapsible) -->
-        <div id="secondary-filters" class="${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
+        <div class="secondary-filters ${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
           <div class="filter-group">
             <label class="block text-sm font-semibold text-gray-900 mb-2">Series</label>
-            <div class="space-y-3 max-h-48 overflow-y-auto pr-4" id="series-checkboxes">
+            <div class="space-y-3 max-h-48 overflow-y-auto pr-4 series-checkboxes">
               <!-- Dynamically populated -->
             </div>
           </div>
         </div>
 
-        <button id="filter-reset" class="w-full py-2 px-4 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition-colors">
+        <button class="filter-reset w-full py-2 px-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors">
           Reset Filters
         </button>
       </div>
@@ -167,15 +167,15 @@ export class FilterPanel {
 
     // Store element references
     if (this.showSort) {
-      this.elements.sort = this.container.querySelector('#filter-sort');
+      this.elements.sort = this.container.querySelector('.filter-sort');
     }
-    this.elements.statusCheckboxes = this.container.querySelector('#status-checkboxes');
-    this.elements.rating = this.container.querySelector('#filter-rating');
-    this.elements.genreCheckboxes = this.container.querySelector('#genre-checkboxes');
-    this.elements.seriesCheckboxes = this.container.querySelector('#series-checkboxes');
-    this.elements.reset = this.container.querySelector('#filter-reset');
-    this.elements.moreFiltersToggle = this.container.querySelector('#toggle-more-filters');
-    this.elements.secondaryFilters = this.container.querySelector('#secondary-filters');
+    this.elements.statusCheckboxes = this.container.querySelector('.status-checkboxes');
+    this.elements.rating = this.container.querySelector('.filter-rating');
+    this.elements.genreCheckboxes = this.container.querySelector('.genre-checkboxes');
+    this.elements.seriesCheckboxes = this.container.querySelector('.series-checkboxes');
+    this.elements.reset = this.container.querySelector('.filter-reset');
+    this.elements.moreFiltersToggle = this.container.querySelector('.toggle-more-filters');
+    this.elements.secondaryFilters = this.container.querySelector('.secondary-filters');
 
     // Populate dynamic options
     this.populateGenres();

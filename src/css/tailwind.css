@@ -395,11 +395,11 @@ select {
 
 /* Drag handle for bottom sheet */
 .bottom-sheet-handle {
-  width: 2.5rem;
-  height: 0.25rem;
+  width: 2rem;
+  height: 0.2rem;
   background-color: #d1d5db;
   border-radius: 9999px;
-  margin: 0.5rem auto 1rem;
+  margin: 0.75rem auto;
 }
 
 @media (min-width: 768px) {

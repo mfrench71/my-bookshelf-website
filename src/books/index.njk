@@ -39,15 +39,10 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 <div id="filter-sheet" class="hidden fixed inset-0 bg-black/50 z-50 md:hidden" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title">
   <div id="filter-sheet-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col translate-y-full transition-transform duration-300">
     <!-- Handle -->
-    <div class="flex justify-center py-3 flex-shrink-0">
-      <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
-    </div>
+    <div class="bottom-sheet-handle cursor-grab"></div>
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 pb-3 border-b border-gray-200 flex-shrink-0">
+    <div class="px-4 pb-3 border-b border-gray-200 flex-shrink-0">
       <h2 id="filter-sheet-title" class="text-lg font-semibold">Filters</h2>
-      <button id="close-filter-sheet" class="p-2 hover:bg-gray-100 rounded-lg text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Close filters">
-        <i data-lucide="x" class="w-5 h-5" aria-hidden="true"></i>
-      </button>
     </div>
     <!-- Filter content (scrollable) -->
     <div id="filter-panel-mobile" class="flex-1 overflow-y-auto p-4"></div>

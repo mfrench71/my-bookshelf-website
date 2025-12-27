@@ -24,19 +24,19 @@ describe('FilterPanel', () => {
     it('should render filter controls when container is provided', () => {
       const panel = new FilterPanel({ container });
 
-      expect(container.querySelector('#filter-sort')).toBeTruthy();
-      expect(container.querySelector('#status-checkboxes')).toBeTruthy();
-      expect(container.querySelector('#filter-rating')).toBeTruthy();
-      expect(container.querySelector('#genre-checkboxes')).toBeTruthy();
-      expect(container.querySelector('#series-checkboxes')).toBeTruthy();
-      expect(container.querySelector('#filter-reset')).toBeTruthy();
+      expect(container.querySelector('.filter-sort')).toBeTruthy();
+      expect(container.querySelector('.status-checkboxes')).toBeTruthy();
+      expect(container.querySelector('.filter-rating')).toBeTruthy();
+      expect(container.querySelector('.genre-checkboxes')).toBeTruthy();
+      expect(container.querySelector('.series-checkboxes')).toBeTruthy();
+      expect(container.querySelector('.filter-reset')).toBeTruthy();
     });
 
     it('should not render sort control when showSort is false', () => {
       const panel = new FilterPanel({ container, showSort: false });
 
-      expect(container.querySelector('#filter-sort')).toBeNull();
-      expect(container.querySelector('#filter-rating')).toBeTruthy();
+      expect(container.querySelector('.filter-sort')).toBeNull();
+      expect(container.querySelector('.filter-rating')).toBeTruthy();
     });
 
     it('should apply initial filters', () => {
@@ -72,7 +72,7 @@ describe('FilterPanel', () => {
   describe('render', () => {
     it('should render all sort options', () => {
       const panel = new FilterPanel({ container });
-      const sortSelect = container.querySelector('#filter-sort');
+      const sortSelect = container.querySelector('.filter-sort');
 
       const options = Array.from(sortSelect.querySelectorAll('option'));
       const values = options.map(o => o.value);
@@ -89,7 +89,7 @@ describe('FilterPanel', () => {
 
     it('should render all rating options', () => {
       const panel = new FilterPanel({ container });
-      const ratingSelect = container.querySelector('#filter-rating');
+      const ratingSelect = container.querySelector('.filter-rating');
 
       const options = Array.from(ratingSelect.querySelectorAll('option'));
       const values = options.map(o => o.value);
@@ -104,7 +104,7 @@ describe('FilterPanel', () => {
 
     it('should render status checkboxes', () => {
       const panel = new FilterPanel({ container });
-      const statusCheckboxes = container.querySelector('#status-checkboxes');
+      const statusCheckboxes = container.querySelector('.status-checkboxes');
       const checkboxes = statusCheckboxes.querySelectorAll('input[type="checkbox"]');
 
       expect(checkboxes.length).toBe(2);
@@ -123,7 +123,7 @@ describe('FilterPanel', () => {
       ];
 
       panel.setGenres(genres);
-      const genreCheckboxes = container.querySelector('#genre-checkboxes');
+      const genreCheckboxes = container.querySelector('.genre-checkboxes');
       const checkboxes = genreCheckboxes.querySelectorAll('input[type="checkbox"]');
 
       expect(checkboxes.length).toBe(2);
@@ -166,7 +166,7 @@ describe('FilterPanel', () => {
       ];
 
       panel.setSeries(seriesData);
-      const seriesCheckboxes = container.querySelector('#series-checkboxes');
+      const seriesCheckboxes = container.querySelector('.series-checkboxes');
       const checkboxes = seriesCheckboxes.querySelectorAll('input[type="checkbox"]');
 
       expect(checkboxes.length).toBe(2);
@@ -248,13 +248,13 @@ describe('FilterPanel', () => {
       });
 
       // Check sort dropdown
-      expect(container.querySelector('#filter-sort').value).toBe('title-desc');
+      expect(container.querySelector('.filter-sort').value).toBe('title-desc');
 
       // Check rating dropdown value
-      expect(container.querySelector('#filter-rating').value).toBe('3');
+      expect(container.querySelector('.filter-rating').value).toBe('3');
 
       // Check status checkbox is checked
-      const statusCheckboxes = container.querySelector('#status-checkboxes');
+      const statusCheckboxes = container.querySelector('.status-checkboxes');
       const readingCheckbox = statusCheckboxes.querySelector('input[value="reading"]');
       expect(readingCheckbox.checked).toBe(true);
     });
@@ -361,10 +361,10 @@ describe('FilterPanel', () => {
       panel.reset();
 
       // Rating dropdown should be reset to 0
-      expect(container.querySelector('#filter-rating').value).toBe('0');
+      expect(container.querySelector('.filter-rating').value).toBe('0');
 
       // Status checkboxes should be unchecked
-      const statusCheckboxes = container.querySelector('#status-checkboxes');
+      const statusCheckboxes = container.querySelector('.status-checkboxes');
       const finishedCheckbox = statusCheckboxes.querySelector('input[value="finished"]');
       expect(finishedCheckbox.checked).toBe(false);
     });
@@ -375,7 +375,7 @@ describe('FilterPanel', () => {
       const onChange = vi.fn();
       const panel = new FilterPanel({ container, onChange });
 
-      const sortSelect = container.querySelector('#filter-sort');
+      const sortSelect = container.querySelector('.filter-sort');
       sortSelect.value = 'title-asc';
       sortSelect.dispatchEvent(new Event('change'));
 
@@ -388,7 +388,7 @@ describe('FilterPanel', () => {
       const onChange = vi.fn();
       const panel = new FilterPanel({ container, onChange });
 
-      const ratingSelect = container.querySelector('#filter-rating');
+      const ratingSelect = container.querySelector('.filter-rating');
       ratingSelect.value = '4';
       ratingSelect.dispatchEvent(new Event('change'));
 
@@ -402,7 +402,7 @@ describe('FilterPanel', () => {
       const genres = [{ id: 'g1', name: 'Fiction', colour: '#ff0000' }];
       const panel = new FilterPanel({ container, onChange, genres });
 
-      const genreCheckboxes = container.querySelector('#genre-checkboxes');
+      const genreCheckboxes = container.querySelector('.genre-checkboxes');
       const checkbox = genreCheckboxes.querySelector('input[value="g1"]');
       checkbox.checked = true;
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -416,7 +416,7 @@ describe('FilterPanel', () => {
       const onChange = vi.fn();
       const panel = new FilterPanel({ container, onChange });
 
-      const statusCheckboxes = container.querySelector('#status-checkboxes');
+      const statusCheckboxes = container.querySelector('.status-checkboxes');
       const checkbox = statusCheckboxes.querySelector('input[value="reading"]');
       checkbox.checked = true;
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -431,7 +431,7 @@ describe('FilterPanel', () => {
       const series = [{ id: 's1', name: 'Harry Potter' }];
       const panel = new FilterPanel({ container, onChange, series });
 
-      const seriesCheckboxes = container.querySelector('#series-checkboxes');
+      const seriesCheckboxes = container.querySelector('.series-checkboxes');
       const checkbox = seriesCheckboxes.querySelector('input[value="s1"]');
       checkbox.checked = true;
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -446,7 +446,7 @@ describe('FilterPanel', () => {
       const panel = new FilterPanel({ container, onChange });
       panel.setFilters({ rating: 4 });
 
-      const resetBtn = container.querySelector('#filter-reset');
+      const resetBtn = container.querySelector('.filter-reset');
       resetBtn.click();
 
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
@@ -460,7 +460,7 @@ describe('FilterPanel', () => {
       const series = [{ id: 's1', name: 'Harry Potter' }];
       const panel = new FilterPanel({ container, series });
 
-      const sortSelect = container.querySelector('#filter-sort');
+      const sortSelect = container.querySelector('.filter-sort');
       const seriesSortOption = sortSelect.querySelector('.series-sort-option');
 
       expect(seriesSortOption.classList.contains('hidden')).toBe(true);
@@ -476,7 +476,7 @@ describe('FilterPanel', () => {
       const panel = new FilterPanel({ container, series });
       panel.setFilters({ seriesIds: ['s1'] });
 
-      const sortSelect = container.querySelector('#filter-sort');
+      const sortSelect = container.querySelector('.filter-sort');
       const seriesSortOption = sortSelect.querySelector('.series-sort-option');
 
       expect(seriesSortOption.classList.contains('hidden')).toBe(false);
@@ -526,7 +526,7 @@ describe('FilterPanel', () => {
         ratings: { 5: 10, 4: 15, 3: 8, 2: 5, 1: 2 }
       });
 
-      const ratingSelect = container.querySelector('#filter-rating');
+      const ratingSelect = container.querySelector('.filter-rating');
       const options = Array.from(ratingSelect.querySelectorAll('option'));
 
       expect(options[0].textContent).toBe('All Ratings (50)');
@@ -547,7 +547,7 @@ describe('FilterPanel', () => {
         genres: { 'g1': 20, 'g2': 10 }
       });
 
-      const genreCheckboxes = container.querySelector('#genre-checkboxes');
+      const genreCheckboxes = container.querySelector('.genre-checkboxes');
       const labels = genreCheckboxes.querySelectorAll('label');
 
       expect(labels[0].querySelector('.filter-count').textContent).toBe('(20)');
@@ -562,7 +562,7 @@ describe('FilterPanel', () => {
         status: { reading: 3, finished: 42 }
       });
 
-      const statusCheckboxes = container.querySelector('#status-checkboxes');
+      const statusCheckboxes = container.querySelector('.status-checkboxes');
       const labels = statusCheckboxes.querySelectorAll('label');
 
       expect(labels[0].querySelector('.filter-count').textContent).toBe('(3)');
@@ -581,7 +581,7 @@ describe('FilterPanel', () => {
         series: { 's1': 7, 's2': 3 }
       });
 
-      const seriesCheckboxes = container.querySelector('#series-checkboxes');
+      const seriesCheckboxes = container.querySelector('.series-checkboxes');
       const labels = seriesCheckboxes.querySelectorAll('label');
 
       expect(labels[0].querySelector('.filter-count').textContent).toBe('(7)');
@@ -598,7 +598,7 @@ describe('FilterPanel', () => {
     it('should render more filters toggle button', () => {
       const panel = new FilterPanel({ container });
 
-      const toggleBtn = container.querySelector('#toggle-more-filters');
+      const toggleBtn = container.querySelector('.toggle-more-filters');
       expect(toggleBtn).toBeTruthy();
       expect(toggleBtn.textContent).toContain('More');
     });
@@ -606,17 +606,17 @@ describe('FilterPanel', () => {
     it('should hide secondary filters by default', () => {
       const panel = new FilterPanel({ container });
 
-      const secondaryFilters = container.querySelector('#secondary-filters');
+      const secondaryFilters = container.querySelector('.secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(true);
     });
 
     it('should show secondary filters when toggle is clicked', () => {
       const panel = new FilterPanel({ container });
 
-      const toggleBtn = container.querySelector('#toggle-more-filters');
+      const toggleBtn = container.querySelector('.toggle-more-filters');
       toggleBtn.click();
 
-      const secondaryFilters = container.querySelector('#secondary-filters');
+      const secondaryFilters = container.querySelector('.secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(false);
       expect(toggleBtn.textContent).toContain('Less');
     });
@@ -624,11 +624,11 @@ describe('FilterPanel', () => {
     it('should hide secondary filters when toggle is clicked again', () => {
       const panel = new FilterPanel({ container });
 
-      const toggleBtn = container.querySelector('#toggle-more-filters');
+      const toggleBtn = container.querySelector('.toggle-more-filters');
       toggleBtn.click(); // Show
       toggleBtn.click(); // Hide
 
-      const secondaryFilters = container.querySelector('#secondary-filters');
+      const secondaryFilters = container.querySelector('.secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(true);
       expect(toggleBtn.textContent).toContain('More');
     });
@@ -641,18 +641,18 @@ describe('FilterPanel', () => {
         initialFilters: { seriesIds: ['s1'] }
       });
 
-      const secondaryFilters = container.querySelector('#secondary-filters');
+      const secondaryFilters = container.querySelector('.secondary-filters');
       expect(secondaryFilters.classList.contains('hidden')).toBe(false);
 
-      const toggleBtn = container.querySelector('#toggle-more-filters');
+      const toggleBtn = container.querySelector('.toggle-more-filters');
       expect(toggleBtn.textContent).toContain('Less');
     });
 
     it('should place series filter in secondary filters section', () => {
       const panel = new FilterPanel({ container });
 
-      const secondaryFilters = container.querySelector('#secondary-filters');
-      const seriesCheckboxes = secondaryFilters.querySelector('#series-checkboxes');
+      const secondaryFilters = container.querySelector('.secondary-filters');
+      const seriesCheckboxes = secondaryFilters.querySelector('.series-checkboxes');
       expect(seriesCheckboxes).toBeTruthy();
     });
   });

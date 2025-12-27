@@ -59,7 +59,6 @@ const filterCountBadge = document.getElementById('filter-count-badge');
 const sortSelectMobile = document.getElementById('sort-select-mobile');
 const filterSheet = document.getElementById('filter-sheet');
 const filterSheetContent = document.getElementById('filter-sheet-content');
-const closeFilterSheetBtn = document.getElementById('close-filter-sheet');
 const applyFiltersMobileBtn = document.getElementById('apply-filters-mobile');
 
 // Desktop sidebar
@@ -1260,11 +1259,6 @@ if (filterTriggerBtn) {
   filterTriggerBtn.addEventListener('click', openFilterSheet);
 }
 
-// Close button in bottom sheet
-if (closeFilterSheetBtn) {
-  closeFilterSheetBtn.addEventListener('click', closeFilterSheet);
-}
-
 // Apply filters button in bottom sheet
 if (applyFiltersMobileBtn) {
   applyFiltersMobileBtn.addEventListener('click', () => applyMobileFilters());
@@ -1274,18 +1268,18 @@ if (applyFiltersMobileBtn) {
 const mobileFilterPanel = document.getElementById('filter-panel-mobile');
 if (mobileFilterPanel) {
   mobileFilterPanel.addEventListener('click', (e) => {
-    if (e.target.closest('#filter-reset')) {
+    if (e.target.closest('.filter-reset')) {
       // Panel already reset via its own handler, now apply to update counts
       applyMobileFilters(true); // keepSheetOpen = true
     }
   });
 }
 
-// Close on backdrop click
+// Close on backdrop click - apply filters before closing
 if (filterSheet) {
   filterSheet.addEventListener('click', (e) => {
     if (e.target === filterSheet) {
-      closeFilterSheet();
+      applyMobileFilters();
     }
   });
 }
@@ -1293,13 +1287,28 @@ if (filterSheet) {
 // Swipe to dismiss bottom sheet
 let sheetStartY = 0;
 let sheetCurrentY = 0;
+let isDragging = false;
 
 if (filterSheetContent) {
+  const filterPanelMobile = document.getElementById('filter-panel-mobile');
+
   filterSheetContent.addEventListener('touchstart', (e) => {
-    sheetStartY = e.touches[0].clientY;
+    // Get the handle element
+    const handle = filterSheetContent.querySelector('.bottom-sheet-handle');
+    const isHandle = handle && handle.contains(e.target);
+    const isScrolledToTop = !filterPanelMobile || filterPanelMobile.scrollTop === 0;
+
+    // Only start drag from handle or if content is scrolled to top
+    if (isHandle || (filterPanelMobile?.contains(e.target) && isScrolledToTop)) {
+      isDragging = true;
+      sheetStartY = e.touches[0].clientY;
+      filterSheetContent.style.transition = 'none';
+    }
   }, { passive: true });
 
   filterSheetContent.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+
     sheetCurrentY = e.touches[0].clientY;
     const deltaY = sheetCurrentY - sheetStartY;
 
@@ -1310,11 +1319,16 @@ if (filterSheetContent) {
   }, { passive: true });
 
   filterSheetContent.addEventListener('touchend', () => {
+    if (!isDragging) return;
+
+    isDragging = false;
+    filterSheetContent.style.transition = '';
+
     const deltaY = sheetCurrentY - sheetStartY;
 
-    // If dragged more than 100px down, close the sheet
+    // If dragged more than 100px down, apply filters and close
     if (deltaY > 100) {
-      closeFilterSheet();
+      applyMobileFilters();
     } else {
       // Snap back
       filterSheetContent.style.transform = '';
@@ -1348,6 +1362,9 @@ if ('ontouchstart' in window && pullIndicator && mainContent && !touchListenersA
 }
 
 function handleTouchStart(e) {
+  // Don't start pull if filter sheet is open
+  if (filterSheet && !filterSheet.classList.contains('hidden')) return;
+
   // Only start pull if at top of page
   if (window.scrollY === 0 && !isLoading) {
     pullStartY = e.touches[0].clientY;

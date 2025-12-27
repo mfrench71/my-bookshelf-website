@@ -15,9 +15,15 @@ All notable changes to MyBookShelf are documented here.
 - Add URL filter persistence for bookmarking/sharing filtered views
 - Add loading spinner to book cover images
 - Fix duplicate filter chips on mobile
+- Fix filter bottom sheet scroll conflicts:
+  - Scrolling filter content no longer triggers swipe-to-close
+  - Pull-to-refresh disabled when filter sheet is open
+  - Remove redundant X close button (use handle swipe or backdrop tap)
+  - Apply filters on dismiss (backdrop tap or swipe) for better mobile UX
 - Fix raw error.message exposure to users (14 occurrences)
 - Add CLAUDE.md guideline for user-friendly error messages
 - Add .claude/settings.local.json to .gitignore.
+- Fix duplicate IDs in FilterPanel (now uses classes for reusable component)
 
 ---
 
