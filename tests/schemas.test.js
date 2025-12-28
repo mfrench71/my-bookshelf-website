@@ -919,6 +919,294 @@ describe('Series Schemas', () => {
 });
 
 // ============================================================
+// Image Schema Tests
+// ============================================================
+
+describe('Image Schemas', () => {
+  const ImageSchema = z.object({
+    id: z.string().min(1, 'Image ID is required'),
+    url: z.string().url('Invalid image URL'),
+    storagePath: z.string().min(1, 'Storage path is required'),
+    isPrimary: z.boolean().default(false),
+    caption: z.string().max(200, 'Caption must be 200 characters or less').optional(),
+    uploadedAt: z.number().positive('Invalid upload timestamp'),
+    sizeBytes: z.number().positive().optional(),
+    width: z.number().positive().optional(),
+    height: z.number().positive().optional()
+  });
+
+  const ImagesArraySchema = z.array(ImageSchema).max(10, 'Maximum 10 images per book').default([]);
+
+  const validImage = {
+    id: 'img-123',
+    url: 'https://example.com/image.jpg',
+    storagePath: 'users/user1/books/book1/images/img-123.webp',
+    isPrimary: true,
+    uploadedAt: Date.now(),
+    sizeBytes: 150000,
+    width: 800,
+    height: 1200
+  };
+
+  describe('ImageSchema', () => {
+    it('should accept valid image data', () => {
+      const result = ImageSchema.safeParse(validImage);
+      expect(result.success).toBe(true);
+    });
+
+    it('should require id', () => {
+      const result = ImageSchema.safeParse({ ...validImage, id: '' });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Image ID is required');
+    });
+
+    it('should require valid url', () => {
+      const result = ImageSchema.safeParse({ ...validImage, url: 'not-a-url' });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Invalid image URL');
+    });
+
+    it('should require storagePath', () => {
+      const result = ImageSchema.safeParse({ ...validImage, storagePath: '' });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Storage path is required');
+    });
+
+    it('should default isPrimary to false', () => {
+      const { isPrimary, ...imageWithoutPrimary } = validImage;
+      const result = ImageSchema.safeParse(imageWithoutPrimary);
+      expect(result.success).toBe(true);
+      expect(result.data.isPrimary).toBe(false);
+    });
+
+    it('should accept optional caption', () => {
+      const result = ImageSchema.safeParse({ ...validImage, caption: 'My book photo' });
+      expect(result.success).toBe(true);
+      expect(result.data.caption).toBe('My book photo');
+    });
+
+    it('should reject caption over 200 characters', () => {
+      const longCaption = 'A'.repeat(201);
+      const result = ImageSchema.safeParse({ ...validImage, caption: longCaption });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Caption must be 200 characters or less');
+    });
+
+    it('should require positive uploadedAt timestamp', () => {
+      const result = ImageSchema.safeParse({ ...validImage, uploadedAt: -1 });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Invalid upload timestamp');
+    });
+
+    it('should accept optional sizeBytes', () => {
+      const { sizeBytes, ...imageWithoutSize } = validImage;
+      const result = ImageSchema.safeParse(imageWithoutSize);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject non-positive sizeBytes', () => {
+      const result = ImageSchema.safeParse({ ...validImage, sizeBytes: 0 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept optional dimensions', () => {
+      const { width, height, ...imageWithoutDimensions } = validImage;
+      const result = ImageSchema.safeParse(imageWithoutDimensions);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject non-positive dimensions', () => {
+      const result = ImageSchema.safeParse({ ...validImage, width: 0 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('ImagesArraySchema', () => {
+    it('should default to empty array', () => {
+      const result = ImagesArraySchema.safeParse(undefined);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+    });
+
+    it('should accept array of valid images', () => {
+      const images = [validImage, { ...validImage, id: 'img-456', isPrimary: false }];
+      const result = ImagesArraySchema.safeParse(images);
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('should reject more than 10 images', () => {
+      const images = Array(11).fill(null).map((_, i) => ({
+        ...validImage,
+        id: `img-${i}`,
+        isPrimary: i === 0
+      }));
+      const result = ImagesArraySchema.safeParse(images);
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toBe('Maximum 10 images per book');
+    });
+
+    it('should accept exactly 10 images', () => {
+      const images = Array(10).fill(null).map((_, i) => ({
+        ...validImage,
+        id: `img-${i}`,
+        isPrimary: i === 0
+      }));
+      const result = ImagesArraySchema.safeParse(images);
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(10);
+    });
+
+    it('should reject array with invalid image', () => {
+      const images = [validImage, { ...validImage, id: '', isPrimary: false }];
+      const result = ImagesArraySchema.safeParse(images);
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+// ============================================================
+// Image Helper Functions Tests
+// ============================================================
+
+describe('Image Helper Functions', () => {
+  // Inline implementations for testing (mirrors src/js/schemas/image.js)
+  function validatePrimaryImage(images) {
+    if (!images || images.length === 0) {
+      return { valid: true };
+    }
+    const primaryCount = images.filter(img => img.isPrimary).length;
+    if (primaryCount > 1) {
+      return { valid: false, error: 'Only one image can be marked as primary' };
+    }
+    return { valid: true };
+  }
+
+  function setPrimaryImage(images, imageId) {
+    return images.map(img => ({
+      ...img,
+      isPrimary: img.id === imageId
+    }));
+  }
+
+  function getPrimaryImage(images) {
+    if (!images || images.length === 0) return null;
+    return images.find(img => img.isPrimary) || null;
+  }
+
+  const baseImage = {
+    id: 'img-1',
+    url: 'https://example.com/1.jpg',
+    storagePath: 'path/1.jpg',
+    isPrimary: false,
+    uploadedAt: Date.now()
+  };
+
+  describe('validatePrimaryImage', () => {
+    it('should return valid for empty array', () => {
+      expect(validatePrimaryImage([])).toEqual({ valid: true });
+    });
+
+    it('should return valid for null/undefined', () => {
+      expect(validatePrimaryImage(null)).toEqual({ valid: true });
+      expect(validatePrimaryImage(undefined)).toEqual({ valid: true });
+    });
+
+    it('should return valid for single primary image', () => {
+      const images = [{ ...baseImage, isPrimary: true }];
+      expect(validatePrimaryImage(images)).toEqual({ valid: true });
+    });
+
+    it('should return valid for no primary images', () => {
+      const images = [baseImage, { ...baseImage, id: 'img-2' }];
+      expect(validatePrimaryImage(images)).toEqual({ valid: true });
+    });
+
+    it('should return invalid for multiple primary images', () => {
+      const images = [
+        { ...baseImage, isPrimary: true },
+        { ...baseImage, id: 'img-2', isPrimary: true }
+      ];
+      const result = validatePrimaryImage(images);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Only one image can be marked as primary');
+    });
+  });
+
+  describe('setPrimaryImage', () => {
+    it('should set specified image as primary', () => {
+      const images = [
+        { ...baseImage, id: 'img-1', isPrimary: false },
+        { ...baseImage, id: 'img-2', isPrimary: false }
+      ];
+      const result = setPrimaryImage(images, 'img-2');
+      expect(result[0].isPrimary).toBe(false);
+      expect(result[1].isPrimary).toBe(true);
+    });
+
+    it('should unset other primary images', () => {
+      const images = [
+        { ...baseImage, id: 'img-1', isPrimary: true },
+        { ...baseImage, id: 'img-2', isPrimary: false }
+      ];
+      const result = setPrimaryImage(images, 'img-2');
+      expect(result[0].isPrimary).toBe(false);
+      expect(result[1].isPrimary).toBe(true);
+    });
+
+    it('should not mutate original array', () => {
+      const images = [{ ...baseImage, id: 'img-1', isPrimary: true }];
+      const result = setPrimaryImage(images, 'img-1');
+      expect(result).not.toBe(images);
+      expect(result[0]).not.toBe(images[0]);
+    });
+
+    it('should handle non-existent imageId', () => {
+      const images = [{ ...baseImage, id: 'img-1', isPrimary: true }];
+      const result = setPrimaryImage(images, 'img-999');
+      expect(result[0].isPrimary).toBe(false);
+    });
+  });
+
+  describe('getPrimaryImage', () => {
+    it('should return null for empty array', () => {
+      expect(getPrimaryImage([])).toBeNull();
+    });
+
+    it('should return null for null/undefined', () => {
+      expect(getPrimaryImage(null)).toBeNull();
+      expect(getPrimaryImage(undefined)).toBeNull();
+    });
+
+    it('should return primary image', () => {
+      const images = [
+        { ...baseImage, id: 'img-1', isPrimary: false },
+        { ...baseImage, id: 'img-2', isPrimary: true }
+      ];
+      const result = getPrimaryImage(images);
+      expect(result.id).toBe('img-2');
+    });
+
+    it('should return null if no primary image', () => {
+      const images = [
+        { ...baseImage, id: 'img-1', isPrimary: false },
+        { ...baseImage, id: 'img-2', isPrimary: false }
+      ];
+      expect(getPrimaryImage(images)).toBeNull();
+    });
+
+    it('should return first primary if multiple exist', () => {
+      const images = [
+        { ...baseImage, id: 'img-1', isPrimary: true },
+        { ...baseImage, id: 'img-2', isPrimary: true }
+      ];
+      const result = getPrimaryImage(images);
+      expect(result.id).toBe('img-1');
+    });
+  });
+});
+
+// ============================================================
 // Validation Helpers Tests
 // ============================================================
 

@@ -47,6 +47,13 @@ vi.mock('/js/utils/cache.js', () => ({
   clearBooksCache: (...args) => mockClearBooksCache(...args)
 }));
 
+// Mock image-upload module
+const mockDeleteImages = vi.fn();
+
+vi.mock('/js/utils/image-upload.js', () => ({
+  deleteImages: (...args) => mockDeleteImages(...args)
+}));
+
 // Mock Firestore functions
 const mockUpdateDoc = vi.fn();
 const mockDeleteDoc = vi.fn();
@@ -431,6 +438,7 @@ describe('permanentlyDeleteBook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDeleteDoc.mockResolvedValue();
+    mockDeleteImages.mockResolvedValue();
   });
 
   it('should call deleteDoc', async () => {
@@ -444,11 +452,45 @@ describe('permanentlyDeleteBook', () => {
 
     expect(mockClearBooksCache).toHaveBeenCalledWith('user123');
   });
+
+  it('should delete images from storage when book has images', async () => {
+    const book = {
+      id: 'book1',
+      images: [
+        { id: 'img1', storagePath: 'users/user123/books/book1/images/img1.jpg' },
+        { id: 'img2', storagePath: 'users/user123/books/book1/images/img2.jpg' }
+      ]
+    };
+    await permanentlyDeleteBook('user123', 'book1', book);
+
+    expect(mockDeleteImages).toHaveBeenCalledWith(book.images);
+  });
+
+  it('should not call deleteImages when book has no images', async () => {
+    const book = { id: 'book1', images: [] };
+    await permanentlyDeleteBook('user123', 'book1', book);
+
+    expect(mockDeleteImages).not.toHaveBeenCalled();
+  });
+
+  it('should not call deleteImages when book is null', async () => {
+    await permanentlyDeleteBook('user123', 'book1', null);
+
+    expect(mockDeleteImages).not.toHaveBeenCalled();
+  });
+
+  it('should not call deleteImages when images is undefined', async () => {
+    const book = { id: 'book1' };
+    await permanentlyDeleteBook('user123', 'book1', book);
+
+    expect(mockDeleteImages).not.toHaveBeenCalled();
+  });
 });
 
 describe('emptyBin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDeleteImages.mockResolvedValue();
   });
 
   it('should return 0 for empty bin', async () => {
@@ -487,11 +529,51 @@ describe('emptyBin', () => {
 
     expect(mockClearBooksCache).toHaveBeenCalledWith('user123');
   });
+
+  it('should delete all images from storage', async () => {
+    const mockBatch = {
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const books = [
+      { id: 'book1', images: [{ id: 'img1', storagePath: 'path1' }] },
+      { id: 'book2', images: [{ id: 'img2', storagePath: 'path2' }, { id: 'img3', storagePath: 'path3' }] },
+      { id: 'book3' }  // no images
+    ];
+
+    await emptyBin('user123', books);
+
+    expect(mockDeleteImages).toHaveBeenCalledWith([
+      { id: 'img1', storagePath: 'path1' },
+      { id: 'img2', storagePath: 'path2' },
+      { id: 'img3', storagePath: 'path3' }
+    ]);
+  });
+
+  it('should not call deleteImages when no books have images', async () => {
+    const mockBatch = {
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const books = [
+      { id: 'book1', images: [] },
+      { id: 'book2' }
+    ];
+
+    await emptyBin('user123', books);
+
+    expect(mockDeleteImages).not.toHaveBeenCalled();
+  });
 });
 
 describe('purgeExpiredBooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDeleteImages.mockResolvedValue();
   });
 
   it('should return 0 when no books are expired', async () => {
@@ -585,5 +667,46 @@ describe('purgeExpiredBooks', () => {
 
     expect(mockBatch.delete).toHaveBeenCalledTimes(1);
     expect(result).toBe(1);
+  });
+
+  it('should delete images from expired books only', async () => {
+    const mockBatch = {
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const now = Date.now();
+    const books = [
+      { id: 'book1', deletedAt: now - (5 * 24 * 60 * 60 * 1000), images: [{ id: 'img1', storagePath: 'path1' }] },  // not expired
+      { id: 'book2', deletedAt: now - (31 * 24 * 60 * 60 * 1000), images: [{ id: 'img2', storagePath: 'path2' }] },  // expired
+      { id: 'book3', deletedAt: now - (45 * 24 * 60 * 60 * 1000), images: [{ id: 'img3', storagePath: 'path3' }] }   // expired
+    ];
+
+    await purgeExpiredBooks('user123', books);
+
+    // Only images from expired books (book2 and book3) should be deleted
+    expect(mockDeleteImages).toHaveBeenCalledWith([
+      { id: 'img2', storagePath: 'path2' },
+      { id: 'img3', storagePath: 'path3' }
+    ]);
+  });
+
+  it('should not call deleteImages when no expired books have images', async () => {
+    const mockBatch = {
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const now = Date.now();
+    const books = [
+      { id: 'book1', deletedAt: now - (31 * 24 * 60 * 60 * 1000), images: [] },
+      { id: 'book2', deletedAt: now - (45 * 24 * 60 * 60 * 1000) }  // no images property
+    ];
+
+    await purgeExpiredBooks('user123', books);
+
+    expect(mockDeleteImages).not.toHaveBeenCalled();
   });
 });
