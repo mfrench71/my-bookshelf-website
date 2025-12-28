@@ -9,6 +9,7 @@ import {
   createGenre,
   updateGenre,
   deleteGenre,
+  mergeGenres,
   recalculateGenreBookCounts,
   updateGenreBookCounts
 } from '../src/js/genres.js';
@@ -743,5 +744,134 @@ describe('deleteGenre edge cases', () => {
     const count = await deleteGenre('user123', 'g1');
 
     expect(count).toBe(1);
+  });
+});
+
+describe('mergeGenres', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetDocs.mockReset();
+    clearGenresCache();
+  });
+
+  it('should throw error when merging into itself', async () => {
+    // No mock needed - error is thrown before any Firebase calls
+    await expect(mergeGenres('user123', 'g1', 'g1'))
+      .rejects.toThrow('Cannot merge a genre into itself');
+  });
+
+  it('should throw error when source genre not found', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g2', data: () => ({ name: 'Romance', normalizedName: 'romance', bookCount: 3 }) }
+      ]
+    });
+
+    await expect(mergeGenres('user123', 'g1', 'g2'))
+      .rejects.toThrow('Source genre not found');
+  });
+
+  it('should throw error when target genre not found', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', bookCount: 5 }) }
+      ]
+    });
+
+    await expect(mergeGenres('user123', 'g1', 'g2'))
+      .rejects.toThrow('Target genre not found');
+  });
+
+  it('should merge genres and update books', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    // Mock genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Sci-Fi', normalizedName: 'sci-fi', bookCount: 2 }) },
+        { id: 'g2', data: () => ({ name: 'Science Fiction', normalizedName: 'science fiction', bookCount: 3 }) }
+      ]
+    });
+
+    // Mock books with source genre
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['g1'], title: 'Book 1' }) },
+        { id: 'book2', data: () => ({ genres: ['g1', 'g3'], title: 'Book 2' }) }
+      ]
+    });
+
+    const result = await mergeGenres('user123', 'g1', 'g2');
+
+    expect(result.booksUpdated).toBe(2);
+    expect(mockBatch.update).toHaveBeenCalled();
+    expect(mockBatch.delete).toHaveBeenCalled();
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('should handle book that already has target genre', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    // Mock genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Sci-Fi', normalizedName: 'sci-fi', bookCount: 1 }) },
+        { id: 'g2', data: () => ({ name: 'Science Fiction', normalizedName: 'science fiction', bookCount: 3 }) }
+      ]
+    });
+
+    // Mock book that already has both genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['g1', 'g2'], title: 'Book 1' }) }
+      ]
+    });
+
+    const result = await mergeGenres('user123', 'g1', 'g2');
+
+    // Book is still updated (to remove g1), just doesn't add g2 again
+    expect(result.booksUpdated).toBe(1);
+    expect(mockBatch.update).toHaveBeenCalled();
+  });
+
+  it('should skip soft-deleted books', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    // Mock genres
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Sci-Fi', normalizedName: 'sci-fi', bookCount: 2 }) },
+        { id: 'g2', data: () => ({ name: 'Science Fiction', normalizedName: 'science fiction', bookCount: 0 }) }
+      ]
+    });
+
+    // Mock books - one active, one soft-deleted
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['g1'], title: 'Book 1' }) },
+        { id: 'book2', data: () => ({ genres: ['g1'], title: 'Book 2', deletedAt: new Date() }) }
+      ]
+    });
+
+    const result = await mergeGenres('user123', 'g1', 'g2');
+
+    // Only the non-deleted book should be counted as updated
+    expect(result.booksUpdated).toBe(1);
+    expect(mockBatch.update).toHaveBeenCalled();
   });
 });

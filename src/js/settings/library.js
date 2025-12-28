@@ -16,6 +16,7 @@ import {
   createGenre,
   updateGenre,
   deleteGenre,
+  mergeGenres,
   GENRE_COLORS,
   getUsedColors,
   getAvailableColors,
@@ -59,6 +60,7 @@ let editingGenreId = null;
 let editingSeriesId = null;
 let deletingGenreId = null;
 let deletingSeriesId = null;
+let mergingGenreId = null;
 let mergingSeriesId = null;
 let selectedColor = GENRE_COLORS[0];
 
@@ -78,6 +80,11 @@ const deleteGenreModal = document.getElementById('delete-genre-modal');
 const deleteGenreMessage = document.getElementById('delete-genre-message');
 const cancelDeleteGenreBtn = document.getElementById('cancel-delete-genre');
 const confirmDeleteGenreBtn = document.getElementById('confirm-delete-genre');
+const mergeGenreModal = document.getElementById('merge-genre-modal');
+const mergeGenreSourceName = document.getElementById('merge-genre-source-name');
+const mergeGenreTargetSelect = document.getElementById('merge-genre-target-select');
+const cancelMergeGenreBtn = document.getElementById('cancel-merge-genre');
+const confirmMergeGenreBtn = document.getElementById('confirm-merge-genre');
 
 // DOM Elements - Series
 const seriesLoading = document.getElementById('series-loading');
@@ -116,6 +123,7 @@ const importSummaryContent = document.getElementById('import-summary-content');
 // Bottom Sheet Instances
 const genreSheet = genreModal ? new BottomSheet({ container: genreModal }) : null;
 const deleteGenreSheet = deleteGenreModal ? new BottomSheet({ container: deleteGenreModal }) : null;
+const mergeGenreSheet = mergeGenreModal ? new BottomSheet({ container: mergeGenreModal }) : null;
 const seriesSheet = seriesModal ? new BottomSheet({ container: seriesModal }) : null;
 const deleteSeriesSheet = deleteSeriesModal ? new BottomSheet({ container: deleteSeriesModal }) : null;
 const mergeSeriesSheet = mergeSeriesModal ? new BottomSheet({ container: mergeSeriesModal }) : null;
@@ -126,6 +134,11 @@ if (genreList) {
     const editBtn = e.target.closest('.edit-btn');
     if (editBtn) {
       openEditGenreModal(editBtn.dataset.id);
+      return;
+    }
+    const mergeBtn = e.target.closest('.merge-genre-btn');
+    if (mergeBtn) {
+      openMergeGenreModal(mergeBtn.dataset.id, mergeBtn.dataset.name);
       return;
     }
     const deleteBtn = e.target.closest('.delete-btn');
@@ -207,6 +220,9 @@ function renderGenres() {
                   <td class="py-0 px-0 text-right whitespace-nowrap">
                     <button class="edit-btn p-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${genre.id}" aria-label="Edit ${escapeHtml(genre.name)}">
                       <i data-lucide="edit-2" class="w-4 h-4" aria-hidden="true"></i>
+                    </button>
+                    <button class="merge-genre-btn p-2 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" aria-label="Merge ${escapeHtml(genre.name)}">
+                      <i data-lucide="git-merge" class="w-4 h-4" aria-hidden="true"></i>
                     </button>
                     <button class="delete-btn p-2 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-id="${genre.id}" data-name="${escapeHtml(genre.name)}" data-count="${genre.bookCount || 0}" aria-label="Delete ${escapeHtml(genre.name)}">
                       <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
@@ -306,10 +322,37 @@ function closeDeleteGenreModal() {
   deletingGenreId = null;
 }
 
+function openMergeGenreModal(genreId, name) {
+  mergingGenreId = genreId;
+  mergeGenreSourceName.textContent = name;
+
+  mergeGenreTargetSelect.innerHTML = '<option value="">Select a genre...</option>' +
+    genres
+      .filter(g => g.id !== genreId)
+      .map(g => {
+        const safeColor = isValidHexColor(g.color) ? g.color : '#6b7280';
+        return `<option value="${g.id}">${escapeHtml(g.name)}</option>`;
+      })
+      .join('');
+
+  confirmMergeGenreBtn.disabled = true;
+  mergeGenreSheet?.open();
+}
+
+function closeMergeGenreModal() {
+  mergeGenreSheet?.close();
+  mergingGenreId = null;
+}
+
 // Genre Event Listeners
 addGenreBtn?.addEventListener('click', openAddGenreModal);
 cancelGenreBtn?.addEventListener('click', closeGenreModal);
 cancelDeleteGenreBtn?.addEventListener('click', closeDeleteGenreModal);
+cancelMergeGenreBtn?.addEventListener('click', closeMergeGenreModal);
+
+mergeGenreTargetSelect?.addEventListener('change', () => {
+  confirmMergeGenreBtn.disabled = !mergeGenreTargetSelect.value;
+});
 
 genreForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -385,6 +428,33 @@ confirmDeleteGenreBtn?.addEventListener('click', async () => {
   } finally {
     confirmDeleteGenreBtn.disabled = false;
     confirmDeleteGenreBtn.textContent = 'Delete';
+  }
+});
+
+confirmMergeGenreBtn?.addEventListener('click', async () => {
+  if (!mergingGenreId || !mergeGenreTargetSelect.value) return;
+
+  confirmMergeGenreBtn.disabled = true;
+  confirmMergeGenreBtn.textContent = 'Merging...';
+
+  try {
+    const result = await mergeGenres(currentUser.uid, mergingGenreId, mergeGenreTargetSelect.value);
+
+    const message = result.booksUpdated > 0
+      ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} updated.`
+      : 'Genre merged!';
+
+    showToast(message, { type: 'success' });
+    closeMergeGenreModal();
+    clearGenresCache();
+    clearBooksCache(currentUser.uid);
+    await loadGenres();
+  } catch (error) {
+    console.error('Error merging genres:', error);
+    showToast('Failed to merge genres. Please try again.', { type: 'error' });
+  } finally {
+    confirmMergeGenreBtn.disabled = false;
+    confirmMergeGenreBtn.textContent = 'Merge';
   }
 });
 

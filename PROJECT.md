@@ -196,10 +196,10 @@ npm test && npm run build
 - [ ] Bulk export selected books (JSON/CSV)
 - [ ] Bulk add from ISBN list (paste multiple ISBNs)
 
-### Genre Enhancements
-- [ ] Merge duplicate genres
+### Genre Enhancements ✅
+- [x] Merge duplicate genres ✅
 - [x] Improved genre suggestions (parse hierarchical categories, normalise variations) ✅
-- [ ] Auto-select existing genres when API suggestions match (currently hides duplicates only)
+- [x] Auto-select existing genres when API suggestions match (GenrePicker filters suggestions against existing) ✅
 
 ### User Lists / Shelves
 - [ ] Custom user lists (beyond built-in statuses)

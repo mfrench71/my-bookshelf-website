@@ -17,6 +17,11 @@ All notable changes to MyBookShelf are documented here.
   - British spelling: "humorous" → "Humour"
   - Fix bug where filtered genres like "General" were still appearing (|| operator issue)
   - Fix inconsistent casing: "College teachers" now becomes "College Teachers"
+- Add genre merge functionality:
+  - Merge button on genre rows in Settings > Library
+  - Modal to select target genre
+  - Books with source genre get target genre (if not already present)
+  - Source genre is deleted after merge
 - Add author filter to book list with typeahead search:
   - Searchable dropdown in filter panel (between Rating and Genre)
   - Shows author counts (faceted filtering)

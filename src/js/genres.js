@@ -452,3 +452,85 @@ export async function recalculateGenreBookCounts(userId) {
 export function createGenreLookup(genres) {
   return new Map(genres.map(g => [g.id, g]));
 }
+
+/**
+ * Merge one genre into another
+ * All books with source genre get target genre added (if not present)
+ * Source genre is then deleted
+ * @param {string} userId - The user's ID
+ * @param {string} sourceGenreId - Genre to merge from (will be deleted)
+ * @param {string} targetGenreId - Genre to merge into (will be kept)
+ * @returns {Promise<Object>} Results { booksUpdated }
+ */
+export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
+  if (sourceGenreId === targetGenreId) {
+    throw new Error('Cannot merge a genre into itself');
+  }
+
+  const genres = await loadUserGenres(userId, true);
+  const sourceGenre = genres.find(g => g.id === sourceGenreId);
+  const targetGenre = genres.find(g => g.id === targetGenreId);
+
+  if (!sourceGenre) throw new Error('Source genre not found');
+  if (!targetGenre) throw new Error('Target genre not found');
+
+  try {
+    const batch = writeBatch(db);
+
+    // Find all books with the source genre
+    const booksRef = collection(db, 'users', userId, 'books');
+    const q = query(booksRef, where('genres', 'array-contains', sourceGenreId));
+    const snapshot = await getDocs(q);
+
+    let booksUpdated = 0;
+
+    // Update books: remove source genre, add target if not present
+    snapshot.docs.forEach(bookDoc => {
+      const bookData = bookDoc.data();
+      if (bookData.deletedAt) return; // Skip soft-deleted books
+
+      const currentGenres = bookData.genres || [];
+      const hasTarget = currentGenres.includes(targetGenreId);
+
+      // Build new genres array
+      let newGenres = currentGenres.filter(g => g !== sourceGenreId);
+      if (!hasTarget) {
+        newGenres.push(targetGenreId);
+      }
+
+      const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
+      batch.update(bookRef, {
+        genres: newGenres,
+        updatedAt: serverTimestamp()
+      });
+      booksUpdated++;
+    });
+
+    // Update target genre bookCount
+    // Only add books that didn't already have the target genre
+    const booksWithoutTarget = snapshot.docs.filter(d => {
+      const data = d.data();
+      return !data.deletedAt && !(data.genres || []).includes(targetGenreId);
+    }).length;
+
+    const targetGenreRef = doc(db, 'users', userId, 'genres', targetGenreId);
+    batch.update(targetGenreRef, {
+      bookCount: (targetGenre.bookCount || 0) + booksWithoutTarget,
+      updatedAt: serverTimestamp()
+    });
+
+    // Delete source genre
+    const sourceGenreRef = doc(db, 'users', userId, 'genres', sourceGenreId);
+    batch.delete(sourceGenreRef);
+
+    await batch.commit();
+
+    // Invalidate cache
+    genresCache = null;
+
+    return { booksUpdated };
+  } catch (error) {
+    console.error('Error merging genres:', error);
+    throw error;
+  }
+}
