@@ -36,7 +36,7 @@ import { validateForm, showFormErrors, clearFormErrors } from '../utils/validati
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
 import { BottomSheet } from '../components/modal.js';
-import { loadWishlistItems, clearWishlistCache } from '../wishlist.js';
+import { loadWishlistItems, clearWishlistCache, deleteWishlistItem } from '../wishlist.js';
 
 // Initialize icons once on load
 initIcons();
@@ -109,6 +109,8 @@ const importBtn = document.getElementById('import-btn');
 const importFileInput = document.getElementById('import-file');
 const importProgress = document.getElementById('import-progress');
 const importStatus = document.getElementById('import-status');
+const importSummary = document.getElementById('import-summary');
+const importSummaryContent = document.getElementById('import-summary-content');
 
 // Bottom Sheet Instances
 const genreSheet = genreModal ? new BottomSheet({ container: genreModal }) : null;
@@ -737,6 +739,7 @@ async function exportBackup() {
 async function importBackup(file) {
   importBtn.disabled = true;
   importProgress?.classList.remove('hidden');
+  importSummary?.classList.add('hidden');
   if (importStatus) importStatus.textContent = 'Reading file...';
 
   try {
@@ -765,6 +768,14 @@ async function importBackup(file) {
     await loadAllBooks();
     const existingGenres = await loadUserGenres(currentUser.uid);
 
+    // Load existing wishlist for cross-checks
+    let existingWishlist = [];
+    try {
+      existingWishlist = await loadWishlistItems(currentUser.uid);
+    } catch (e) {
+      console.warn('Failed to load existing wishlist:', e.message);
+    }
+
     const genreIdMap = new Map();
     let genresImported = 0;
     let genresSkipped = 0;
@@ -788,6 +799,7 @@ async function importBackup(file) {
 
     let booksImported = 0;
     let booksSkipped = 0;
+    const importedBookKeys = new Set(); // Track imported books for wishlist cross-check
 
     if (importBooks.length > 0) {
       if (importStatus) importStatus.textContent = 'Importing books...';
@@ -824,6 +836,14 @@ async function importBackup(file) {
           ...bookData,
           genres: remappedGenres
         });
+
+        // Track for wishlist cross-check
+        if (book.isbn) {
+          importedBookKeys.add(`isbn:${book.isbn}`);
+        }
+        if (book.title) {
+          importedBookKeys.add(`title:${book.title.toLowerCase()}|${(book.author || '').toLowerCase()}`);
+        }
       }
 
       const BATCH_SIZE = 500;
@@ -846,26 +866,29 @@ async function importBackup(file) {
       }
     }
 
-    // Import wishlist items
+    // Import wishlist items (with cross-check against library)
     let wishlistImported = 0;
     let wishlistSkipped = 0;
+    let wishlistSkippedOwned = 0;
+
+    // Build lookup of all owned books (existing + just imported)
+    const ownedBooksLookup = new Set();
+    for (const book of books) {
+      if (book.isbn) ownedBooksLookup.add(`isbn:${book.isbn}`);
+      if (book.title) ownedBooksLookup.add(`title:${book.title.toLowerCase()}|${(book.author || '').toLowerCase()}`);
+    }
+    for (const key of importedBookKeys) {
+      ownedBooksLookup.add(key);
+    }
 
     if (importWishlist.length > 0) {
       if (importStatus) importStatus.textContent = 'Importing wishlist...';
-
-      // Load existing wishlist for duplicate check
-      let existingWishlist = [];
-      try {
-        existingWishlist = await loadWishlistItems(currentUser.uid);
-      } catch (e) {
-        console.warn('Failed to load existing wishlist:', e.message);
-      }
 
       const wishlistRef = collection(db, 'users', currentUser.uid, 'wishlist');
       const wishlistToImport = [];
 
       for (const item of importWishlist) {
-        // Check for duplicates by ISBN or title+author
+        // Check if already in wishlist
         const isDuplicate = existingWishlist.some(existing => {
           if (item.isbn && existing.isbn && item.isbn === existing.isbn) return true;
           if (item.title && existing.title &&
@@ -876,6 +899,15 @@ async function importBackup(file) {
 
         if (isDuplicate) {
           wishlistSkipped++;
+          continue;
+        }
+
+        // Cross-check: skip if already in library (owned)
+        const isOwned = (item.isbn && ownedBooksLookup.has(`isbn:${item.isbn}`)) ||
+          (item.title && ownedBooksLookup.has(`title:${item.title.toLowerCase()}|${(item.author || '').toLowerCase()}`));
+
+        if (isOwned) {
+          wishlistSkippedOwned++;
           continue;
         }
 
@@ -906,6 +938,27 @@ async function importBackup(file) {
       }
     }
 
+    // Cross-check: Remove existing wishlist items that match imported books
+    let wishlistAutoRemoved = 0;
+    if (importedBookKeys.size > 0 && existingWishlist.length > 0) {
+      if (importStatus) importStatus.textContent = 'Cleaning up wishlist...';
+
+      for (const wishlistItem of existingWishlist) {
+        const matchesImportedBook =
+          (wishlistItem.isbn && importedBookKeys.has(`isbn:${wishlistItem.isbn}`)) ||
+          (wishlistItem.title && importedBookKeys.has(`title:${wishlistItem.title.toLowerCase()}|${(wishlistItem.author || '').toLowerCase()}`));
+
+        if (matchesImportedBook) {
+          try {
+            await deleteWishlistItem(currentUser.uid, wishlistItem.id);
+            wishlistAutoRemoved++;
+          } catch (e) {
+            console.warn('Failed to auto-remove wishlist item:', e.message);
+          }
+        }
+      }
+    }
+
     clearBooksCache(currentUser.uid);
     clearGenresCache();
     clearWishlistCache();
@@ -915,22 +968,61 @@ async function importBackup(file) {
       await recalculateGenreBookCounts(currentUser.uid);
     }
 
-    const results = [];
-    if (booksImported > 0) results.push(`${booksImported} books`);
-    if (genresImported > 0) results.push(`${genresImported} genres`);
-    if (wishlistImported > 0) results.push(`${wishlistImported} wishlist items`);
+    // Hide progress spinner
+    importProgress?.classList.add('hidden');
 
-    const skipped = [];
-    if (booksSkipped > 0) skipped.push(`${booksSkipped} duplicate books`);
-    if (genresSkipped > 0) skipped.push(`${genresSkipped} existing genres`);
-    if (wishlistSkipped > 0) skipped.push(`${wishlistSkipped} duplicate wishlist items`);
+    // Build on-page summary
+    const summaryLines = [];
 
-    let message = `Imported ${results.join(' and ') || 'nothing'}`;
-    if (skipped.length > 0) message += `. Skipped ${skipped.join(', ')}`;
+    // Imported counts
+    if (booksImported > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="book-open" class="w-4 h-4 text-green-600"></i>${booksImported} book${booksImported !== 1 ? 's' : ''} added to library</div>`);
+    }
+    if (genresImported > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-green-600"></i>${genresImported} genre${genresImported !== 1 ? 's' : ''} created</div>`);
+    }
+    if (wishlistImported > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="heart" class="w-4 h-4 text-green-600"></i>${wishlistImported} wishlist item${wishlistImported !== 1 ? 's' : ''} added</div>`);
+    }
 
-    showToast(message);
+    // Skipped counts
+    if (booksSkipped > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${booksSkipped} duplicate book${booksSkipped !== 1 ? 's' : ''} skipped</div>`);
+    }
+    if (genresSkipped > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${genresSkipped} existing genre${genresSkipped !== 1 ? 's' : ''} skipped</div>`);
+    }
+    if (wishlistSkipped > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${wishlistSkipped} duplicate wishlist item${wishlistSkipped !== 1 ? 's' : ''} skipped</div>`);
+    }
+    if (wishlistSkippedOwned > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="check-circle" class="w-4 h-4"></i>${wishlistSkippedOwned} wishlist item${wishlistSkippedOwned !== 1 ? 's' : ''} skipped (already owned)</div>`);
+    }
 
-    setTimeout(() => window.location.reload(), 1500);
+    // Auto-removed from wishlist
+    if (wishlistAutoRemoved > 0) {
+      summaryLines.push(`<div class="flex items-center gap-2 text-blue-600"><i data-lucide="sparkles" class="w-4 h-4"></i>${wishlistAutoRemoved} wishlist item${wishlistAutoRemoved !== 1 ? 's' : ''} auto-removed (now owned)</div>`);
+    }
+
+    // Nothing imported
+    if (booksImported === 0 && genresImported === 0 && wishlistImported === 0) {
+      summaryLines.push(`<div class="text-gray-500">No new items to import (all duplicates or already owned)</div>`);
+    }
+
+    // Show summary
+    if (importSummaryContent) {
+      importSummaryContent.innerHTML = summaryLines.join('');
+    }
+    importSummary?.classList.remove('hidden');
+    initIcons();
+
+    // Brief toast
+    const totalImported = booksImported + genresImported + wishlistImported;
+    if (totalImported > 0) {
+      showToast('Import complete', { type: 'success' });
+    } else {
+      showToast('Nothing new to import');
+    }
 
   } catch (error) {
     console.error('Error importing backup:', error);

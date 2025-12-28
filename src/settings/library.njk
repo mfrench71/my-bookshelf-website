@@ -172,6 +172,14 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
               <span id="import-status">Importing...</span>
             </div>
           </div>
+          <!-- Import Summary (shown after import completes) -->
+          <div id="import-summary" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex items-center gap-2 mb-3">
+              <i data-lucide="check-circle" class="w-5 h-5 text-green-600" aria-hidden="true"></i>
+              <h4 class="font-medium text-gray-900">Import Complete</h4>
+            </div>
+            <div id="import-summary-content" class="space-y-2 text-sm text-gray-600"></div>
+          </div>
         </div>
       </section>
     </main>

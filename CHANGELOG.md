@@ -4,6 +4,23 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-28
+
+- Add wishlist to backup/restore:
+  - Export now includes wishlist items
+  - Import handles wishlist with duplicate detection
+- Improve import with cross-checks between wishlist and library:
+  - Skip importing wishlist items that match books you already own
+  - Auto-remove wishlist items when matching book is imported from backup
+- Add detailed on-page import summary:
+  - Shows counts of imported vs skipped items with icons
+  - Explains why items were skipped (duplicate, already owned)
+  - Shows auto-removed wishlist items when now owned
+  - Persists on page so user can read (no auto-redirect)
+- Show filled heart icon on search results for already-wishlisted books
+
+---
+
 ## 2025-12-27
 
 - Add Wishlist feature for books user wants to buy:

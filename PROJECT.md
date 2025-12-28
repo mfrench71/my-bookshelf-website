@@ -131,7 +131,7 @@ npm test && npm run build
 ### Delivered
 - ✅ Separate wishlist collection for books user wants to buy (not owned)
 - ✅ Wishlist page with card list, sorting, and item management
-- ✅ Add to wishlist button on book search results (heart icon)
+- ✅ Add to wishlist button on book search results (heart icon with filled state for existing)
 - ✅ Edit priority (high/medium/low) and notes on wishlist items
 - ✅ "I bought this" action to move item to library (with ISBN data enrichment)
 - ✅ Delete wishlist items with confirmation
@@ -139,6 +139,10 @@ npm test && npm run build
 - ✅ Duplicate detection (by ISBN or title+author)
 - ✅ Compact card layout with inline action buttons
 - ✅ Author sort by surname (consistent with book list)
+- ✅ Backup/restore includes wishlist with cross-checks:
+  - Skip importing wishlist items that match owned books
+  - Auto-remove wishlist items when matching book imported
+  - Detailed on-page import summary
 - ✅ 23 wishlist unit tests
 
 ### Data Model
