@@ -36,6 +36,7 @@ import { validateForm, showFormErrors, clearFormErrors } from '../utils/validati
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
 import { BottomSheet } from '../components/modal.js';
+import { loadWishlistItems, clearWishlistCache } from '../wishlist.js';
 
 // Initialize icons once on load
 initIcons();
@@ -51,6 +52,7 @@ let currentUser = null;
 let genres = [];
 let series = [];
 let books = [];
+let wishlist = [];
 let allBooksLoaded = false;
 let editingGenreId = null;
 let editingSeriesId = null;
@@ -688,8 +690,15 @@ async function exportBackup() {
 
   try {
     await loadAllBooks();
+    // Load wishlist for export
+    try {
+      wishlist = await loadWishlistItems(currentUser.uid);
+    } catch (e) {
+      console.warn('Failed to load wishlist for export:', e.message);
+      wishlist = [];
+    }
 
-    if (books.length === 0 && genres.length === 0) {
+    if (books.length === 0 && genres.length === 0 && wishlist.length === 0) {
       showToast('No data to export', { type: 'error' });
       return;
     }
@@ -698,7 +707,8 @@ async function exportBackup() {
       version: 1,
       exportedAt: new Date().toISOString(),
       genres: genres.map(({ id, ...genre }) => ({ ...genre, _exportId: id })),
-      books: books.map(({ id, _normalizedTitle, _normalizedAuthor, ...book }) => book)
+      books: books.map(({ id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
+      wishlist: wishlist.map(({ id, ...item }) => item)
     };
 
     const json = JSON.stringify(exportData, null, 2);
@@ -711,7 +721,9 @@ async function exportBackup() {
     a.click();
 
     URL.revokeObjectURL(url);
-    showToast(`Exported ${books.length} books and ${genres.length} genres`);
+    const parts = [`${books.length} books`, `${genres.length} genres`];
+    if (wishlist.length > 0) parts.push(`${wishlist.length} wishlist items`);
+    showToast(`Exported ${parts.join(', ')}`);
   } catch (error) {
     console.error('Error exporting backup:', error);
     showToast('Error exporting backup', { type: 'error' });
@@ -743,8 +755,9 @@ async function importBackup(file) {
 
     const importGenres = data.genres || [];
     const importBooks = data.books || [];
+    const importWishlist = data.wishlist || [];
 
-    if (importBooks.length === 0 && importGenres.length === 0) {
+    if (importBooks.length === 0 && importGenres.length === 0 && importWishlist.length === 0) {
       throw new Error('Backup file is empty');
     }
 
@@ -833,8 +846,69 @@ async function importBackup(file) {
       }
     }
 
+    // Import wishlist items
+    let wishlistImported = 0;
+    let wishlistSkipped = 0;
+
+    if (importWishlist.length > 0) {
+      if (importStatus) importStatus.textContent = 'Importing wishlist...';
+
+      // Load existing wishlist for duplicate check
+      let existingWishlist = [];
+      try {
+        existingWishlist = await loadWishlistItems(currentUser.uid);
+      } catch (e) {
+        console.warn('Failed to load existing wishlist:', e.message);
+      }
+
+      const wishlistRef = collection(db, 'users', currentUser.uid, 'wishlist');
+      const wishlistToImport = [];
+
+      for (const item of importWishlist) {
+        // Check for duplicates by ISBN or title+author
+        const isDuplicate = existingWishlist.some(existing => {
+          if (item.isbn && existing.isbn && item.isbn === existing.isbn) return true;
+          if (item.title && existing.title &&
+              item.title.toLowerCase() === existing.title.toLowerCase() &&
+              (item.author || '').toLowerCase() === (existing.author || '').toLowerCase()) return true;
+          return false;
+        });
+
+        if (isDuplicate) {
+          wishlistSkipped++;
+          continue;
+        }
+
+        const itemData = { ...item };
+        delete itemData.createdAt;
+        delete itemData.updatedAt;
+        wishlistToImport.push(itemData);
+      }
+
+      // Batch write wishlist items
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < wishlistToImport.length; i += BATCH_SIZE) {
+        const batchItems = wishlistToImport.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+
+        for (const itemData of batchItems) {
+          const docRef = doc(wishlistRef);
+          batch.set(docRef, {
+            ...itemData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        await batch.commit();
+        wishlistImported += batchItems.length;
+        if (importStatus) importStatus.textContent = `Importing wishlist... ${wishlistImported}/${wishlistToImport.length}`;
+      }
+    }
+
     clearBooksCache(currentUser.uid);
     clearGenresCache();
+    clearWishlistCache();
 
     if (genresImported > 0 || booksImported > 0) {
       if (importStatus) importStatus.textContent = 'Updating genre counts...';
@@ -844,10 +918,12 @@ async function importBackup(file) {
     const results = [];
     if (booksImported > 0) results.push(`${booksImported} books`);
     if (genresImported > 0) results.push(`${genresImported} genres`);
+    if (wishlistImported > 0) results.push(`${wishlistImported} wishlist items`);
 
     const skipped = [];
     if (booksSkipped > 0) skipped.push(`${booksSkipped} duplicate books`);
     if (genresSkipped > 0) skipped.push(`${genresSkipped} existing genres`);
+    if (wishlistSkipped > 0) skipped.push(`${wishlistSkipped} duplicate wishlist items`);
 
     let message = `Imported ${results.join(' and ') || 'nothing'}`;
     if (skipped.length > 0) message += `. Skipped ${skipped.join(', ')}`;
