@@ -13,6 +13,7 @@ import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { SeriesPicker } from '../components/series-picker.js';
 import { CoverPicker } from '../components/cover-picker.js';
+import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
@@ -30,8 +31,10 @@ let ratingInput = null;
 let genrePicker = null;
 let seriesPicker = null;
 let coverPicker = null;
+let imageGallery = null;
 let originalGenres = [];
 let originalSeriesId = null;
+let originalImages = [];
 let originalValues = {};
 let formDirty = false;
 let beforeUnloadHandler = null;
@@ -67,6 +70,7 @@ const refreshDataBtn = document.getElementById('refresh-data-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 const seriesPickerContainer = document.getElementById('series-picker-container');
+const imageGalleryContainer = document.getElementById('image-gallery-container');
 
 // Reading Dates Elements
 const startedDateInput = document.getElementById('started-date');
@@ -85,7 +89,18 @@ function goToViewPage() {
   window.location.href = `/books/view/?id=${bookId}`;
 }
 
-cancelBtn.addEventListener('click', goToViewPage);
+// Cancel button - cleanup unsaved uploads before navigating
+cancelBtn.addEventListener('click', async () => {
+  // Cleanup any newly uploaded images that weren't saved
+  if (imageGallery?.hasUnsavedUploads()) {
+    try {
+      await imageGallery.cleanupUnsavedUploads();
+    } catch (error) {
+      console.error('Failed to cleanup unsaved uploads:', error);
+    }
+  }
+  goToViewPage();
+});
 
 // Cover Picker Functions
 function initCoverPicker() {
@@ -145,6 +160,37 @@ async function initSeriesPicker() {
   if (book && book.seriesId) {
     seriesPicker.setSelected(book.seriesId, book.seriesPosition);
     originalSeriesId = book.seriesId;
+  }
+}
+
+// Initialize Image Gallery
+function initImageGallery() {
+  if (imageGallery || !imageGalleryContainer) return;
+
+  imageGallery = new ImageGallery({
+    container: imageGalleryContainer,
+    userId: currentUser.uid,
+    bookId: bookId,
+    maxImages: 10,
+    onPrimaryChange: (url, userInitiated) => {
+      // Update cover picker with primary image (or clear if null)
+      if (coverPicker) {
+        coverPicker.setUserUpload(url, userInitiated);
+        if (url) {
+          coverUrlInput.value = url;
+        }
+        updateSaveButtonState();
+      }
+    },
+    onChange: () => {
+      updateSaveButtonState();
+    }
+  });
+
+  // Load existing images if book has any
+  if (book && book.images && book.images.length > 0) {
+    imageGallery.setImages(book.images);
+    originalImages = [...book.images];
   }
 }
 
@@ -261,6 +307,7 @@ function renderForm() {
   // Initialize pickers
   initGenrePicker();
   initSeriesPicker();
+  initImageGallery();
 
   // Cover picker
   initCoverPicker();
@@ -443,6 +490,11 @@ function checkFormDirty() {
   if (currentSeries.seriesId !== originalSeriesId) return true;
   if (currentSeries.seriesId && currentSeries.position !== book.seriesPosition) return true;
 
+  // Check images
+  const currentImages = imageGallery ? imageGallery.getImages() : originalImages;
+  if (currentImages.length !== originalImages.length) return true;
+  if (JSON.stringify(currentImages.map(i => i.id)) !== JSON.stringify(originalImages.map(i => i.id))) return true;
+
   return false;
 }
 
@@ -502,6 +554,7 @@ editForm.addEventListener('submit', async (e) => {
     rating: validation.data.rating || null,
     notes: validation.data.notes || '',
     genres: selectedGenres,
+    images: imageGallery ? imageGallery.getImages() : [],
     reads: currentReads,
     updatedAt: serverTimestamp()
   };
@@ -533,6 +586,9 @@ editForm.addEventListener('submit', async (e) => {
     // Reset dirty flag before redirect to prevent "leave site?" prompt
     formDirty = false;
 
+    // Mark uploaded images as saved (prevents cleanup on navigation)
+    imageGallery?.markAsSaved();
+
     showToast('Changes saved!', { type: 'success' });
 
     // Redirect to view page after save
@@ -563,6 +619,17 @@ beforeUnloadHandler = (e) => {
   }
 };
 window.addEventListener('beforeunload', beforeUnloadHandler);
+
+// Cleanup unsaved image uploads when leaving page (best effort)
+// Note: This may not complete if page unloads quickly - Cloud Function handles orphans
+window.addEventListener('pagehide', () => {
+  if (imageGallery?.hasUnsavedUploads()) {
+    // Fire and forget - can't await during page unload
+    imageGallery.cleanupUnsavedUploads().catch(err => {
+      console.error('Failed to cleanup unsaved uploads:', err);
+    });
+  }
+});
 
 // Refresh Data from APIs
 async function fetchBookDataFromAPI(isbn, title, author) {

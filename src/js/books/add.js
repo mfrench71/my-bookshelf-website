@@ -119,6 +119,7 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     initRatingInput();
     initCoverPicker();
+    initImageGallery();
     initGenrePicker();
     initSeriesPicker();
     // Load wishlist for pre-checking search results
@@ -205,6 +206,30 @@ function initCoverPicker() {
       const covers = coverPicker.getCovers();
       const hasMultiple = covers.googleBooks && covers.openLibrary;
       coverPickerHint.classList.toggle('hidden', !hasMultiple);
+    }
+  });
+}
+
+// Initialize Image Gallery
+function initImageGallery() {
+  if (imageGallery || !imageGalleryContainer) return;
+
+  imageGallery = new ImageGallery({
+    container: imageGalleryContainer,
+    userId: currentUser.uid,
+    bookId: null, // Will be set after book is created
+    maxImages: 10,
+    onPrimaryChange: (url, userInitiated) => {
+      // Update cover picker with primary image (or clear if null)
+      if (coverPicker) {
+        coverPicker.setUserUpload(url, userInitiated);
+        if (url) {
+          coverUrlInput.value = url;
+        }
+      }
+    },
+    onChange: () => {
+      formDirty = true;
     }
   });
 }
@@ -889,6 +914,7 @@ bookForm.addEventListener('submit', async (e) => {
     pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
     seriesId: selectedSeries.seriesId,
     seriesPosition: selectedSeries.position,
+    images: imageGallery ? imageGallery.getImages() : [],
     reads: [], // Reading status inferred from reads array
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -910,6 +936,9 @@ bookForm.addEventListener('submit', async (e) => {
 
     formDirty = false;
     duplicateCheckBypassed = false;
+
+    // Mark uploaded images as saved (prevents cleanup on navigation)
+    imageGallery?.markAsSaved();
 
     // Clear caches so the new book appears on the list page
     clearBooksCache(currentUser.uid);
@@ -967,3 +996,14 @@ beforeUnloadHandler = (e) => {
   }
 };
 window.addEventListener('beforeunload', beforeUnloadHandler);
+
+// Cleanup unsaved image uploads when leaving page (best effort)
+// Note: This may not complete if page unloads quickly - Cloud Function handles orphans
+window.addEventListener('pagehide', () => {
+  if (imageGallery?.hasUnsavedUploads()) {
+    // Fire and forget - can't await during page unload
+    imageGallery.cleanupUnsavedUploads().catch(err => {
+      console.error('Failed to cleanup unsaved uploads:', err);
+    });
+  }
+});
