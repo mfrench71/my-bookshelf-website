@@ -33,6 +33,7 @@ export class GenrePicker {
     this.handleInputChange = debounce(this._handleInputChange.bind(this), 300);
     this.handleKeyDown = this._handleKeyDown.bind(this);
     this.handleClickOutside = this._handleClickOutside.bind(this);
+    this.handlePickerOpened = this._handlePickerOpened.bind(this);
   }
 
   /**
@@ -54,6 +55,7 @@ export class GenrePicker {
 
     // Add event listeners
     document.addEventListener('click', this.handleClickOutside);
+    document.addEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
@@ -61,6 +63,7 @@ export class GenrePicker {
    */
   destroy() {
     document.removeEventListener('click', this.handleClickOutside);
+    document.removeEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
@@ -321,6 +324,8 @@ export class GenrePicker {
       input.addEventListener('focus', () => {
         if (this._restoringFocus) return;
         this.isOpen = true;
+        // Notify other pickers to close
+        document.dispatchEvent(new CustomEvent('picker-opened', { detail: { picker: this } }));
         this.render();
       });
       input.addEventListener('keydown', this.handleKeyDown);
@@ -426,6 +431,18 @@ export class GenrePicker {
    */
   _handleClickOutside(e) {
     if (!this.container.contains(e.target)) {
+      this.isOpen = false;
+      this.searchQuery = '';
+      this.focusedIndex = -1;
+      this.render();
+    }
+  }
+
+  /**
+   * Handle another picker opening (close this one)
+   */
+  _handlePickerOpened(e) {
+    if (e.detail.picker !== this && this.isOpen) {
       this.isOpen = false;
       this.searchQuery = '';
       this.focusedIndex = -1;

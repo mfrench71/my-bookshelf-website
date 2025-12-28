@@ -16,6 +16,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 - Always show user-friendly error messages, never expose raw `error.message` to users. Log technical details to console for debugging, but display helpful messages like "Failed to save. Please try again." instead of technical errors.
 
+## Code Documentation (MANDATORY)
+
+All JavaScript code must include proper documentation:
+
+### File Headers
+Every `.js` file should start with a brief comment explaining its purpose:
+```javascript
+// Genre Picker Component
+// A reusable multi-select component for picking genres
+```
+
+### Function Docblocks
+All functions (except trivial one-liners) must have JSDoc-style docblocks:
+```javascript
+/**
+ * Create a new genre for the user
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} name - The genre name
+ * @param {string} [color] - Optional hex colour code (defaults to next available)
+ * @returns {Promise<Object>} The created genre object with id, name, color
+ * @throws {Error} If genre with same name already exists
+ */
+async function createGenre(userId, name, color) { ... }
+```
+
+### Required Docblock Elements
+- **Description**: Brief explanation of what the function does
+- **@param**: Each parameter with type and description
+- **@returns**: Return type and description (if not void)
+- **@throws**: Document thrown errors where relevant
+
+### Inline Comments
+- Use inline comments for complex logic that isn't self-evident
+- Explain *why*, not *what* (the code shows what, comments explain why)
+- Don't over-comment obvious code
+
+```javascript
+// BAD: Incrementing counter
+counter++;
+
+// GOOD: Reset counter after 5 retries to prevent infinite loops
+if (counter >= 5) counter = 0;
+```
+
+### Class Documentation
+Classes should document their purpose and key methods:
+```javascript
+/**
+ * SeriesPicker - Single-select series picker with typeahead, position input, and create option
+ */
+export class SeriesPicker {
+  /**
+   * @param {Object} options
+   * @param {HTMLElement} options.container - Container element to render into
+   * @param {string} options.userId - Current user's ID
+   * @param {Function} options.onChange - Callback when selection changes
+   */
+  constructor({ container, userId, onChange = () => {} }) { ... }
+}
+```
+
 ## UI/UX Principles (CRITICAL)
 
 This is a **mobile-first PWA** that should feel like a native app. Every feature must prioritise:
