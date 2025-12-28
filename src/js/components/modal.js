@@ -294,6 +294,40 @@ export class ConfirmModal extends Modal {
       this.elements.confirmBtn.textContent = this.confirmText;
     }
   }
+
+  /**
+   * Static helper to show a confirmation dialog and return a Promise
+   * @param {Object} options - Same options as constructor (title, message, confirmText, etc.)
+   * @returns {Promise<boolean>} Resolves to true if confirmed, false if cancelled
+   */
+  static show(options) {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const modal = new ConfirmModal({
+        ...options,
+        onConfirm: () => {
+          if (!resolved) {
+            resolved = true;
+            resolve(true);
+          }
+        },
+        onCancel: () => {
+          if (!resolved) {
+            resolved = true;
+            resolve(false);
+          }
+        },
+        onClose: () => {
+          // Handle backdrop click or escape key - treat as cancel
+          if (!resolved) {
+            resolved = true;
+            resolve(false);
+          }
+        }
+      });
+      modal.show();
+    });
+  }
 }
 
 /**
