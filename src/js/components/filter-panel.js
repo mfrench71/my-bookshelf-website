@@ -1,5 +1,5 @@
 // Reusable Filter Panel Component
-import { initIcons } from '../utils.js';
+import { initIcons, debounce, escapeHtml } from '../utils.js';
 
 /**
  * FilterPanel - Renders filter controls for books list
@@ -10,6 +10,7 @@ import { initIcons } from '../utils.js';
  *   container: document.getElementById('filter-container'),
  *   genres: [...],
  *   series: [...],
+ *   authors: [...],
  *   onChange: (filters) => console.log('Filters changed:', filters)
  * });
  */
@@ -22,6 +23,7 @@ export class FilterPanel {
    * @param {HTMLElement} options.container - Container element to render into
    * @param {Array} options.genres - Array of genre objects { id, name, colour }
    * @param {Array} options.series - Array of series objects { id, name }
+   * @param {Array} options.authors - Array of author name strings
    * @param {Function} options.onChange - Callback when any filter changes (receives filters object)
    * @param {boolean} options.showSort - Whether to show sort control (default: true)
    * @param {Object} options.initialFilters - Initial filter values
@@ -31,16 +33,24 @@ export class FilterPanel {
     this.container = options.container;
     this.genres = options.genres || [];
     this.series = options.series || [];
+    this.authors = options.authors || [];
     this.onChange = options.onChange || null;
     this.showSort = options.showSort !== false;
 
-    // Filter state (arrays for multi-select, single value for rating)
+    // Author typeahead state
+    this.authorSearchQuery = '';
+    this.authorFocusedIndex = -1;
+    this.isAuthorDropdownOpen = false;
+    this.authorCounts = {};
+
+    // Filter state (arrays for multi-select, single value for rating/author)
     this.filters = {
       sort: 'createdAt-desc',
       rating: 0,
       genres: [],      // array of genreIds
       statuses: [],    // ['reading'] and/or ['finished']
-      seriesIds: []    // array of seriesIds
+      seriesIds: [],   // array of seriesIds
+      author: ''       // single author string
     };
 
     // Apply initial filters if provided
@@ -49,6 +59,7 @@ export class FilterPanel {
       const initial = options.initialFilters;
       if (initial.sort) this.filters.sort = initial.sort;
       if (initial.rating !== undefined) this.filters.rating = initial.rating;
+      if (initial.author) this.filters.author = initial.author;
       // Convert old single values to arrays if needed
       if (initial.genres) {
         this.filters.genres = Array.isArray(initial.genres) ? initial.genres : [];
@@ -139,10 +150,22 @@ export class FilterPanel {
           </select>
         </div>
 
+        <!-- Author: Typeahead input (single-select) -->
+        <div class="filter-group">
+          <label for="filter-author-${this.instanceId}" class="block text-sm font-semibold text-gray-900 mb-2">Author</label>
+          <div class="relative author-container">
+            <input type="text" id="filter-author-${this.instanceId}" class="filter-author w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm" placeholder="Search authors..." autocomplete="off">
+            <button type="button" class="clear-author hidden absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-10 h-full flex items-center justify-center" aria-label="Clear author filter">
+              <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
+            </button>
+            <div class="author-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10" role="listbox" aria-label="Author suggestions"></div>
+          </div>
+        </div>
+
         <!-- Genre: Checkboxes (scrollable if many) -->
         <div class="filter-group">
           <label class="block text-sm font-semibold text-gray-900 mb-2">Genre</label>
-          <div class="space-y-3 max-h-48 overflow-y-auto pr-4 genre-checkboxes">
+          <div class="space-y-3 max-h-48 overflow-y-auto pr-1 genre-checkboxes">
             <!-- Dynamically populated -->
           </div>
         </div>
@@ -157,7 +180,7 @@ export class FilterPanel {
         <div class="secondary-filters ${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
           <div class="filter-group">
             <label class="block text-sm font-semibold text-gray-900 mb-2">Series</label>
-            <div class="space-y-3 max-h-48 overflow-y-auto pr-4 series-checkboxes">
+            <div class="space-y-3 max-h-48 overflow-y-auto pr-1 series-checkboxes">
               <!-- Dynamically populated -->
             </div>
           </div>
@@ -175,6 +198,10 @@ export class FilterPanel {
     }
     this.elements.statusCheckboxes = this.container.querySelector('.status-checkboxes');
     this.elements.rating = this.container.querySelector('.filter-rating');
+    this.elements.authorContainer = this.container.querySelector('.author-container');
+    this.elements.authorInput = this.container.querySelector('.filter-author');
+    this.elements.authorDropdown = this.container.querySelector('.author-dropdown');
+    this.elements.authorClear = this.container.querySelector('.clear-author');
     this.elements.genreCheckboxes = this.container.querySelector('.genre-checkboxes');
     this.elements.seriesCheckboxes = this.container.querySelector('.series-checkboxes');
     this.elements.reset = this.container.querySelector('.filter-reset');
@@ -217,6 +244,42 @@ export class FilterPanel {
         const val = this.elements.rating.value;
         this.filters.rating = val === 'unrated' ? 'unrated' : parseInt(val, 10);
         this.emitChange();
+      });
+    }
+
+    // Author: typeahead input
+    if (this.elements.authorInput) {
+      // Debounced input handler
+      const debouncedInput = debounce(() => {
+        this.authorSearchQuery = this.elements.authorInput.value;
+        this.renderAuthorDropdown();
+      }, 150);
+
+      this.elements.authorInput.addEventListener('input', debouncedInput);
+
+      // Focus opens dropdown
+      this.elements.authorInput.addEventListener('focus', () => {
+        this.isAuthorDropdownOpen = true;
+        this.renderAuthorDropdown();
+      });
+
+      // Keyboard navigation
+      this.elements.authorInput.addEventListener('keydown', (e) => {
+        this.handleAuthorKeydown(e);
+      });
+
+      // Clear button
+      if (this.elements.authorClear) {
+        this.elements.authorClear.addEventListener('click', () => {
+          this.clearAuthor();
+        });
+      }
+
+      // Click outside to close dropdown
+      document.addEventListener('click', (e) => {
+        if (this.elements.authorContainer && !this.elements.authorContainer.contains(e.target)) {
+          this.closeAuthorDropdown();
+        }
       });
     }
 
@@ -458,6 +521,18 @@ export class FilterPanel {
       });
     }
 
+    // Update author counts (store for dropdown rendering)
+    if (counts.authors) {
+      this.authorCounts = counts.authors;
+      // Auto-deselect if currently selected author has 0 count
+      if (this.filters.author && (this.authorCounts[this.filters.author] || 0) === 0) {
+        this.filters.author = '';
+        this.authorSearchQuery = '';
+        this.syncUIFromState();
+        filtersChanged = true;
+      }
+    }
+
     // Update genre checkboxes with counts
     if (this.elements.genreCheckboxes && counts.genres) {
       const labels = this.elements.genreCheckboxes.querySelectorAll('label');
@@ -558,6 +633,12 @@ export class FilterPanel {
       });
     }
 
+    // Author input
+    if (this.elements.authorInput) {
+      this.elements.authorInput.value = this.filters.author || '';
+      this.updateAuthorClearButton();
+    }
+
     this.updateSeriesSortVisibility();
   }
 
@@ -571,7 +652,8 @@ export class FilterPanel {
       rating: this.filters.rating,
       genres: [...this.filters.genres],
       statuses: [...this.filters.statuses],
-      seriesIds: [...this.filters.seriesIds]
+      seriesIds: [...this.filters.seriesIds],
+      author: this.filters.author
     };
   }
 
@@ -585,6 +667,7 @@ export class FilterPanel {
     if (filters.genres !== undefined) this.filters.genres = [...filters.genres];
     if (filters.statuses !== undefined) this.filters.statuses = [...filters.statuses];
     if (filters.seriesIds !== undefined) this.filters.seriesIds = [...filters.seriesIds];
+    if (filters.author !== undefined) this.filters.author = filters.author;
     this.syncUIFromState();
   }
 
@@ -595,6 +678,7 @@ export class FilterPanel {
   getActiveCount() {
     let count = 0;
     if (this.filters.rating > 0) count++;
+    if (this.filters.author) count++;
     count += this.filters.genres.length;
     count += this.filters.statuses.length;
     count += this.filters.seriesIds.length;
@@ -618,8 +702,10 @@ export class FilterPanel {
       rating: 0,
       genres: [],
       statuses: [],
-      seriesIds: []
+      seriesIds: [],
+      author: ''
     };
+    this.authorSearchQuery = '';
     this.syncUIFromState();
     this.clearDisabledStates();
   }
@@ -677,6 +763,161 @@ export class FilterPanel {
   emitChange() {
     if (this.onChange) {
       this.onChange(this.getFilters());
+    }
+  }
+
+  // ==================== Author Typeahead Methods ====================
+
+  /**
+   * Get filtered authors based on search query
+   * @returns {Array} Filtered author names
+   */
+  getFilteredAuthors() {
+    if (!this.authorSearchQuery) return this.authors;
+    const query = this.authorSearchQuery.toLowerCase().trim();
+    return this.authors.filter(author =>
+      author.toLowerCase().includes(query)
+    );
+  }
+
+  /**
+   * Render the author dropdown with filtered results
+   */
+  renderAuthorDropdown() {
+    if (!this.elements.authorDropdown || !this.isAuthorDropdownOpen) return;
+
+    const filtered = this.getFilteredAuthors();
+
+    if (filtered.length === 0) {
+      this.elements.authorDropdown.innerHTML = `
+        <div class="px-3 py-2 text-sm text-gray-500 italic">No authors found</div>
+      `;
+      this.elements.authorDropdown.classList.remove('hidden');
+      return;
+    }
+
+    this.elements.authorDropdown.innerHTML = filtered.map((author, index) => {
+      const count = this.authorCounts[author] || 0;
+      const isDisabled = count === 0;
+      const isSelected = this.filters.author === author;
+      const isFocused = index === this.authorFocusedIndex;
+
+      return `
+        <button type="button"
+                class="author-option w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-gray-100 min-h-[44px] ${isFocused ? 'bg-gray-100' : ''} ${isSelected ? 'text-primary font-medium' : 'text-gray-900'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+                data-author="${escapeHtml(author)}"
+                ${isDisabled ? 'disabled' : ''}
+                role="option"
+                aria-selected="${isSelected}">
+          <span class="truncate">${escapeHtml(author)}</span>
+          <span class="text-gray-400 text-xs ml-2">(${count})</span>
+        </button>
+      `;
+    }).join('');
+
+    this.elements.authorDropdown.classList.remove('hidden');
+
+    // Attach click handlers
+    this.elements.authorDropdown.querySelectorAll('.author-option:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.selectAuthor(btn.dataset.author);
+      });
+    });
+  }
+
+  /**
+   * Handle keyboard navigation in author dropdown
+   * @param {KeyboardEvent} e
+   */
+  handleAuthorKeydown(e) {
+    const filtered = this.getFilteredAuthors();
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this.authorFocusedIndex = Math.min(this.authorFocusedIndex + 1, filtered.length - 1);
+        this.renderAuthorDropdown();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this.authorFocusedIndex = Math.max(this.authorFocusedIndex - 1, 0);
+        this.renderAuthorDropdown();
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (this.authorFocusedIndex >= 0 && this.authorFocusedIndex < filtered.length) {
+          const author = filtered[this.authorFocusedIndex];
+          const count = this.authorCounts[author] || 0;
+          if (count > 0) {
+            this.selectAuthor(author);
+          }
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        this.closeAuthorDropdown();
+        break;
+    }
+  }
+
+  /**
+   * Select an author and apply the filter
+   * @param {string} author - Author name to select
+   */
+  selectAuthor(author) {
+    this.filters.author = author;
+    this.authorSearchQuery = '';
+    this.elements.authorInput.value = author;
+    this.closeAuthorDropdown();
+    this.updateAuthorClearButton();
+    this.emitChange();
+  }
+
+  /**
+   * Clear the author filter
+   */
+  clearAuthor() {
+    this.filters.author = '';
+    this.authorSearchQuery = '';
+    this.elements.authorInput.value = '';
+    this.updateAuthorClearButton();
+    this.emitChange();
+  }
+
+  /**
+   * Close the author dropdown
+   */
+  closeAuthorDropdown() {
+    this.isAuthorDropdownOpen = false;
+    this.authorFocusedIndex = -1;
+    if (this.elements.authorDropdown) {
+      this.elements.authorDropdown.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Update visibility of the clear button based on selection
+   */
+  updateAuthorClearButton() {
+    if (this.elements.authorClear) {
+      if (this.filters.author) {
+        this.elements.authorClear.classList.remove('hidden');
+      } else {
+        this.elements.authorClear.classList.add('hidden');
+      }
+    }
+  }
+
+  /**
+   * Update authors list
+   * @param {Array} authors - Array of author name strings
+   */
+  setAuthors(authors) {
+    this.authors = authors || [];
+    // If currently selected author no longer exists, clear it
+    if (this.filters.author && !this.authors.includes(this.filters.author)) {
+      this.filters.author = '';
+      this.syncUIFromState();
     }
   }
 

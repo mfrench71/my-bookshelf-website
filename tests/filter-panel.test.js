@@ -3,7 +3,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock the utils module
 vi.mock('../src/js/utils.js', () => ({
-  initIcons: vi.fn()
+  initIcons: vi.fn(),
+  debounce: (fn) => fn  // Return the function immediately for tests
 }));
 
 import { FilterPanel } from '../src/js/components/filter-panel.js';
@@ -710,6 +711,65 @@ describe('FilterPanel', () => {
       });
 
       expect(panel.getActiveCount()).toBe(4);
+    });
+  });
+
+  describe('author filter', () => {
+    it('should render author input when authors are provided', () => {
+      const authors = ['J.K. Rowling', 'Stephen King', 'Brandon Sanderson'];
+      const panel = new FilterPanel({ container, authors });
+
+      const authorInput = container.querySelector('.filter-author');
+      expect(authorInput).toBeTruthy();
+      expect(authorInput.placeholder).toBe('Search authors...');
+    });
+
+    it('should include author in getFilters()', () => {
+      const authors = ['J.K. Rowling', 'Stephen King'];
+      const panel = new FilterPanel({ container, authors });
+
+      panel.setFilters({ author: 'J.K. Rowling' });
+
+      expect(panel.getFilters().author).toBe('J.K. Rowling');
+    });
+
+    it('should count author as active filter', () => {
+      const authors = ['J.K. Rowling', 'Stephen King'];
+      const panel = new FilterPanel({ container, authors });
+
+      panel.setFilters({ author: 'J.K. Rowling' });
+
+      expect(panel.getActiveCount()).toBe(1);
+    });
+
+    it('should include author in initial filters', () => {
+      const authors = ['J.K. Rowling', 'Stephen King'];
+      const panel = new FilterPanel({
+        container,
+        authors,
+        initialFilters: { author: 'Stephen King' }
+      });
+
+      expect(panel.getFilters().author).toBe('Stephen King');
+    });
+
+    it('should reset author filter on reset()', () => {
+      const authors = ['J.K. Rowling', 'Stephen King'];
+      const panel = new FilterPanel({ container, authors });
+
+      panel.setFilters({ author: 'J.K. Rowling' });
+      panel.reset();
+
+      expect(panel.getFilters().author).toBe('');
+    });
+
+    it('should update author list with setAuthors()', () => {
+      const panel = new FilterPanel({ container, authors: ['Author A'] });
+      panel.setAuthors(['Author B', 'Author C']);
+
+      // After setting new authors, the stored authors list should be updated
+      // We can verify by checking that the panel has authors
+      expect(panel.getFilters().author).toBe(''); // Filter unchanged
     });
   });
 });

@@ -559,6 +559,21 @@ function filterByAuthor(booksArray, author) {
   return booksArray.filter(b => b.author?.toLowerCase() === authorLower);
 }
 
+/**
+ * Extract unique authors from books list
+ * @returns {Array<string>} Sorted array of unique author names
+ */
+function getUniqueAuthors() {
+  const authorSet = new Set(
+    books
+      .filter(b => !b.deletedAt && b.author?.trim())
+      .map(b => b.author.trim())
+  );
+  return Array.from(authorSet).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
+}
+
 // Get filtered and sorted books (with caching)
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
@@ -653,6 +668,21 @@ function calculateFilterCounts() {
   // "All Series" count = total books matching other filters
   const seriesTotal = booksForSeries.length;
 
+  // For author counts: apply all filters EXCEPT author
+  let booksForAuthor = activeBooks;
+  booksForAuthor = filterByRating(booksForAuthor, ratingFilter);
+  booksForAuthor = filterByGenres(booksForAuthor, genreFilters);
+  booksForAuthor = filterByStatuses(booksForAuthor, statusFilters);
+  booksForAuthor = filterBySeriesIds(booksForAuthor, seriesFilters);
+
+  const authorCounts = {};
+  booksForAuthor.forEach(b => {
+    if (b.author?.trim()) {
+      const author = b.author.trim();
+      authorCounts[author] = (authorCounts[author] || 0) + 1;
+    }
+  });
+
   return {
     ratingTotal,
     genreTotal,
@@ -661,15 +691,23 @@ function calculateFilterCounts() {
     ratings,
     genres: genresCounts,
     status: statusCounts,
-    series: seriesCounts
+    series: seriesCounts,
+    authors: authorCounts
   };
 }
 
-// Update filter panel counts
+// Update filter panel counts and author list
 function updateFilterCounts() {
   const counts = calculateFilterCounts();
-  if (sidebarPanel) sidebarPanel.setBookCounts(counts);
-  if (mobilePanel) mobilePanel.setBookCounts(counts);
+  const authors = getUniqueAuthors();
+  if (sidebarPanel) {
+    sidebarPanel.setAuthors(authors);
+    sidebarPanel.setBookCounts(counts);
+  }
+  if (mobilePanel) {
+    mobilePanel.setAuthors(authors);
+    mobilePanel.setBookCounts(counts);
+  }
 }
 
 // Render Books
@@ -767,7 +805,8 @@ function initializeFilterPanels() {
     rating: ratingFilter,
     genres: genreFilters,
     statuses: statusFilters,
-    seriesIds: seriesFilters
+    seriesIds: seriesFilters,
+    author: authorFilter
   };
 
   // Desktop sidebar panel
@@ -776,6 +815,7 @@ function initializeFilterPanels() {
       container: filterSidebar,
       genres,
       series,
+      authors: getUniqueAuthors(),
       showSort: true,
       initialFilters,
       onChange: handleSidebarFilterChange
@@ -795,6 +835,7 @@ function initializeFilterPanels() {
       container: mobileContainer,
       genres,
       series,
+      authors: getUniqueAuthors(),
       showSort: false,
       initialFilters,
       onChange: null // Don't auto-apply, wait for Apply button
@@ -821,12 +862,8 @@ async function handleSidebarFilterChange(filters) {
                   filters.rating === 0 &&
                   filters.genres.length === 0 &&
                   filters.statuses.length === 0 &&
-                  filters.seriesIds.length === 0;
-
-  // If resetting, also clear author filter (not part of FilterPanel)
-  if (isReset && authorFilter) {
-    authorFilter = '';
-  }
+                  filters.seriesIds.length === 0 &&
+                  !filters.author;
 
   // Update global filter state (arrays for multi-select)
   currentSort = filters.sort;
@@ -834,6 +871,7 @@ async function handleSidebarFilterChange(filters) {
   genreFilters = [...filters.genres];
   statusFilters = [...filters.statuses];
   seriesFilters = [...filters.seriesIds];
+  authorFilter = filters.author || '';
   displayLimit = BOOKS_PER_PAGE;
 
   // Handle series filter change (auto-switch to Series Order only if exactly one series)
@@ -881,18 +919,15 @@ async function applyMobileFilters(keepSheetOpen = false) {
   const isReset = filters.rating === 0 &&
                   filters.genres.length === 0 &&
                   filters.statuses.length === 0 &&
-                  filters.seriesIds.length === 0;
-
-  // If resetting, also clear author filter (not part of FilterPanel)
-  if (isReset && authorFilter) {
-    authorFilter = '';
-  }
+                  filters.seriesIds.length === 0 &&
+                  !filters.author;
 
   // Update global filter state (sort comes from mobile header, not panel)
   ratingFilter = filters.rating;
   genreFilters = [...filters.genres];
   statusFilters = [...filters.statuses];
   seriesFilters = [...filters.seriesIds];
+  authorFilter = filters.author || '';
   displayLimit = BOOKS_PER_PAGE;
 
   // Handle series filter change (auto-switch to Series Order only if exactly one series)
@@ -911,7 +946,8 @@ async function applyMobileFilters(keepSheetOpen = false) {
       rating: ratingFilter,
       genres: genreFilters,
       statuses: statusFilters,
-      seriesIds: seriesFilters
+      seriesIds: seriesFilters,
+      author: authorFilter
     });
   }
 
@@ -1116,7 +1152,8 @@ async function clearFilter(filterType, filterValue = null) {
       rating: ratingFilter,
       genres: genreFilters,
       statuses: statusFilters,
-      seriesIds: seriesFilters
+      seriesIds: seriesFilters,
+      author: authorFilter
     });
   }
   if (mobilePanel) {
@@ -1124,7 +1161,8 @@ async function clearFilter(filterType, filterValue = null) {
       rating: ratingFilter,
       genres: genreFilters,
       statuses: statusFilters,
-      seriesIds: seriesFilters
+      seriesIds: seriesFilters,
+      author: authorFilter
     });
   }
 

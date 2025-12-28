@@ -115,12 +115,12 @@ export class GenrePicker {
         <label id="genre-picker-label" class="block font-semibold text-gray-700 mb-1">Genres</label>
 
         <!-- Selected genres -->
-        <div class="genre-picker-selected flex flex-wrap gap-1.5 mb-2">
+        <div class="genre-picker-selected flex flex-wrap gap-2 mb-2">
           ${selectedGenres.map(genre => `
-            <span class="genre-badge" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
+            <span class="genre-badge py-1 px-2.5" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
               ${escapeHtml(genre.name)}
-              <button type="button" class="ml-1 p-2 -mr-2 -my-1 hover:opacity-75 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <button type="button" class="ml-1.5 -mr-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
