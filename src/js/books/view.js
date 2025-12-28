@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { doc, getDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { parseTimestamp, formatDate, showToast, initIcons, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
-import { loadUserSeries, createSeriesLookup, deleteSeries } from '../series.js';
+import { loadUserSeries, createSeriesLookup, softDeleteSeries } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
@@ -383,11 +383,11 @@ confirmDeleteBtn.addEventListener('click', async () => {
   try {
     await softDeleteBook(currentUser.uid, bookId, book);
 
-    // Delete the series if requested
+    // Soft-delete the series if requested (can be restored with book)
     if (seriesIdToDelete) {
       try {
-        await deleteSeries(currentUser.uid, seriesIdToDelete);
-        showToast('Book moved to bin, series deleted', { type: 'success' });
+        await softDeleteSeries(currentUser.uid, seriesIdToDelete);
+        showToast('Book and series moved to bin', { type: 'success' });
       } catch (seriesError) {
         console.error('Error deleting series:', seriesError);
         showToast('Book moved to bin (series deletion failed)', { type: 'info' });
