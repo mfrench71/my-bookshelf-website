@@ -61,6 +61,12 @@ All notable changes to MyBookShelf are documented here.
   - Soft-deletes series so it can be restored with the book
   - Auto-restore series when restoring book from bin
 - Fix series section on book view showing binned books
+- Soft-delete audit: Filter deleted books from all queries:
+  - Home page dashboard and widgets
+  - Header search
+  - Genre and series book counts
+  - Maintenance page health analysis
+  - Genre deletion and migration operations
 - Add "Code Documentation" guidelines section to CLAUDE.md
 
 ---
