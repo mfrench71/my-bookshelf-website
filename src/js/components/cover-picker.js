@@ -60,6 +60,18 @@ export class CoverPicker {
             <i data-lucide="check" class="w-3 h-3 text-white"></i>
           </div>
         </div>
+        <div data-source="userUpload" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
+          <div class="text-xs text-gray-500 text-center mb-1">Your Upload</div>
+          <div class="relative w-16 h-24 mx-auto">
+            <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+              <i data-lucide="loader-2" class="w-5 h-5 text-gray-400 animate-spin"></i>
+            </div>
+            <img src="" alt="Your uploaded cover" class="w-16 h-24 rounded object-cover hidden">
+          </div>
+          <div class="cover-selected-badge hidden absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
+            <i data-lucide="check" class="w-3 h-3 text-white"></i>
+          </div>
+        </div>
       </div>
       <div class="no-cover-placeholder hidden">
         <div class="w-24 h-36 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
@@ -72,16 +84,20 @@ export class CoverPicker {
     // Store element references
     this.elements.googleOption = this.container.querySelector('[data-source="googleBooks"]');
     this.elements.openLibraryOption = this.container.querySelector('[data-source="openLibrary"]');
+    this.elements.userUploadOption = this.container.querySelector('[data-source="userUpload"]');
     this.elements.googleImg = this.elements.googleOption.querySelector('img');
     this.elements.openLibraryImg = this.elements.openLibraryOption.querySelector('img');
+    this.elements.userUploadImg = this.elements.userUploadOption.querySelector('img');
     this.elements.googleLoading = this.elements.googleOption.querySelector('.cover-loading');
     this.elements.openLibraryLoading = this.elements.openLibraryOption.querySelector('.cover-loading');
+    this.elements.userUploadLoading = this.elements.userUploadOption.querySelector('.cover-loading');
     this.elements.coverOptions = this.container.querySelector('.cover-options');
     this.elements.placeholder = this.container.querySelector('.no-cover-placeholder');
 
     // Bind click handlers
     this.elements.googleOption.addEventListener('click', () => this.select('googleBooks'));
     this.elements.openLibraryOption.addEventListener('click', () => this.select('openLibrary'));
+    this.elements.userUploadOption.addEventListener('click', () => this.select('userUpload'));
 
     // Handle image load success - show image, hide spinner
     this.elements.googleImg.onload = () => {
@@ -92,6 +108,11 @@ export class CoverPicker {
     this.elements.openLibraryImg.onload = () => {
       this.elements.openLibraryLoading.classList.add('hidden');
       this.elements.openLibraryImg.classList.remove('hidden');
+    };
+
+    this.elements.userUploadImg.onload = () => {
+      this.elements.userUploadLoading.classList.add('hidden');
+      this.elements.userUploadImg.classList.remove('hidden');
     };
 
     // Handle image load errors
@@ -112,11 +133,16 @@ export class CoverPicker {
         this.select('googleBooks');
       }
     };
+
+    this.elements.userUploadImg.onerror = () => {
+      this.elements.userUploadLoading.classList.add('hidden');
+      this.elements.userUploadOption.classList.add('hidden');
+    };
   }
 
   /**
    * Set available covers and update display
-   * @param {Object} covers - Object with googleBooks and/or openLibrary URLs
+   * @param {Object} covers - Object with googleBooks, openLibrary, and/or userUpload URLs
    * @param {string} currentUrl - Currently selected URL (optional)
    */
   setCovers(covers, currentUrl = null) {
@@ -127,18 +153,23 @@ export class CoverPicker {
 
     const hasGoogle = !!this.covers.googleBooks && isValidImageUrl(this.covers.googleBooks);
     const hasOpenLibrary = !!this.covers.openLibrary && isValidImageUrl(this.covers.openLibrary);
-    const hasAnyCovers = hasGoogle || hasOpenLibrary;
+    const hasUserUpload = !!this.covers.userUpload && isValidImageUrl(this.covers.userUpload);
+    const hasAnyCovers = hasGoogle || hasOpenLibrary || hasUserUpload;
 
     // Reset UI - hide cover options, reset selection styles, reset loading state
     this.elements.googleOption.classList.add('hidden');
     this.elements.openLibraryOption.classList.add('hidden');
+    this.elements.userUploadOption.classList.add('hidden');
     this.elements.googleOption.classList.remove('border-primary', 'bg-primary/15');
     this.elements.openLibraryOption.classList.remove('border-primary', 'bg-primary/15');
+    this.elements.userUploadOption.classList.remove('border-primary', 'bg-primary/15');
     // Reset images to loading state
     this.elements.googleImg.classList.add('hidden');
     this.elements.openLibraryImg.classList.add('hidden');
+    this.elements.userUploadImg.classList.add('hidden');
     this.elements.googleLoading.classList.remove('hidden');
     this.elements.openLibraryLoading.classList.remove('hidden');
+    this.elements.userUploadLoading.classList.remove('hidden');
 
     // Show placeholder if no covers available
     this.elements.coverOptions.classList.toggle('hidden', !hasAnyCovers);
@@ -160,8 +191,15 @@ export class CoverPicker {
       this.elements.openLibraryImg.src = this.covers.openLibrary;
     }
 
+    if (hasUserUpload) {
+      this.elements.userUploadOption.classList.remove('hidden');
+      this.elements.userUploadImg.src = this.covers.userUpload;
+    }
+
     // Highlight current selection or auto-select first
-    if (this.currentUrl === this.covers.googleBooks) {
+    if (this.currentUrl === this.covers.userUpload) {
+      this.highlightOption('userUpload');
+    } else if (this.currentUrl === this.covers.googleBooks) {
       this.highlightOption('googleBooks');
     } else if (this.currentUrl === this.covers.openLibrary) {
       this.highlightOption('openLibrary');
@@ -172,6 +210,9 @@ export class CoverPicker {
     } else if (hasOpenLibrary) {
       this.currentUrl = this.covers.openLibrary;
       this.highlightOption('openLibrary');
+    } else if (hasUserUpload) {
+      this.currentUrl = this.covers.userUpload;
+      this.highlightOption('userUpload');
     }
 
     initIcons();
@@ -179,7 +220,7 @@ export class CoverPicker {
 
   /**
    * Select a cover source
-   * @param {string} source - 'googleBooks' or 'openLibrary'
+   * @param {string} source - 'googleBooks', 'openLibrary', or 'userUpload'
    */
   select(source) {
     const url = this.covers[source];
@@ -192,11 +233,12 @@ export class CoverPicker {
 
   /**
    * Highlight the selected option
-   * @param {string} source - 'googleBooks' or 'openLibrary'
+   * @param {string} source - 'googleBooks', 'openLibrary', or 'userUpload'
    */
   highlightOption(source) {
     const googleBadge = this.elements.googleOption.querySelector('.cover-selected-badge');
     const openLibraryBadge = this.elements.openLibraryOption.querySelector('.cover-selected-badge');
+    const userUploadBadge = this.elements.userUploadOption.querySelector('.cover-selected-badge');
 
     this.elements.googleOption.classList.toggle('border-primary', source === 'googleBooks');
     this.elements.googleOption.classList.toggle('bg-primary/15', source === 'googleBooks');
@@ -205,6 +247,10 @@ export class CoverPicker {
     this.elements.openLibraryOption.classList.toggle('border-primary', source === 'openLibrary');
     this.elements.openLibraryOption.classList.toggle('bg-primary/15', source === 'openLibrary');
     openLibraryBadge?.classList.toggle('hidden', source !== 'openLibrary');
+
+    this.elements.userUploadOption.classList.toggle('border-primary', source === 'userUpload');
+    this.elements.userUploadOption.classList.toggle('bg-primary/15', source === 'userUpload');
+    userUploadBadge?.classList.toggle('hidden', source !== 'userUpload');
 
     initIcons();
   }
@@ -230,7 +276,42 @@ export class CoverPicker {
    * @returns {boolean} True if at least one cover is available
    */
   hasCovers() {
-    return !!(this.covers.googleBooks || this.covers.openLibrary);
+    return !!(this.covers.googleBooks || this.covers.openLibrary || this.covers.userUpload);
+  }
+
+  /**
+   * Set a user-uploaded image as a cover option
+   * Called when user marks an image as primary in ImageGallery
+   * @param {string|null} url - The Firebase Storage URL of the uploaded image, or null to clear
+   * @param {boolean} [forceSelect=false] - If true, select this as the cover even if another is selected
+   */
+  setUserUpload(url, forceSelect = false) {
+    // If no URL, remove user upload option
+    if (!url) {
+      const wasUserUploadSelected = this.currentUrl === this.covers.userUpload;
+      delete this.covers.userUpload;
+
+      if (wasUserUploadSelected) {
+        // Switch to first available API cover
+        const newUrl = this.covers.googleBooks || this.covers.openLibrary || '';
+        this.setCovers(this.covers, newUrl);
+        // Notify parent of the new selection
+        if (newUrl) {
+          const source = newUrl === this.covers.googleBooks ? 'googleBooks' : 'openLibrary';
+          this.onSelect(newUrl, source);
+        }
+      } else {
+        this.setCovers(this.covers, this.currentUrl);
+      }
+      return;
+    }
+
+    // Add to covers
+    this.covers.userUpload = url;
+
+    // Select if forced or if no cover is currently selected
+    const shouldSelect = forceSelect || !this.currentUrl;
+    this.setCovers(this.covers, shouldSelect ? url : this.currentUrl);
   }
 
   /**
@@ -254,6 +335,10 @@ export class CoverPicker {
     if (this.elements.openLibraryImg) {
       this.elements.openLibraryImg.onload = null;
       this.elements.openLibraryImg.onerror = null;
+    }
+    if (this.elements.userUploadImg) {
+      this.elements.userUploadImg.onload = null;
+      this.elements.userUploadImg.onerror = null;
     }
 
     // Clear container
