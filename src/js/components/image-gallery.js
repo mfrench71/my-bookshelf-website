@@ -39,6 +39,7 @@ export class ImageGallery {
 
     this.images = [];
     this.uploading = new Map(); // id -> progress
+    this.newlyUploaded = new Set(); // Track images uploaded this session (for cleanup on cancel)
     this.draggedIndex = null;
 
     this.render();
@@ -140,7 +141,7 @@ export class ImageGallery {
         id: result.id,
         url: result.url,
         storagePath: result.storagePath,
-        isPrimary: this.images.length === 0, // First image is primary
+        isPrimary: false, // User must explicitly set as cover
         uploadedAt: Date.now(),
         sizeBytes: result.sizeBytes,
         width: result.width,
@@ -148,16 +149,13 @@ export class ImageGallery {
       };
 
       this.images.push(newImage);
+      this.newlyUploaded.add(newImage.id); // Track for cleanup on cancel
       this.uploading.delete(tempId);
       this.render();
       this.notifyChange();
       this.notifyPrimaryChange();
 
-      if (newImage.isPrimary) {
-        showToast('Image uploaded and set as cover', { type: 'success' });
-      } else {
-        showToast('Image uploaded', { type: 'success' });
-      }
+      showToast('Image uploaded', { type: 'success' });
     } catch (error) {
       console.error('Upload error:', error);
       this.uploading.delete(tempId);
@@ -188,26 +186,28 @@ export class ImageGallery {
 
     if (!confirmed) return;
 
-    try {
-      // Delete from storage
-      await deleteImage(image.storagePath);
+    // Always remove from array, even if storage delete fails
+    this.images = this.images.filter(img => img.id !== imageId);
+    this.newlyUploaded.delete(imageId);
 
-      // Remove from array
-      this.images = this.images.filter(img => img.id !== imageId);
-
-      // If deleted image was primary and there are still images, make first one primary
-      if (wasPrimary && this.images.length > 0) {
-        this.images[0].isPrimary = true;
-      }
-
-      this.render();
-      this.notifyChange();
-      this.notifyPrimaryChange();
-      showToast('Image deleted', { type: 'success' });
-    } catch (error) {
-      console.error('Delete error:', error);
-      showToast('Failed to delete image', { type: 'error' });
+    // If deleted image was primary and there are still images, make first one primary
+    if (wasPrimary && this.images.length > 0) {
+      this.images[0].isPrimary = true;
     }
+
+    this.render();
+    this.notifyChange();
+    this.notifyPrimaryChange();
+
+    // Try to delete from storage (best effort, don't block on failure)
+    try {
+      await deleteImage(image.storagePath);
+    } catch (error) {
+      // Ignore storage errors - file may already be deleted
+      console.warn('Storage delete failed (file may already be deleted):', error.message);
+    }
+
+    showToast('Image deleted', { type: 'success' });
   }
 
   /**
@@ -218,8 +218,7 @@ export class ImageGallery {
     this.images = setPrimaryImage(this.images, imageId);
     this.render();
     this.notifyChange();
-    this.notifyPrimaryChange();
-    showToast('Cover image updated', { type: 'success' });
+    this.notifyPrimaryChange(true); // User explicitly set this as cover
   }
 
   /**
@@ -266,10 +265,11 @@ export class ImageGallery {
 
   /**
    * Notify parent of primary image change
+   * @param {boolean} [userInitiated=false] - True if user explicitly clicked to set as cover
    */
-  notifyPrimaryChange() {
+  notifyPrimaryChange(userInitiated = false) {
     const primaryUrl = this.getPrimaryImageUrl();
-    this.onPrimaryChange(primaryUrl);
+    this.onPrimaryChange(primaryUrl, userInitiated);
   }
 
   /**
@@ -285,24 +285,17 @@ export class ImageGallery {
           <label class="block font-semibold text-gray-700">
             Book Images <span class="font-normal text-gray-500">(${this.images.length}/${this.maxImages})</span>
           </label>
-          ${canAdd ? `
-            <label class="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg cursor-pointer transition-colors min-h-[44px]">
-              <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
-              <span>Upload</span>
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="hidden" id="image-gallery-input">
-            </label>
-          ` : ''}
         </div>
 
         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           ${this.images.map((img, index) => this.renderImageTile(img, index)).join('')}
           ${Array.from(this.uploading.entries()).map(([id, progress]) => this.renderUploadingTile(id, progress)).join('')}
-          ${canAdd && this.images.length === 0 && this.uploading.size === 0 ? this.renderEmptySlot() : ''}
+          ${canAdd ? this.renderEmptySlot() : ''}
         </div>
 
-        ${this.images.length > 1 ? `
+        ${this.images.length > 0 ? `
           <p class="text-xs text-gray-500">
-            Drag to reorder. Click <i data-lucide="star" class="w-3 h-3 inline" aria-hidden="true"></i> to set as cover.
+            ${this.images.length > 1 ? 'Drag to reorder. ' : ''}Tap to set as cover image.
           </p>
         ` : ''}
       </div>
@@ -323,39 +316,47 @@ export class ImageGallery {
     const isPrimary = img.isPrimary;
 
     return `
-      <div class="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 ${isPrimary ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}"
+      <div class="relative group aspect-square bg-gray-100 rounded-lg border-2 ${isPrimary ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}"
            draggable="true"
            data-index="${index}"
            data-image-id="${escapeAttr(img.id)}">
+        <!-- Loading skeleton -->
+        <div class="image-loading absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div class="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+        </div>
+
+        <!-- Image with load/error handling -->
         <img src="${escapeAttr(img.url)}"
              alt="Book image ${index + 1}"
-             class="w-full h-full object-cover"
-             loading="lazy">
+             class="w-full h-full object-cover hidden"
+             onload="this.classList.remove('hidden'); this.previousElementSibling.classList.add('hidden');"
+             onerror="this.style.display='none'; this.previousElementSibling.innerHTML='<i data-lucide=\\'image-off\\' class=\\'w-8 h-8 text-gray-400\\'></i>'; lucide.createIcons();">
 
         <!-- Primary badge -->
         ${isPrimary ? `
-          <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium">
+          <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium z-10">
             Cover
           </div>
         ` : ''}
 
-        <!-- Action buttons overlay -->
-        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          ${!isPrimary ? `
-            <button type="button"
-                    class="set-primary-btn p-2 bg-white rounded-full hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    data-image-id="${escapeAttr(img.id)}"
-                    aria-label="Set as cover">
-              <i data-lucide="star" class="w-5 h-5 text-gray-700" aria-hidden="true"></i>
-            </button>
-          ` : ''}
+        <!-- Delete button (always visible, overlapping top-right corner) -->
+        <button type="button"
+                class="delete-btn absolute p-2 bg-white hover:bg-red-50 rounded-full shadow-md transition-colors z-20"
+                style="top: -8px; right: -8px;"
+                data-image-id="${escapeAttr(img.id)}"
+                aria-label="Delete image">
+          <i data-lucide="x" class="w-4 h-4 text-gray-600" aria-hidden="true"></i>
+        </button>
+
+        <!-- Set as cover overlay (visible on hover, only if not primary) -->
+        ${!isPrimary ? `
           <button type="button"
-                  class="delete-btn p-2 bg-white rounded-full hover:bg-red-50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  class="set-primary-btn absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 cursor-pointer"
                   data-image-id="${escapeAttr(img.id)}"
-                  aria-label="Delete image">
-            <i data-lucide="trash-2" class="w-5 h-5 text-red-600" aria-hidden="true"></i>
+                  aria-label="Set as cover">
+            <span class="text-white text-xs font-medium text-center px-2">Set as cover</span>
           </button>
-        </div>
+        ` : ''}
       </div>
     `;
   }
@@ -427,7 +428,7 @@ export class ImageGallery {
       });
     });
 
-    // Drag and drop
+    // Drag and drop (desktop)
     const tiles = this.container.querySelectorAll('[draggable="true"]');
     tiles.forEach(tile => {
       tile.addEventListener('dragstart', () => {
@@ -446,7 +447,113 @@ export class ImageGallery {
         const index = parseInt(tile.dataset.index, 10);
         this.handleDragOver(index, e);
       });
+
+      // Touch events for mobile drag and drop
+      tile.addEventListener('touchstart', (e) => {
+        // Only handle if more than one image (reordering makes sense)
+        if (this.images.length <= 1) return;
+
+        const index = parseInt(tile.dataset.index, 10);
+        this.touchStartIndex = index;
+        this.touchStartTime = Date.now();
+        this.touchStartY = e.touches[0].clientY;
+        this.touchStartX = e.touches[0].clientX;
+        this.isTouchDragging = false;
+      }, { passive: true });
+
+      tile.addEventListener('touchmove', (e) => {
+        if (this.touchStartIndex === undefined) return;
+
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+
+        // Start dragging after moving 10px
+        if (!this.isTouchDragging && (deltaX > 10 || deltaY > 10)) {
+          this.isTouchDragging = true;
+          this.handleDragStart(this.touchStartIndex);
+          tile.classList.add('opacity-50', 'ring-2', 'ring-primary');
+        }
+
+        if (this.isTouchDragging) {
+          e.preventDefault();
+
+          // Temporarily hide tile to find element below
+          tile.style.pointerEvents = 'none';
+          const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+          tile.style.pointerEvents = '';
+
+          const tileBelow = elementBelow?.closest('[draggable="true"]');
+
+          if (tileBelow && tileBelow !== tile) {
+            const targetIndex = parseInt(tileBelow.dataset.index, 10);
+            if (!isNaN(targetIndex) && targetIndex !== this.draggedIndex) {
+              this.handleDragOver(targetIndex, e);
+            }
+          }
+        }
+      }, { passive: false });
+
+      tile.addEventListener('touchend', () => {
+        if (this.isTouchDragging) {
+          tile.classList.remove('opacity-50', 'ring-2', 'ring-primary');
+          this.handleDragEnd();
+        }
+        this.touchStartIndex = undefined;
+        this.isTouchDragging = false;
+      });
     });
+  }
+
+  /**
+   * Check if there are unsaved uploads
+   * @returns {boolean}
+   */
+  hasUnsavedUploads() {
+    return this.newlyUploaded.size > 0;
+  }
+
+  /**
+   * Get newly uploaded images (for cleanup)
+   * @returns {Array} Array of image objects that were uploaded this session
+   */
+  getNewlyUploadedImages() {
+    return this.images.filter(img => this.newlyUploaded.has(img.id));
+  }
+
+  /**
+   * Mark all uploads as saved (call after successful book save)
+   * Clears the tracking so images won't be deleted on navigation
+   */
+  markAsSaved() {
+    this.newlyUploaded.clear();
+  }
+
+  /**
+   * Delete all newly uploaded images (call on cancel/navigation)
+   * Best effort - may not complete if page unloads
+   * @returns {Promise<number>} Number of images deleted
+   */
+  async cleanupUnsavedUploads() {
+    if (this.newlyUploaded.size === 0) return 0;
+
+    const imagesToDelete = this.getNewlyUploadedImages();
+    let deletedCount = 0;
+
+    for (const image of imagesToDelete) {
+      try {
+        await deleteImage(image.storagePath);
+        deletedCount++;
+      } catch (error) {
+        console.error('Failed to cleanup image:', image.storagePath, error);
+      }
+    }
+
+    // Clear tracking
+    this.newlyUploaded.clear();
+    this.images = this.images.filter(img => !imagesToDelete.some(d => d.id === img.id));
+
+    return deletedCount;
   }
 
   /**
@@ -456,5 +563,6 @@ export class ImageGallery {
     this.container.innerHTML = '';
     this.images = [];
     this.uploading.clear();
+    this.newlyUploaded.clear();
   }
 }

@@ -7,8 +7,16 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'https:/
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const DEFAULT_MAX_WIDTH = 1200;
-const DEFAULT_QUALITY = 0.8;
+const DEFAULT_MAX_WIDTH = 1200; // Good for lightbox viewing
+const DEFAULT_QUALITY = 0.75; // Balance between quality and size
+
+// Check WebP support (better compression than JPEG)
+const supportsWebP = (() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+})();
 
 /**
  * Generate a unique ID for image storage
@@ -66,18 +74,19 @@ export function getImageDimensions(file) {
 
 /**
  * Compress and resize image before upload
+ * Uses WebP for better compression when supported, falls back to JPEG
  * @param {File} file - Original image file
  * @param {Object} options - Compression options
  * @param {number} [options.maxWidth=1200] - Maximum width in pixels
- * @param {number} [options.quality=0.8] - JPEG quality (0-1)
- * @returns {Promise<Blob>} Compressed image blob
+ * @param {number} [options.quality=0.75] - Quality (0-1)
+ * @returns {Promise<{blob: Blob, mimeType: string, extension: string}>} Compressed image with metadata
  */
 export async function compressImage(file, options = {}) {
   const { maxWidth = DEFAULT_MAX_WIDTH, quality = DEFAULT_QUALITY } = options;
 
   // Skip compression for GIFs (animated)
   if (file.type === 'image/gif') {
-    return file;
+    return { blob: file, mimeType: 'image/gif', extension: 'gif' };
   }
 
   return new Promise((resolve, reject) => {
@@ -103,16 +112,20 @@ export async function compressImage(file, options = {}) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
+      // Use WebP for better compression, fallback to JPEG
+      const mimeType = supportsWebP ? 'image/webp' : 'image/jpeg';
+      const extension = supportsWebP ? 'webp' : 'jpg';
+
       // Convert to blob
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            resolve(blob);
+            resolve({ blob, mimeType, extension });
           } else {
             reject(new Error('Failed to compress image'));
           }
         },
-        'image/jpeg',
+        mimeType,
         quality
       );
     };
@@ -141,24 +154,21 @@ export async function uploadImage(file, userId, bookId, onProgress = () => {}) {
     throw new Error(validation.error);
   }
 
-  // Get original dimensions before compression
-  const originalDimensions = await getImageDimensions(file);
-
-  // Compress image
-  const compressedBlob = await compressImage(file);
+  // Compress image (returns blob with metadata)
+  const { blob: compressedBlob, mimeType, extension } = await compressImage(file);
 
   // Get compressed dimensions
   const dimensions = await getImageDimensions(compressedBlob);
 
-  // Generate unique ID and storage path
+  // Generate unique ID and storage path with correct extension
   const imageId = generateImageId();
-  const storagePath = `users/${userId}/books/${bookId}/images/${imageId}.jpg`;
+  const storagePath = `users/${userId}/books/${bookId}/images/${imageId}.${extension}`;
   const storageRef = ref(storage, storagePath);
 
   // Upload with progress tracking
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, compressedBlob, {
-      contentType: 'image/jpeg'
+      contentType: mimeType
     });
 
     uploadTask.on(
