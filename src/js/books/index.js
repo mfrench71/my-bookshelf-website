@@ -52,6 +52,8 @@ const noResultsState = document.getElementById('no-results-state');
 const noResultsTitle = document.getElementById('no-results-title');
 const clearFiltersLink = document.getElementById('clear-filters-link');
 const bookList = document.getElementById('book-list');
+const bookCountMobile = document.getElementById('book-count-mobile');
+const bookCountDesktop = document.getElementById('book-count-desktop');
 
 // Mobile elements
 const filterTriggerBtn = document.getElementById('filter-trigger');
@@ -710,9 +712,31 @@ function updateFilterCounts() {
   }
 }
 
+// Update book count display
+function updateBookCount() {
+  const filtered = getFilteredBooks();
+  const total = filterActivebooks(books).length;
+  const hasFilters = hasActiveFilters();
+
+  let countText;
+  if (hasFilters && filtered.length !== total) {
+    countText = `${filtered.length} of ${total} book${total !== 1 ? 's' : ''}`;
+  } else {
+    countText = `${total} book${total !== 1 ? 's' : ''}`;
+  }
+
+  [bookCountMobile, bookCountDesktop].forEach(el => {
+    if (el) {
+      el.textContent = countText;
+      el.classList.remove('hidden');
+    }
+  });
+}
+
 // Render Books
 function renderBooks() {
   const filtered = getFilteredBooks();
+  updateBookCount();
 
   if (filtered.length === 0) {
     bookList.innerHTML = '';
