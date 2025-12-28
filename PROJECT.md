@@ -88,7 +88,106 @@ npm test && npm run build
 
 ### Firebase
 - **Project**: book-tracker-b786e
+- **Plan**: Blaze (pay-as-you-go)
 - **Firestore**: `/users/{userId}/books`, `/users/{userId}/genres`, `/users/{userId}/series`, `/users/{userId}/wishlist`
+- **Storage**: `/users/{userId}/books/{bookId}/images/{imageId}` (book photos)
+
+#### Blaze Features (Potential Future Use)
+
+| Feature | What It Does | Potential Use |
+|---------|--------------|---------------|
+| **Cloud Functions** | Server-side code triggered by events | Auto-delete bin items after 30 days, send reading reminders, server-side API calls (no CORS) |
+| **Resize Images Extension** | Auto-generate thumbnails on upload | Smaller thumbnails for list view, faster loading |
+| **Cloud Messaging (FCM)** | Push notifications | Reading reminders, "finish that book" nudges |
+| **Remote Config** | Feature flags without deploy | A/B test features, enable/disable at runtime |
+| **Scheduled Functions** | Cron jobs | Daily/weekly reading stats emails, scheduled backups |
+| **Firebase ML** | Machine learning | OCR book spines from photos |
+| **BigQuery Export** | Analytics export | Reading habit insights, advanced statistics |
+
+**Quick wins to consider:**
+1. Scheduled bin cleanup - auto-purge items > 30 days (currently client-side)
+2. Thumbnail generation - Resize Images extension creates smaller versions on upload
+3. Reading reminders - push notification if a book's been "Reading" for 2+ weeks
+
+#### Cloud Function: Orphaned Image Cleanup (Future Implementation)
+
+Orphaned images can occur when users upload images but don't save the book (e.g., navigate away, close browser). Client-side cleanup attempts to delete these on `pagehide`, but this is best-effort and may not complete.
+
+**Recommended: Scheduled Cloud Function**
+
+```javascript
+// functions/src/cleanupOrphanedImages.js
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+
+/**
+ * Scheduled function to delete orphaned images from Firebase Storage
+ * Runs daily at 3 AM UTC
+ */
+exports.cleanupOrphanedImages = functions.pubsub
+  .schedule('0 3 * * *')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    const db = admin.firestore();
+    const storage = admin.storage().bucket();
+
+    // Get all users
+    const usersSnapshot = await db.collection('users').get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+
+      // Get all image paths referenced in user's books
+      const booksSnapshot = await db
+        .collection('users')
+        .doc(userId)
+        .collection('books')
+        .get();
+
+      const referencedPaths = new Set();
+      booksSnapshot.docs.forEach(doc => {
+        const book = doc.data();
+        if (book.images && Array.isArray(book.images)) {
+          book.images.forEach(img => {
+            if (img.storagePath) {
+              referencedPaths.add(img.storagePath);
+            }
+          });
+        }
+      });
+
+      // List all files in user's storage folder
+      const [files] = await storage.getFiles({
+        prefix: `users/${userId}/`
+      });
+
+      // Delete files not referenced by any book
+      for (const file of files) {
+        if (!referencedPaths.has(file.name)) {
+          console.log(`Deleting orphaned file: ${file.name}`);
+          await file.delete();
+        }
+      }
+    }
+
+    console.log('Orphaned image cleanup completed');
+    return null;
+  });
+```
+
+**Deployment:**
+```bash
+cd functions
+npm install
+firebase deploy --only functions:cleanupOrphanedImages
+```
+
+**Current Client-Side Mitigations:**
+1. `ImageGallery.cleanupUnsavedUploads()` - Called on cancel button click
+2. `pagehide` event listener - Best-effort cleanup on navigation
+3. Maintenance page "Scan for Orphaned Images" - Manual user-triggered cleanup
 
 ---
 
@@ -169,7 +268,7 @@ npm test && npm run build
 - [x] Books list filters: Sidebar on desktop/tablet, bottom sheet on mobile
 
 ### Medium Priority
-- [ ] Custom cover image upload
+- [x] Custom cover image upload (Firebase Storage, up to 10 images per book)
 - [ ] Export to CSV
 - [ ] Import from Goodreads
 - [ ] Configurable display constants

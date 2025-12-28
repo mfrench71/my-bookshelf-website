@@ -6,6 +6,14 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-28
 
+- Add book image gallery with Firebase Storage:
+  - Upload up to 10 images per book (covers, interior photos, personal photos)
+  - Client-side compression: WebP format (30% smaller), 1200px max, 0.75 quality
+  - ImageGallery component with drag-to-reorder and primary selection
+  - Set uploaded image as book cover option in CoverPicker
+  - Read-only gallery on book view page with custom lightbox
+  - Lightbox: keyboard navigation (arrows/ESC), touch swipe, loading states
+  - Consistent image loading: skeleton spinner, lazy loading, error fallback
 - Improve genre parsing from book APIs:
   - Add comma-separated genre support (Open Library format like "Fiction, humorous, general")
   - Add double-dash separator support ("Rich people -- fiction")
