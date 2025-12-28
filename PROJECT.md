@@ -184,6 +184,7 @@ npm test && npm run build
 - [ ] Settings tab indicators: Maintenance (attention dot if issues), Bin (count badge if items)
 - [x] Bin for deleted books (soft-delete with 30-day restore) - unique feature, no competitors offer this
 - [ ] Book change history (activity log showing edits) - no competitors offer this, could be differentiator
+- [ ] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
 
 ### Bulk Tools
 - [ ] Bulk select mode (checkbox on each book card)
