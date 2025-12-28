@@ -4,6 +4,8 @@ import { GENRE_COLORS } from '../genres.js';
 
 /**
  * Schema for validating genre data
+ * - name: required for both add and edit
+ * - color: optional for add (auto-assigned), required for edit
  */
 export const GenreSchema = z.object({
   name: z.string()
@@ -21,6 +23,7 @@ export const GenreSchema = z.object({
       (color) => GENRE_COLORS.map(c => c.toLowerCase()).includes(color.toLowerCase()),
       'Please select a colour from the palette'
     )
+    .optional()
 });
 
 /**

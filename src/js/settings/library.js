@@ -73,6 +73,7 @@ const genreModal = document.getElementById('genre-modal');
 const genreModalTitle = document.getElementById('genre-modal-title');
 const genreForm = document.getElementById('genre-form');
 const genreNameInput = document.getElementById('genre-name');
+const colorPickerSection = document.getElementById('color-picker-section');
 const colorPicker = document.getElementById('color-picker');
 const cancelGenreBtn = document.getElementById('cancel-genre');
 const saveGenreBtn = document.getElementById('save-genre');
@@ -241,22 +242,18 @@ function renderGenres() {
   initIcons();
 }
 
+/**
+ * Render the colour picker with only available colours (used colours are hidden)
+ */
 function renderColorPicker() {
   const usedColors = getUsedColors(genres, editingGenreId);
 
-  colorPicker.innerHTML = GENRE_COLORS.map(color => {
-    const isSelected = color.toLowerCase() === selectedColor?.toLowerCase();
-    const isUsed = usedColors.has(color.toLowerCase());
-    const textColor = getContrastColor(color);
+  // Only render available colours (hide used instead of disabling)
+  const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
 
-    if (isUsed) {
-      return `
-        <button type="button" class="color-btn w-8 h-8 rounded-full border-2 border-transparent opacity-30 cursor-not-allowed relative"
-          style="background-color: ${color}" disabled title="Already in use" aria-label="${color} colour (already in use)">
-          <i data-lucide="x" class="w-4 h-4 mx-auto" style="color: ${textColor}" aria-hidden="true"></i>
-        </button>
-      `;
-    }
+  colorPicker.innerHTML = availableColors.map(color => {
+    const isSelected = color.toLowerCase() === selectedColor?.toLowerCase();
+    const textColor = getContrastColor(color);
 
     return `
       <button type="button" class="color-btn w-8 h-8 rounded-full border-2 ${isSelected ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-400' : 'border-transparent'} hover:scale-110 transition-transform"
@@ -266,7 +263,7 @@ function renderColorPicker() {
     `;
   }).join('');
 
-  colorPicker.querySelectorAll('.color-btn:not([disabled])').forEach(btn => {
+  colorPicker.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedColor = btn.dataset.color;
       renderColorPicker();
@@ -280,11 +277,10 @@ function openAddGenreModal() {
   editingGenreId = null;
   genreModalTitle.textContent = 'Add Genre';
   genreNameInput.value = '';
-  const availableColors = getAvailableColors(genres);
-  selectedColor = availableColors[0] || GENRE_COLORS[0];
   saveGenreBtn.textContent = 'Add';
   clearFormErrors(genreForm);
-  renderColorPicker();
+  // Hide colour picker for add (colour is auto-assigned randomly)
+  colorPickerSection?.classList.add('hidden');
   genreSheet?.open();
   if (!isMobile()) genreNameInput.focus();
 }
@@ -299,6 +295,8 @@ function openEditGenreModal(genreId) {
   selectedColor = genre.color;
   saveGenreBtn.textContent = 'Save';
   clearFormErrors(genreForm);
+  // Show colour picker for edit (user can change colour)
+  colorPickerSection?.classList.remove('hidden');
   renderColorPicker();
   genreSheet?.open();
   if (!isMobile()) genreNameInput.focus();
@@ -358,10 +356,12 @@ genreForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   clearFormErrors(genreForm);
-  const formData = {
-    name: genreNameInput.value,
-    color: selectedColor
-  };
+
+  // For add: only validate name (colour auto-assigned)
+  // For edit: validate both name and colour
+  const formData = editingGenreId
+    ? { name: genreNameInput.value, color: selectedColor }
+    : { name: genreNameInput.value };
 
   const result = validateForm(GenreSchema, formData);
   if (!result.success) {
@@ -375,10 +375,13 @@ genreForm?.addEventListener('submit', async (e) => {
     return;
   }
 
-  const colourError = validateColourUniqueness(result.data.color, genres, editingGenreId);
-  if (colourError) {
-    showFormErrors(genreForm, { color: colourError });
-    return;
+  // Only validate colour uniqueness when editing
+  if (editingGenreId && result.data.color) {
+    const colourError = validateColourUniqueness(result.data.color, genres, editingGenreId);
+    if (colourError) {
+      showFormErrors(genreForm, { color: colourError });
+      return;
+    }
   }
 
   saveGenreBtn.disabled = true;
@@ -389,7 +392,8 @@ genreForm?.addEventListener('submit', async (e) => {
       await updateGenre(currentUser.uid, editingGenreId, { name: result.data.name, color: result.data.color });
       showToast('Genre updated!', { type: 'success' });
     } else {
-      await createGenre(currentUser.uid, result.data.name, result.data.color);
+      // Create without colour - will be auto-assigned randomly
+      await createGenre(currentUser.uid, result.data.name);
       showToast('Genre created!', { type: 'success' });
     }
 

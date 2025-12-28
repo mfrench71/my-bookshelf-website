@@ -281,7 +281,7 @@ describe('createGenre', () => {
       .rejects.toThrow('Genre "Science Fiction" already exists');
   });
 
-  it('should throw error for duplicate color', async () => {
+  it('should throw error for duplicate colour', async () => {
     mockGetDocs.mockResolvedValueOnce({
       docs: [
         { id: 'g1', data: () => ({ name: 'Mystery', normalizedName: 'mystery', color: '#ff0000' }) }
@@ -289,29 +289,34 @@ describe('createGenre', () => {
     });
 
     await expect(createGenre('user123', 'Science Fiction', '#FF0000'))
-      .rejects.toThrow('This color is already used by another genre');
+      .rejects.toThrow('This colour is already used by another genre');
   });
 
-  it('should auto-assign color if not provided', async () => {
+  it('should auto-assign random colour if not provided', async () => {
     mockGetDocs.mockResolvedValueOnce({ docs: [] });
     mockAddDoc.mockResolvedValueOnce({ id: 'newGenreId' });
 
     const genre = await createGenre('user123', 'Science Fiction');
 
-    expect(genre.color).toBe(GENRE_COLORS[0]);
+    // Colour should be from the palette (random, not necessarily first)
+    expect(GENRE_COLORS.map(c => c.toLowerCase())).toContain(genre.color.toLowerCase());
   });
 
-  it('should auto-assign next available color', async () => {
+  it('should auto-assign colour from available pool only', async () => {
+    const usedColor = GENRE_COLORS[0];
     mockGetDocs.mockResolvedValueOnce({
       docs: [
-        { id: 'g1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: GENRE_COLORS[0] }) }
+        { id: 'g1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: usedColor }) }
       ]
     });
     mockAddDoc.mockResolvedValueOnce({ id: 'newGenreId' });
 
     const genre = await createGenre('user123', 'Mystery');
 
-    expect(genre.color).toBe(GENRE_COLORS[1]);
+    // Colour should NOT be the used colour
+    expect(genre.color.toLowerCase()).not.toBe(usedColor.toLowerCase());
+    // But should still be from the palette
+    expect(GENRE_COLORS.map(c => c.toLowerCase())).toContain(genre.color.toLowerCase());
   });
 });
 
@@ -361,7 +366,7 @@ describe('updateGenre', () => {
       .rejects.toThrow('Genre "Mystery" already exists');
   });
 
-  it('should throw error for duplicate color when changing', async () => {
+  it('should throw error for duplicate colour when changing', async () => {
     mockGetDocs.mockResolvedValueOnce({
       docs: [
         { id: 'g1', data: () => ({ name: 'Fiction', normalizedName: 'fiction', color: '#FF0000' }) },
@@ -370,7 +375,7 @@ describe('updateGenre', () => {
     });
 
     await expect(updateGenre('user123', 'g1', { color: '#00FF00' }))
-      .rejects.toThrow('This color is already used by another genre');
+      .rejects.toThrow('This colour is already used by another genre');
   });
 
   it('should allow keeping same name', async () => {

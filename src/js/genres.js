@@ -15,87 +15,151 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeGenreName } from './utils.js';
 
-// Predefined color palette for genres (36 colors) - rainbow order
+// Predefined colour palette for genres (~150 colours) - rainbow order
+// Expanded with Tailwind 200-800 shades for extensive genre lists
 export const GENRE_COLORS = [
-  // Reds
+  // Reds (7 shades)
+  '#fecaca', // red-200
   '#fca5a5', // red-300
   '#f87171', // red-400
   '#ef4444', // red-500
   '#dc2626', // red-600
   '#b91c1c', // red-700
-  // Roses
+  '#991b1b', // red-800
+  // Roses (6 shades)
+  '#fecdd3', // rose-200
   '#fda4af', // rose-300
   '#fb7185', // rose-400
   '#f43f5e', // rose-500
-  // Oranges
+  '#e11d48', // rose-600
+  '#be123c', // rose-700
+  // Oranges (7 shades)
+  '#fed7aa', // orange-200
   '#fdba74', // orange-300
   '#fb923c', // orange-400
   '#f97316', // orange-500
   '#ea580c', // orange-600
-  // Ambers
+  '#c2410c', // orange-700
+  '#9a3412', // orange-800
+  // Ambers (6 shades)
+  '#fde68a', // amber-200
   '#fcd34d', // amber-300
   '#fbbf24', // amber-400
   '#f59e0b', // amber-500
-  // Yellows
+  '#d97706', // amber-600
+  '#b45309', // amber-700
+  // Yellows (5 shades)
+  '#fef08a', // yellow-200
   '#fde047', // yellow-300
   '#facc15', // yellow-400
-  // Limes
+  '#eab308', // yellow-500
+  '#ca8a04', // yellow-600
+  // Limes (6 shades)
+  '#d9f99d', // lime-200
   '#bef264', // lime-300
   '#a3e635', // lime-400
   '#84cc16', // lime-500
-  // Greens
+  '#65a30d', // lime-600
+  '#4d7c0f', // lime-700
+  // Greens (7 shades)
+  '#bbf7d0', // green-200
   '#86efac', // green-300
   '#4ade80', // green-400
   '#22c55e', // green-500
   '#16a34a', // green-600
-  // Emeralds
+  '#15803d', // green-700
+  '#166534', // green-800
+  // Emeralds (6 shades)
+  '#a7f3d0', // emerald-200
   '#6ee7b7', // emerald-300
   '#34d399', // emerald-400
   '#10b981', // emerald-500
-  // Teals
+  '#059669', // emerald-600
+  '#047857', // emerald-700
+  // Teals (6 shades)
+  '#99f6e4', // teal-200
   '#5eead4', // teal-300
   '#2dd4bf', // teal-400
   '#14b8a6', // teal-500
-  // Cyans
+  '#0d9488', // teal-600
+  '#0f766e', // teal-700
+  // Cyans (6 shades)
+  '#a5f3fc', // cyan-200
   '#67e8f9', // cyan-300
   '#22d3ee', // cyan-400
   '#06b6d4', // cyan-500
-  // Skys
+  '#0891b2', // cyan-600
+  '#0e7490', // cyan-700
+  // Skys (6 shades)
+  '#bae6fd', // sky-200
   '#7dd3fc', // sky-300
   '#38bdf8', // sky-400
   '#0ea5e9', // sky-500
-  // Blues
+  '#0284c7', // sky-600
+  '#0369a1', // sky-700
+  // Blues (7 shades)
+  '#bfdbfe', // blue-200
   '#93c5fd', // blue-300
   '#60a5fa', // blue-400
   '#3b82f6', // blue-500
   '#2563eb', // blue-600
-  // Indigos
+  '#1d4ed8', // blue-700
+  '#1e40af', // blue-800
+  // Indigos (6 shades)
+  '#c7d2fe', // indigo-200
   '#a5b4fc', // indigo-300
   '#818cf8', // indigo-400
   '#6366f1', // indigo-500
-  // Violets
+  '#4f46e5', // indigo-600
+  '#4338ca', // indigo-700
+  // Violets (7 shades)
+  '#ddd6fe', // violet-200
   '#c4b5fd', // violet-300
   '#a78bfa', // violet-400
   '#8b5cf6', // violet-500
   '#7c3aed', // violet-600
-  // Purples
+  '#6d28d9', // violet-700
+  '#5b21b6', // violet-800
+  // Purples (7 shades)
+  '#e9d5ff', // purple-200
   '#d8b4fe', // purple-300
   '#c084fc', // purple-400
   '#a855f7', // purple-500
   '#9333ea', // purple-600
-  // Fuchsias
+  '#7e22ce', // purple-700
+  '#6b21a8', // purple-800
+  // Fuchsias (6 shades)
+  '#f5d0fe', // fuchsia-200
   '#f0abfc', // fuchsia-300
   '#e879f9', // fuchsia-400
   '#d946ef', // fuchsia-500
-  // Pinks
+  '#c026d3', // fuchsia-600
+  '#a21caf', // fuchsia-700
+  // Pinks (6 shades)
+  '#fbcfe8', // pink-200
   '#f9a8d4', // pink-300
   '#f472b6', // pink-400
   '#ec4899', // pink-500
-  // Neutrals
+  '#db2777', // pink-600
+  '#be185d', // pink-700
+  // Neutrals - Stone (5 shades)
+  '#e7e5e4', // stone-200
+  '#d6d3d1', // stone-300
   '#a8a29e', // stone-400
   '#78716c', // stone-500
+  '#57534e', // stone-600
+  // Neutrals - Zinc (5 shades)
+  '#e4e4e7', // zinc-200
+  '#d4d4d8', // zinc-300
   '#a1a1aa', // zinc-400
-  '#71717a'  // zinc-500
+  '#71717a', // zinc-500
+  '#52525b', // zinc-600
+  // Neutrals - Slate (5 shades)
+  '#e2e8f0', // slate-200
+  '#cbd5e1', // slate-300
+  '#94a3b8', // slate-400
+  '#64748b', // slate-500
+  '#475569'  // slate-600
 ];
 
 // In-memory cache for genres (with TTL)
@@ -186,15 +250,18 @@ export async function createGenre(userId, name, color = null) {
 
     const usedColors = getUsedColors(genres);
 
-    // Validate or auto-assign color
+    // Validate or auto-assign colour
     if (color) {
-      // Check if color is already used
+      // Check if colour is already used
       if (usedColors.has(color.toLowerCase())) {
-        throw new Error('This color is already used by another genre');
+        throw new Error('This colour is already used by another genre');
       }
     } else {
-      // Auto-assign first available color
-      color = GENRE_COLORS.find(c => !usedColors.has(c.toLowerCase())) || GENRE_COLORS[genres.length % GENRE_COLORS.length];
+      // Auto-assign random available colour for visual variety
+      const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
+      color = availableColors.length > 0
+        ? availableColors[Math.floor(Math.random() * availableColors.length)]
+        : GENRE_COLORS[Math.floor(Math.random() * GENRE_COLORS.length)];
     }
 
     const genreData = {
@@ -250,10 +317,10 @@ export async function updateGenre(userId, genreId, updates) {
     }
 
     if (updates.color !== undefined) {
-      // Check for duplicate color (excluding self)
+      // Check for duplicate colour (excluding self)
       const usedColors = getUsedColors(genres, genreId);
       if (usedColors.has(updates.color.toLowerCase())) {
-        throw new Error('This color is already used by another genre');
+        throw new Error('This colour is already used by another genre');
       }
       updateData.color = updates.color;
     }

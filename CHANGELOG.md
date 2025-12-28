@@ -22,6 +22,11 @@ All notable changes to MyBookShelf are documented here.
   - Modal to select target genre
   - Books with source genre get target genre (if not already present)
   - Source genre is deleted after merge
+- Refactor genre colour assignment:
+  - Auto-assign random colour when creating genres (no picker needed)
+  - Expand colour palette from ~60 to ~120 colours (Tailwind 200-800 shades)
+  - Edit genre shows colour picker with only available colours (used hidden)
+  - Scrollable colour picker with max-height for compact display
 - Add author filter to book list with typeahead search:
   - Searchable dropdown in filter panel (between Rating and Genre)
   - Shows author counts (faceted filtering)
