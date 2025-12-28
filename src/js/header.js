@@ -256,18 +256,20 @@ async function loadAllBooksForSearch() {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: serializeTimestamp(data.createdAt),
-        updatedAt: serializeTimestamp(data.updatedAt),
-        // Pre-normalize for faster search
-        _normalizedTitle: normalizeText(data.title),
-        _normalizedAuthor: normalizeText(data.author)
-      };
-    });
+    books = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: serializeTimestamp(data.createdAt),
+          updatedAt: serializeTimestamp(data.updatedAt),
+          // Pre-normalize for faster search
+          _normalizedTitle: normalizeText(data.title),
+          _normalizedAuthor: normalizeText(data.author)
+        };
+      })
+      .filter(book => !book.deletedAt); // Exclude soft-deleted books
     await Promise.all([genresPromise, seriesPromise]); // Wait for genres and series
     allBooksLoaded = true;
   } catch (error) {

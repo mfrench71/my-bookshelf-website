@@ -441,6 +441,9 @@ export async function recalculateSeriesBookCounts(userId) {
 
     for (const bookDoc of booksSnapshot.docs) {
       const bookData = bookDoc.data();
+      // Skip soft-deleted books
+      if (bookData.deletedAt) continue;
+
       const seriesId = bookData.seriesId;
 
       if (seriesId && seriesCounts.has(seriesId)) {
@@ -471,9 +474,11 @@ export async function recalculateSeriesBookCounts(userId) {
     // Invalidate cache
     seriesCache = null;
 
+    // Count only active (non-deleted) books
+    const activeBookCount = booksSnapshot.docs.filter(d => !d.data().deletedAt).length;
     return {
       seriesUpdated,
-      totalBooks: booksSnapshot.docs.length
+      totalBooks: activeBookCount
     };
   } catch (error) {
     console.error('Error recalculating series book counts:', error);

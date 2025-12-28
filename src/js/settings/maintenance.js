@@ -69,7 +69,9 @@ async function loadAllBooks() {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    books = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(book => !book.deletedAt); // Exclude soft-deleted books
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books:', error);

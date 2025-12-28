@@ -288,10 +288,13 @@ export async function deleteGenre(userId, genreId) {
     const q = query(booksRef, where('genres', 'array-contains', genreId));
     const snapshot = await getDocs(q);
 
-    // Remove genre from each book
+    // Remove genre from each active book (skip soft-deleted)
     snapshot.docs.forEach(bookDoc => {
+      const bookData = bookDoc.data();
+      if (bookData.deletedAt) return; // Skip soft-deleted books
+
       const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
-      const currentGenres = bookDoc.data().genres || [];
+      const currentGenres = bookData.genres || [];
       batch.update(bookRef, {
         genres: currentGenres.filter(g => g !== genreId),
         updatedAt: serverTimestamp()
@@ -402,14 +405,16 @@ export async function migrateGenreData(userId, onProgress = () => {}) {
     throw error;
   }
 
-  const totalBooks = booksSnapshot.docs.length;
+  // Filter out soft-deleted books for processing
+  const activeBookDocs = booksSnapshot.docs.filter(d => !d.data().deletedAt);
+  const totalBooks = activeBookDocs.length;
 
   // Track genre book counts (genreId -> count)
   const genreBookCounts = new Map();
 
   let processed = 0;
 
-  for (const bookDoc of booksSnapshot.docs) {
+  for (const bookDoc of activeBookDocs) {
     const bookData = bookDoc.data();
     const bookGenres = bookData.genres || [];
 
@@ -522,6 +527,9 @@ export async function recalculateGenreBookCounts(userId) {
 
     for (const bookDoc of booksSnapshot.docs) {
       const bookData = bookDoc.data();
+      // Skip soft-deleted books
+      if (bookData.deletedAt) continue;
+
       const bookGenres = bookData.genres || [];
 
       for (const genreId of bookGenres) {
@@ -554,9 +562,11 @@ export async function recalculateGenreBookCounts(userId) {
     // Invalidate cache
     genresCache = null;
 
+    // Count only active (non-deleted) books
+    const activeBookCount = booksSnapshot.docs.filter(d => !d.data().deletedAt).length;
     return {
       genresUpdated,
-      totalBooks: booksSnapshot.docs.length
+      totalBooks: activeBookCount
     };
   } catch (error) {
     console.error('Error recalculating genre book counts:', error);
