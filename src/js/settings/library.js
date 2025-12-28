@@ -725,7 +725,7 @@ async function exportBackup() {
     URL.revokeObjectURL(url);
     const parts = [`${books.length} books`, `${genres.length} genres`];
     if (wishlist.length > 0) parts.push(`${wishlist.length} wishlist items`);
-    showToast(`Exported ${parts.join(', ')}`);
+    showToast(`Exported ${parts.join(', ')}`, { type: 'success' });
   } catch (error) {
     console.error('Error exporting backup:', error);
     showToast('Error exporting backup', { type: 'error' });
@@ -1021,7 +1021,7 @@ async function importBackup(file) {
     if (totalImported > 0) {
       showToast('Import complete', { type: 'success' });
     } else {
-      showToast('Nothing new to import');
+      showToast('Nothing new to import', { type: 'info' });
     }
 
   } catch (error) {

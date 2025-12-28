@@ -19,6 +19,18 @@ All notable changes to MyBookShelf are documented here.
   - Persists on page so user can read (no auto-redirect)
 - Show filled heart icon on search results for already-wishlisted books
 - Show last modified date on book view page (only if different from added date)
+- Codebase audit fixes per CLAUDE.md guidelines:
+  - Fix touch targets below 44px (header search clear button, preferences widget buttons)
+  - Add Zod validation to wishlist edit form (priority and notes fields)
+  - Remove redundant validation toast messages (inline errors are sufficient)
+  - Add try/catch to async event handlers (wishlist badge update, infinite scroll)
+  - Add proper toast types to library export/import messages
+- Accessibility: Add proper label associations to all form inputs:
+  - Add `for` attributes to labels in add.njk, edit.njk templates
+  - Add `aria-labelledby` to genre-picker and series-picker inputs
+  - Add unique IDs with instance counters to filter-panel selects
+  - Add `aria-label` to widget toggle checkboxes in preferences
+  - Add "Form Label Association" guideline to CLAUDE.md
 
 ---
 

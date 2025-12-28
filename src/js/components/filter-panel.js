@@ -13,6 +13,9 @@ import { initIcons } from '../utils.js';
  *   onChange: (filters) => console.log('Filters changed:', filters)
  * });
  */
+// Instance counter for unique IDs
+let instanceCounter = 0;
+
 export class FilterPanel {
   /**
    * @param {Object} options
@@ -24,6 +27,7 @@ export class FilterPanel {
    * @param {Object} options.initialFilters - Initial filter values
    */
   constructor(options = {}) {
+    this.instanceId = ++instanceCounter;
     this.container = options.container;
     this.genres = options.genres || [];
     this.series = options.series || [];
@@ -78,8 +82,8 @@ export class FilterPanel {
   render() {
     const sortSection = this.showSort ? `
       <div class="filter-group">
-        <label class="block text-sm font-semibold text-gray-900 mb-2">Sort By</label>
-        <select class="filter-sort filter-select">
+        <label for="filter-sort-${this.instanceId}" class="block text-sm font-semibold text-gray-900 mb-2">Sort By</label>
+        <select id="filter-sort-${this.instanceId}" class="filter-sort filter-select">
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
           <option value="title-asc">Title (A-Z)</option>
@@ -123,8 +127,8 @@ export class FilterPanel {
 
         <!-- Rating: Dropdown (single-select, minimum threshold) -->
         <div class="filter-group">
-          <label class="block text-sm font-semibold text-gray-900 mb-2">Rating</label>
-          <select class="filter-rating filter-select">
+          <label for="filter-rating-${this.instanceId}" class="block text-sm font-semibold text-gray-900 mb-2">Rating</label>
+          <select id="filter-rating-${this.instanceId}" class="filter-rating filter-select">
             <option value="0">All Ratings</option>
             <option value="5">5 Stars</option>
             <option value="4">4+ Stars</option>

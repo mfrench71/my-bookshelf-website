@@ -109,15 +109,15 @@ export class GenrePicker {
 
     this.container.innerHTML = `
       <div class="genre-picker">
-        <label class="block font-semibold text-gray-700 mb-1">Genres</label>
+        <label id="genre-picker-label" class="block font-semibold text-gray-700 mb-1">Genres</label>
 
         <!-- Selected genres -->
         <div class="genre-picker-selected flex flex-wrap gap-1.5 mb-2">
           ${selectedGenres.map(genre => `
             <span class="genre-badge" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
               ${escapeHtml(genre.name)}
-              <button type="button" class="ml-1 hover:opacity-75" data-remove-genre="${genre.id}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <button type="button" class="ml-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -135,7 +135,7 @@ export class GenrePicker {
             ${this.isLoading ? 'disabled' : ''}
             aria-expanded="${this.isOpen}"
             aria-haspopup="listbox"
-            aria-label="Search and select genres"
+            aria-labelledby="genre-picker-label"
           >
 
           <!-- Dropdown -->

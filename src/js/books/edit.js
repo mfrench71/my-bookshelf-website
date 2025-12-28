@@ -481,7 +481,6 @@ editForm.addEventListener('submit', async (e) => {
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
-    showToast('Please fix the errors above', { type: 'error' });
     return;
   }
 

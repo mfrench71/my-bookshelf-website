@@ -151,7 +151,7 @@ export class SeriesPicker {
 
     this.container.innerHTML = `
       <div class="series-picker">
-        <label class="block font-semibold text-gray-700 mb-1">Series</label>
+        <label id="series-picker-label" class="block font-semibold text-gray-700 mb-1">Series</label>
 
         ${this.selectedId ? this._renderSelected() : this._renderInput(filteredSeries, showSuggestion, showCreateOption)}
 
@@ -195,9 +195,10 @@ export class SeriesPicker {
   _renderPositionInput() {
     return `
       <div class="mt-2">
-        <label class="block text-sm text-gray-500 mb-1">Position in series</label>
+        <label for="series-position" class="block text-sm text-gray-500 mb-1">Position in series</label>
         <input
           type="number"
+          id="series-position"
           class="series-position-input w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           placeholder="#"
           min="1"
@@ -219,6 +220,9 @@ export class SeriesPicker {
           placeholder="${this.isLoading ? 'Loading...' : 'Search or add series...'}"
           value="${escapeHtml(this.searchQuery)}"
           ${this.isLoading ? 'disabled' : ''}
+          aria-labelledby="series-picker-label"
+          aria-expanded="${this.isOpen}"
+          aria-haspopup="listbox"
         >
 
         ${this.isOpen ? `

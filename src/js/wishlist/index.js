@@ -11,6 +11,17 @@ import {
 import { clearBooksCache } from '../utils/cache.js';
 import { showToast, initIcons, escapeHtml, isValidImageUrl } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
+import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
+import { z } from '/js/vendor/zod.js';
+
+// Simple schema for edit form (priority + notes only)
+const WishlistEditSchema = z.object({
+  priority: z.enum(['high', 'medium', 'low', ''])
+    .transform(s => s || null),
+  notes: z.string()
+    .max(2000, 'Notes must be 2000 characters or less')
+    .transform(s => s?.trim() || null)
+});
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -202,6 +213,7 @@ function renderWishlistItems() {
     btn.addEventListener('click', () => {
       selectedItem = wishlistItems.find(i => i.id === btn.dataset.itemId);
       if (selectedItem) {
+        clearFormErrors(editForm);
         editPrioritySelect.value = selectedItem.priority || '';
         editNotesTextarea.value = selectedItem.notes || '';
         editSheet?.open();
@@ -266,14 +278,27 @@ async function handleEditSave(e) {
   e.preventDefault();
   if (!selectedItem) return;
 
+  clearFormErrors(editForm);
+
+  const formData = {
+    priority: editPrioritySelect.value,
+    notes: editNotesTextarea.value
+  };
+
+  const validation = validateForm(WishlistEditSchema, formData);
+  if (!validation.success) {
+    showFormErrors(editForm, validation.errors);
+    return;
+  }
+
   const saveBtn = document.getElementById('save-edit');
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
 
   try {
     await updateWishlistItem(currentUser.uid, selectedItem.id, {
-      priority: editPrioritySelect.value || null,
-      notes: editNotesTextarea.value.trim() || null
+      priority: validation.data.priority,
+      notes: validation.data.notes
     });
     editSheet?.close();
     showToast('Wishlist item updated', { type: 'success' });

@@ -312,9 +312,13 @@ let searchScrollObserver = null;
 function setupSearchScrollObserver() {
   if (searchScrollObserver) searchScrollObserver.disconnect();
 
-  searchScrollObserver = new IntersectionObserver((entries) => {
+  searchScrollObserver = new IntersectionObserver(async (entries) => {
     if (entries[0].isIntersecting && !searchState.loading && searchState.hasMore) {
-      loadMoreSearchResults();
+      try {
+        await loadMoreSearchResults();
+      } catch (e) {
+        console.error('Error loading more results:', e);
+      }
     }
   }, { root: searchResultsDiv, rootMargin: '50px' });
 }
@@ -824,7 +828,6 @@ bookForm.addEventListener('submit', async (e) => {
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
-    showToast('Please fix the errors above', { type: 'error' });
     return;
   }
 

@@ -111,11 +111,15 @@ async function updateWishlistBadge(userId) {
 }
 
 // Listen for wishlist updates from other modules
-window.addEventListener('wishlist-updated', () => {
+window.addEventListener('wishlist-updated', async () => {
   if (currentUser) {
     // Clear local cache (each bundle has its own copy)
     clearWishlistCache();
-    updateWishlistBadge(currentUser.uid);
+    try {
+      await updateWishlistBadge(currentUser.uid);
+    } catch (e) {
+      console.error('Error updating wishlist badge:', e);
+    }
   }
 });
 

@@ -144,11 +144,11 @@ function renderWidgetSettings() {
         <div class="flex items-center gap-3">
           <!-- Reorder Buttons -->
           <div class="flex flex-col gap-0.5">
-            <button class="move-up-btn p-1 rounded hover:bg-gray-200 min-w-[32px] min-h-[32px] flex items-center justify-center ${isFirst ? 'opacity-30 cursor-not-allowed' : ''}"
+            <button class="move-up-btn p-1 rounded hover:bg-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${isFirst ? 'opacity-30 cursor-not-allowed' : ''}"
                     data-id="${widget.id}" ${isFirst ? 'disabled' : ''} aria-label="Move up">
               <i data-lucide="chevron-up" class="w-4 h-4 text-gray-500" aria-hidden="true"></i>
             </button>
-            <button class="move-down-btn p-1 rounded hover:bg-gray-200 min-w-[32px] min-h-[32px] flex items-center justify-center ${isLast ? 'opacity-30 cursor-not-allowed' : ''}"
+            <button class="move-down-btn p-1 rounded hover:bg-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${isLast ? 'opacity-30 cursor-not-allowed' : ''}"
                     data-id="${widget.id}" ${isLast ? 'disabled' : ''} aria-label="Move down">
               <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500" aria-hidden="true"></i>
             </button>
@@ -160,7 +160,7 @@ function renderWidgetSettings() {
 
           <!-- Toggle -->
           <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" class="widget-toggle sr-only peer" data-id="${widget.id}" ${widget.enabled ? 'checked' : ''}>
+            <input type="checkbox" class="widget-toggle sr-only peer" data-id="${widget.id}" ${widget.enabled ? 'checked' : ''} aria-label="Enable ${info.name} widget">
             <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
@@ -168,8 +168,8 @@ function renderWidgetSettings() {
         <!-- Settings Row -->
         <div class="flex items-center gap-4 mt-3 pl-10">
           <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600">Items:</label>
-            <select class="widget-count px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
+            <label for="widget-count-${widget.id}" class="text-sm text-gray-600">Items:</label>
+            <select id="widget-count-${widget.id}" class="widget-count px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
               <option value="3" ${widget.settings?.count === 3 ? 'selected' : ''}>3</option>
               <option value="6" ${(widget.settings?.count || 6) === 6 ? 'selected' : ''}>6</option>
               <option value="9" ${widget.settings?.count === 9 ? 'selected' : ''}>9</option>
@@ -177,8 +177,8 @@ function renderWidgetSettings() {
             </select>
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600">Size:</label>
-            <select class="widget-size px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
+            <label for="widget-size-${widget.id}" class="text-sm text-gray-600">Size:</label>
+            <select id="widget-size-${widget.id}" class="widget-size px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
               ${WIDGET_SIZES.map(size => `
                 <option value="${size.value}" ${widget.size === size.value ? 'selected' : ''}>${size.label}</option>
               `).join('')}

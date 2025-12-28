@@ -61,7 +61,7 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 
 ### Accessibility Checklist
 - [ ] Interactive elements have accessible names? (`aria-label` for icon-only buttons)
-- [ ] Form inputs have associated labels? (`<label for="">` or `aria-label`)
+- [ ] Form inputs have associated labels? (`<label for="input-id">` or `aria-labelledby`)
 - [ ] Images have alt text? (decorative images use `alt=""`)
 - [ ] Colour contrast sufficient? (4.5:1 for text, 3:1 for large text)
 - [ ] Focus visible on all interactive elements? (don't remove outline without replacement)
@@ -70,6 +70,36 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 - [ ] ARIA roles used correctly? (don't override semantic HTML)
 - [ ] Dynamic content announced? (`aria-live` regions for async updates)
 - [ ] Touch targets 44px minimum? (mobile tap areas)
+
+### Form Label Association (MANDATORY)
+
+**Every form input must have an associated label.** Screen readers need this to announce what each field is for.
+
+```html
+<!-- CORRECT: Use 'for' attribute matching input 'id' -->
+<label for="email" class="...">Email</label>
+<input id="email" type="email" ...>
+
+<!-- CORRECT: For dynamically generated inputs, use unique IDs -->
+<label for="widget-count-${id}" class="...">Items:</label>
+<select id="widget-count-${id}" ...>
+
+<!-- CORRECT: Use aria-labelledby for inputs with visible labels elsewhere -->
+<label id="genre-picker-label" class="...">Genres</label>
+<input aria-labelledby="genre-picker-label" ...>
+
+<!-- WRONG: Label exists but not associated -->
+<label class="...">Email</label>
+<input id="email" type="email" ...>  <!-- Label has no 'for' -->
+
+<!-- WRONG: No label at all -->
+<input type="text" placeholder="Enter name...">  <!-- Placeholder is NOT a label -->
+```
+
+**For dynamically generated forms in JS:**
+- Use instance counters for unique IDs when multiple components exist
+- Prefer `aria-labelledby` for complex label structures
+- Add `aria-label` directly to inputs when labels are not visible
 
 ### Design Tokens
 Use the design tokens defined in `src/css/tailwind.css`:
