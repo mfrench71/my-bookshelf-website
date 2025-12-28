@@ -6,6 +6,16 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-28
 
+- Improve genre parsing from book APIs:
+  - Add comma-separated genre support (Open Library format like "Fiction, humorous, general")
+  - Add double-dash separator support ("Rich people -- fiction")
+  - Normalize compound genres: "fantasy fiction" → "Fantasy", "horror fiction" → "Horror"
+  - Normalize ampersand formats: "Action & Adventure" → "Adventure"
+  - Convert ALL CAPS to Title Case for consistency
+  - Filter metadata: series markers, reading levels, NYT lists, translation notes
+  - Add ~60 genre normalization mappings based on API audit
+  - British spelling: "humorous" → "Humour"
+  - Fix bug where filtered genres like "General" were still appearing (|| operator issue)
 - Add author filter to book list with typeahead search:
   - Searchable dropdown in filter panel (between Rating and Genre)
   - Shows author counts (faceted filtering)

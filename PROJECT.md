@@ -198,8 +198,8 @@ npm test && npm run build
 
 ### Genre Enhancements
 - [ ] Merge duplicate genres
-- [ ] Improved genre suggestions (parse hierarchical categories, normalise variations)
-- [ ] Match API suggestions to existing user genres
+- [x] Improved genre suggestions (parse hierarchical categories, normalise variations) ✅
+- [ ] Auto-select existing genres when API suggestions match (currently hides duplicates only)
 
 ### User Lists / Shelves
 - [ ] Custom user lists (beyond built-in statuses)

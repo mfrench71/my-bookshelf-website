@@ -64,6 +64,19 @@ describe('parseHierarchicalGenres', () => {
       expect(result).toContain('Autobiography');
     });
 
+    it('splits on comma-space (Open Library format)', () => {
+      const result = parseHierarchicalGenres(['Fiction, humorous']);
+      expect(result).toContain('Fiction');
+      expect(result).toContain('Humour'); // humorous → Humour
+      expect(result).toHaveLength(2);
+    });
+
+    it('handles friendship, fiction format', () => {
+      const result = parseHierarchicalGenres(['Friendship, fiction']);
+      expect(result).toContain('Friendship');
+      expect(result).toContain('Fiction');
+    });
+
     it('handles multiple categories with hierarchies', () => {
       const result = parseHierarchicalGenres([
         'Fiction / Fantasy / Epic',
@@ -87,10 +100,10 @@ describe('parseHierarchicalGenres', () => {
       expect(fantasyCount).toBe(1);
     });
 
-    it('handles case-sensitive deduplication (preserves first occurrence)', () => {
+    it('normalizes case and deduplicates (fiction → Fiction)', () => {
       const result = parseHierarchicalGenres(['fiction', 'Fiction']);
-      // Both should be kept since case differs
-      expect(result).toHaveLength(2);
+      // Both are title-cased to "Fiction" and deduplicated
+      expect(result).toEqual(['Fiction']);
     });
   });
 
@@ -227,6 +240,19 @@ describe('normalizeGenreVariation', () => {
     });
   });
 
+  describe('filtered terms (returns empty string)', () => {
+    it('filters out "general" as not useful alone', () => {
+      expect(normalizeGenreVariation('general')).toBe('');
+      expect(normalizeGenreVariation('General')).toBe('');
+      expect(normalizeGenreVariation('GENERAL')).toBe('');
+    });
+
+    it('filters out "accessible" and "readable"', () => {
+      expect(normalizeGenreVariation('accessible')).toBe('');
+      expect(normalizeGenreVariation('readable')).toBe('');
+    });
+  });
+
   describe('edge cases', () => {
     it('returns empty string for null/undefined', () => {
       expect(normalizeGenreVariation(null)).toBe('');
@@ -275,7 +301,7 @@ describe('real-world API category examples', () => {
     expect(result).toContain('Fiction');
     expect(result).toContain('Science Fiction');
     expect(result).toContain('Space Opera');
-    expect(result).toContain('Action & Adventure');
+    expect(result).toContain('Adventure'); // 'Action & Adventure' normalized to 'Adventure'
   });
 
   it('handles Open Library subjects', () => {
@@ -286,7 +312,7 @@ describe('real-world API category examples', () => {
       'Adventure and adventurers'
     ];
     const result = parseHierarchicalGenres(olSubjects);
-    expect(result).toContain('Science fiction');
+    expect(result).toContain('Science Fiction'); // normalized casing
     expect(result).toContain('Fiction');
   });
 
@@ -303,13 +329,24 @@ describe('real-world API category examples', () => {
 
   it('preserves case when no variation match', () => {
     const categories = [
-      'FICTION / General',
+      'FICTION / Thriller',
       'MYSTERY'
     ];
     const result = parseHierarchicalGenres(categories);
-    // Case preserved when no variation mapping
-    expect(result).toContain('FICTION');
-    expect(result).toContain('General');
-    expect(result).toContain('MYSTERY');
+    // ALL CAPS converted to Title Case for consistency
+    expect(result).toContain('Fiction');
+    expect(result).toContain('Thriller');
+    expect(result).toContain('Mystery');
+  });
+
+  it('filters out "General" as not useful alone', () => {
+    const categories = [
+      'Fiction / General',
+      'FICTION / General'
+    ];
+    const result = parseHierarchicalGenres(categories);
+    expect(result).toContain('Fiction');
+    expect(result).not.toContain('General');
+    expect(result).toHaveLength(1); // Only Fiction, not General
   });
 });
