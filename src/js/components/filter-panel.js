@@ -106,20 +106,20 @@ export class FilterPanel {
 
         <!-- Status: Checkboxes -->
         <div class="filter-group">
-          <label class="block text-sm font-semibold text-gray-900 mb-2">Status</label>
+          <span class="block text-sm font-semibold text-gray-900 mb-2">Status</span>
           <div class="space-y-3 status-checkboxes">
-            <label class="flex items-center justify-between cursor-pointer">
+            <label for="filter-status-reading-${this.instanceId}" class="flex items-center justify-between cursor-pointer">
               <span class="filter-label text-sm text-gray-900">Reading</span>
               <span class="flex items-center gap-3">
                 <span class="filter-count text-sm text-gray-500"></span>
-                <input type="checkbox" value="reading" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+                <input type="checkbox" id="filter-status-reading-${this.instanceId}" name="status" value="reading" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
               </span>
             </label>
-            <label class="flex items-center justify-between cursor-pointer">
+            <label for="filter-status-finished-${this.instanceId}" class="flex items-center justify-between cursor-pointer">
               <span class="filter-label text-sm text-gray-900">Finished</span>
               <span class="flex items-center gap-3">
                 <span class="filter-count text-sm text-gray-500"></span>
-                <input type="checkbox" value="finished" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+                <input type="checkbox" id="filter-status-finished-${this.instanceId}" name="status" value="finished" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
               </span>
             </label>
           </div>
@@ -300,13 +300,15 @@ export class FilterPanel {
     }
 
     for (const genre of this.genres) {
+      const checkboxId = `filter-genre-${genre.id}-${this.instanceId}`;
       const label = document.createElement('label');
       label.className = 'flex items-center justify-between cursor-pointer';
+      label.setAttribute('for', checkboxId);
       label.innerHTML = `
         <span class="filter-label text-sm text-gray-900">${genre.name}</span>
         <span class="flex items-center gap-3">
           <span class="filter-count text-sm text-gray-500"></span>
-          <input type="checkbox" value="${genre.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+          <input type="checkbox" id="${checkboxId}" name="genre" value="${genre.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
         </span>
       `;
       this.elements.genreCheckboxes.appendChild(label);
@@ -327,13 +329,15 @@ export class FilterPanel {
     }
 
     for (const s of this.series) {
+      const checkboxId = `filter-series-${s.id}-${this.instanceId}`;
       const label = document.createElement('label');
       label.className = 'flex items-center justify-between cursor-pointer';
+      label.setAttribute('for', checkboxId);
       label.innerHTML = `
         <span class="filter-label text-sm text-gray-900">${s.name}</span>
         <span class="flex items-center gap-3">
           <span class="filter-count text-sm text-gray-500"></span>
-          <input type="checkbox" value="${s.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
+          <input type="checkbox" id="${checkboxId}" name="series" value="${s.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
         </span>
       `;
       this.elements.seriesCheckboxes.appendChild(label);
