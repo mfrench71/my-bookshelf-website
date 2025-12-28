@@ -327,16 +327,27 @@ describe('real-world API category examples', () => {
     expect(result).toContain('Science Fiction'); // from 'Sci-Fi'
   });
 
-  it('preserves case when no variation match', () => {
+  it('converts ALL CAPS to Title Case', () => {
     const categories = [
       'FICTION / Thriller',
       'MYSTERY'
     ];
     const result = parseHierarchicalGenres(categories);
-    // ALL CAPS converted to Title Case for consistency
     expect(result).toContain('Fiction');
     expect(result).toContain('Thriller');
     expect(result).toContain('Mystery');
+  });
+
+  it('converts mixed case to Title Case', () => {
+    const categories = [
+      'College teachers',
+      'Single men',
+      'university life in fiction'
+    ];
+    const result = parseHierarchicalGenres(categories);
+    expect(result).toContain('College Teachers');
+    expect(result).toContain('Single Men');
+    expect(result).toContain('University Life In Fiction');
   });
 
   it('filters out "General" as not useful alone', () => {

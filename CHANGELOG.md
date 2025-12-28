@@ -16,6 +16,7 @@ All notable changes to MyBookShelf are documented here.
   - Add ~60 genre normalization mappings based on API audit
   - British spelling: "humorous" → "Humour"
   - Fix bug where filtered genres like "General" were still appearing (|| operator issue)
+  - Fix inconsistent casing: "College teachers" now becomes "College Teachers"
 - Add author filter to book list with typeahead search:
   - Searchable dropdown in filter panel (between Rating and Genre)
   - Shows author counts (faceted filtering)

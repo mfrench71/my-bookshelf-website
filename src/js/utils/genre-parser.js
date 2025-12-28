@@ -171,15 +171,13 @@ export function parseHierarchicalGenres(categories) {
   ];
 
   /**
-   * Convert ALL CAPS to Title Case
+   * Convert string to Title Case for consistent genre display
    * @param {string} str
    * @returns {string}
    */
   function toTitleCase(str) {
-    if (str === str.toUpperCase() && str.length > 1) {
-      return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-    }
-    return str;
+    if (!str || str.length <= 1) return str;
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
 
   for (const category of categories) {

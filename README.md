@@ -35,7 +35,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (1841 tests)
+- **Testing**: Vitest with jsdom (1842 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
