@@ -77,6 +77,8 @@ const publishedRow = document.getElementById('published-row');
 const bookPublished = document.getElementById('book-published');
 const addedRow = document.getElementById('added-row');
 const bookAdded = document.getElementById('book-added');
+const modifiedRow = document.getElementById('modified-row');
+const bookModified = document.getElementById('book-modified');
 
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
@@ -227,6 +229,11 @@ function renderBook() {
   if (dateAdded) {
     bookAdded.textContent = dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     addedRow.classList.remove('hidden');
+  }
+  const dateModified = parseTimestamp(book.updatedAt);
+  if (dateModified && dateAdded && dateModified.getTime() !== dateAdded.getTime()) {
+    bookModified.textContent = dateModified.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    modifiedRow.classList.remove('hidden');
   }
 
   // Reading History

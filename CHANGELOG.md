@@ -18,6 +18,7 @@ All notable changes to MyBookShelf are documented here.
   - Shows auto-removed wishlist items when now owned
   - Persists on page so user can read (no auto-redirect)
 - Show filled heart icon on search results for already-wishlisted books
+- Show last modified date on book view page (only if different from added date)
 
 ---
 
