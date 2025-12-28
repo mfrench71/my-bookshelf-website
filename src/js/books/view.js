@@ -284,10 +284,10 @@ async function renderSeriesSection() {
     const seriesQuery = query(booksRef, where('seriesId', '==', book.seriesId));
     const snapshot = await getDocs(seriesQuery);
 
-    const seriesBooksData = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Filter out binned (soft-deleted) books
+    const seriesBooksData = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(b => !b.deletedAt);
 
     // Sort by position (nulls at end)
     seriesBooksData.sort((a, b) => {
@@ -333,6 +333,8 @@ async function renderSeriesSection() {
           ${formatSeriesDisplay(seriesName, book.seriesPosition)}
         </p>
       `;
+      // Hide "View all" link when there's only one book
+      seriesViewAll.classList.add('hidden');
     }
 
     seriesSection.classList.remove('hidden');
