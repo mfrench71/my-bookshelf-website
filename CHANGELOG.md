@@ -68,6 +68,11 @@ All notable changes to MyBookShelf are documented here.
   - Maintenance page health analysis
   - Genre deletion and migration operations
 - Add "Code Documentation" guidelines section to CLAUDE.md
+- Settings audit and reorganisation:
+  - Remove duplicate Export My Data from Profile (use Library's Backup/Restore)
+  - Move Clear Cache from Profile to Preferences (new Browser section)
+  - Add tab indicators: Maintenance (amber dot if issues), Bin (count badge)
+  - Reduced profile.js bundle from 23.6KB to 21.3KB
 
 ---
 
