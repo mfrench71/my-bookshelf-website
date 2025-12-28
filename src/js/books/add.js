@@ -502,12 +502,13 @@ async function selectSearchResult(el) {
     isbnInput.value = isbn;
   }
 
-  // Extract and suggest genres from categories
+  // Extract and suggest genres from categories (parse through normalizer)
   if (categories) {
     try {
       const categoryList = JSON.parse(categories);
       if (categoryList.length > 0) {
-        updateGenreSuggestions(categoryList);
+        const parsedGenres = parseHierarchicalGenres(categoryList);
+        updateGenreSuggestions(parsedGenres);
       }
     } catch (e) {
       // Ignore parse errors
