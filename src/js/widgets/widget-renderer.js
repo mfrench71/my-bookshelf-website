@@ -43,8 +43,9 @@ export function renderWidgetSkeletons(container, count = 4) {
  * @param {Object} settings - Widget settings { version, widgets: [...] }
  * @param {Object} genreLookup - Genre ID to genre object map
  * @param {Object} seriesLookup - Series ID to series object map
+ * @param {Array<Object>} wishlistItems - User's wishlist items (optional)
  */
-export function renderWidgets(container, books, settings, genreLookup = {}, seriesLookup = null) {
+export function renderWidgets(container, books, settings, genreLookup = {}, seriesLookup = null, wishlistItems = []) {
   const enabledWidgets = getEnabledWidgets(settings);
 
   if (enabledWidgets.length === 0) {
@@ -64,7 +65,9 @@ export function renderWidgets(container, books, settings, genreLookup = {}, seri
     }
 
     const sizeClass = `widget-col-${config.size || Widget.defaultSize}`;
-    const html = Widget.renderWidget(books, config, genreLookup, seriesLookup);
+    // Pass wishlist items instead of books for widgets that require it
+    const data = Widget.requiresWishlist ? wishlistItems : books;
+    const html = Widget.renderWidget(data, config, genreLookup, seriesLookup);
 
     return `<div class="${sizeClass}">${html}</div>`;
   }).join('');

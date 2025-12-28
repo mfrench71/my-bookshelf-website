@@ -16,6 +16,12 @@ All notable changes to MyBookShelf are documented here.
   - Shows "X of Y books" when filters reduce results
 - Fix genre chip styling on book edit page (cleaner, smaller badges)
 - Fix filter panel scrollbar overlapping checkboxes
+- Add Wishlist widget for home page dashboard:
+  - Shows wishlist items with priority sorting (high first)
+  - Configurable: items to show (3-12), sort by (Priority/Date/Title)
+  - Priority badges (high=red, medium=yellow, low=gray)
+  - Links to wishlist page
+- Truncate long email addresses in header menu
 - Add wishlist to backup/restore:
   - Export now includes wishlist items
   - Import handles wishlist with duplicate detection

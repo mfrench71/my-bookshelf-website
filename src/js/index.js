@@ -12,6 +12,7 @@ import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { loadWidgetSettings } from './utils/widget-settings.js';
 import { renderWidgets, renderWidgetSkeletons } from './widgets/widget-renderer.js';
+import { loadWishlistItems } from './wishlist.js';
 // Import widgets to ensure they're registered
 import './widgets/index.js';
 
@@ -25,6 +26,7 @@ let genres = [];
 let genreLookup = null;
 let series = [];
 let seriesLookup = null;
+let wishlistItems = [];
 
 // DOM Elements
 const widgetContainer = document.getElementById('widget-container');
@@ -113,11 +115,12 @@ async function loadDashboard() {
       renderWidgetSkeletons(widgetContainer, 4);
     }
 
-    // Load genres, series, books, and widget settings in parallel
-    const [genresResult, seriesResult, booksResult, widgetSettings] = await Promise.all([
+    // Load genres, series, books, wishlist, and widget settings in parallel
+    const [genresResult, seriesResult, booksResult, wishlistResult, widgetSettings] = await Promise.all([
       loadGenresData(),
       loadSeriesData(),
       loadBooksData(),
+      loadWishlistData(),
       loadWidgetSettings(currentUser.uid)
     ]);
 
@@ -126,10 +129,11 @@ async function loadDashboard() {
     series = seriesResult;
     seriesLookup = createSeriesLookup(series);
     books = booksResult;
+    wishlistItems = wishlistResult;
 
     // Render widgets
     if (widgetContainer) {
-      renderWidgets(widgetContainer, books, widgetSettings, genreLookup, seriesLookup);
+      renderWidgets(widgetContainer, books, widgetSettings, genreLookup, seriesLookup, wishlistItems);
     }
 
     initIcons();
@@ -162,6 +166,16 @@ async function loadSeriesData() {
     return await loadUserSeries(currentUser.uid);
   } catch (e) {
     console.error('Error loading series:', e);
+    return [];
+  }
+}
+
+// Load wishlist items
+async function loadWishlistData() {
+  try {
+    return await loadWishlistItems(currentUser.uid);
+  } catch (e) {
+    console.error('Error loading wishlist:', e);
     return [];
   }
 }
