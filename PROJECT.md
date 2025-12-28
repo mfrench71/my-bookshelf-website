@@ -301,6 +301,7 @@ npm test && npm run build
 - [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines) - Deferred (risk outweighs benefit)
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
 - [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
+- [ ] Audit: Check disabled buttons remain disabled until required (site-wide)
 
 ---
 
