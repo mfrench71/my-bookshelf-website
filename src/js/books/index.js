@@ -168,6 +168,13 @@ onAuthStateChanged(auth, async (user) => {
     // Initialize filter panels with loaded data
     initializeFilterPanels();
 
+    // If exactly one series filter was set via URL param, set up Series Order sort
+    // Must be done BEFORE renderBooks() so books display in correct order
+    if (seriesFilters.length === 1) {
+      updateSeriesOrderOption(true);
+      switchToSeriesOrder();
+    }
+
     // Re-render now that all lookups are ready (loadBooks may have rendered before genres/series loaded)
     renderBooks();
 
@@ -176,12 +183,6 @@ onAuthStateChanged(auth, async (user) => {
 
     // Set up auto-refresh when tab becomes visible
     setupVisibilityRefresh(silentRefreshBooks);
-
-    // If exactly one series filter was set via URL param, set up Series Order sort
-    if (seriesFilters.length === 1) {
-      updateSeriesOrderOption(true);
-      switchToSeriesOrder();
-    }
 
     // Update filter count badge and chips
     updateFilterCountBadge();

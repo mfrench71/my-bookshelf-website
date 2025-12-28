@@ -55,6 +55,7 @@ All notable changes to MyBookShelf are documented here.
   - Add comprehensive "Privacy/GDPR Audit" checklist to CLAUDE.md
 - Browser Compatibility audit:
   - Add comprehensive "Browser Compatibility Audit" checklist to CLAUDE.md
+- Fix series order sorting when linking from series widget to book list
 
 ---
 
