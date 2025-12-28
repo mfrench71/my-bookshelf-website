@@ -64,25 +64,31 @@ async function getBinCount(userId) {
 
 /**
  * Check if there are any library health issues
- * Quick check: just see if any books are missing covers or genres
+ * Quick check: fetch a sample of books and check for missing covers/genres
  */
 async function hasMaintenanceIssues(userId) {
   const booksRef = collection(db, 'users', userId, 'books');
 
-  // Check for books without covers (limit 1 for quick check)
-  const noCoverQuery = query(
-    booksRef,
-    where('deletedAt', '==', null),
-    where('coverImageUrl', '==', null),
-    limit(1)
-  );
+  // Fetch a sample of books (limit to reduce reads)
+  const sampleQuery = query(booksRef, limit(50));
 
   try {
-    const snapshot = await getDocs(noCoverQuery);
-    return snapshot.size > 0;
+    const snapshot = await getDocs(sampleQuery);
+
+    for (const doc of snapshot.docs) {
+      const book = doc.data();
+
+      // Skip deleted books
+      if (book.deletedAt) continue;
+
+      // Check for missing cover or genres (most important fields)
+      if (!book.coverImageUrl) return true;
+      if (!book.genres || book.genres.length === 0) return true;
+    }
+
+    return false;
   } catch (error) {
-    // If query fails (compound index not available), return false
-    // Users can still see issues on the maintenance page
+    console.error('Error checking maintenance issues:', error);
     return false;
   }
 }
