@@ -540,6 +540,51 @@ npm outdated                 # Check for outdated packages
 - [ ] Images optimised and appropriately sized?
 - [ ] Vendor files minified?
 
+### Core Web Vitals Audit
+
+Core Web Vitals are Google's key metrics for user experience. Test with Lighthouse or PageSpeed Insights.
+
+**LCP (Largest Contentful Paint) - Target: < 2.5s**
+- [ ] Hero images optimised and served in modern formats (WebP/AVIF)?
+- [ ] Critical CSS inlined or loaded early?
+- [ ] Web fonts preloaded with `<link rel="preload">`?
+- [ ] Server response time (TTFB) acceptable?
+- [ ] Largest element (usually hero image or heading) loads quickly?
+- [ ] No render-blocking resources in `<head>`?
+
+**CLS (Cumulative Layout Shift) - Target: < 0.1**
+- [ ] Images have explicit `width`/`height` or aspect-ratio?
+- [ ] Fonts use `font-display: swap` with fallback sizing?
+- [ ] Dynamic content has reserved space (skeleton loaders)?
+- [ ] Ads/embeds have reserved dimensions?
+- [ ] Icons have explicit dimensions before Lucide loads?
+- [ ] No content inserted above existing content after load?
+
+**INP (Interaction to Next Paint) - Target: < 200ms**
+- [ ] Event handlers complete quickly (< 50ms)?
+- [ ] Long tasks broken up with `requestAnimationFrame` or `setTimeout`?
+- [ ] Heavy computations moved to Web Workers?
+- [ ] Input handlers debounced/throttled appropriately?
+- [ ] No synchronous operations blocking main thread?
+- [ ] DOM updates batched to minimise reflows?
+
+**Other Performance Metrics**
+- [ ] FCP (First Contentful Paint) < 1.8s?
+- [ ] TTI (Time to Interactive) acceptable?
+- [ ] Total Blocking Time < 200ms?
+- [ ] JavaScript execution time reasonable?
+
+**Testing Commands**
+```bash
+# Run Lighthouse audit locally
+npx lighthouse http://localhost:8080 --view
+
+# Or use Chrome DevTools
+# 1. Open DevTools (F12)
+# 2. Go to "Lighthouse" tab
+# 3. Select "Performance" and run audit
+```
+
 ### Scalability Audit
 - [ ] Firestore queries use proper indexes?
 - [ ] Pagination implemented for large collections? (don't load all at once)

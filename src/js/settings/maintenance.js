@@ -285,7 +285,7 @@ function renderIssueRows() {
         return `
           <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
             <div class="w-8 h-12 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
-              ${cover ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover">` :
+              ${cover ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover" loading="lazy">` :
               `<div class="w-full h-full flex items-center justify-center text-gray-400">
                 <i data-lucide="book" class="w-4 h-4" aria-hidden="true"></i>
               </div>`}

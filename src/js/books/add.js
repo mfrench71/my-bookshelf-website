@@ -432,7 +432,7 @@ function renderSearchResults(books, append = false) {
          data-pagecount="${book.pageCount || ''}"
          data-categories="${escapeAttr(JSON.stringify(book.categories || []))}">
       ${hasCover
-        ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : ''
       }
       <div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 items-center justify-center${hasCover ? ' hidden' : ' flex'}"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>

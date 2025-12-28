@@ -47,6 +47,9 @@ All notable changes to MyBookShelf are documented here.
   - Add meta descriptions to home, login, and books pages
   - Add sr-only `<h1>` to home and books list pages for SEO
   - Add comprehensive "SEO Audit" checklist to CLAUDE.md
+- Core Web Vitals audit:
+  - Add `loading="lazy"` to remaining images (maintenance, add book search)
+  - Add comprehensive "Core Web Vitals Audit" checklist to CLAUDE.md
 
 ---
 
