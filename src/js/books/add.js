@@ -845,6 +845,9 @@ bookForm.addEventListener('submit', async (e) => {
       if (isDuplicate) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Add Anyway';
+        // Visual distinction: amber/warning styling for override action
+        submitBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
+        submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
         duplicateCheckBypassed = true;
 
         const matchDesc = matchType === 'isbn'
@@ -920,7 +923,17 @@ bookForm.addEventListener('submit', async (e) => {
     console.error('Error adding book:', error);
     showToast('Error adding book', { type: 'error' });
     submitBtn.disabled = false;
-    submitBtn.textContent = duplicateCheckBypassed ? 'Add Anyway' : 'Add Book';
+    if (duplicateCheckBypassed) {
+      submitBtn.textContent = 'Add Anyway';
+      // Keep amber styling for bypass mode
+      submitBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
+      submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+    } else {
+      submitBtn.textContent = 'Add Book';
+      // Ensure default styling
+      submitBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+      submitBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
+    }
   }
 });
 
@@ -933,6 +946,9 @@ document.querySelectorAll('#book-form input, #book-form textarea, #book-form sel
       if (duplicateCheckBypassed) {
         duplicateCheckBypassed = false;
         submitBtn.textContent = 'Add Book';
+        // Restore default button styling
+        submitBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+        submitBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
       }
     }
   }));

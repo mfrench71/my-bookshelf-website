@@ -588,6 +588,9 @@ deleteAccountForm?.addEventListener('submit', async (e) => {
   } catch (error) {
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       showToast('Incorrect password', { type: 'error' });
+      // Clear password field so user knows to re-enter
+      deleteConfirmPasswordInput.value = '';
+      deleteConfirmPasswordInput.focus();
     } else {
       console.error('Error deleting account:', error);
       showToast('Error deleting account', { type: 'error' });

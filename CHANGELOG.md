@@ -110,6 +110,9 @@ All notable changes to MyBookShelf are documented here.
   - Move Clear Cache from Profile to Preferences (new Browser section)
   - Add tab indicators: Maintenance (amber dot if issues), Bin (count badge)
   - Reduced profile.js bundle from 23.6KB to 21.3KB
+- Button state UX improvements:
+  - Add visual distinction for "Add Anyway" button (amber styling for override action)
+  - Clear password field on wrong password error in delete account flow
 
 ---
 
