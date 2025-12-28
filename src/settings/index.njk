@@ -111,8 +111,8 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
         <i data-lucide="external-link" class="w-4 h-4 text-gray-400" aria-hidden="true"></i>
       </a>
 
-      <!-- Export My Data -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <!-- Export Data (link to Library) -->
+      <a href="/settings/library/#backup" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
         <div class="flex items-center gap-3">
           <i data-lucide="download" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
           <div>
@@ -120,26 +120,8 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
             <p class="text-gray-500 text-sm">Download all your books, genres, and settings</p>
           </div>
         </div>
-        <button id="export-data-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
-          <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
-          <span>Export</span>
-        </button>
-      </div>
-
-      <!-- Clear Local Cache -->
-      <div class="flex items-center justify-between px-6 py-4">
-        <div class="flex items-center gap-3">
-          <i data-lucide="trash-2" class="w-5 h-5 text-gray-400" aria-hidden="true"></i>
-          <div>
-            <p class="font-medium text-gray-900">Clear Local Cache</p>
-            <p class="text-gray-500 text-sm">Clear cached data stored in your browser</p>
-          </div>
-        </div>
-        <button id="clear-cache-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
-          <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
-          <span>Clear</span>
-        </button>
-      </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-gray-400" aria-hidden="true"></i>
+      </a>
     </div>
 
     <!-- Delete Account -->

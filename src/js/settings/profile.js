@@ -45,8 +45,6 @@ const profileEmail = document.getElementById('profile-email');
 const profileCreated = document.getElementById('profile-created');
 const editAvatarBtn = document.getElementById('edit-avatar-btn');
 const changePasswordBtn = document.getElementById('change-password-btn');
-const exportDataBtn = document.getElementById('export-data-btn');
-const clearCacheBtn = document.getElementById('clear-cache-btn');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 // DOM Elements - Email Verification
@@ -480,100 +478,6 @@ passwordForm?.addEventListener('submit', async (e) => {
   } finally {
     savePasswordBtn.disabled = false;
     savePasswordBtn.textContent = 'Update Password';
-  }
-});
-
-// ==================== Privacy & Data ====================
-
-// Export My Data
-exportDataBtn?.addEventListener('click', async () => {
-  if (!currentUser) return;
-
-  const btnText = exportDataBtn.querySelector('span');
-  exportDataBtn.disabled = true;
-  if (btnText) btnText.textContent = 'Exporting...';
-
-  try {
-    // Fetch all user data
-    const [booksSnapshot, genresSnapshot, seriesSnapshot] = await Promise.all([
-      getDocs(collection(db, 'users', currentUser.uid, 'books')),
-      getDocs(collection(db, 'users', currentUser.uid, 'genres')),
-      getDocs(collection(db, 'users', currentUser.uid, 'series'))
-    ]);
-
-    const books = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const genres = genresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const series = seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Create export object
-    const exportData = {
-      exportDate: new Date().toISOString(),
-      userEmail: currentUser.email,
-      version: '1.0',
-      data: {
-        books,
-        genres,
-        series,
-        profile: userProfileData || {}
-      },
-      counts: {
-        books: books.length,
-        genres: genres.length,
-        series: series.length
-      }
-    };
-
-    // Generate filename with date
-    const date = new Date().toISOString().split('T')[0];
-    const filename = `mybookshelf-export-${date}.json`;
-
-    // Create and trigger download
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showToast(`Exported ${books.length} books, ${genres.length} genres, ${series.length} series`, { type: 'success' });
-  } catch (error) {
-    console.error('Error exporting data:', error);
-    showToast('Error exporting data', { type: 'error' });
-  } finally {
-    exportDataBtn.disabled = false;
-    if (btnText) btnText.textContent = 'Export';
-  }
-});
-
-// Clear Local Cache
-clearCacheBtn?.addEventListener('click', () => {
-  if (!confirm('This will clear all cached data from your browser. Your data in the cloud will not be affected. Continue?')) {
-    return;
-  }
-
-  try {
-    // Get all localStorage keys that belong to this app
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('mybookshelf_') || key.startsWith('homeSettings') || key.startsWith('syncSettings') || key.startsWith('widgetSettings') || key.startsWith('gravatar_'))) {
-        keysToRemove.push(key);
-      }
-    }
-
-    // Remove the keys
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    // Also clear sessionStorage
-    sessionStorage.clear();
-
-    showToast(`Cleared ${keysToRemove.length} cached items`, { type: 'success' });
-  } catch (error) {
-    console.error('Error clearing cache:', error);
-    showToast('Error clearing cache', { type: 'error' });
   }
 });
 

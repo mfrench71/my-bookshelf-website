@@ -31,6 +31,9 @@ const refreshLibraryBtn = document.getElementById('refresh-library-btn');
 const widgetsLoading = document.getElementById('widgets-loading');
 const widgetSettingsList = document.getElementById('widget-settings-list');
 
+// DOM Elements - Browser Settings
+const clearCacheBtn = document.getElementById('clear-cache-btn');
+
 // Auth Check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -286,3 +289,33 @@ async function moveWidget(widgetId, direction) {
     showToast('Error updating order', { type: 'error' });
   }
 }
+
+// ==================== Browser Settings ====================
+
+clearCacheBtn?.addEventListener('click', () => {
+  if (!confirm('This will clear all cached data from your browser. Your data in the cloud will not be affected. Continue?')) {
+    return;
+  }
+
+  try {
+    // Get all localStorage keys that belong to this app
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('mybookshelf_') || key.startsWith('homeSettings') || key.startsWith('syncSettings') || key.startsWith('widgetSettings') || key.startsWith('gravatar_'))) {
+        keysToRemove.push(key);
+      }
+    }
+
+    // Remove the keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    // Also clear sessionStorage
+    sessionStorage.clear();
+
+    showToast(`Cleared ${keysToRemove.length} cached items`, { type: 'success' });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    showToast('Error clearing cache', { type: 'error' });
+  }
+});

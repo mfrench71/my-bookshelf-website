@@ -36,6 +36,7 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
         <ul class="space-y-1">
           <li><a href="#sync" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Sync</a></li>
           <li><a href="#widgets" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Widgets</a></li>
+          <li><a href="#browser" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Browser</a></li>
         </ul>
       </nav>
     </aside>
@@ -49,6 +50,7 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
         <div class="flex gap-2">
           <a href="#sync" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Sync</a>
           <a href="#widgets" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Widgets</a>
+          <a href="#browser" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Browser</a>
         </div>
       </nav>
 
@@ -125,6 +127,21 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
     <!-- Widget List (populated by JS) -->
     <div id="widget-settings-list" class="hidden space-y-3"></div>
   </section>
+
+      <!-- Browser Section -->
+      <section id="browser" class="mb-8 scroll-mt-36">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Browser</h2>
+
+        <!-- Clear Local Cache -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-medium text-gray-900 mb-2">Clear Local Cache</h3>
+          <p class="text-gray-600 text-sm mb-4">Clear cached data stored in your browser. This includes genre and series caches, sync settings, and widget preferences. Your data in the cloud will not be affected.</p>
+          <button id="clear-cache-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+            <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Clear Cache</span>
+          </button>
+        </div>
+      </section>
     </main>
   </div>
 </div>
