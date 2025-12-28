@@ -147,9 +147,47 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
         </h3>
         <div id="book-notes" class="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap"></div>
       </div>
+
+      <!-- Book Images Gallery -->
+      <div id="images-section" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <i data-lucide="images" class="w-4 h-4"></i>
+          Photos
+        </h3>
+        <div id="images-gallery" class="grid grid-cols-3 sm:grid-cols-4 gap-3"></div>
+      </div>
     </div>
   </div>
 </main>
+
+<!-- Image Lightbox -->
+<div id="lightbox" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <!-- Close button -->
+  <button id="lightbox-close" class="absolute top-4 right-4 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center z-10" aria-label="Close">
+    <i data-lucide="x" class="w-6 h-6"></i>
+  </button>
+
+  <!-- Counter -->
+  <div id="lightbox-counter" class="absolute top-4 left-4 text-white/80 text-sm font-medium px-3 py-1.5 bg-black/30 rounded-full"></div>
+
+  <!-- Previous button -->
+  <button id="lightbox-prev" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Previous image">
+    <i data-lucide="chevron-left" class="w-8 h-8"></i>
+  </button>
+
+  <!-- Image container -->
+  <div id="lightbox-content" class="max-w-full max-h-full p-4 flex items-center justify-center">
+    <div id="lightbox-loading" class="hidden">
+      <div class="w-10 h-10 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+    </div>
+    <img id="lightbox-image" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
+  </div>
+
+  <!-- Next button -->
+  <button id="lightbox-next" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Next image">
+    <i data-lucide="chevron-right" class="w-8 h-8"></i>
+  </button>
+</div>
 
 <!-- Move to Bin Confirmation Bottom Sheet -->
 <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4">

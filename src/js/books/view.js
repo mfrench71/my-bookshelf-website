@@ -67,6 +67,23 @@ const bookNotes = document.getElementById('book-notes');
 const readingHistorySection = document.getElementById('reading-history-section');
 const readingHistory = document.getElementById('reading-history');
 
+// Images gallery elements
+const imagesSection = document.getElementById('images-section');
+const imagesGallery = document.getElementById('images-gallery');
+
+// Lightbox elements
+const lightbox = document.getElementById('lightbox');
+const lightboxImage = document.getElementById('lightbox-image');
+const lightboxLoading = document.getElementById('lightbox-loading');
+const lightboxCounter = document.getElementById('lightbox-counter');
+const lightboxClose = document.getElementById('lightbox-close');
+const lightboxPrev = document.getElementById('lightbox-prev');
+const lightboxNext = document.getElementById('lightbox-next');
+
+// Lightbox state
+let lightboxImages = [];
+let lightboxIndex = 0;
+
 // Metadata elements
 const isbnRow = document.getElementById('isbn-row');
 const bookIsbn = document.getElementById('book-isbn');
@@ -262,6 +279,9 @@ function renderBook() {
     notesSection.classList.remove('hidden');
   }
 
+  // Images gallery
+  renderGallery();
+
   // Show content
   loading.classList.add('hidden');
   content.classList.remove('hidden');
@@ -407,3 +427,189 @@ confirmDeleteBtn.addEventListener('click', async () => {
     deleteSheet?.close();
   }
 });
+
+// ===== Image Gallery & Lightbox =====
+
+/**
+ * Render the images gallery section
+ */
+function renderGallery() {
+  if (!book.images || book.images.length === 0) return;
+
+  // Store images for lightbox
+  lightboxImages = book.images;
+
+  // Render gallery thumbnails
+  const html = book.images.map((img, index) => `
+    <button type="button"
+            class="gallery-thumb aspect-square bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer hover:opacity-90 transition-opacity"
+            data-index="${index}"
+            aria-label="View image ${index + 1}">
+      <!-- Loading skeleton -->
+      <div class="thumb-loading absolute inset-0 flex items-center justify-center bg-gray-100">
+        <div class="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+      </div>
+      <img src="${escapeHtml(img.url)}"
+           alt="Book photo ${index + 1}"
+           class="w-full h-full object-cover hidden"
+           onload="this.classList.remove('hidden'); this.previousElementSibling.classList.add('hidden');"
+           onerror="this.style.display='none'; this.previousElementSibling.innerHTML='<i data-lucide=\\'image-off\\' class=\\'w-6 h-6 text-gray-400\\'></i>'; lucide.createIcons();">
+      ${img.isPrimary ? `
+        <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium">
+          Cover
+        </div>
+      ` : ''}
+    </button>
+  `).join('');
+
+  imagesGallery.innerHTML = html;
+  imagesSection.classList.remove('hidden');
+
+  // Attach click handlers
+  imagesGallery.querySelectorAll('.gallery-thumb').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      const index = parseInt(thumb.dataset.index, 10);
+      openLightbox(index);
+    });
+  });
+
+  initIcons();
+}
+
+/**
+ * Open lightbox at specified index
+ * @param {number} index
+ */
+function openLightbox(index) {
+  if (!lightboxImages.length) return;
+
+  lightboxIndex = index;
+  updateLightboxImage();
+  lightbox.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  initIcons();
+}
+
+/**
+ * Close the lightbox
+ */
+function closeLightbox() {
+  lightbox.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/**
+ * Navigate to previous image
+ */
+function prevImage() {
+  if (lightboxImages.length <= 1) return;
+  lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
+  updateLightboxImage();
+}
+
+/**
+ * Navigate to next image
+ */
+function nextImage() {
+  if (lightboxImages.length <= 1) return;
+  lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
+  updateLightboxImage();
+}
+
+/**
+ * Update the lightbox to show current image
+ */
+function updateLightboxImage() {
+  const img = lightboxImages[lightboxIndex];
+  if (!img) return;
+
+  // Show loading, hide image
+  lightboxLoading.classList.remove('hidden');
+  lightboxImage.classList.add('hidden');
+
+  // Update counter
+  lightboxCounter.textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+
+  // Show/hide nav buttons
+  const showNav = lightboxImages.length > 1;
+  lightboxPrev.classList.toggle('hidden', !showNav);
+  lightboxNext.classList.toggle('hidden', !showNav);
+
+  // Load image
+  lightboxImage.onload = () => {
+    lightboxLoading.classList.add('hidden');
+    lightboxImage.classList.remove('hidden');
+  };
+  lightboxImage.onerror = () => {
+    lightboxLoading.classList.add('hidden');
+    lightboxImage.classList.remove('hidden');
+    lightboxImage.alt = 'Failed to load image';
+  };
+  lightboxImage.src = img.url;
+  lightboxImage.alt = `Book image ${lightboxIndex + 1}`;
+}
+
+// Lightbox event listeners
+if (lightboxClose) {
+  lightboxClose.addEventListener('click', closeLightbox);
+}
+if (lightboxPrev) {
+  lightboxPrev.addEventListener('click', prevImage);
+}
+if (lightboxNext) {
+  lightboxNext.addEventListener('click', nextImage);
+}
+
+// Close on backdrop click
+if (lightbox) {
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox || e.target.id === 'lightbox-content') {
+      closeLightbox();
+    }
+  });
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (lightbox.classList.contains('hidden')) return;
+
+  switch (e.key) {
+    case 'Escape':
+      closeLightbox();
+      break;
+    case 'ArrowLeft':
+      prevImage();
+      break;
+    case 'ArrowRight':
+      nextImage();
+      break;
+  }
+});
+
+// Touch swipe support for mobile
+let touchStartX = 0;
+let touchEndX = 0;
+
+if (lightbox) {
+  lightbox.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  lightbox.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  }, { passive: true });
+}
+
+function handleSwipe() {
+  const swipeThreshold = 50;
+  const diff = touchEndX - touchStartX;
+
+  if (Math.abs(diff) < swipeThreshold) return;
+
+  if (diff > 0) {
+    prevImage(); // Swipe right = previous
+  } else {
+    nextImage(); // Swipe left = next
+  }
+}
