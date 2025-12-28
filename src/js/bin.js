@@ -8,6 +8,7 @@ import { db } from '/js/firebase-config.js';
 import { updateGenreBookCounts, loadUserGenres, clearGenresCache } from './genres.js';
 import { loadUserSeries, clearSeriesCache, getSeriesById, restoreSeries } from './series.js';
 import { clearBooksCache } from './utils/cache.js';
+import { deleteImages } from './utils/image-upload.js';
 
 /** Number of days before binned books are auto-deleted */
 export const BIN_RETENTION_DAYS = 30;
@@ -127,9 +128,15 @@ export async function restoreBook(userId, bookId, book) {
  * Permanently delete a book (hard delete)
  * @param {string} userId - The user's ID
  * @param {string} bookId - The book ID
+ * @param {Object} [book] - The book data (for deleting images)
  * @returns {Promise<void>}
  */
-export async function permanentlyDeleteBook(userId, bookId) {
+export async function permanentlyDeleteBook(userId, bookId, book = null) {
+  // Delete images from Storage first (if book has any)
+  if (book?.images?.length > 0) {
+    await deleteImages(book.images);
+  }
+
   const bookRef = doc(db, 'users', userId, 'books', bookId);
   await deleteDoc(bookRef);
 
@@ -145,6 +152,12 @@ export async function permanentlyDeleteBook(userId, bookId) {
  */
 export async function emptyBin(userId, binnedBooks) {
   if (binnedBooks.length === 0) return 0;
+
+  // Delete all images from Storage first
+  const allImages = binnedBooks.flatMap(book => book.images || []);
+  if (allImages.length > 0) {
+    await deleteImages(allImages);
+  }
 
   const batch = writeBatch(db);
 
@@ -176,6 +189,12 @@ export async function purgeExpiredBooks(userId, binnedBooks) {
   );
 
   if (expired.length === 0) return 0;
+
+  // Delete all images from Storage first
+  const allImages = expired.flatMap(book => book.images || []);
+  if (allImages.length > 0) {
+    await deleteImages(allImages);
+  }
 
   const batch = writeBatch(db);
 

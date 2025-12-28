@@ -225,7 +225,7 @@ document.getElementById('confirm-delete')?.addEventListener('click', async () =>
   confirmBtn.textContent = 'Deleting...';
 
   try {
-    await permanentlyDeleteBook(currentUser.uid, selectedBook.id);
+    await permanentlyDeleteBook(currentUser.uid, selectedBook.id, selectedBook);
 
     // Remove from local list
     binnedBooks = binnedBooks.filter(b => b.id !== selectedBook.id);

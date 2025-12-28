@@ -23,6 +23,7 @@ import { ChangePasswordSchema, DeleteAccountSchema } from '../schemas/auth.js';
 import { getGravatarUrl } from '../md5.js';
 import { BottomSheet } from '../components/modal.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
+import { deleteImages } from '../utils/image-upload.js';
 
 // Initialize icons once on load
 initIcons();
@@ -522,9 +523,17 @@ deleteAccountForm?.addEventListener('submit', async (e) => {
 
     const userId = currentUser.uid;
 
-    // Delete all books
+    // Delete all books (and their images from Storage)
     const booksRef = collection(db, 'users', userId, 'books');
     const booksSnapshot = await getDocs(booksRef);
+
+    // Delete all book images from Storage first
+    const allImages = booksSnapshot.docs.flatMap(bookDoc => bookDoc.data().images || []);
+    if (allImages.length > 0) {
+      await deleteImages(allImages);
+    }
+
+    // Delete book documents
     const batch1 = writeBatch(db);
     booksSnapshot.docs.forEach(bookDoc => {
       batch1.delete(bookDoc.ref);
