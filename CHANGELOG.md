@@ -6,6 +6,16 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-28
 
+- Add author filter to book list with typeahead search:
+  - Searchable dropdown in filter panel (between Rating and Genre)
+  - Shows author counts (faceted filtering)
+  - Keyboard navigation support (Arrow/Enter/Escape)
+  - Syncs between desktop sidebar and mobile filter sheet
+- Add book count display to book list header:
+  - Shows "X books" when no filters active
+  - Shows "X of Y books" when filters reduce results
+- Fix genre chip styling on book edit page (cleaner, smaller badges)
+- Fix filter panel scrollbar overlapping checkboxes
 - Add wishlist to backup/restore:
   - Export now includes wishlist items
   - Import handles wishlist with duplicate detection
