@@ -392,11 +392,13 @@ export class SeriesPicker {
         this.focusedIndex = -1;
         this.handleInputChange();
       });
+      input.addEventListener('mousedown', () => {
+        // Notify other pickers to close before this one opens
+        document.dispatchEvent(new CustomEvent('picker-opened', { detail: { picker: this } }));
+      });
       input.addEventListener('focus', () => {
         if (this._restoringFocus) return;
         this.isOpen = true;
-        // Notify other pickers to close
-        document.dispatchEvent(new CustomEvent('picker-opened', { detail: { picker: this } }));
         this.render();
       });
       input.addEventListener('keydown', this.handleKeyDown);

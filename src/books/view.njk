@@ -156,7 +156,17 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
   <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-2">Move to Bin?</h3>
-    <p class="text-gray-500 mb-6">This book will be moved to the bin and automatically deleted after 30 days. You can restore it from Settings.</p>
+    <p class="text-gray-500 mb-4">This book will be moved to the bin and automatically deleted after 30 days. You can restore it from Settings.</p>
+    <!-- Series deletion option (hidden by default, shown when last book in series) -->
+    <div id="delete-series-option" class="hidden mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+      <label for="delete-series-checkbox" class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" id="delete-series-checkbox" class="mt-1 w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500">
+        <div class="text-sm">
+          <span class="font-medium text-purple-900">Also delete the empty series</span>
+          <p id="delete-series-name" class="text-purple-700 mt-0.5"></p>
+        </div>
+      </label>
+    </div>
     <div class="flex gap-3">
       <button id="cancel-delete" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
         Cancel

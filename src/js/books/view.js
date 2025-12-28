@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { doc, getDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { parseTimestamp, formatDate, showToast, initIcons, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
-import { loadUserSeries, createSeriesLookup } from '../series.js';
+import { loadUserSeries, createSeriesLookup, deleteSeries } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
@@ -37,6 +37,9 @@ const deleteBtn = document.getElementById('delete-btn');
 const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
+const deleteSeriesOption = document.getElementById('delete-series-option');
+const deleteSeriesCheckbox = document.getElementById('delete-series-checkbox');
+const deleteSeriesName = document.getElementById('delete-series-name');
 
 // Bottom Sheet Instance
 const deleteSheet = deleteModal ? new BottomSheet({ container: deleteModal }) : null;
@@ -348,6 +351,20 @@ async function renderSeriesSection() {
 
 // Delete handlers
 deleteBtn.addEventListener('click', () => {
+  // Check if this is the last book in a series
+  if (book.seriesId && seriesLookup) {
+    const seriesObj = seriesLookup.get(book.seriesId);
+    if (seriesObj && seriesObj.bookCount === 1) {
+      // This is the last book in the series - show option to delete series
+      deleteSeriesName.textContent = `"${seriesObj.name}" will become empty`;
+      deleteSeriesOption.classList.remove('hidden');
+      deleteSeriesCheckbox.checked = false;
+    } else {
+      deleteSeriesOption.classList.add('hidden');
+    }
+  } else {
+    deleteSeriesOption.classList.add('hidden');
+  }
   deleteSheet?.open();
 });
 
@@ -359,10 +376,26 @@ confirmDeleteBtn.addEventListener('click', async () => {
   confirmDeleteBtn.disabled = true;
   confirmDeleteBtn.textContent = 'Moving...';
 
+  // Check if user wants to delete the empty series too
+  const shouldDeleteSeries = deleteSeriesCheckbox.checked && book.seriesId;
+  const seriesIdToDelete = shouldDeleteSeries ? book.seriesId : null;
+
   try {
     await softDeleteBook(currentUser.uid, bookId, book);
 
-    showToast('Book moved to bin', { type: 'success' });
+    // Delete the series if requested
+    if (seriesIdToDelete) {
+      try {
+        await deleteSeries(currentUser.uid, seriesIdToDelete);
+        showToast('Book moved to bin, series deleted', { type: 'success' });
+      } catch (seriesError) {
+        console.error('Error deleting series:', seriesError);
+        showToast('Book moved to bin (series deletion failed)', { type: 'info' });
+      }
+    } else {
+      showToast('Book moved to bin', { type: 'success' });
+    }
+
     setTimeout(() => window.location.href = '/books/', 1000);
   } catch (error) {
     console.error('Error moving to bin:', error);

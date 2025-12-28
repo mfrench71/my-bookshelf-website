@@ -57,6 +57,7 @@ All notable changes to MyBookShelf are documented here.
   - Add comprehensive "Browser Compatibility Audit" checklist to CLAUDE.md
 - Fix series order sorting when linking from series widget to book list
 - Fix picker components not closing when another picker opens
+- Add option to delete empty series when deleting last book in series
 - Add "Code Documentation" guidelines section to CLAUDE.md
 
 ---
