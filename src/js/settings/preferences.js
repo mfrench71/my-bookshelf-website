@@ -2,6 +2,7 @@
 import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { showToast, initIcons, clearBooksCache, getSyncSettings, saveSyncSettings } from '../utils.js';
+import { BottomSheet } from '../components/modal.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from '../utils/widget-settings.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 import { getWidgetInfo, WIDGET_SIZES } from '../widgets/widget-renderer.js';
@@ -294,11 +295,19 @@ async function moveWidget(widgetId, direction) {
 
 // ==================== Browser Settings ====================
 
-clearCacheBtn?.addEventListener('click', () => {
-  if (!confirm('This will clear all cached data from your browser. Your data in the cloud will not be affected. Continue?')) {
-    return;
-  }
+// Clear Cache Modal
+const clearCacheModal = document.getElementById('clear-cache-modal');
+const clearCacheSheet = clearCacheModal ? new BottomSheet({ container: clearCacheModal }) : null;
 
+clearCacheBtn?.addEventListener('click', () => {
+  clearCacheSheet?.open();
+});
+
+document.getElementById('cancel-clear-cache')?.addEventListener('click', () => {
+  clearCacheSheet?.close();
+});
+
+document.getElementById('confirm-clear-cache')?.addEventListener('click', () => {
   try {
     // Get all localStorage keys that belong to this app
     const keysToRemove = [];
@@ -315,9 +324,11 @@ clearCacheBtn?.addEventListener('click', () => {
     // Also clear sessionStorage
     sessionStorage.clear();
 
+    clearCacheSheet?.close();
     showToast(`Cleared ${keysToRemove.length} cached items`, { type: 'success' });
   } catch (error) {
     console.error('Error clearing cache:', error);
+    clearCacheSheet?.close();
     showToast('Error clearing cache', { type: 'error' });
   }
 });

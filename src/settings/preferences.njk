@@ -146,5 +146,29 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
   </div>
 </div>
 
+<!-- Clear Cache Confirmation Modal -->
+<div id="clear-cache-modal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/50" data-backdrop></div>
+  <div class="absolute inset-x-0 bottom-0 md:relative md:flex md:items-center md:justify-center md:min-h-full md:p-4">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-6 relative" role="dialog" aria-modal="true" aria-labelledby="clear-cache-title">
+      <!-- Drag handle (mobile only) -->
+      <div class="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full md:hidden"></div>
+
+      <div class="text-center mb-6 pt-2">
+        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="trash-2" class="w-6 h-6 text-amber-600" aria-hidden="true"></i>
+        </div>
+        <h3 id="clear-cache-title" class="text-lg font-semibold text-gray-900">Clear Local Cache?</h3>
+        <p class="text-gray-600 text-sm mt-2">This will clear all cached data from your browser. Your data in the cloud will not be affected.</p>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="cancel-clear-cache" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium min-h-[44px]">Cancel</button>
+        <button id="confirm-clear-cache" class="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium min-h-[44px]">Clear Cache</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>

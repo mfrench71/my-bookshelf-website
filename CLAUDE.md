@@ -181,6 +181,7 @@ Follow the colour scheme documented in PROJECT.md. Key rules:
 
 ### Component Patterns
 - **Bottom Sheets (not modals)**: Use `BottomSheet` class for confirmations, quick forms, pickers. Mobile (<768px): slides up from bottom with swipe-to-dismiss handle. Tablet+ (768px+): centered modal with full border-radius. Use `md:hidden` to hide handle on larger screens.
+- **No native dialogs**: Never use `alert()`, `confirm()`, or `prompt()`. Always use BottomSheet for confirmations and custom UI for user input. Native dialogs break the app-like experience and can't be styled.
 - **Toasts**: Use `showToast(message, { type: 'success' | 'error' | 'info' })`
 - **Icons**: Use Lucide icons and call `initIcons()` after dynamic insertion
 - **Empty states**: Show helpful message with icon and action button where appropriate
