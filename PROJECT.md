@@ -112,6 +112,7 @@ npm test && npm run build
 | Top Rated | Highest rated books (4+ stars) | 12 (full) |
 | Recently Finished | Completed books | 12 (full) |
 | Series Progress | Series with completion tracking | 6 (half) |
+| Wishlist | High-priority wishlist items | 12 (full) |
 
 ### Future Widget Ideas
 | Widget | Description | Default Size |
@@ -144,6 +145,7 @@ npm test && npm run build
   - Auto-remove wishlist items when matching book imported
   - Detailed on-page import summary
 - ✅ 23 wishlist unit tests
+- ✅ Wishlist dashboard widget (horizontal scroll, priority sorting, configurable count/sort)
 
 ### Data Model
 ```
@@ -181,7 +183,7 @@ npm test && npm run build
 - [ ] Reading goals/challenges
 - [x] Show modified date (updatedAt) on book view page
 - [ ] Quick edit on book card (link direct to book edit page)
-- [ ] Settings tab indicators: Maintenance (attention dot if issues), Bin (count badge if items)
+- [x] Settings tab indicators: Maintenance (attention dot if issues), Bin (count badge if items)
 - [x] Bin for deleted books (soft-delete with 30-day restore) - unique feature, no competitors offer this
 - [ ] Book change history (activity log showing edits) - no competitors offer this, could be differentiator
 - [ ] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
@@ -509,4 +511,4 @@ Can calculate: Total books/pages, books per month, genre distribution, reading s
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-27
+**Last Updated**: 2025-12-28
