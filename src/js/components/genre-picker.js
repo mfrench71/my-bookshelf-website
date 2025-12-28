@@ -119,7 +119,7 @@ export class GenrePicker {
           ${selectedGenres.map(genre => `
             <span class="genre-badge" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
               ${escapeHtml(genre.name)}
-              <button type="button" class="ml-1 p-1 -mr-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
+              <button type="button" class="ml-1 p-2 -mr-2 -my-1 hover:opacity-75 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -509,8 +509,8 @@ export class GenrePicker {
           badge.style.color = getContrastColor(genre.color);
           badge.innerHTML = `
             ${escapeHtml(genre.name)}
-            <button type="button" class="ml-1 hover:opacity-75" data-remove-genre="${genre.id}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <button type="button" class="ml-1 p-2 -mr-2 -my-1 hover:opacity-75 min-w-[44px] min-h-[44px] inline-flex items-center justify-center" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

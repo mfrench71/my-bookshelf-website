@@ -148,7 +148,7 @@ export class FilterPanel {
         </div>
 
         <!-- More Filters Toggle -->
-        <button class="toggle-more-filters flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 mt-3">
+        <button class="toggle-more-filters flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 mt-3 min-h-[44px]">
           <i data-lucide="chevron-down" class="w-4 h-4 transition-transform ${hasActiveSecondaryFilter ? 'rotate-180' : ''}" aria-hidden="true"></i>
           <span>${hasActiveSecondaryFilter ? 'Less' : 'More'}</span>
         </button>
