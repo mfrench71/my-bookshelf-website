@@ -420,6 +420,44 @@ npm outdated                 # Check for outdated packages
 - [ ] Network failures handled gracefully?
 - [ ] Form submission errors don't lose user input?
 
+### SEO Audit
+
+**Meta Tags & Open Graph**
+- [ ] Every page has unique `<title>` tag (50-60 chars)?
+- [ ] Every page has `<meta name="description">` (150-160 chars)?
+- [ ] Open Graph tags present? (`og:title`, `og:description`, `og:image`, `og:url`)
+- [ ] Twitter Card meta tags present?
+- [ ] Canonical URL set on all pages?
+- [ ] Language attribute on `<html>` tag?
+
+**Semantic HTML & Structure**
+- [ ] Single `<h1>` per page matching page purpose?
+- [ ] Heading hierarchy correct? (h1 → h2 → h3, no skips)
+- [ ] Semantic elements used? (`<main>`, `<nav>`, `<article>`, `<section>`)
+- [ ] Images have descriptive `alt` text?
+- [ ] Links have descriptive text (not "click here")?
+
+**Technical SEO**
+- [ ] sitemap.xml exists and lists all public pages?
+- [ ] robots.txt exists and allows crawling of public pages?
+- [ ] No broken internal links (404s)?
+- [ ] Page load time acceptable? (< 3 seconds)
+- [ ] Mobile-friendly? (responsive, readable text, tap targets)
+
+**Content & URLs**
+- [ ] URLs are clean and descriptive? (no query strings for content pages)
+- [ ] No duplicate content across pages?
+- [ ] Important content visible without JavaScript? (for crawlers)
+
+**Structured Data (Optional)**
+- [ ] JSON-LD schema for relevant content? (Book, WebSite, etc.)
+- [ ] Schema validates at schema.org validator?
+
+**Crawlability**
+- [ ] Auth-required pages excluded from sitemap?
+- [ ] Login/register pages have `noindex` if not needed in search?
+- [ ] Internal linking between related pages?
+
 ### Mobile UX Audit
 
 **Touch Targets**

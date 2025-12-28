@@ -1,6 +1,7 @@
 ---
 layout: base.njk
 title: My Books
+description: Browse and filter your book collection
 scripts: '<script type="module" src="/js/books/index.js"></script>'
 ---
 <!-- Mobile: Sort & Filter Controls -->
@@ -66,6 +67,7 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 
 <!-- Main Content -->
 <main id="main-content" class="max-w-6xl mx-auto px-4 pt-6 pb-24 page-content">
+  <h1 class="sr-only">My Books</h1>
   <div class="flex gap-4 md:gap-6">
     <!-- Desktop: Filter Sidebar -->
     <aside class="hidden md:block w-72 flex-shrink-0">
