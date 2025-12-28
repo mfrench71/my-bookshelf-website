@@ -37,6 +37,11 @@ All notable changes to MyBookShelf are documented here.
   - Add `aria-label` to genre colour picker buttons
   - Add `aria-label` to filter chip remove buttons
   - Add "Form Label Association" guideline to CLAUDE.md
+- Mobile usability audit fixes:
+  - Add `viewport-fit=cover` for safe area/notch handling
+  - Fix touch targets in genre-picker (close button, remove genre button)
+  - Fix touch target in series-picker (clear button)
+  - Add comprehensive "Mobile UX Audit" checklist to CLAUDE.md
 
 ---
 

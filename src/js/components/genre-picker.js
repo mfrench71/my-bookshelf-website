@@ -116,7 +116,7 @@ export class GenrePicker {
           ${selectedGenres.map(genre => `
             <span class="genre-badge" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
               ${escapeHtml(genre.name)}
-              <button type="button" class="ml-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
+              <button type="button" class="ml-1 p-1 -mr-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -143,7 +143,7 @@ export class GenrePicker {
             <div class="genre-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto" role="listbox" aria-label="Genre options">
               <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">Select genres</span>
-                <button type="button" class="genre-picker-close p-1 hover:bg-gray-200 rounded" aria-label="Close dropdown">
+                <button type="button" class="genre-picker-close p-2 hover:bg-gray-200 rounded min-w-[44px] min-h-[44px] flex items-center justify-center -m-1" aria-label="Close dropdown">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>

@@ -182,7 +182,7 @@ export class SeriesPicker {
       <div class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
         <i data-lucide="library" class="w-4 h-4 text-primary flex-shrink-0"></i>
         <span class="flex-1 font-medium text-gray-900">${escapeHtml(this.selectedName)}</span>
-        <button type="button" class="series-picker-clear p-1 hover:bg-gray-200 rounded text-gray-500" title="Remove from series">
+        <button type="button" class="series-picker-clear p-2 hover:bg-gray-200 rounded text-gray-500 min-w-[44px] min-h-[44px] flex items-center justify-center -m-1" title="Remove from series" aria-label="Remove from series">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>

@@ -421,12 +421,61 @@ npm outdated                 # Check for outdated packages
 - [ ] Form submission errors don't lose user input?
 
 ### Mobile UX Audit
-- [ ] Touch targets minimum 44x44px?
-- [ ] No horizontal scroll on mobile?
-- [ ] Forms usable with mobile keyboard?
-- [ ] Modals scrollable if content overflows?
-- [ ] Pull-to-refresh works where expected?
-- [ ] Viewport meta tag correct? (`width=device-width, initial-scale=1`)
+
+**Touch Targets**
+- [ ] All interactive elements (buttons, links, inputs) minimum 44x44px?
+- [ ] Icon-only buttons use `min-w-[44px] min-h-[44px]` with centered content?
+- [ ] Small buttons inside badges/chips have `p-1` padding minimum?
+- [ ] Adequate spacing between adjacent touch targets (8px+ gap)?
+
+**Viewport & Safe Areas**
+- [ ] Viewport meta includes `viewport-fit=cover` for notch handling?
+- [ ] Fixed elements (FAB, toast) use `env(safe-area-inset-*)` padding?
+- [ ] Bottom sheets account for home indicator on iOS?
+
+**Scrolling & Overflow**
+- [ ] No horizontal scroll on any page?
+- [ ] Long text uses `break-words` or `truncate` where appropriate?
+- [ ] Images constrained with `max-w-full`?
+- [ ] Modals/sheets scrollable if content overflows (`max-h-[90vh] overflow-y-auto`)?
+- [ ] No nested scroll conflicts (inner scroll blocks outer gesture)?
+
+**Forms & Input**
+- [ ] Input font size 16px+ to prevent iOS zoom on focus?
+- [ ] Appropriate `inputmode` for keyboard type (`numeric`, `email`, `tel`)?
+- [ ] `autocomplete` attributes for autofill support?
+- [ ] Submit buttons accessible when keyboard is open?
+- [ ] Form errors visible without scrolling?
+
+**Gestures & Feedback**
+- [ ] Touch feedback on interactive elements (`active:` states)?
+- [ ] Swipe gestures work correctly (bottom sheets, carousels)?
+- [ ] No 300ms tap delay (`touch-action: manipulation`)?
+- [ ] Pull-to-refresh works where expected (book list)?
+- [ ] Tap highlight disabled (`-webkit-tap-highlight-color: transparent`)?
+
+**Performance**
+- [ ] No layout shift during loading (skeleton loaders match final size)?
+- [ ] Images lazy loaded with `loading="lazy"`?
+- [ ] Heavy operations don't block UI (use async/debounce)?
+
+**Common Mobile Patterns**
+```html
+<!-- Touch target for icon button -->
+<button class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
+  <i data-lucide="x" class="w-5 h-5"></i>
+</button>
+
+<!-- Safe area padding for fixed bottom element -->
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fixed-bottom {
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+<!-- Prevent iOS zoom on input focus -->
+<input class="text-base" ...>  <!-- 16px minimum -->
+```
 
 ### Form Validation Audit
 - [ ] All forms use Zod schemas (no manual `if (!value)` checks)?
