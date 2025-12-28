@@ -1,5 +1,5 @@
 // Maintenance Settings Page Logic
-import { auth, db } from '/js/firebase-config.js';
+import { auth, db, storage } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -7,6 +7,12 @@ import {
   orderBy,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {
+  ref,
+  listAll,
+  deleteObject,
+  getMetadata
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import {
   clearGenresCache,
   recalculateGenreBookCounts
@@ -265,3 +271,180 @@ healthRefreshBtn?.addEventListener('click', async () => {
   clearBooksCache(currentUser.uid);
   await updateLibraryHealth();
 });
+
+// ==================== Orphaned Images ====================
+
+// DOM Elements - Orphaned Images
+const scanOrphansBtn = document.getElementById('scan-orphans-btn');
+const deleteOrphansBtn = document.getElementById('delete-orphans-btn');
+const orphanResults = document.getElementById('orphan-results');
+const orphanLoading = document.getElementById('orphan-loading');
+const orphanFound = document.getElementById('orphan-found');
+const orphanNone = document.getElementById('orphan-none');
+const orphanDeleted = document.getElementById('orphan-deleted');
+const orphanCount = document.getElementById('orphan-count');
+const orphanSize = document.getElementById('orphan-size');
+const orphanDeletedCount = document.getElementById('orphan-deleted-count');
+
+// Store orphaned images for deletion
+let orphanedImages = [];
+
+/**
+ * Format bytes to human-readable size
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * Recursively list all files in a storage folder
+ * @param {StorageReference} folderRef
+ * @returns {Promise<Array>} Array of {ref, metadata}
+ */
+async function listAllFilesRecursively(folderRef) {
+  const files = [];
+
+  try {
+    const result = await listAll(folderRef);
+
+    // Get metadata for all files in this folder
+    for (const itemRef of result.items) {
+      try {
+        const metadata = await getMetadata(itemRef);
+        files.push({ ref: itemRef, metadata });
+      } catch (err) {
+        console.warn('Could not get metadata for:', itemRef.fullPath, err);
+      }
+    }
+
+    // Recursively list files in subfolders
+    for (const prefixRef of result.prefixes) {
+      const subFiles = await listAllFilesRecursively(prefixRef);
+      files.push(...subFiles);
+    }
+  } catch (error) {
+    // Folder might not exist, which is fine
+    console.log('Could not list folder:', folderRef.fullPath, error.code);
+  }
+
+  return files;
+}
+
+/**
+ * Scan for orphaned images in Firebase Storage
+ */
+async function scanForOrphanedImages() {
+  if (!currentUser) return;
+
+  // Reset UI
+  orphanResults?.classList.remove('hidden');
+  orphanLoading?.classList.remove('hidden');
+  orphanFound?.classList.add('hidden');
+  orphanNone?.classList.add('hidden');
+  orphanDeleted?.classList.add('hidden');
+  scanOrphansBtn.disabled = true;
+  scanOrphansBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Scanning...';
+
+  try {
+    // Force reload books to get fresh data (don't use cache)
+    allBooksLoaded = false;
+    await loadAllBooks();
+
+    // Collect all image storage paths from books
+    const referencedPaths = new Set();
+    for (const book of books) {
+      if (book.images && Array.isArray(book.images)) {
+        for (const img of book.images) {
+          if (img.storagePath) {
+            referencedPaths.add(img.storagePath);
+          }
+        }
+      }
+    }
+
+    // List all files in user's storage folder
+    const userStorageRef = ref(storage, `users/${currentUser.uid}`);
+    const allFiles = await listAllFilesRecursively(userStorageRef);
+
+    // Find orphaned files (in storage but not referenced by any book)
+    orphanedImages = allFiles.filter(file => !referencedPaths.has(file.ref.fullPath));
+
+    // Calculate total size
+    const totalSize = orphanedImages.reduce((sum, file) => sum + (file.metadata.size || 0), 0);
+
+    // Update UI
+    orphanLoading?.classList.add('hidden');
+
+    if (orphanedImages.length > 0) {
+      orphanFound?.classList.remove('hidden');
+      if (orphanCount) orphanCount.textContent = orphanedImages.length;
+      if (orphanSize) orphanSize.textContent = formatBytes(totalSize);
+      initIcons();
+    } else {
+      orphanNone?.classList.remove('hidden');
+      showToast('No orphaned images found', { type: 'success' });
+      setTimeout(() => orphanResults?.classList.add('hidden'), 5000);
+    }
+
+  } catch (error) {
+    console.error('Error scanning for orphaned images:', error);
+    orphanLoading?.classList.add('hidden');
+    showToast('Failed to scan for orphaned images', { type: 'error' });
+  } finally {
+    scanOrphansBtn.disabled = false;
+    scanOrphansBtn.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i><span>Scan for Orphaned Images</span>';
+    initIcons();
+  }
+}
+
+/**
+ * Delete all orphaned images
+ */
+async function deleteOrphanedImages() {
+  if (!orphanedImages.length) return;
+
+  deleteOrphansBtn.disabled = true;
+  deleteOrphansBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Deleting...';
+
+  let deletedCount = 0;
+
+  try {
+    for (const file of orphanedImages) {
+      try {
+        await deleteObject(file.ref);
+        deletedCount++;
+      } catch (err) {
+        console.error('Failed to delete:', file.ref.fullPath, err);
+      }
+    }
+
+    // Update UI
+    orphanFound?.classList.add('hidden');
+    orphanDeleted?.classList.remove('hidden');
+    if (orphanDeletedCount) orphanDeletedCount.textContent = deletedCount;
+    initIcons();
+
+    showToast(`Deleted ${deletedCount} orphaned image${deletedCount !== 1 ? 's' : ''}`, { type: 'success' });
+
+    // Clear the list
+    orphanedImages = [];
+
+  } catch (error) {
+    console.error('Error deleting orphaned images:', error);
+    showToast('Failed to delete some images', { type: 'error' });
+  } finally {
+    deleteOrphansBtn.disabled = false;
+    deleteOrphansBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span>Delete Orphaned Images</span>';
+    initIcons();
+  }
+}
+
+// Event listeners for Orphaned Images
+scanOrphansBtn?.addEventListener('click', scanForOrphanedImages);
+deleteOrphansBtn?.addEventListener('click', deleteOrphanedImages);
