@@ -2,7 +2,7 @@
 // Updates badge indicators on settings navigation tabs
 
 import { auth, db } from '/js/firebase-config.js';
-import { collection, getDocs, query, where, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, getDocs, query, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CACHE_KEY = 'mybookshelf_settings_indicators';
 const CACHE_TTL = 60 * 1000; // 1 minute
@@ -54,12 +54,13 @@ export async function updateSettingsIndicators(userId) {
 
 /**
  * Get count of books in the bin
+ * Note: Fetches all books and filters client-side because Firestore
+ * '!= null' queries require composite indexes
  */
 async function getBinCount(userId) {
   const booksRef = collection(db, 'users', userId, 'books');
-  const binQuery = query(booksRef, where('deletedAt', '!=', null));
-  const snapshot = await getDocs(binQuery);
-  return snapshot.size;
+  const snapshot = await getDocs(query(booksRef, limit(500)));
+  return snapshot.docs.filter(doc => doc.data().deletedAt).length;
 }
 
 /**

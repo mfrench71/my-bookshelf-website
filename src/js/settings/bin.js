@@ -199,6 +199,8 @@ document.getElementById('confirm-restore')?.addEventListener('click', async () =
     }
 
     selectedBook = null;
+    clearIndicatorsCache();
+    updateSettingsIndicators(currentUser.uid);
     renderBinnedBooks();
   } catch (error) {
     console.error('Error restoring book:', error);
@@ -232,6 +234,8 @@ document.getElementById('confirm-delete')?.addEventListener('click', async () =>
     showToast('Book permanently deleted', { type: 'success' });
 
     selectedBook = null;
+    clearIndicatorsCache();
+    updateSettingsIndicators(currentUser.uid);
     renderBinnedBooks();
   } catch (error) {
     console.error('Error deleting book:', error);
@@ -267,6 +271,8 @@ document.getElementById('confirm-empty-bin')?.addEventListener('click', async ()
     emptyBinSheet?.close();
     showToast(`${count} book${count > 1 ? 's' : ''} permanently deleted`, { type: 'success' });
 
+    clearIndicatorsCache();
+    updateSettingsIndicators(currentUser.uid);
     renderBinnedBooks();
   } catch (error) {
     console.error('Error emptying bin:', error);

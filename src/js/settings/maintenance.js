@@ -153,15 +153,25 @@ async function updateLibraryHealth() {
     }
     if (healthRating) healthRating.textContent = rating.label;
 
+    // Calculate unique books with issues
+    const booksWithIssuesSet = new Set();
+    for (const issueType of Object.keys(ISSUE_CONFIG)) {
+      const issueBooks = healthReport.issues[issueType] || [];
+      for (const book of issueBooks) {
+        booksWithIssuesSet.add(book.id);
+      }
+    }
+    const uniqueBooksWithIssues = booksWithIssuesSet.size;
+
     // Update stats
     if (healthTotalBooks) healthTotalBooks.textContent = healthReport.totalBooks;
-    if (healthIssuesCount) healthIssuesCount.textContent = healthReport.totalIssues;
+    if (healthIssuesCount) healthIssuesCount.textContent = uniqueBooksWithIssues;
 
     // Render issue rows
     renderIssueRows();
 
     // Show/hide complete state
-    if (healthReport.totalIssues === 0) {
+    if (uniqueBooksWithIssues === 0) {
       healthComplete?.classList.remove('hidden');
       healthIssues?.classList.add('hidden');
       healthActions?.classList.add('hidden');
