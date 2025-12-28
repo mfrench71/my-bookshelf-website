@@ -6,7 +6,7 @@
 import { doc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db } from '/js/firebase-config.js';
 import { updateGenreBookCounts, loadUserGenres, clearGenresCache } from './genres.js';
-import { loadUserSeries, clearSeriesCache } from './series.js';
+import { loadUserSeries, clearSeriesCache, getSeriesById, restoreSeries } from './series.js';
 import { clearBooksCache } from './utils/cache.js';
 
 /** Number of days before binned books are auto-deleted */
@@ -61,17 +61,29 @@ export async function restoreBook(userId, bookId, book) {
     updatedAt: serverTimestamp()
   };
 
-  // Check if series still exists
+  // Check if series still exists (including soft-deleted)
   let seriesExists = true;
+  let seriesRestored = false;
   if (book.seriesId) {
-    const series = await loadUserSeries(userId, true);
-    seriesExists = series.some(s => s.id === book.seriesId);
+    // First check active series
+    const activeSeries = await loadUserSeries(userId, true);
+    seriesExists = activeSeries.some(s => s.id === book.seriesId);
 
     if (!seriesExists) {
-      // Clear orphaned series reference
-      updateData.seriesId = null;
-      updateData.seriesPosition = null;
-      warnings.push('Series no longer exists');
+      // Check if series was soft-deleted (can be restored)
+      const seriesData = await getSeriesById(userId, book.seriesId);
+
+      if (seriesData && seriesData.deletedAt) {
+        // Series was soft-deleted - restore it
+        await restoreSeries(userId, book.seriesId);
+        seriesExists = true;
+        seriesRestored = true;
+      } else if (!seriesData) {
+        // Series was hard-deleted - clear orphaned reference
+        updateData.seriesId = null;
+        updateData.seriesPosition = null;
+        warnings.push('Series no longer exists');
+      }
     }
   }
 
@@ -108,7 +120,7 @@ export async function restoreBook(userId, bookId, book) {
   clearGenresCache();
   clearSeriesCache();
 
-  return { warnings };
+  return { warnings, seriesRestored };
 }
 
 /**

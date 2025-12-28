@@ -30,10 +30,14 @@ vi.mock('/js/genres.js', () => ({
 // Mock series module
 const mockLoadUserSeries = vi.fn();
 const mockClearSeriesCache = vi.fn();
+const mockGetSeriesById = vi.fn();
+const mockRestoreSeries = vi.fn();
 
 vi.mock('/js/series.js', () => ({
   loadUserSeries: (...args) => mockLoadUserSeries(...args),
-  clearSeriesCache: () => mockClearSeriesCache()
+  clearSeriesCache: () => mockClearSeriesCache(),
+  getSeriesById: (...args) => mockGetSeriesById(...args),
+  restoreSeries: (...args) => mockRestoreSeries(...args)
 }));
 
 // Mock cache module
@@ -267,6 +271,8 @@ describe('restoreBook', () => {
     mockUpdateGenreBookCounts.mockResolvedValue();
     mockLoadUserGenres.mockResolvedValue([]);
     mockLoadUserSeries.mockResolvedValue([]);
+    mockGetSeriesById.mockResolvedValue(null);
+    mockRestoreSeries.mockResolvedValue();
   });
 
   it('should clear deletedAt timestamp', async () => {

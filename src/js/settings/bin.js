@@ -187,9 +187,11 @@ document.getElementById('confirm-restore')?.addEventListener('click', async () =
 
     restoreSheet?.close();
 
-    // Show warnings if any
+    // Show appropriate message
     if (result.warnings && result.warnings.length > 0) {
       showToast(`Book restored. ${result.warnings.join('. ')}`, { type: 'info' });
+    } else if (result.seriesRestored) {
+      showToast('Book and series restored to library', { type: 'success' });
     } else {
       showToast('Book restored to library', { type: 'success' });
     }
