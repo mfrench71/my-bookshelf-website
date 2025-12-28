@@ -160,6 +160,9 @@ export function parseHierarchicalGenres(categories) {
     /^series:/i,                           // series:Harry_Potter
     /^nyt:/i,                              // nyt:advice-how-to-and-miscellaneous=2016-10-02
     /^collectionid:/i,                     // collectionid:nyt2020s
+    /^award:/i,                            // Award:National_book_award=1992
+    /\baward\s+winner\b/i,                 // National Book Award Winner
+    /\baward\s*=\s*/i,                     // Award:National_book_critics_circle_award=Fiction
     /^reading level/i,                     // Reading Level-Grade 9
     /\bpublication type\b/i,               // Fictional Works [Publication Type]
     /\bmanual for civilization\b/i,        // Long Now Manual for Civilization

@@ -13,6 +13,7 @@ All notable changes to MyBookShelf are documented here.
   - Normalize ampersand formats: "Action & Adventure" → "Adventure"
   - Convert ALL CAPS to Title Case for consistency
   - Filter metadata: series markers, reading levels, NYT lists, translation notes
+  - Filter award metadata: "Award:National_book_award=1992", "National Book Award Winner"
   - Add ~60 genre normalization mappings based on API audit
   - British spelling: "humorous" → "Humour"
   - Fix bug where filtered genres like "General" were still appearing (|| operator issue)

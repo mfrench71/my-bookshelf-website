@@ -360,4 +360,19 @@ describe('real-world API category examples', () => {
     expect(result).not.toContain('General');
     expect(result).toHaveLength(1); // Only Fiction, not General
   });
+
+  it('filters out award metadata from Open Library', () => {
+    const categories = [
+      'Award:National_book_award=1992',
+      'Award:National_book_award=Fiction',
+      'National Book Award Winner',
+      'National Book Critics Circle Award Winner',
+      'Award:National_book_critics_circle_award=1992',
+      'Fiction' // Should keep this one
+    ];
+    const result = parseHierarchicalGenres(categories);
+    expect(result).toEqual(['Fiction']);
+    expect(result).not.toContain('Award:National_book_award=1992');
+    expect(result).not.toContain('National Book Award Winner');
+  });
 });

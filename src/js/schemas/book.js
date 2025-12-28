@@ -1,5 +1,6 @@
 // Book Validation Schema
 import { z } from '/js/vendor/zod.js';
+import { ImageSchema } from './image.js';
 
 /**
  * Schema for validating book data
@@ -99,6 +100,9 @@ export const BookSchema = z.object({
     googleBooks: z.string().url().optional().or(z.literal('')),
     openLibrary: z.string().url().optional().or(z.literal(''))
   }).optional(),
+
+  // User-uploaded images (up to 10 per book)
+  images: z.array(ImageSchema).max(10, 'Maximum 10 images per book').optional().default([]),
 
   // Soft delete timestamp (null = active, number = deleted at this time)
   deletedAt: z.union([

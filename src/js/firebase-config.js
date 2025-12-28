@@ -2,6 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getStorage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCUXsgRk9htRXIAyvmC4SDfAche_5YQZZ0",
@@ -22,4 +23,7 @@ const db = initializeFirestore(app, {
   localCache: persistentLocalCache()
 });
 
-export { app, auth, db };
+// Initialize Firebase Storage for image uploads
+const storage = getStorage(app);
+
+export { app, auth, db, storage };
