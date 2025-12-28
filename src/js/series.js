@@ -3,6 +3,7 @@ import { db } from '/js/firebase-config.js';
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   addDoc,
   updateDoc,
@@ -22,7 +23,7 @@ let seriesCacheTime = 0;
 const SERIES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get all series for a user
+ * Get all series for a user (excludes soft-deleted series)
  * @param {string} userId - The user's ID
  * @param {boolean} forceRefresh - Force reload from Firestore
  * @returns {Promise<Array>} Array of series objects
@@ -42,10 +43,10 @@ export async function loadUserSeries(userId, forceRefresh = false) {
     const q = query(seriesRef, orderBy('name', 'asc'));
     const snapshot = await getDocs(q);
 
-    seriesCache = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Filter out soft-deleted series
+    seriesCache = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(s => !s.deletedAt);
     seriesCacheUserId = userId;
     seriesCacheTime = Date.now();
 
@@ -171,7 +172,8 @@ export async function updateSeries(userId, seriesId, updates) {
 }
 
 /**
- * Delete a series and unlink it from all books
+ * Delete a series and unlink it from all books (hard delete)
+ * Used for intentional deletion from Settings
  * @param {string} userId - The user's ID
  * @param {string} seriesId - The series ID to delete
  * @returns {Promise<number>} Number of books updated
@@ -207,6 +209,74 @@ export async function deleteSeries(userId, seriesId) {
     return snapshot.docs.length;
   } catch (error) {
     console.error('Error deleting series:', error);
+    throw error;
+  }
+}
+
+/**
+ * Soft delete a series (move to bin)
+ * Used when deleting the last book in a series - allows restore with book
+ * @param {string} userId - The user's ID
+ * @param {string} seriesId - The series ID to soft delete
+ * @returns {Promise<void>}
+ */
+export async function softDeleteSeries(userId, seriesId) {
+  try {
+    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
+    await updateDoc(seriesRef, {
+      deletedAt: Date.now(),
+      updatedAt: serverTimestamp()
+    });
+
+    // Invalidate cache
+    seriesCache = null;
+  } catch (error) {
+    console.error('Error soft deleting series:', error);
+    throw error;
+  }
+}
+
+/**
+ * Restore a soft-deleted series
+ * @param {string} userId - The user's ID
+ * @param {string} seriesId - The series ID to restore
+ * @returns {Promise<void>}
+ */
+export async function restoreSeries(userId, seriesId) {
+  try {
+    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
+    await updateDoc(seriesRef, {
+      deletedAt: null,
+      updatedAt: serverTimestamp()
+    });
+
+    // Invalidate cache
+    seriesCache = null;
+  } catch (error) {
+    console.error('Error restoring series:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a series by ID (including soft-deleted)
+ * Used for restore operations
+ * @param {string} userId - The user's ID
+ * @param {string} seriesId - The series ID
+ * @returns {Promise<Object|null>} Series object or null if not found
+ */
+export async function getSeriesById(userId, seriesId) {
+  try {
+    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
+    const snapshot = await getDoc(seriesRef);
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return { id: snapshot.id, ...snapshot.data() };
+  } catch (error) {
+    console.error('Error getting series by ID:', error);
     throw error;
   }
 }
