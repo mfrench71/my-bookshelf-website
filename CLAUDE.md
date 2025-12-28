@@ -597,6 +597,87 @@ npx lighthouse http://localhost:8080 --view
 - [ ] API calls debounced/throttled where appropriate?
 - [ ] Real-time listeners minimized? (prefer on-demand fetching)
 
+### Privacy/GDPR Audit
+
+**Data Collection & Consent**
+- [ ] Privacy policy exists and is up to date (`/privacy/`)?
+- [ ] Privacy policy accurately describes all data collected?
+- [ ] No data collected beyond what's necessary for functionality?
+- [ ] Third-party services disclosed? (Firebase, book APIs)
+- [ ] Analytics/tracking disclosed if present?
+
+**User Rights (GDPR Article 15-22)**
+- [ ] Users can view their data? (profile, book list)
+- [ ] Users can export their data? (Export My Data feature)
+- [ ] Users can delete their account and all data?
+- [ ] Data deletion is complete? (Firestore subcollections, bin, wishlist)
+- [ ] No data retained after deletion request?
+
+**Data Security**
+- [ ] Sensitive data encrypted in transit? (HTTPS)
+- [ ] No sensitive data in localStorage? (tokens, passwords)
+- [ ] Firestore rules restrict access to own data only?
+- [ ] No PII logged to console in production?
+- [ ] Session tokens expire appropriately?
+
+**Data Minimisation**
+- [ ] Only necessary fields stored?
+- [ ] No tracking cookies without consent?
+- [ ] Book cover URLs fetched on-demand (not stored if unnecessary)?
+- [ ] Deleted items purged after retention period? (30-day bin)
+
+**Third-Party Data Sharing**
+- [ ] No user data shared with third parties without consent?
+- [ ] API requests don't leak user identity? (book lookups are anonymous)
+- [ ] Firebase Analytics configured appropriately (or disabled)?
+
+### Browser Compatibility Audit
+
+**Core Functionality**
+- [ ] Works in Chrome (latest 2 versions)?
+- [ ] Works in Safari (latest 2 versions)?
+- [ ] Works in Firefox (latest 2 versions)?
+- [ ] Works in Edge (latest 2 versions)?
+- [ ] Works in Safari iOS?
+- [ ] Works in Chrome Android?
+
+**PWA Features**
+- [ ] Service worker registers in all browsers?
+- [ ] App installable on iOS Safari? (Add to Home Screen)
+- [ ] App installable on Android Chrome?
+- [ ] Offline mode works across browsers?
+- [ ] Push notifications work (if implemented)?
+
+**iOS Safari Quirks**
+- [ ] No 300ms tap delay? (`touch-action: manipulation`)
+- [ ] Viewport height correct? (100vh issues with address bar)
+- [ ] Input zoom prevented? (font-size >= 16px)
+- [ ] Safe area insets handled? (`env(safe-area-inset-*)`)
+- [ ] Momentum scrolling works? (`-webkit-overflow-scrolling: touch`)
+- [ ] Date inputs work correctly?
+
+**CSS Compatibility**
+- [ ] Flexbox/Grid works in all browsers?
+- [ ] CSS custom properties (variables) supported?
+- [ ] Backdrop blur has fallback? (`backdrop-filter`)
+- [ ] No `-webkit-` prefixes missing where needed?
+
+**JavaScript Compatibility**
+- [ ] No ES2022+ features without transpilation?
+- [ ] Optional chaining (`?.`) supported in target browsers?
+- [ ] Nullish coalescing (`??`) supported?
+- [ ] `fetch` API available? (or polyfilled)
+- [ ] `IntersectionObserver` available for lazy loading?
+
+**Testing Commands**
+```bash
+# Test with BrowserStack or similar
+# Or use browser dev tools device emulation
+
+# Check for compatibility issues
+npx browserslist  # See target browsers from package.json
+```
+
 ## Competitor Reference
 
 When researching features, check how these apps handle similar functionality:

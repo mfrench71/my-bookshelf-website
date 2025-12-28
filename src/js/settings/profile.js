@@ -638,6 +638,28 @@ deleteAccountForm?.addEventListener('submit', async (e) => {
       await batch2.commit();
     }
 
+    // Delete all series
+    const seriesRef = collection(db, 'users', userId, 'series');
+    const seriesSnapshot = await getDocs(seriesRef);
+    const batch3 = writeBatch(db);
+    seriesSnapshot.docs.forEach(seriesDoc => {
+      batch3.delete(seriesDoc.ref);
+    });
+    if (seriesSnapshot.docs.length > 0) {
+      await batch3.commit();
+    }
+
+    // Delete all wishlist items
+    const wishlistRef = collection(db, 'users', userId, 'wishlist');
+    const wishlistSnapshot = await getDocs(wishlistRef);
+    const batch4 = writeBatch(db);
+    wishlistSnapshot.docs.forEach(wishlistDoc => {
+      batch4.delete(wishlistDoc.ref);
+    });
+    if (wishlistSnapshot.docs.length > 0) {
+      await batch4.commit();
+    }
+
     // Delete the user document if it exists
     try {
       await deleteDoc(doc(db, 'users', userId));

@@ -50,6 +50,11 @@ All notable changes to MyBookShelf are documented here.
 - Core Web Vitals audit:
   - Add `loading="lazy"` to remaining images (maintenance, add book search)
   - Add comprehensive "Core Web Vitals Audit" checklist to CLAUDE.md
+- Privacy/GDPR audit:
+  - Fix account deletion to also delete series and wishlist subcollections
+  - Add comprehensive "Privacy/GDPR Audit" checklist to CLAUDE.md
+- Browser Compatibility audit:
+  - Add comprehensive "Browser Compatibility Audit" checklist to CLAUDE.md
 
 ---
 
