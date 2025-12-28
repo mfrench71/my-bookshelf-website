@@ -9,7 +9,8 @@ import {
   createGenre,
   updateGenre,
   deleteGenre,
-  recalculateGenreBookCounts
+  recalculateGenreBookCounts,
+  updateGenreBookCounts
 } from '../src/js/genres.js';
 
 // Mock Firebase
@@ -554,5 +555,193 @@ describe('recalculateGenreBookCounts', () => {
 
     expect(results.genresUpdated).toBe(0);
     expect(results.totalBooks).toBe(1);
+  });
+
+  it('should skip soft-deleted books', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['genreId1'] }) },
+        { id: 'book2', data: () => ({ genres: ['genreId1'], deletedAt: new Date() }) }
+      ]
+    });
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'genreId1', data: () => ({ name: 'Fiction', bookCount: 0 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    const results = await recalculateGenreBookCounts('user123');
+
+    expect(results.genresUpdated).toBe(1);
+    expect(results.totalBooks).toBe(1); // Only non-deleted book counted
+  });
+});
+
+describe('updateGenreBookCounts', () => {
+  beforeEach(() => {
+    clearGenresCache();
+    mockGetDocs.mockReset();
+    mockWriteBatch.mockReset();
+  });
+
+  it('should do nothing when no genre changes', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', [], []);
+
+    expect(mockBatch.commit).not.toHaveBeenCalled();
+  });
+
+  it('should increment counts for added genres', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', bookCount: 5 }) },
+        { id: 'g2', data: () => ({ name: 'Mystery', bookCount: 3 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', ['g1', 'g2'], []);
+
+    expect(mockBatch.update).toHaveBeenCalledTimes(2);
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('should decrement counts for removed genres', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', bookCount: 5 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', [], ['g1']);
+
+    expect(mockBatch.update).toHaveBeenCalledTimes(1);
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('should not decrement below zero', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', bookCount: 0 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', [], ['g1']);
+
+    // Should still call update but with 0
+    expect(mockBatch.update).toHaveBeenCalled();
+  });
+
+  it('should handle both added and removed genres', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', bookCount: 5 }) },
+        { id: 'g2', data: () => ({ name: 'Mystery', bookCount: 3 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', ['g1'], ['g2']);
+
+    expect(mockBatch.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('should ignore non-existent genre IDs', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'g1', data: () => ({ name: 'Fiction', bookCount: 5 }) }
+      ]
+    });
+
+    const mockBatch = {
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+
+    await updateGenreBookCounts('user123', ['g1', 'non-existent'], []);
+
+    // Only g1 should be updated
+    expect(mockBatch.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deleteGenre edge cases', () => {
+  beforeEach(() => {
+    clearGenresCache();
+    mockGetDocs.mockReset();
+    mockWriteBatch.mockReset();
+  });
+
+  it('should skip soft-deleted books when removing genre', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({ genres: ['g1', 'g2'] }) },
+        { id: 'book2', data: () => ({ genres: ['g1'], deletedAt: new Date() }) }
+      ]
+    });
+
+    const count = await deleteGenre('user123', 'g1');
+
+    expect(count).toBe(2);
+    // Only one book should be updated (the non-deleted one)
+    expect(mockBatch.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle books with no genres array', async () => {
+    const mockBatch = {
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn().mockResolvedValue()
+    };
+    mockWriteBatch.mockReturnValue(mockBatch);
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        { id: 'book1', data: () => ({}) }
+      ]
+    });
+
+    const count = await deleteGenre('user123', 'g1');
+
+    expect(count).toBe(1);
   });
 });

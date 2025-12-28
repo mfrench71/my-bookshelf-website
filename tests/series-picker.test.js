@@ -354,4 +354,273 @@ describe('SeriesPicker', () => {
       expect(() => picker.destroy()).not.toThrow();
     });
   });
+
+  describe('_getFilteredSeries', () => {
+    it('should return all series when no search query', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = '';
+      const filtered = picker._getFilteredSeries();
+
+      expect(filtered).toHaveLength(2);
+    });
+
+    it('should filter by normalized search query', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'HARRY';
+      const filtered = picker._getFilteredSeries();
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].name).toBe('Harry Potter');
+    });
+
+    it('should return empty array when no matches', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'xyz123';
+      const filtered = picker._getFilteredSeries();
+
+      expect(filtered).toHaveLength(0);
+    });
+  });
+
+  describe('_shouldShowCreateOption', () => {
+    it('should return false for empty query', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = '';
+      expect(picker._shouldShowCreateOption()).toBe(false);
+    });
+
+    it('should return false when exact match exists', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'Harry Potter';
+      expect(picker._shouldShowCreateOption()).toBe(false);
+    });
+
+    it('should return true for new series name', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'Narnia Chronicles';
+      expect(picker._shouldShowCreateOption()).toBe(true);
+    });
+
+    it('should be case insensitive', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'harry potter';
+      expect(picker._shouldShowCreateOption()).toBe(false);
+    });
+  });
+
+  describe('_handleClickOutside', () => {
+    it('should close dropdown when clicking outside', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker._handleClickOutside({ target: document.body });
+
+      expect(picker.isOpen).toBe(false);
+    });
+
+    it('should not close when clicking inside', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker._handleClickOutside({ target: container });
+
+      expect(picker.isOpen).toBe(true);
+    });
+
+    it('should clear search query when closing', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.searchQuery = 'test';
+      picker._handleClickOutside({ target: document.body });
+
+      expect(picker.searchQuery).toBe('');
+    });
+  });
+
+  describe('_handleKeyDown', () => {
+    it('should navigate on ArrowDown when open', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.render();
+
+      const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+      event.preventDefault = vi.fn();
+      picker._handleKeyDown(event);
+
+      // Should call preventDefault for ArrowDown when open
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should navigate on ArrowUp when open', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.render();
+
+      const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+      event.preventDefault = vi.fn();
+      picker._handleKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should handle Enter when open', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.focusedIndex = 0;
+      picker.render();
+
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      event.preventDefault = vi.fn();
+      picker._handleKeyDown(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should clear state on Escape', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.searchQuery = 'test';
+      picker.focusedIndex = 1;
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      event.preventDefault = vi.fn();
+      picker._handleKeyDown(event);
+
+      expect(picker.isOpen).toBe(false);
+      expect(picker.searchQuery).toBe('');
+      expect(picker.focusedIndex).toBe(-1);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle series load error', async () => {
+      const { loadUserSeries } = await import('../src/js/series.js');
+      loadUserSeries.mockRejectedValueOnce(new Error('Network error'));
+
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      expect(picker.series).toEqual([]);
+      expect(picker.isLoading).toBe(false);
+    });
+
+    it('should handle create series error', async () => {
+      const { createSeries } = await import('../src/js/series.js');
+      const { showToast } = await import('../src/js/utils.js');
+      createSeries.mockRejectedValueOnce(new Error('Create failed'));
+
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.searchQuery = 'New Series';
+      picker.isOpen = true;
+      picker.render();
+
+      const createBtn = container.querySelector('[data-create="New Series"]');
+      createBtn.click();
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(showToast).toHaveBeenCalled();
+    });
+  });
+
+  describe('series with book count', () => {
+    it('should display book count in dropdown', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.render();
+
+      expect(container.textContent).toContain('3');
+    });
+
+    it('should display totalBooks when available', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.isOpen = true;
+      picker.render();
+
+      expect(container.textContent).toContain('7');
+    });
+  });
+
+  describe('setSelected edge cases', () => {
+    it('should handle non-existent series ID', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.setSelected('non-existent-id', 1);
+
+      expect(picker.getSelected().seriesId).toBe('non-existent-id');
+      expect(picker.getSelected().seriesName).toBe('');
+    });
+
+    it('should handle null position', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.setSelected('s1', null);
+
+      expect(picker.getSelected().position).toBeNull();
+    });
+
+    it('should handle undefined position', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.setSelected('s1');
+
+      expect(picker.getSelected().position).toBeNull();
+    });
+  });
+
+  describe('suggestion with position', () => {
+    it('should accept suggestion with position', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.setSuggestion('Harry Potter', 3);
+
+      expect(picker.getSelected().position).toBe(3);
+    });
+
+    it('should show suggestion hint for unmatched series', async () => {
+      const picker = new SeriesPicker({ container, userId: 'user123' });
+      await picker.init();
+
+      picker.setSuggestion('New Series', 5);
+
+      // Should render hint showing the suggestion
+      expect(container.textContent).toContain('New Series');
+    });
+  });
 });
