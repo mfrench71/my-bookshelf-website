@@ -37,6 +37,7 @@ import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '
 import { SeriesFormSchema } from '../schemas/series.js';
 import { BottomSheet } from '../components/modal.js';
 import { loadWishlistItems, clearWishlistCache, deleteWishlistItem } from '../wishlist.js';
+import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 // Initialize icons once on load
 initIcons();
@@ -159,6 +160,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     await Promise.all([loadGenres(), loadSeries()]);
+    updateSettingsIndicators(user.uid);
   }
 });
 

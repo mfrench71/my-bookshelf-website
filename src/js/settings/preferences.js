@@ -3,6 +3,7 @@ import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { showToast, initIcons, clearBooksCache, getSyncSettings, saveSyncSettings } from '../utils.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from '../utils/widget-settings.js';
+import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 import { getWidgetInfo, WIDGET_SIZES } from '../widgets/widget-renderer.js';
 // Import widgets to ensure they're registered
 import '../widgets/index.js';
@@ -40,6 +41,7 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     loadSyncSettingsUI();
     await loadAndRenderWidgetSettings();
+    updateSettingsIndicators(user.uid);
   }
 });
 

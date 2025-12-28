@@ -12,6 +12,7 @@ import {
   emptyBin,
   purgeExpiredBooks
 } from '../bin.js';
+import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
 
 // Initialize icons
 initIcons();
@@ -43,6 +44,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     await loadBinnedBooks();
+    updateSettingsIndicators(user.uid);
   }
 });
 

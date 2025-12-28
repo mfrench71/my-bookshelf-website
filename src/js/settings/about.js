@@ -1,5 +1,8 @@
 // About Settings Page Logic
+import { auth } from '/js/firebase-config.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons } from '../utils.js';
+import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 // Initialize icons once on load
 initIcons();
@@ -9,6 +12,13 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(initIcons, 0);
 }
+
+// Auth Check (for settings indicators)
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    updateSettingsIndicators(user.uid);
+  }
+});
 
 // ==================== Changelog Accordions ====================
 

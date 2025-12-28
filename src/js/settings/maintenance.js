@@ -17,6 +17,7 @@ import {
   analyzeLibraryHealth,
   getCompletenessRating
 } from '../utils/library-health.js';
+import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
 
 // Initialize icons on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initIcons);
@@ -56,6 +57,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     await updateLibraryHealth();
+    updateSettingsIndicators(user.uid);
   }
 });
 

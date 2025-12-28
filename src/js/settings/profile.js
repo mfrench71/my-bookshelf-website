@@ -22,6 +22,7 @@ import { validateForm, showFormErrors, clearFormErrors } from '../utils/validati
 import { ChangePasswordSchema, DeleteAccountSchema } from '../schemas/auth.js';
 import { getGravatarUrl } from '../md5.js';
 import { BottomSheet } from '../components/modal.js';
+import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 // Initialize icons once on load
 initIcons();
@@ -105,6 +106,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     await loadProfileInfo();
+    updateSettingsIndicators(user.uid);
   }
 });
 
