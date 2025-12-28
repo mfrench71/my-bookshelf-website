@@ -40,9 +40,9 @@ export class WishlistWidget extends BaseWidget {
     if (!items || items.length === 0) return [];
 
     const sortBy = config?.settings?.sortBy || 'priority';
-    const count = config?.settings?.count || 6;
     const priorityOrder = { high: 0, medium: 1, low: 2 };
 
+    // Sort items (base widget handles count limiting in renderWidget)
     return [...items]
       .sort((a, b) => {
         if (sortBy === 'priority') {
@@ -62,8 +62,7 @@ export class WishlistWidget extends BaseWidget {
         }
         // Sort by title
         return (a.title || '').localeCompare(b.title || '');
-      })
-      .slice(0, count);
+      });
   }
 
   static getEmptyMessage() {

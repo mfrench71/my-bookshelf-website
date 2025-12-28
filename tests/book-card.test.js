@@ -350,6 +350,128 @@ describe('bookCard', () => {
     });
   });
 
+  describe('genre badges', () => {
+    it('should render genre badges when genreLookup is provided', () => {
+      const book = createMockBook({
+        genres: ['genre-1', 'genre-2']
+      });
+      const genreLookup = new Map([
+        ['genre-1', { id: 'genre-1', name: 'Fiction', color: '#3b82f6' }],
+        ['genre-2', { id: 'genre-2', name: 'Mystery', color: '#ef4444' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      expect(html).toContain('Fiction');
+      expect(html).toContain('Mystery');
+      expect(html).toContain('genre-badge');
+    });
+
+    it('should not render genre badges without genreLookup', () => {
+      const book = createMockBook({
+        genres: ['genre-1']
+      });
+
+      const html = bookCard(book);
+
+      expect(html).not.toContain('genre-badge');
+    });
+
+    it('should not render genre badges when book has no genres', () => {
+      const book = createMockBook({
+        genres: []
+      });
+      const genreLookup = new Map([
+        ['genre-1', { id: 'genre-1', name: 'Fiction', color: '#3b82f6' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      expect(html).not.toContain('genre-badge');
+    });
+
+    it('should limit visible genres to 3 and show remaining count', () => {
+      const book = createMockBook({
+        genres: ['g1', 'g2', 'g3', 'g4', 'g5']
+      });
+      const genreLookup = new Map([
+        ['g1', { id: 'g1', name: 'Genre A', color: '#3b82f6' }],
+        ['g2', { id: 'g2', name: 'Genre B', color: '#ef4444' }],
+        ['g3', { id: 'g3', name: 'Genre C', color: '#22c55e' }],
+        ['g4', { id: 'g4', name: 'Genre D', color: '#f59e0b' }],
+        ['g5', { id: 'g5', name: 'Genre E', color: '#8b5cf6' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      // Should show +2 for the remaining genres
+      expect(html).toContain('+2');
+      expect(html).toContain('genre-badge-count');
+    });
+
+    it('should filter out genres not found in lookup', () => {
+      const book = createMockBook({
+        genres: ['existing-genre', 'non-existent-genre']
+      });
+      const genreLookup = new Map([
+        ['existing-genre', { id: 'existing-genre', name: 'Fiction', color: '#3b82f6' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      expect(html).toContain('Fiction');
+      // Should only have one badge, not show error for missing genre
+    });
+
+    it('should sort genres alphabetically', () => {
+      const book = createMockBook({
+        genres: ['g3', 'g1', 'g2']
+      });
+      const genreLookup = new Map([
+        ['g1', { id: 'g1', name: 'Fiction', color: '#3b82f6' }],
+        ['g2', { id: 'g2', name: 'Mystery', color: '#ef4444' }],
+        ['g3', { id: 'g3', name: 'Adventure', color: '#22c55e' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      // Adventure should come first (alphabetically)
+      const adventureIndex = html.indexOf('Adventure');
+      const fictionIndex = html.indexOf('Fiction');
+      const mysteryIndex = html.indexOf('Mystery');
+
+      expect(adventureIndex).toBeLessThan(fictionIndex);
+      expect(fictionIndex).toBeLessThan(mysteryIndex);
+    });
+
+    it('should apply genre color as background', () => {
+      const book = createMockBook({
+        genres: ['genre-1']
+      });
+      const genreLookup = new Map([
+        ['genre-1', { id: 'genre-1', name: 'Fiction', color: '#3b82f6' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      expect(html).toContain('background-color: #3b82f6');
+    });
+
+    it('should escape HTML in genre names', () => {
+      const book = createMockBook({
+        genres: ['genre-1']
+      });
+      const genreLookup = new Map([
+        ['genre-1', { id: 'genre-1', name: '<script>alert(1)</script>', color: '#3b82f6' }]
+      ]);
+
+      const html = bookCard(book, { genreLookup });
+
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+  });
+
   describe('book list rendering (integration)', () => {
     it('should show date for ALL serialized books, not just the first one', () => {
       const books = createSerializedBooks(5);

@@ -363,6 +363,222 @@ describe('Library Health Utils', () => {
   });
 });
 
+describe('Preview Functions', () => {
+  let previewBookFix;
+  let previewBooksFromAPI;
+  let applyPreviewedChanges;
+  let lookupISBNMock;
+  let updateDocMock;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    const apiModule = await import('../src/js/utils/api.js');
+    lookupISBNMock = apiModule.lookupISBN;
+
+    const firestoreModule = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    updateDocMock = firestoreModule.updateDoc;
+
+    const healthModule = await import('../src/js/utils/library-health.js');
+    previewBookFix = healthModule.previewBookFix;
+    previewBooksFromAPI = healthModule.previewBooksFromAPI;
+    applyPreviewedChanges = healthModule.applyPreviewedChanges;
+  });
+
+  describe('previewBookFix', () => {
+    it('returns error for book without ISBN', async () => {
+      const result = await previewBookFix({ id: 'book1', title: 'Test' });
+      expect(result.hasChanges).toBe(false);
+      expect(result.error).toBe('No ISBN');
+      expect(result.changes).toEqual([]);
+    });
+
+    it('returns error when API lookup fails', async () => {
+      lookupISBNMock.mockRejectedValue(new Error('Network error'));
+
+      const result = await previewBookFix({ id: 'book1', isbn: '1234567890' });
+      expect(result.hasChanges).toBe(false);
+      expect(result.error).toBe('API lookup failed');
+    });
+
+    it('returns error when API returns no data', async () => {
+      lookupISBNMock.mockResolvedValue(null);
+
+      const result = await previewBookFix({ id: 'book1', isbn: '1234567890' });
+      expect(result.hasChanges).toBe(false);
+      expect(result.error).toBe('No API data');
+    });
+
+    it('returns changes for missing fields', async () => {
+      lookupISBNMock.mockResolvedValue({
+        coverImageUrl: 'http://cover.jpg',
+        genres: ['Fiction', 'Mystery'],
+        pageCount: 300,
+        physicalFormat: 'Paperback',
+        publisher: 'Penguin',
+        publishedDate: '2023'
+      });
+
+      const result = await previewBookFix({ id: 'book1', isbn: '1234567890' });
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.changes).toHaveLength(6);
+      expect(result.changes.find(c => c.field === 'coverImageUrl')).toBeDefined();
+      expect(result.changes.find(c => c.field === 'genres').newValue).toBe('Fiction, Mystery');
+      expect(result.apiData).toBeDefined();
+    });
+
+    it('does not include changes for already filled fields', async () => {
+      lookupISBNMock.mockResolvedValue({
+        coverImageUrl: 'http://new-cover.jpg',
+        genres: ['Fiction'],
+        pageCount: 300
+      });
+
+      const book = {
+        id: 'book1',
+        isbn: '1234567890',
+        coverImageUrl: 'http://existing-cover.jpg',
+        genres: ['Existing']
+      };
+
+      const result = await previewBookFix(book);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.changes).toHaveLength(1);
+      expect(result.changes[0].field).toBe('pageCount');
+    });
+
+    it('returns no changes when book is complete', async () => {
+      lookupISBNMock.mockResolvedValue({
+        coverImageUrl: 'http://cover.jpg',
+        genres: ['Fiction'],
+        pageCount: 300
+      });
+
+      const book = {
+        id: 'book1',
+        isbn: '1234567890',
+        coverImageUrl: 'http://cover.jpg',
+        genres: ['Fiction'],
+        pageCount: 300,
+        physicalFormat: 'Paperback',
+        publisher: 'Penguin',
+        publishedDate: '2023'
+      };
+
+      const result = await previewBookFix(book);
+      expect(result.hasChanges).toBe(false);
+      expect(result.changes).toEqual([]);
+    });
+  });
+
+  describe('previewBooksFromAPI', () => {
+    it('processes multiple books with progress callback', async () => {
+      lookupISBNMock
+        .mockResolvedValueOnce({ pageCount: 300 })
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ coverImageUrl: 'http://cover.jpg' });
+
+      const books = [
+        { id: '1', isbn: '111', title: 'Book 1' },
+        { id: '2', isbn: '222', title: 'Book 2' },
+        { id: '3', isbn: '333', title: 'Book 3' }
+      ];
+
+      const progressCalls = [];
+      const onProgress = (current, total, book) => {
+        progressCalls.push({ current, total, title: book.title });
+      };
+
+      const result = await previewBooksFromAPI(books, onProgress, 0);
+
+      expect(progressCalls).toHaveLength(3);
+      expect(progressCalls[0]).toEqual({ current: 1, total: 3, title: 'Book 1' });
+      expect(result.booksWithChanges).toHaveLength(2);
+      expect(result.booksNoChanges).toHaveLength(1);
+    });
+
+    it('categorises books without ISBN as errors', async () => {
+      const books = [
+        { id: '1', title: 'No ISBN' },
+        { id: '2', isbn: '222', title: 'Has ISBN' }
+      ];
+
+      lookupISBNMock.mockResolvedValue({ pageCount: 300 });
+
+      const result = await previewBooksFromAPI(books, null, 0);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].error).toBe('No ISBN');
+      expect(result.booksWithChanges).toHaveLength(1);
+    });
+  });
+
+  describe('applyPreviewedChanges', () => {
+    it('saves changes for books with previewed data', async () => {
+      updateDocMock.mockResolvedValue();
+
+      const booksWithChanges = [
+        {
+          book: { id: 'book1', isbn: '111' },
+          apiData: { coverImageUrl: 'http://cover.jpg', pageCount: 300 }
+        }
+      ];
+
+      const progressCalls = [];
+      const onProgress = (current, total) => progressCalls.push({ current, total });
+
+      const result = await applyPreviewedChanges('user123', booksWithChanges, onProgress);
+
+      expect(result.saved).toHaveLength(1);
+      expect(result.errors).toHaveLength(0);
+      expect(progressCalls).toHaveLength(1);
+      expect(updateDocMock).toHaveBeenCalled();
+    });
+
+    it('handles save errors', async () => {
+      updateDocMock.mockRejectedValue(new Error('Save failed'));
+
+      const booksWithChanges = [
+        {
+          book: { id: 'book1', isbn: '111' },
+          apiData: { coverImageUrl: 'http://cover.jpg' }
+        }
+      ];
+
+      const result = await applyPreviewedChanges('user123', booksWithChanges, null);
+
+      expect(result.saved).toHaveLength(0);
+      expect(result.errors).toHaveLength(1);
+    });
+
+    it('only updates empty fields', async () => {
+      updateDocMock.mockResolvedValue();
+
+      const booksWithChanges = [
+        {
+          book: {
+            id: 'book1',
+            coverImageUrl: 'http://existing.jpg', // Already has cover
+            genres: ['Existing'] // Already has genres
+          },
+          apiData: {
+            coverImageUrl: 'http://new.jpg',
+            genres: ['New Genre'],
+            pageCount: 300 // Book doesn't have this
+          }
+        }
+      ];
+
+      await applyPreviewedChanges('user123', booksWithChanges, null);
+
+      expect(updateDocMock).toHaveBeenCalled();
+      // The update should only include pageCount, not coverImageUrl or genres
+    });
+  });
+});
+
 describe('Library Health Fix Functions', () => {
   // Import the functions that need async testing with mocks
   let fixBookFromAPI;
