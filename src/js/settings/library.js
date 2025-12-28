@@ -234,16 +234,16 @@ function renderColorPicker() {
     if (isUsed) {
       return `
         <button type="button" class="color-btn w-8 h-8 rounded-full border-2 border-transparent opacity-30 cursor-not-allowed relative"
-          style="background-color: ${color}" disabled title="Already in use">
-          <i data-lucide="x" class="w-4 h-4 mx-auto" style="color: ${textColor}"></i>
+          style="background-color: ${color}" disabled title="Already in use" aria-label="${color} colour (already in use)">
+          <i data-lucide="x" class="w-4 h-4 mx-auto" style="color: ${textColor}" aria-hidden="true"></i>
         </button>
       `;
     }
 
     return `
       <button type="button" class="color-btn w-8 h-8 rounded-full border-2 ${isSelected ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-400' : 'border-transparent'} hover:scale-110 transition-transform"
-        style="background-color: ${color}" data-color="${color}">
-        ${isSelected ? `<i data-lucide="check" class="w-4 h-4 mx-auto" style="color: ${textColor}"></i>` : ''}
+        style="background-color: ${color}" data-color="${color}" aria-label="Select ${color} colour${isSelected ? ' (selected)' : ''}" aria-pressed="${isSelected}">
+        ${isSelected ? `<i data-lucide="check" class="w-4 h-4 mx-auto" style="color: ${textColor}" aria-hidden="true"></i>` : ''}
       </button>
     `;
   }).join('');

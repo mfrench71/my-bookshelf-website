@@ -193,13 +193,13 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     <h3 id="genre-modal-title" class="text-lg font-semibold mb-4">Add Genre</h3>
     <form id="genre-form" class="space-y-4" novalidate>
       <div>
-        <label class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+        <label for="genre-name" class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
         <input type="text" id="genre-name" name="name" placeholder="e.g., Science Fiction"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
       </div>
       <div>
-        <label class="block font-semibold text-gray-700 mb-2">Colour</label>
-        <div id="color-picker" class="flex flex-wrap gap-2"></div>
+        <span id="color-picker-label" class="block font-semibold text-gray-700 mb-2">Colour</span>
+        <div id="color-picker" class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="color-picker-label"></div>
       </div>
       <div class="flex gap-3 pt-2">
         <button type="button" id="cancel-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
@@ -237,17 +237,17 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     <h3 id="series-modal-title" class="text-lg font-semibold mb-4">Add Series</h3>
     <form id="series-form" class="space-y-4" novalidate>
       <div>
-        <label class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+        <label for="series-name" class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
         <input type="text" id="series-name" name="name" placeholder="e.g., Harry Potter"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
       </div>
       <div>
-        <label class="block font-semibold text-gray-700 mb-1">Description <span class="font-normal text-gray-400">(optional)</span></label>
+        <label for="series-description" class="block font-semibold text-gray-700 mb-1">Description <span class="font-normal text-gray-400">(optional)</span></label>
         <textarea id="series-description" name="description" rows="2" placeholder="Notes about this series"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"></textarea>
       </div>
       <div>
-        <label class="block font-semibold text-gray-700 mb-1">Total Books <span class="font-normal text-gray-400">(optional)</span></label>
+        <label for="series-total-books" class="block font-semibold text-gray-700 mb-1">Total Books <span class="font-normal text-gray-400">(optional)</span></label>
         <input type="number" id="series-total-books" name="totalBooks" placeholder="e.g., 7" inputmode="numeric"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
         <p class="text-xs text-gray-400 mt-1">How many books are in the complete series?</p>
@@ -288,7 +288,7 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
     <h3 class="text-lg font-semibold mb-4">Merge Series</h3>
     <p class="text-gray-600 text-sm mb-4">Merge "<span id="merge-source-name" class="font-medium"></span>" into another series. All books will be moved to the target series.</p>
     <div class="mb-4">
-      <label class="block font-semibold text-gray-700 mb-1">Target Series</label>
+      <label for="merge-target-select" class="block font-semibold text-gray-700 mb-1">Target Series</label>
       <select id="merge-target-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
         <option value="">Select a series...</option>
       </select>

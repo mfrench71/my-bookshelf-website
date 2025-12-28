@@ -1022,7 +1022,7 @@ function renderActiveFilterChips() {
     let html = chips.map(chip => {
       const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       return `
-        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 ${colours} rounded-full text-sm font-medium transition-colors">
+        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 ${colours} rounded-full text-sm font-medium transition-colors" aria-label="Remove ${chip.label} filter">
           <span>${chip.label}</span>
           <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>

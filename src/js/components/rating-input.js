@@ -42,7 +42,8 @@ export class RatingInput {
       btn.type = 'button';
       btn.className = 'star-btn p-2';
       btn.dataset.rating = i;
-      btn.innerHTML = '<i data-lucide="star" class="w-5 h-5"></i>';
+      btn.setAttribute('aria-label', `Rate ${i} star${i > 1 ? 's' : ''}`);
+      btn.innerHTML = '<i data-lucide="star" class="w-5 h-5" aria-hidden="true"></i>';
       this.container.appendChild(btn);
       this.buttons.push(btn);
     }
