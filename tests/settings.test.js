@@ -52,7 +52,6 @@ vi.mock('../src/js/genres.js', () => ({
   getUsedColors: vi.fn(() => new Set()),
   getAvailableColors: vi.fn(() => ['#ef4444']),
   clearGenresCache: vi.fn(),
-  migrateGenreData: vi.fn(),
   recalculateGenreBookCounts: vi.fn()
 }));
 

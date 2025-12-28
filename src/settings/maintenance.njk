@@ -88,28 +88,6 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
     </div>
   </div>
 
-  <!-- Genre Migration -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-    <h3 class="font-medium text-gray-900 mb-2">Fix Genre References</h3>
-    <p class="text-gray-600 text-sm mb-4">Some books may have genre names stored directly instead of references to your genre collection. This tool will find and fix those entries, creating new genres as needed.</p>
-    <div id="cleanup-progress" class="hidden mb-4">
-      <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-        <div class="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
-        <span id="cleanup-status">Processing...</span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="cleanup-progress-bar" class="bg-primary h-2 rounded-full transition-all" style="width: 0%"></div>
-      </div>
-    </div>
-    <div id="cleanup-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <p id="cleanup-results-text" class="text-sm text-gray-700"></p>
-    </div>
-    <button id="cleanup-genres-btn" class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]">
-      <i data-lucide="sparkles" class="w-4 h-4" aria-hidden="true"></i>
-      <span>Run Cleanup</span>
-    </button>
-  </div>
-
   <!-- Recalculate Genre Counts -->
   <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
     <h3 class="font-medium text-gray-900 mb-2">Recalculate Genre Counts</h3>

@@ -9,7 +9,6 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   clearGenresCache,
-  migrateGenreData,
   recalculateGenreBookCounts
 } from '../genres.js';
 import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
@@ -28,13 +27,7 @@ let books = [];
 let allBooksLoaded = false;
 let healthReport = null;
 
-// DOM Elements - Cleanup
-const cleanupGenresBtn = document.getElementById('cleanup-genres-btn');
-const cleanupProgress = document.getElementById('cleanup-progress');
-const cleanupStatus = document.getElementById('cleanup-status');
-const cleanupProgressBar = document.getElementById('cleanup-progress-bar');
-const cleanupResults = document.getElementById('cleanup-results');
-const cleanupResultsText = document.getElementById('cleanup-results-text');
+// DOM Elements - Genre Counts
 const recountGenresBtn = document.getElementById('recount-genres-btn');
 const recountResults = document.getElementById('recount-results');
 const recountResultsText = document.getElementById('recount-results-text');
@@ -81,61 +74,7 @@ async function loadAllBooks() {
   }
 }
 
-// ==================== Data Cleanup ====================
-
-async function runGenreCleanup() {
-  cleanupGenresBtn.disabled = true;
-  cleanupGenresBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Processing...';
-  cleanupProgress?.classList.remove('hidden');
-  cleanupResults?.classList.add('hidden');
-  if (cleanupProgressBar) cleanupProgressBar.style.width = '0%';
-
-  try {
-    const results = await migrateGenreData(currentUser.uid, (processed, total) => {
-      const percent = Math.round((processed / total) * 100);
-      if (cleanupProgressBar) cleanupProgressBar.style.width = `${percent}%`;
-      if (cleanupStatus) cleanupStatus.textContent = `Processing book ${processed} of ${total}...`;
-    });
-
-    cleanupProgress?.classList.add('hidden');
-    cleanupResults?.classList.remove('hidden');
-
-    if (results.booksUpdated === 0 && results.genresCreated === 0) {
-      if (cleanupResultsText) cleanupResultsText.textContent = 'No issues found. All genre references are valid.';
-      showToast('Data is clean!', { type: 'success' });
-      setTimeout(() => cleanupResults?.classList.add('hidden'), 5000);
-    } else {
-      const parts = [];
-      if (results.booksUpdated > 0) {
-        parts.push(`${results.booksUpdated} book${results.booksUpdated !== 1 ? 's' : ''} updated`);
-      }
-      if (results.genresCreated > 0) {
-        parts.push(`${results.genresCreated} genre${results.genresCreated !== 1 ? 's' : ''} created`);
-      }
-      if (cleanupResultsText) cleanupResultsText.textContent = parts.join(', ') + '.';
-
-      if (results.errors.length > 0 && cleanupResultsText) {
-        cleanupResultsText.textContent += ` ${results.errors.length} error${results.errors.length !== 1 ? 's' : ''} occurred.`;
-        console.error('Cleanup errors:', results.errors);
-      }
-
-      showToast('Cleanup complete!', { type: 'success' });
-
-      clearBooksCache(currentUser.uid);
-      clearGenresCache();
-    }
-  } catch (error) {
-    console.error('Error during cleanup:', error);
-    cleanupProgress?.classList.add('hidden');
-    cleanupResults?.classList.remove('hidden');
-    if (cleanupResultsText) cleanupResultsText.textContent = 'An error occurred during cleanup. Please try again.';
-    showToast('Cleanup failed', { type: 'error' });
-  } finally {
-    cleanupGenresBtn.disabled = false;
-    cleanupGenresBtn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>Run Cleanup</span>';
-    initIcons();
-  }
-}
+// ==================== Genre Counts ====================
 
 async function runRecountGenres() {
   recountGenresBtn.disabled = true;
@@ -169,7 +108,6 @@ async function runRecountGenres() {
   }
 }
 
-cleanupGenresBtn?.addEventListener('click', runGenreCleanup);
 recountGenresBtn?.addEventListener('click', runRecountGenres);
 
 // ==================== Library Health ====================
