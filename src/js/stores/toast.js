@@ -1,7 +1,16 @@
 // Toast Store - Toast notification state management
 
+import { escapeHtml, initIcons } from '../utils.js';
+
 // Track toast timeout to clear it when showing a new toast
 let toastTimeout = null;
+
+// Icon names for each toast type
+const TOAST_ICONS = {
+  success: 'check-circle',
+  error: 'x-circle',
+  info: 'info'
+};
 
 /**
  * Show a toast notification
@@ -29,7 +38,7 @@ export function showToast(message, options = {}) {
   }
 
   // Base classes
-  const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50';
+  const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
 
   // Type-specific colors
   const typeClasses = {
@@ -38,8 +47,16 @@ export function showToast(message, options = {}) {
     info: 'bg-gray-800 text-white'
   };
 
+  const icon = TOAST_ICONS[type] || TOAST_ICONS.info;
+
   toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info}`;
-  toast.textContent = message;
+  toast.innerHTML = `
+    <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+    <span>${escapeHtml(message)}</span>
+  `;
+
+  // Initialize the icon
+  initIcons(toast);
 
   toastTimeout = setTimeout(() => {
     toast.classList.add('hidden');

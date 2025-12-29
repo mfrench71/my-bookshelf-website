@@ -561,7 +561,7 @@ describe('showToast', () => {
     showToast('Hello World');
     const toast = document.getElementById('toast');
 
-    expect(toast.textContent).toBe('Hello World');
+    expect(toast.textContent).toContain('Hello World');
   });
 
   it('should create toast element if not exists', () => {
@@ -570,7 +570,7 @@ describe('showToast', () => {
 
     const toast = document.getElementById('toast');
     expect(toast).toBeTruthy();
-    expect(toast.textContent).toBe('Test message');
+    expect(toast.textContent).toContain('Test message');
   });
 
   it('should apply success styling', () => {

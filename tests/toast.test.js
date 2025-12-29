@@ -31,7 +31,7 @@ describe('Toast Store', () => {
     it('should display the message', () => {
       showToast('Test message');
       const toast = document.getElementById('toast');
-      expect(toast.textContent).toBe('Test message');
+      expect(toast.textContent).toContain('Test message');
     });
 
     it('should hide toast after default duration', () => {
@@ -100,7 +100,7 @@ describe('Toast Store', () => {
       const secondToast = document.getElementById('toast');
 
       expect(firstToast).toBe(secondToast);
-      expect(secondToast.textContent).toBe('Second message');
+      expect(secondToast.textContent).toContain('Second message');
     });
 
     it('should clear previous timeout when showing new toast', () => {
@@ -135,6 +135,46 @@ describe('Toast Store', () => {
       const toast = document.getElementById('toast');
       // Should fall back to info styling
       expect(toast.className).toContain('bg-gray-800');
+    });
+
+    it('should include success icon for success type', () => {
+      showToast('Success!', { type: 'success' });
+      const toast = document.getElementById('toast');
+      const icon = toast.querySelector('[data-lucide]');
+      expect(icon).not.toBeNull();
+      expect(icon.getAttribute('data-lucide')).toBe('check-circle');
+    });
+
+    it('should include error icon for error type', () => {
+      showToast('Error!', { type: 'error' });
+      const toast = document.getElementById('toast');
+      const icon = toast.querySelector('[data-lucide]');
+      expect(icon).not.toBeNull();
+      expect(icon.getAttribute('data-lucide')).toBe('x-circle');
+    });
+
+    it('should include info icon for info type', () => {
+      showToast('Info', { type: 'info' });
+      const toast = document.getElementById('toast');
+      const icon = toast.querySelector('[data-lucide]');
+      expect(icon).not.toBeNull();
+      expect(icon.getAttribute('data-lucide')).toBe('info');
+    });
+
+    it('should include info icon by default', () => {
+      showToast('Default');
+      const toast = document.getElementById('toast');
+      const icon = toast.querySelector('[data-lucide]');
+      expect(icon).not.toBeNull();
+      expect(icon.getAttribute('data-lucide')).toBe('info');
+    });
+
+    it('should have flex layout for icon alignment', () => {
+      showToast('Test');
+      const toast = document.getElementById('toast');
+      expect(toast.className).toContain('flex');
+      expect(toast.className).toContain('items-center');
+      expect(toast.className).toContain('gap-3');
     });
   });
 });
