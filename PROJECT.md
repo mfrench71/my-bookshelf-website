@@ -1376,6 +1376,119 @@ Uses last word of author name (e.g., "Stephen King" → "King").
 
 ---
 
+## Author Lookup & Suggestions (Research)
+
+### Competitor Analysis
+
+| Feature | Goodreads | StoryGraph | Literal | BookTrack | Hardcover |
+|---------|-----------|------------|---------|-----------|-----------|
+| **Autocomplete from DB** | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Suggest from User Library** | Limited | Requested (208 votes) | Unknown | Unknown | Unknown |
+| **Fuzzy Matching** | Via Librarians | Unknown | Unknown | Unknown | Unknown |
+| **Multiple Authors** | ✓ (with roles) | ✓ | ✓ | ✓ (with roles) | ✓ (contributors) |
+| **Author Photos in Suggestions** | Profile only | No | No | No | ✓ (images) |
+| **Author Bio Preview** | No | No | No | No | No |
+
+### Key Findings
+
+**Goodreads:**
+- Authors have dedicated profile pages with photos, bios, bibliographies
+- Multiple authors supported with role designation (Author, Editor, Illustrator, Translator, etc.)
+- Author order matters for edition matching
+- Fuzzy matching handled via Librarian system (community-driven)
+
+**StoryGraph:**
+- Author pages are "a mess" (team's words) - major improvement planned
+- Users highly request showing "already in library" indicator (327 votes for author stats)
+- Search suggestions appear "pretty random" (possibly by recency)
+
+**Hardcover:**
+- Uses "contributors" model instead of "authors" (more flexible for roles)
+- GraphQL API includes contributor name, ID, and image
+- Developer-friendly API structure
+
+### Recommended Implementation
+
+**High Priority (Must Have):**
+1. **User Library Priority** - Query existing authors from user's books first
+2. **API Fallback** - Search Google Books/Open Library for additional matches
+3. **Library Indicator** - Show "X books in library" for known authors
+4. **Multiple Authors** - Support multiple authors with role designation
+
+**Medium Priority (Should Have):**
+4. **Fuzzy Matching** - Use Fuse.js for typo tolerance and name variations
+5. **Author Thumbnails** - Display small author images in dropdown (from API)
+
+**Lower Priority (Nice to Have):**
+6. **Author Bio Preview** - Show brief bio on hover (Open Library author API)
+7. **Spelling Suggestions** - "Did you mean..." based on fuzzy match scores
+
+### Technical Architecture
+
+```javascript
+// Proposed AuthorPicker component (similar to GenrePicker, SeriesPicker)
+class AuthorPicker {
+  constructor({ container, userId, onChange, initialValue }) {
+    // Fetch user's existing authors for prioritized suggestions
+    // Debounced API lookup for external authors
+    // Fuzzy matching with Fuse.js
+  }
+
+  async getSuggestions(query) {
+    // 1. Search user's library authors (local, fast)
+    // 2. Fuzzy match against cached results
+    // 3. API lookup for additional results (debounced)
+    // Return merged, deduplicated results with library indicator
+  }
+}
+```
+
+### Multiple Author Roles (Best Practice from Goodreads)
+
+| Suitable Roles | Unsuitable Roles |
+|----------------|------------------|
+| Author | Cover Artist |
+| Editor | Proof-Reader |
+| Illustrator | Copy-Editor |
+| Translator | |
+| Foreword | |
+| Introduction | |
+| Narrator | |
+
+**Important:** List authors in order shown on book cover (critical for data consistency).
+
+### Fuzzy Matching Considerations
+
+**Name Variations to Handle:**
+- Typos: "Barak Obama" vs "Barack Obama"
+- Format: "J.R.R. Tolkien" vs "JRR Tolkien" vs "John Ronald Reuel Tolkien"
+- International transliterations
+- Pen names / pseudonyms
+
+**Recommended Library:** Fuse.js (lightweight, configurable thresholds, client-side)
+
+### Data Model Consideration
+
+**Option A: Extract unique authors to user collection**
+```
+/users/{userId}/authors/{authorId}
+  - name, photoUrl, bio (cached)
+  - bookCount (auto-calculated)
+```
+Pros: Faster autocomplete, can store metadata
+Cons: More Firestore documents, sync complexity
+
+**Option B: Derive from existing books (current approach)**
+```javascript
+const uniqueAuthors = [...new Set(books.map(b => b.author))];
+```
+Pros: No schema change, always in sync
+Cons: Slower, no metadata storage
+
+**Recommendation:** Start with Option B, migrate to Option A if performance becomes an issue or author metadata features are needed.
+
+---
+
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
 **Last Updated**: 2025-12-29
