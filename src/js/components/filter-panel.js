@@ -118,7 +118,7 @@ export class FilterPanel {
         <!-- Status: Checkboxes -->
         <div class="filter-group">
           <span class="block text-sm font-semibold text-gray-900 mb-2">Status</span>
-          <div class="space-y-3 status-checkboxes">
+          <div class="space-y-3 pr-1 status-checkboxes">
             <label for="filter-status-reading-${this.instanceId}" class="flex items-center justify-between cursor-pointer">
               <span class="filter-label text-sm text-gray-900">Reading</span>
               <span class="flex items-center gap-3">
