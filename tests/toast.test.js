@@ -193,5 +193,51 @@ describe('Toast Store', () => {
       expect(toast.className).toContain('items-center');
       expect(toast.className).toContain('gap-3');
     });
+
+    it('should have cursor-pointer class for tap-to-dismiss affordance', () => {
+      showToast('Test');
+      const toast = document.getElementById('toast');
+      expect(toast.className).toContain('cursor-pointer');
+    });
+
+    it('should dismiss toast when clicked', () => {
+      showToast('Test message');
+      const toast = document.getElementById('toast');
+
+      // Toast should be visible initially
+      expect(toast.classList.contains('hidden')).toBe(false);
+      expect(toast.classList.contains('toast-enter')).toBe(true);
+
+      // Click the toast
+      toast.click();
+
+      // Exit animation should start immediately
+      expect(toast.classList.contains('toast-exit')).toBe(true);
+
+      // After exit animation (150ms), toast should be hidden
+      vi.advanceTimersByTime(150);
+      expect(toast.classList.contains('hidden')).toBe(true);
+    });
+
+    it('should clear scheduled timeout when clicked early', () => {
+      showToast('Test message', { duration: 5000 });
+      const toast = document.getElementById('toast');
+
+      // Wait 1 second then click
+      vi.advanceTimersByTime(1000);
+      toast.click();
+
+      // Exit animation should start immediately
+      expect(toast.classList.contains('toast-exit')).toBe(true);
+
+      // Wait for exit animation
+      vi.advanceTimersByTime(150);
+      expect(toast.classList.contains('hidden')).toBe(true);
+
+      // Original timeout would fire at 5000ms, but toast should already be hidden
+      vi.advanceTimersByTime(4000);
+      // Should still be hidden (no double dismiss)
+      expect(toast.classList.contains('hidden')).toBe(true);
+    });
   });
 });

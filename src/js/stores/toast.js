@@ -5,6 +5,8 @@ import { escapeHtml, initIcons } from '../utils.js';
 // Track toast timeout to clear it when showing a new toast
 let toastTimeout = null;
 let exitTimeout = null;
+// Track click handler to prevent duplicate listeners
+let toastClickHandler = null;
 
 // Icon names for each toast type
 const TOAST_ICONS = {
@@ -42,8 +44,8 @@ export function showToast(message, options = {}) {
     exitTimeout = null;
   }
 
-  // Base classes (animation class added separately)
-  const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
+  // Base classes (animation class added separately, cursor-pointer for tap-to-dismiss)
+  const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 cursor-pointer';
 
   // Type-specific colours
   const typeClasses = {
@@ -64,16 +66,43 @@ export function showToast(message, options = {}) {
   // Initialise the icon
   initIcons(toast);
 
+  // Remove existing click handler if any
+  if (toastClickHandler) {
+    toast.removeEventListener('click', toastClickHandler);
+  }
+
+  // Add tap-to-dismiss handler
+  toastClickHandler = () => dismissToast(toast);
+  toast.addEventListener('click', toastClickHandler);
+
   // Schedule exit animation after duration
   toastTimeout = setTimeout(() => {
-    toast.classList.remove('toast-enter');
-    toast.classList.add('toast-exit');
-    toastTimeout = null;
-
-    // Hide completely after exit animation (150ms)
-    exitTimeout = setTimeout(() => {
-      toast.classList.add('hidden');
-      exitTimeout = null;
-    }, 150);
+    dismissToast(toast);
   }, duration);
+}
+
+/**
+ * Dismiss the toast with exit animation
+ * @param {HTMLElement} toast - The toast element to dismiss
+ */
+function dismissToast(toast) {
+  // Clear any pending timeouts
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+    toastTimeout = null;
+  }
+  if (exitTimeout) {
+    clearTimeout(exitTimeout);
+    exitTimeout = null;
+  }
+
+  // Apply exit animation
+  toast.classList.remove('toast-enter');
+  toast.classList.add('toast-exit');
+
+  // Hide completely after exit animation (150ms)
+  exitTimeout = setTimeout(() => {
+    toast.classList.add('hidden');
+    exitTimeout = null;
+  }, 150);
 }
