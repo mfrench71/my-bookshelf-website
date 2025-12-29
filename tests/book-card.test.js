@@ -23,7 +23,7 @@ describe('bookCard', () => {
       expect(html).toContain('The Great Gatsby');
       expect(html).toContain('F. Scott Fitzgerald');
       expect(html).toContain('https://example.com/gatsby.jpg');
-      expect(html).toContain('class="book-card"');
+      expect(html).toContain('class="book-card card-animate"');
     });
 
     it('should render book without cover image', () => {
@@ -148,11 +148,11 @@ describe('bookCard', () => {
   });
 
   describe('CSS classes', () => {
-    it('should include book-card class', () => {
+    it('should include book-card and card-animate classes', () => {
       const book = createMockBook();
       const html = bookCard(book);
 
-      expect(html).toContain('class="book-card"');
+      expect(html).toContain('class="book-card card-animate"');
     });
 
     it('should include book-cover class for images', () => {

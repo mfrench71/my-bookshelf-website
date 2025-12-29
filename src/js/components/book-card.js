@@ -132,7 +132,7 @@ export function bookCard(book, options = {}) {
   const topBadges = [statusBadge, seriesBadge].filter(Boolean).join(' ');
 
   return `
-    <a href="/books/view/?id=${book.id}" class="book-card">
+    <a href="/books/view/?id=${book.id}" class="book-card card-animate">
       ${cover}
       <div class="flex-1 min-w-0">
         <h3 class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</h3>
