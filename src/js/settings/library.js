@@ -298,9 +298,11 @@ function openEditGenreModal(genreId) {
   // Show colour picker for edit (user can change colour)
   colorPickerSection?.classList.remove('hidden');
   renderColorPicker();
-  // Scroll colour picker to top
-  colorPicker?.scrollTo(0, 0);
   genreSheet?.open();
+  // Scroll colour picker to top after modal opens
+  requestAnimationFrame(() => {
+    colorPicker?.scrollTo(0, 0);
+  });
   if (!isMobile()) genreNameInput.focus();
 }
 
