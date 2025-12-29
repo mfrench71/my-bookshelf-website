@@ -140,6 +140,31 @@ describe('cache completeness check', () => {
   });
 });
 
+describe('search result count', () => {
+  // Replicate result count formatting from header.js
+  function formatResultCount(count) {
+    if (count === 0) return '';
+    return `${count} result${count !== 1 ? 's' : ''}`;
+  }
+
+  it('should format single result correctly', () => {
+    expect(formatResultCount(1)).toBe('1 result');
+  });
+
+  it('should format multiple results with plural', () => {
+    expect(formatResultCount(5)).toBe('5 results');
+  });
+
+  it('should return empty string for zero results', () => {
+    expect(formatResultCount(0)).toBe('');
+  });
+
+  it('should show result count when searching', () => {
+    const results = filterBooks(mockBooks, 'the');
+    expect(formatResultCount(results.length)).toBe(`${results.length} results`);
+  });
+});
+
 describe('lazy loading behavior', () => {
   // These test the expected behavior patterns
 

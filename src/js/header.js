@@ -50,6 +50,7 @@ const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
+const searchResultCount = document.getElementById('search-result-count');
 const offlineBanner = document.getElementById('offline-banner');
 // Wishlist count badges
 const wishlistCountMobile = document.getElementById('wishlist-count-mobile');
@@ -418,6 +419,11 @@ function performSearch(queryText) {
     } else {
       searchResults.innerHTML = '';
     }
+    // Hide result count when no query
+    if (searchResultCount) {
+      searchResultCount.classList.add('hidden');
+      searchResultCount.textContent = '';
+    }
     return;
   }
 
@@ -426,6 +432,17 @@ function performSearch(queryText) {
     (b._normalizedTitle || '').includes(queryText) ||
     (b._normalizedAuthor || '').includes(queryText)
   );
+
+  // Update result count badge
+  if (searchResultCount) {
+    if (results.length > 0) {
+      searchResultCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+      searchResultCount.classList.remove('hidden');
+    } else {
+      searchResultCount.classList.add('hidden');
+      searchResultCount.textContent = '';
+    }
+  }
 
   let html = results.length
     ? results.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('')
@@ -466,6 +483,11 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
       searchInput.value = '';
       searchResults.innerHTML = '';
       clearSearchInputBtn.classList.add('hidden');
+      // Clear result count
+      if (searchResultCount) {
+        searchResultCount.classList.add('hidden');
+        searchResultCount.textContent = '';
+      }
       searchInput.focus();
     });
   }
@@ -506,5 +528,10 @@ function closeSearch() {
   searchResults.innerHTML = '';
   currentSearchQuery = '';
   if (clearSearchInputBtn) clearSearchInputBtn.classList.add('hidden');
+  // Clear result count
+  if (searchResultCount) {
+    searchResultCount.classList.add('hidden');
+    searchResultCount.textContent = '';
+  }
 }
 
