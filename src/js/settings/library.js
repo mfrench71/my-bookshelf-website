@@ -64,6 +64,10 @@ let mergingGenreId = null;
 let mergingSeriesId = null;
 let selectedColor = GENRE_COLORS[0];
 
+// Original values for change tracking
+let originalGenreValues = { name: '', color: '' };
+let originalSeriesValues = { name: '', description: '', totalBooks: '' };
+
 // DOM Elements - Genres
 const genresLoading = document.getElementById('genres-loading');
 const genresEmpty = document.getElementById('genres-empty');
@@ -267,10 +271,35 @@ function renderColorPicker() {
     btn.addEventListener('click', () => {
       selectedColor = btn.dataset.color;
       renderColorPicker();
+      updateGenreSaveButtonState();
     });
   });
 
   initIcons();
+}
+
+/**
+ * Check if genre form has unsaved changes
+ */
+function isGenreFormDirty() {
+  // For add mode, form is dirty if name has content
+  if (!editingGenreId) {
+    return genreNameInput.value.trim().length > 0;
+  }
+  // For edit mode, compare against original values
+  if (genreNameInput.value.trim() !== originalGenreValues.name) return true;
+  if (selectedColor !== originalGenreValues.color) return true;
+  return false;
+}
+
+/**
+ * Update genre save button state based on form changes
+ */
+function updateGenreSaveButtonState() {
+  const isDirty = isGenreFormDirty();
+  saveGenreBtn.disabled = !isDirty;
+  saveGenreBtn.classList.toggle('opacity-50', !isDirty);
+  saveGenreBtn.classList.toggle('cursor-not-allowed', !isDirty);
 }
 
 function openAddGenreModal() {
@@ -281,6 +310,8 @@ function openAddGenreModal() {
   clearFormErrors(genreForm);
   // Hide colour picker for add (colour is auto-assigned randomly)
   colorPickerSection?.classList.add('hidden');
+  // Initialize button state (disabled until name entered)
+  updateGenreSaveButtonState();
   genreSheet?.open();
   if (!isMobile()) genreNameInput.focus();
 }
@@ -295,9 +326,13 @@ function openEditGenreModal(genreId) {
   selectedColor = genre.color;
   saveGenreBtn.textContent = 'Save';
   clearFormErrors(genreForm);
+  // Store original values for change tracking
+  originalGenreValues = { name: genre.name, color: genre.color };
   // Show colour picker for edit (user can change colour)
   colorPickerSection?.classList.remove('hidden');
   renderColorPicker();
+  // Initialize button state (disabled until changes made)
+  updateGenreSaveButtonState();
   genreSheet?.open();
   // Scroll colour picker to top after modal opens
   requestAnimationFrame(() => {
@@ -351,6 +386,9 @@ addGenreBtn?.addEventListener('click', openAddGenreModal);
 cancelGenreBtn?.addEventListener('click', closeGenreModal);
 cancelDeleteGenreBtn?.addEventListener('click', closeDeleteGenreModal);
 cancelMergeGenreBtn?.addEventListener('click', closeMergeGenreModal);
+
+// Update save button state when genre name changes
+genreNameInput?.addEventListener('input', updateGenreSaveButtonState);
 
 mergeGenreTargetSelect?.addEventListener('change', () => {
   confirmMergeGenreBtn.disabled = !mergeGenreTargetSelect.value;
@@ -553,6 +591,31 @@ function renderDuplicateWarnings() {
   initIcons();
 }
 
+/**
+ * Check if series form has unsaved changes
+ */
+function isSeriesFormDirty() {
+  // For add mode, form is dirty if name has content
+  if (!editingSeriesId) {
+    return seriesNameInput.value.trim().length > 0;
+  }
+  // For edit mode, compare against original values
+  if (seriesNameInput.value.trim() !== originalSeriesValues.name) return true;
+  if ((seriesDescriptionInput.value || '') !== originalSeriesValues.description) return true;
+  if ((seriesTotalBooksInput.value || '') !== originalSeriesValues.totalBooks) return true;
+  return false;
+}
+
+/**
+ * Update series save button state based on form changes
+ */
+function updateSeriesSaveButtonState() {
+  const isDirty = isSeriesFormDirty();
+  saveSeriesBtn.disabled = !isDirty;
+  saveSeriesBtn.classList.toggle('opacity-50', !isDirty);
+  saveSeriesBtn.classList.toggle('cursor-not-allowed', !isDirty);
+}
+
 function openAddSeriesModal() {
   editingSeriesId = null;
   seriesModalTitle.textContent = 'Add Series';
@@ -561,6 +624,8 @@ function openAddSeriesModal() {
   seriesTotalBooksInput.value = '';
   saveSeriesBtn.textContent = 'Add';
   clearFormErrors(seriesForm);
+  // Initialize button state (disabled until name entered)
+  updateSeriesSaveButtonState();
   seriesSheet?.open();
   if (!isMobile()) seriesNameInput.focus();
 }
@@ -576,6 +641,14 @@ function openEditSeriesModal(seriesId) {
   seriesTotalBooksInput.value = s.totalBooks || '';
   saveSeriesBtn.textContent = 'Save';
   clearFormErrors(seriesForm);
+  // Store original values for change tracking
+  originalSeriesValues = {
+    name: s.name,
+    description: s.description || '',
+    totalBooks: s.totalBooks ? String(s.totalBooks) : ''
+  };
+  // Initialize button state (disabled until changes made)
+  updateSeriesSaveButtonState();
   seriesSheet?.open();
   if (!isMobile()) seriesNameInput.focus();
 }
@@ -622,6 +695,11 @@ addSeriesBtn?.addEventListener('click', openAddSeriesModal);
 cancelSeriesBtn?.addEventListener('click', closeSeriesModal);
 cancelDeleteSeriesBtn?.addEventListener('click', closeDeleteSeriesModal);
 cancelMergeSeriesBtn?.addEventListener('click', closeMergeSeriesModal);
+
+// Update save button state when series fields change
+seriesNameInput?.addEventListener('input', updateSeriesSaveButtonState);
+seriesDescriptionInput?.addEventListener('input', updateSeriesSaveButtonState);
+seriesTotalBooksInput?.addEventListener('input', updateSeriesSaveButtonState);
 
 mergeTargetSelect?.addEventListener('change', () => {
   confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;
