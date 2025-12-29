@@ -79,10 +79,16 @@ const lightboxCounter = document.getElementById('lightbox-counter');
 const lightboxClose = document.getElementById('lightbox-close');
 const lightboxPrev = document.getElementById('lightbox-prev');
 const lightboxNext = document.getElementById('lightbox-next');
+const lightboxContent = document.getElementById('lightbox-content');
+const lightboxAnnouncer = document.getElementById('lightbox-announcer');
+const lightboxSwipeHint = document.getElementById('lightbox-swipe-hint');
 
 // Lightbox state
 let lightboxImages = [];
 let lightboxIndex = 0;
+let lightboxFocusableElements = [];
+let lightboxPreviousFocus = null;
+let swipeHintShown = false;
 
 // Metadata elements
 const isbnRow = document.getElementById('isbn-row');
@@ -478,49 +484,101 @@ function renderGallery() {
 }
 
 /**
- * Open lightbox at specified index
+ * Open lightbox at specified index with animations
  * @param {number} index
  */
 function openLightbox(index) {
   if (!lightboxImages.length) return;
 
+  // Store previous focus for restoration
+  lightboxPreviousFocus = document.activeElement;
+
   lightboxIndex = index;
-  updateLightboxImage();
+
+  // Show lightbox with backdrop fade animation
   lightbox.classList.remove('hidden');
+  lightbox.classList.remove('lightbox-close');
+  lightbox.classList.add('lightbox-open');
+
+  // Add image enter animation
+  lightboxImage.classList.add('lightbox-image-enter');
+
+  // Show swipe hint on mobile (first time only)
+  if (!swipeHintShown && lightboxSwipeHint && window.innerWidth < 768) {
+    lightboxSwipeHint.classList.remove('hidden');
+    swipeHintShown = true;
+    // Hide hint after 3 seconds
+    setTimeout(() => {
+      lightboxSwipeHint.classList.add('hidden');
+    }, 3000);
+  }
+
+  updateLightboxImage(true);
   document.body.style.overflow = 'hidden';
+
+  // Set up focus trap
+  setupFocusTrap();
+
+  // Focus close button
+  setTimeout(() => lightboxClose?.focus(), 100);
+
   initIcons();
 }
 
 /**
- * Close the lightbox
+ * Close the lightbox with animations
  */
 function closeLightbox() {
-  lightbox.classList.add('hidden');
-  document.body.style.overflow = '';
+  // Add exit animations
+  lightbox.classList.remove('lightbox-open');
+  lightbox.classList.add('lightbox-close');
+  lightboxImage.classList.add('lightbox-image-exit');
+
+  // Wait for animation to complete before hiding
+  setTimeout(() => {
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('lightbox-close');
+    lightboxImage.classList.remove('lightbox-image-enter', 'lightbox-image-exit');
+    document.body.style.overflow = '';
+
+    // Reset content position (from swipe)
+    if (lightboxContent) {
+      lightboxContent.style.transform = '';
+      lightboxContent.style.opacity = '';
+    }
+
+    // Restore focus
+    if (lightboxPreviousFocus) {
+      lightboxPreviousFocus.focus();
+      lightboxPreviousFocus = null;
+    }
+  }, 150);
 }
 
 /**
- * Navigate to previous image
+ * Navigate to previous image with crossfade
  */
 function prevImage() {
   if (lightboxImages.length <= 1) return;
   lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
-  updateLightboxImage();
+  updateLightboxImage(false, 'prev');
 }
 
 /**
- * Navigate to next image
+ * Navigate to next image with crossfade
  */
 function nextImage() {
   if (lightboxImages.length <= 1) return;
   lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
-  updateLightboxImage();
+  updateLightboxImage(false, 'next');
 }
 
 /**
  * Update the lightbox to show current image
+ * @param {boolean} isOpening - Whether this is the initial open
+ * @param {string} direction - Navigation direction ('prev' or 'next')
  */
-function updateLightboxImage() {
+function updateLightboxImage(isOpening = false, direction = null) {
   const img = lightboxImages[lightboxIndex];
   if (!img) return;
 
@@ -531,6 +589,9 @@ function updateLightboxImage() {
   // Update counter
   lightboxCounter.textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
 
+  // Announce to screen readers
+  announceToScreenReader(`Image ${lightboxIndex + 1} of ${lightboxImages.length}`);
+
   // Show/hide nav buttons
   const showNav = lightboxImages.length > 1;
   lightboxPrev.classList.toggle('hidden', !showNav);
@@ -540,14 +601,70 @@ function updateLightboxImage() {
   lightboxImage.onload = () => {
     lightboxLoading.classList.add('hidden');
     lightboxImage.classList.remove('hidden');
+
+    // Apply crossfade animation for navigation (not initial open)
+    if (!isOpening && direction) {
+      lightboxImage.classList.remove('lightbox-crossfade');
+      // Force reflow to restart animation
+      void lightboxImage.offsetWidth;
+      lightboxImage.classList.add('lightbox-crossfade');
+    }
   };
   lightboxImage.onerror = () => {
     lightboxLoading.classList.add('hidden');
     lightboxImage.classList.remove('hidden');
     lightboxImage.alt = 'Failed to load image';
+    announceToScreenReader('Failed to load image');
   };
   lightboxImage.src = img.url;
   lightboxImage.alt = `Book image ${lightboxIndex + 1}`;
+}
+
+/**
+ * Announce message to screen readers
+ * @param {string} message
+ */
+function announceToScreenReader(message) {
+  if (!lightboxAnnouncer) return;
+  lightboxAnnouncer.textContent = '';
+  // Use setTimeout to ensure the change is announced
+  setTimeout(() => {
+    lightboxAnnouncer.textContent = message;
+  }, 50);
+}
+
+/**
+ * Set up focus trap within lightbox
+ */
+function setupFocusTrap() {
+  if (!lightbox) return;
+
+  // Get all focusable elements within lightbox
+  lightboxFocusableElements = lightbox.querySelectorAll(
+    'button:not([disabled]):not(.hidden), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+}
+
+/**
+ * Handle focus trap keyboard navigation
+ * @param {KeyboardEvent} e
+ */
+function handleFocusTrap(e) {
+  if (e.key !== 'Tab' || lightbox.classList.contains('hidden')) return;
+
+  const focusable = Array.from(lightboxFocusableElements).filter(el => !el.classList.contains('hidden'));
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 // Lightbox event listeners
@@ -570,7 +687,7 @@ if (lightbox) {
   });
 }
 
-// Keyboard navigation
+// Keyboard navigation with focus trap
 document.addEventListener('keydown', (e) => {
   if (lightbox.classList.contains('hidden')) return;
 
@@ -584,33 +701,82 @@ document.addEventListener('keydown', (e) => {
     case 'ArrowRight':
       nextImage();
       break;
+    case 'Tab':
+      handleFocusTrap(e);
+      break;
   }
 });
 
-// Touch swipe support for mobile
+// Touch swipe support for mobile (horizontal and vertical)
 let touchStartX = 0;
-let touchEndX = 0;
+let touchStartY = 0;
+let touchCurrentY = 0;
+let isDragging = false;
 
 if (lightbox) {
   lightbox.addEventListener('touchstart', (e) => {
     touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+    touchCurrentY = touchStartY;
+    isDragging = false;
+  }, { passive: true });
+
+  lightbox.addEventListener('touchmove', (e) => {
+    const currentX = e.changedTouches[0].screenX;
+    touchCurrentY = e.changedTouches[0].screenY;
+    const diffY = touchCurrentY - touchStartY;
+    const diffX = currentX - touchStartX;
+
+    // Only handle vertical swipe (swipe down to close)
+    // Require more vertical than horizontal movement
+    if (Math.abs(diffY) > Math.abs(diffX) && diffY > 20) {
+      isDragging = true;
+      lightbox.classList.add('lightbox-dragging');
+
+      // Move content with finger
+      if (lightboxContent) {
+        const translateY = Math.max(0, diffY * 0.5); // Dampen the movement
+        const opacity = Math.max(0.3, 1 - (diffY / 300));
+        lightboxContent.style.transform = `translateY(${translateY}px)`;
+        lightboxContent.style.opacity = opacity;
+      }
+
+      // Hide swipe hint when dragging
+      if (lightboxSwipeHint) {
+        lightboxSwipeHint.classList.add('hidden');
+      }
+    }
   }, { passive: true });
 
   lightbox.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
+    const endX = e.changedTouches[0].screenX;
+    const endY = e.changedTouches[0].screenY;
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+
+    lightbox.classList.remove('lightbox-dragging');
+
+    // Check for swipe down to close
+    if (isDragging && diffY > 100) {
+      closeLightbox();
+      return;
+    }
+
+    // Reset position if not closing
+    if (isDragging && lightboxContent) {
+      lightboxContent.style.transform = '';
+      lightboxContent.style.opacity = '';
+    }
+
+    // Handle horizontal swipe for navigation
+    if (!isDragging && Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) {
+        prevImage(); // Swipe right = previous
+      } else {
+        nextImage(); // Swipe left = next
+      }
+    }
+
+    isDragging = false;
   }, { passive: true });
-}
-
-function handleSwipe() {
-  const swipeThreshold = 50;
-  const diff = touchEndX - touchStartX;
-
-  if (Math.abs(diff) < swipeThreshold) return;
-
-  if (diff > 0) {
-    prevImage(); // Swipe right = previous
-  } else {
-    nextImage(); // Swipe left = next
-  }
 }

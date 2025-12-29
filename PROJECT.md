@@ -337,18 +337,19 @@ if (isDuplicate) {
 Current lightbox is functional but needs polish for a premium feel.
 
 **Transitions & Animations:**
-- [ ] Fade in/out backdrop on open/close (opacity 0→1)
-- [ ] Scale up from thumbnail on open (transform: scale)
-- [ ] Crossfade between images on prev/next (not instant swap)
+- [x] Fade in/out backdrop on open/close (opacity 0→1)
+- [x] Scale up from thumbnail on open (transform: scale)
+- [x] Crossfade between images on prev/next (not instant swap)
 - [ ] Smooth counter text transitions
-- [ ] Button hover/active states with transitions
+- [x] Button hover/active states with transitions
 
 **Mobile Gestures:**
 - [ ] Pinch-to-zoom on touch devices
 - [ ] Double-tap to zoom in/out
 - [ ] Pan/drag when zoomed in
 - [ ] Swipe velocity affects animation speed
-- [ ] Pull down to close (like iOS photos)
+- [x] Pull down to close (like iOS photos)
+- [x] Swipe left/right for prev/next
 
 **Performance & Loading:**
 - [ ] Preload adjacent images (n-1, n+1)
@@ -359,14 +360,14 @@ Current lightbox is functional but needs polish for a premium feel.
 **Visual Polish:**
 - [ ] Backdrop blur (`backdrop-filter: blur()`)
 - [ ] Subtle vignette on backdrop
-- [ ] Image shadow/glow effect
-- [ ] Rounded corners on image
+- [x] Image shadow/glow effect
+- [x] Rounded corners on image
 - [ ] Safe area padding for notched devices
 
 **Accessibility:**
-- [ ] Focus trap within lightbox
-- [ ] Announce image changes to screen readers
-- [ ] Reduce motion option (respect `prefers-reduced-motion`)
+- [x] Focus trap within lightbox
+- [x] Announce image changes to screen readers
+- [x] Reduce motion option (respect `prefers-reduced-motion`)
 
 **Implementation Notes:**
 ```css
@@ -407,9 +408,9 @@ Current toasts are functional but basic.
 - [x] Tap anywhere on toast to dismiss early
 
 **Performance & Loading:**
-- [ ] Toast queue system (stack multiple toasts, don't replace)
-- [ ] Max 3 visible toasts, queue remainder
-- [ ] Auto-dismiss pauses on hover/focus
+- [x] Toast queue system (stack multiple toasts, don't replace)
+- [x] Max 3 visible toasts, queue remainder
+- [x] Auto-dismiss pauses on hover/focus
 
 **Visual Polish:**
 - [x] Icon indicators per type (Lucide: `check-circle`, `x-circle`, `info`)
@@ -417,7 +418,7 @@ Current toasts are functional but basic.
 - [ ] Optional action button ("Undo", "View")
 
 **Accessibility:**
-- [ ] `aria-live="polite"` on toast container
+- [x] `aria-live="polite"` on toast container
 - [ ] Role="alert" for error toasts
 - [ ] Focus management for action buttons
 
