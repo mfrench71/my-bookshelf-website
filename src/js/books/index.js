@@ -75,7 +75,10 @@ const activeFiltersDesktop = document.getElementById('active-filters-desktop');
 let sidebarPanel = null;
 let mobilePanel = null;
 
-// Parse URL parameters and apply filters
+/**
+ * Parse URL parameters and apply filter state
+ * Supports sort, rating, status, genres, series, and author filters
+ */
 function applyUrlFilters() {
   const params = new URLSearchParams(window.location.search);
 
@@ -120,7 +123,11 @@ function applyUrlFilters() {
   renderActiveFilterChips();
 }
 
-// Build URL params from current filter state
+/**
+ * Build URLSearchParams from current filter state
+ * Only includes non-default values for clean URLs
+ * @returns {URLSearchParams} URL parameters object
+ */
 function buildFilterParams() {
   const params = new URLSearchParams();
 
@@ -147,7 +154,10 @@ function buildFilterParams() {
   return params;
 }
 
-// Update URL without page reload
+/**
+ * Update browser URL with current filters without page reload
+ * Uses replaceState to avoid adding to history
+ */
 function updateUrlWithFilters() {
   const params = buildFilterParams();
   const newUrl = params.toString()
@@ -192,7 +202,10 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Load user genres
+/**
+ * Load user genres from Firebase and update filter panels
+ * @returns {Promise<void>}
+ */
 async function loadGenres() {
   try {
     genres = await loadUserGenres(currentUser.uid);
@@ -207,7 +220,11 @@ async function loadGenres() {
   }
 }
 
-// Load user series
+/**
+ * Load user series from Firebase and update filter panels
+ * Handles URL param matching by series name or ID
+ * @returns {Promise<void>}
+ */
 async function loadSeries() {
   try {
     series = await loadUserSeries(currentUser.uid);
@@ -236,7 +253,11 @@ async function loadSeries() {
   }
 }
 
-// Cache functions
+/**
+ * Get cached books from localStorage
+ * Returns null if cache is expired or sort order doesn't match
+ * @returns {{books: Array, hasMore: boolean}|null} Cached books or null
+ */
 function getCachedBooks() {
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
@@ -255,6 +276,11 @@ function getCachedBooks() {
   return null;
 }
 
+/**
+ * Save books to localStorage cache
+ * @param {Array} booksData - Array of book objects to cache
+ * @param {boolean} hasMore - Whether more books exist in Firebase
+ */
 function setCachedBooks(booksData, hasMore) {
   try {
     const cacheData = {
@@ -269,12 +295,19 @@ function setCachedBooks(booksData, hasMore) {
   }
 }
 
+/**
+ * Clear both localStorage and in-memory caches
+ */
 function clearCache() {
   clearBooksCache(currentUser.uid);
-  cachedFilteredBooks = null; // Also clear filtered cache
+  cachedFilteredBooks = null;
 }
 
-// Convert Firestore document to serializable format
+/**
+ * Convert Firestore document to serializable format
+ * @param {DocumentSnapshot} doc - Firestore document snapshot
+ * @returns {Object} Book object with serialized timestamps
+ */
 function serializeBook(doc) {
   const data = doc.data();
   return {
@@ -285,7 +318,12 @@ function serializeBook(doc) {
   };
 }
 
-// Load Books - tries cache first, then Firebase
+/**
+ * Load books from cache or Firebase
+ * Fetches all pages to get complete data for client-side filtering
+ * @param {boolean} [forceRefresh=false] - Force reload from Firebase
+ * @returns {Promise<void>}
+ */
 async function loadBooks(forceRefresh = false) {
   if (isLoading) return;
 
@@ -367,7 +405,11 @@ async function loadBooks(forceRefresh = false) {
   }
 }
 
-// Fetch next page from Firebase
+/**
+ * Fetch next page of books from Firebase
+ * Updates books array, lastDoc cursor, and hasMoreFromFirebase flag
+ * @returns {Promise<void>}
+ */
 async function fetchNextPage() {
   if (!hasMoreFromFirebase) {
     return;
@@ -424,6 +466,10 @@ async function fetchNextPage() {
 // Intersection Observer for infinite scroll
 let scrollObserver = null;
 
+/**
+ * Set up IntersectionObserver for infinite scroll
+ * Triggers loadMore when scroll sentinel enters viewport
+ */
 function setupScrollObserver() {
   if (scrollObserver) scrollObserver.disconnect();
 
@@ -436,14 +482,23 @@ function setupScrollObserver() {
 
 setupScrollObserver();
 
-// Extract surname (last word) for author sorting
+/**
+ * Extract surname (last word) for author sorting
+ * @param {string} author - Full author name
+ * @returns {string} Lowercase surname
+ */
 function getAuthorSurname(author) {
   if (!author) return '';
   const parts = author.trim().split(/\s+/);
   return parts[parts.length - 1].toLowerCase();
 }
 
-// Sorting function (client-side for cached data)
+/**
+ * Sort books array by specified key
+ * @param {Array} booksArray - Array of book objects
+ * @param {string} sortKey - Sort key in format 'field-direction' (e.g., 'title-asc')
+ * @returns {Array} New sorted array (does not mutate original)
+ */
 function sortBooks(booksArray, sortKey) {
   // Special case: series order (sort by position, nulls at end)
   if (sortKey === 'seriesPosition-asc') {
@@ -483,7 +538,10 @@ function sortBooks(booksArray, sortKey) {
   });
 }
 
-// Manage Series Order sort option visibility
+/**
+ * Show or hide the Series Order sort option in dropdowns
+ * @param {boolean} showOption - Whether to show the option
+ */
 function updateSeriesOrderOption(showOption) {
   // Update mobile sort select
   if (sortSelectMobile) {
@@ -494,7 +552,10 @@ function updateSeriesOrderOption(showOption) {
   }
 }
 
-// Switch to series order sort (stores previous sort for restoration)
+/**
+ * Switch to series order sort
+ * Stores previous sort for restoration when series filter is cleared
+ */
 function switchToSeriesOrder() {
   if (currentSort !== 'seriesPosition-asc') {
     previousSort = currentSort;
@@ -508,7 +569,9 @@ function switchToSeriesOrder() {
   }
 }
 
-// Restore previous sort (when series filter is cleared)
+/**
+ * Restore previous sort order after series filter is cleared
+ */
 function restorePreviousSort() {
   if (previousSort && currentSort === 'seriesPosition-asc') {
     currentSort = previousSort;
@@ -522,7 +585,12 @@ function restorePreviousSort() {
   }
 }
 
-// Rating filter function (single-select, minimum threshold or unrated)
+/**
+ * Filter books by rating (minimum threshold or unrated)
+ * @param {Array} booksArray - Array of books to filter
+ * @param {number|string} ratingValue - Minimum rating (1-5), 0 for all, or 'unrated'
+ * @returns {Array} Filtered books array
+ */
 function filterByRating(booksArray, ratingValue) {
   if (ratingValue === 0) return booksArray;
   if (ratingValue === 'unrated') {
@@ -531,8 +599,12 @@ function filterByRating(booksArray, ratingValue) {
   return booksArray.filter(b => (b.rating || 0) >= ratingValue);
 }
 
-// Genre filter function (multi-select, OR logic)
-// Returns books that have ANY of the selected genres
+/**
+ * Filter books by genre IDs (OR logic - any selected genre matches)
+ * @param {Array} booksArray - Array of books to filter
+ * @param {Array<string>} genreIds - Array of genre IDs to filter by
+ * @returns {Array} Filtered books array
+ */
 function filterByGenres(booksArray, genreIds) {
   if (!genreIds || genreIds.length === 0) return booksArray;
   return booksArray.filter(b =>
@@ -540,21 +612,34 @@ function filterByGenres(booksArray, genreIds) {
   );
 }
 
-// Status filter function (multi-select, OR logic)
-// Returns books that match ANY of the selected statuses
+/**
+ * Filter books by reading status (OR logic - any selected status matches)
+ * @param {Array} booksArray - Array of books to filter
+ * @param {Array<string>} statuses - Array of statuses ('reading', 'finished')
+ * @returns {Array} Filtered books array
+ */
 function filterByStatuses(booksArray, statuses) {
   if (!statuses || statuses.length === 0) return booksArray;
   return booksArray.filter(b => statuses.includes(getBookStatus(b)));
 }
 
-// Series filter function (multi-select, OR logic)
-// Returns books that are in ANY of the selected series
+/**
+ * Filter books by series IDs (OR logic - any selected series matches)
+ * @param {Array} booksArray - Array of books to filter
+ * @param {Array<string>} seriesIds - Array of series IDs to filter by
+ * @returns {Array} Filtered books array
+ */
 function filterBySeriesIds(booksArray, seriesIds) {
   if (!seriesIds || seriesIds.length === 0) return booksArray;
   return booksArray.filter(b => b.seriesId && seriesIds.includes(b.seriesId));
 }
 
-// Author filter function (case-insensitive match)
+/**
+ * Filter books by author name (case-insensitive exact match)
+ * @param {Array} booksArray - Array of books to filter
+ * @param {string} author - Author name to filter by
+ * @returns {Array} Filtered books array
+ */
 function filterByAuthor(booksArray, author) {
   if (!author) return booksArray;
   const authorLower = author.toLowerCase();
@@ -576,7 +661,11 @@ function getUniqueAuthors() {
   );
 }
 
-// Get filtered and sorted books (with caching)
+/**
+ * Get filtered and sorted books (with memoization)
+ * Applies all active filters and current sort order
+ * @returns {Array} Filtered and sorted books array
+ */
 function getFilteredBooks() {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   // First filter out binned (soft-deleted) books
@@ -590,14 +679,19 @@ function getFilteredBooks() {
   return cachedFilteredBooks;
 }
 
-// Invalidate filtered cache when filters change
+/**
+ * Invalidate filtered books cache
+ * Call when filters or books data changes
+ */
 function invalidateFilteredCache() {
   cachedFilteredBooks = null;
 }
 
-// Calculate dynamic book counts for filter checkboxes (faceted search)
-// Each count shows how many books would match if that option were toggled
-// while keeping all OTHER active filters applied
+/**
+ * Calculate dynamic book counts for filter options (faceted search)
+ * Each count shows books that would match if that option were selected
+ * @returns {Object} Counts for ratings, genres, status, series, authors
+ */
 function calculateFilterCounts() {
   const activeBooks = filterActivebooks(books);
 
@@ -698,7 +792,10 @@ function calculateFilterCounts() {
   };
 }
 
-// Update filter panel counts and author list
+/**
+ * Update filter panel counts and author list
+ * Recalculates faceted counts and updates both panels
+ */
 function updateFilterCounts() {
   const counts = calculateFilterCounts();
   const authors = getUniqueAuthors();
@@ -712,7 +809,10 @@ function updateFilterCounts() {
   }
 }
 
-// Update book count display
+/**
+ * Update book count display in header
+ * Shows filtered count vs total when filters are active
+ */
 function updateBookCount() {
   const filtered = getFilteredBooks();
   const total = filterActivebooks(books).length;
@@ -733,7 +833,10 @@ function updateBookCount() {
   });
 }
 
-// Render Books
+/**
+ * Render books list to DOM
+ * Shows book cards, empty states, and scroll sentinel for infinite scroll
+ */
 function renderBooks() {
   const filtered = getFilteredBooks();
   updateBookCount();
@@ -781,7 +884,10 @@ function renderBooks() {
   initIcons();
 }
 
-// Load more - display more of the already loaded books
+/**
+ * Load more books for infinite scroll
+ * Increases displayLimit and re-renders
+ */
 function loadMore() {
   const filtered = getFilteredBooks();
 
@@ -792,7 +898,11 @@ function loadMore() {
   }
 }
 
-// Refresh - clear cache and reload from Firebase (used by pull-to-refresh)
+/**
+ * Refresh books from Firebase (used by pull-to-refresh)
+ * Clears cache and reloads all data
+ * @returns {Promise<void>}
+ */
 async function refreshBooks() {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
@@ -805,7 +915,11 @@ async function refreshBooks() {
   showToast('Books refreshed', { type: 'success' });
 }
 
-// Silent refresh for auto-sync on tab focus
+/**
+ * Silent refresh for auto-sync when tab becomes visible
+ * Same as refreshBooks but with quieter notification
+ * @returns {Promise<void>}
+ */
 async function silentRefreshBooks() {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
@@ -821,6 +935,7 @@ async function silentRefreshBooks() {
 
 /**
  * Initialize FilterPanel instances for desktop sidebar and mobile bottom sheet
+ * Sets up both panels with initial filter state from URL params
  */
 function initializeFilterPanels() {
   // Get initial filter state from URL params (arrays for multi-select)
@@ -874,6 +989,8 @@ function initializeFilterPanels() {
 
 /**
  * Handle filter changes from desktop sidebar (immediate apply)
+ * @param {Object} filters - Filter state from FilterPanel
+ * @returns {Promise<void>}
  */
 async function handleSidebarFilterChange(filters) {
   const sortChanged = filters.sort !== currentSort;
@@ -929,7 +1046,8 @@ async function handleSidebarFilterChange(filters) {
 
 /**
  * Apply filters from mobile bottom sheet
- * @param {boolean} keepSheetOpen - If true, don't close the sheet (used by Reset)
+ * @param {boolean} [keepSheetOpen=false] - If true, don't close the sheet (used by Reset)
+ * @returns {Promise<void>}
  */
 async function applyMobileFilters(keepSheetOpen = false) {
   if (!mobilePanel) return;
@@ -1016,7 +1134,10 @@ if (sortSelectMobile) {
   });
 }
 
-// Check if any filters are active
+/**
+ * Check if any filters are active (excluding sort)
+ * @returns {boolean} True if any filter is active
+ */
 function hasActiveFilters() {
   return (ratingFilter !== 0 && ratingFilter !== '') ||
          genreFilters.length > 0 ||
@@ -1025,7 +1146,10 @@ function hasActiveFilters() {
          authorFilter !== '';
 }
 
-// Update filter count badge on mobile trigger button
+/**
+ * Update filter count badge on mobile trigger button
+ * Shows total number of active filter selections
+ */
 function updateFilterCountBadge() {
   if (!filterCountBadge) return;
 
@@ -1040,8 +1164,10 @@ function updateFilterCountBadge() {
   filterCountBadge.classList.toggle('hidden', count === 0);
 }
 
-// Render active filter chips (both mobile and desktop)
-// Now supports multiple chips per filter type for multi-select
+/**
+ * Render active filter chips (both mobile and desktop)
+ * Supports multiple chips per filter type for multi-select
+ */
 function renderActiveFilterChips() {
   const chips = [];
 
@@ -1106,7 +1232,7 @@ function renderActiveFilterChips() {
     let html = chips.map(chip => {
       const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       return `
-        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-1 ${colours} rounded-full text-sm font-medium transition-colors" aria-label="Remove ${chip.label} filter">
+        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" aria-label="Remove ${chip.label} filter">
           <span>${chip.label}</span>
           <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>
@@ -1116,7 +1242,7 @@ function renderActiveFilterChips() {
     // Add "Clear all" if more than one filter
     if (chips.length > 1) {
       html += `
-        <button data-filter-type="all" class="inline-flex items-center gap-1 px-3 py-1 text-gray-500 hover:text-gray-700 text-sm transition-colors">
+        <button data-filter-type="all" class="inline-flex items-center gap-1 px-3 py-2 min-h-[44px] text-gray-500 hover:text-gray-700 text-sm transition-colors">
           Clear all
         </button>
       `;
@@ -1127,7 +1253,12 @@ function renderActiveFilterChips() {
   });
 }
 
-// Clear a single filter value (or all values of a type)
+/**
+ * Clear a single filter value or all values of a filter type
+ * @param {string} filterType - Filter type ('rating', 'genre', 'status', 'series', 'author', 'all')
+ * @param {string} [filterValue=null] - Specific value to clear, or null to clear all of type
+ * @returns {Promise<void>}
+ */
 async function clearFilter(filterType, filterValue = null) {
   switch (filterType) {
     case 'rating':
@@ -1209,7 +1340,11 @@ async function clearFilter(filterType, filterValue = null) {
   });
 });
 
-// Get a human-readable description of active filters
+/**
+ * Get human-readable description of active filters
+ * Used in no-results messages
+ * @returns {string} Description like '"Fiction" and "4+ stars"'
+ */
 function getActiveFilterDescription() {
   const parts = [];
 
@@ -1250,7 +1385,11 @@ function getActiveFilterDescription() {
   return parts.map(p => `"${p}"`).join(' and ');
 }
 
-// Helper to reset all filters
+/**
+ * Reset all filters to default values
+ * Clears URL params and refreshes books list
+ * @returns {Promise<void>}
+ */
 async function resetAllFilters() {
   // Check if we need to refetch (ignore seriesPosition-asc as it's client-side only)
   const needsRefetch = currentSort !== 'createdAt-desc' && currentSort !== 'seriesPosition-asc';
@@ -1300,7 +1439,8 @@ if (clearFiltersLink) {
 // ==================== Bottom Sheet for Mobile Filters ====================
 
 /**
- * Open the filter bottom sheet
+ * Open the filter bottom sheet (mobile)
+ * Syncs mobile panel to current filter state before opening
  */
 function openFilterSheet() {
   if (!filterSheet || !filterSheetContent) return;
@@ -1327,7 +1467,8 @@ function openFilterSheet() {
 }
 
 /**
- * Close the filter bottom sheet
+ * Close the filter bottom sheet (mobile)
+ * Animates out and unlocks body scroll
  */
 function closeFilterSheet() {
   if (!filterSheet || !filterSheetContent) return;
