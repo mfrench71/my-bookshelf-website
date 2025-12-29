@@ -331,6 +331,102 @@ if (isDuplicate) {
 - [ ] Book change history (activity log showing edits) - no competitors offer this, could be differentiator
 - [ ] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
 
+### Image Lightbox UX Polish
+Current lightbox is functional but needs polish for a premium feel.
+
+**Transitions & Animations:**
+- [ ] Fade in/out backdrop on open/close (opacity 0→1)
+- [ ] Scale up from thumbnail on open (transform: scale)
+- [ ] Crossfade between images on prev/next (not instant swap)
+- [ ] Smooth counter text transitions
+- [ ] Button hover/active states with transitions
+
+**Mobile Gestures:**
+- [ ] Pinch-to-zoom on touch devices
+- [ ] Double-tap to zoom in/out
+- [ ] Pan/drag when zoomed in
+- [ ] Swipe velocity affects animation speed
+- [ ] Pull down to close (like iOS photos)
+
+**Performance & Loading:**
+- [ ] Preload adjacent images (n-1, n+1)
+- [ ] Blur placeholder while loading (blurhash or tiny preview)
+- [ ] Progressive image loading (thumbnail → full size)
+- [ ] Skeleton shimmer during load
+
+**Visual Polish:**
+- [ ] Backdrop blur (`backdrop-filter: blur()`)
+- [ ] Subtle vignette on backdrop
+- [ ] Image shadow/glow effect
+- [ ] Rounded corners on image
+- [ ] Safe area padding for notched devices
+
+**Accessibility:**
+- [ ] Focus trap within lightbox
+- [ ] Announce image changes to screen readers
+- [ ] Reduce motion option (respect `prefers-reduced-motion`)
+
+**Implementation Notes:**
+```css
+/* Example transitions */
+.lightbox {
+  transition: opacity 200ms ease-out;
+}
+.lightbox-image {
+  transition: transform 200ms ease-out, opacity 150ms ease-out;
+}
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .lightbox, .lightbox-image {
+    transition: none;
+  }
+}
+```
+
+**Libraries to Consider:**
+- `photoswipe` - Full-featured, gestures, zoom (29KB)
+- `lightgallery` - Feature-rich, plugins (25KB)
+- `glightbox` - Lightweight, modern (12KB)
+- Custom implementation - Full control, no dependency
+
+**Recommendation:** Start with CSS transitions for open/close and crossfade. Add pinch-zoom later if needed (complex). Consider `glightbox` if gestures become priority.
+
+### Add Book UX Redesign
+Current add book page shows all lookup methods and full form at once. Proposed progressive disclosure approach:
+
+**Current Issues:**
+- Form always visible (15+ fields on first load)
+- Three separate lookup sections (scan, ISBN, search)
+- User may skip lookup and type manually (worse data quality)
+- No feedback showing data source
+
+**Proposed Flow:**
+```
+┌─────────────────────────────────────────┐
+│ Find Your Book                          │
+│ [📷 Scan] [Search______________] [Go]   │
+│ (results appear here)                   │
+│                                         │
+│ ▼ Can't find it? Add manually           │
+└─────────────────────────────────────────┘
+        ↓ After book found/manual ↓
+┌─────────────────────────────────────────┐
+│ ✓ Found via Google Books  [Start Over]  │
+│ Title: [Pre-filled________]             │
+│ ...form fields...                       │
+│ [Add to Library]                        │
+└─────────────────────────────────────────┘
+```
+
+**Implementation Tasks:**
+- [ ] Consolidate scan/ISBN/search into single search input
+- [ ] Smart detection: ISBN pattern → direct lookup, else → search
+- [ ] Hide form initially, show on book select or "add manually"
+- [ ] Add "Start over" to reset and return to search
+- [ ] Show data source badge ("Found via Google Books")
+- [ ] Smooth slide transition when form appears
+- [ ] Preserve search state if user goes back
+
 ### Bulk Tools
 - [ ] Bulk select mode (checkbox on each book card)
 - [ ] Select all / deselect all
