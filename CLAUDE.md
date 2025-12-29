@@ -188,6 +188,59 @@ Follow the colour scheme documented in PROJECT.md. Key rules:
 - **Empty states**: Show helpful message with icon and action button where appropriate
 - **Error states**: Red border, error message below input, clear on valid input
 
+### App-Like UI Patterns
+
+This PWA should feel like a native mobile app. Follow these patterns consistently:
+
+**Navigation:**
+- Use breadcrumbs for hierarchy (not browser back button reliance)
+- Avoid full page refreshes where possible
+- Maintain scroll position when returning to lists
+- Use slide transitions for navigation (left/right for hierarchy, up/down for modals)
+
+**Loading & Feedback:**
+- Show skeleton loaders immediately (never blank screens)
+- Use optimistic UI updates (update UI before server confirms)
+- Disable buttons during async operations with loading spinner
+- Haptic feedback on significant actions (Android only via `navigator.vibrate()`)
+
+**Touch Interactions:**
+- All touch targets minimum 44×44px
+- Active states on touch (`active:scale-95`, `active:bg-*`)
+- Swipe gestures for bottom sheets (dismiss by dragging down)
+- Pull-to-refresh on list pages (trigger data reload)
+- Long-press for context menus (future enhancement)
+
+**Transitions & Animations:**
+- Page content: fade in on load (`animation: pageIn 300ms ease-out`)
+- Modals/sheets: slide up from bottom with backdrop fade
+- List items: stagger animation on initial render
+- State changes: crossfade (skeleton → content)
+- Keep all animations under 300ms
+- Respect `prefers-reduced-motion` (disable animations)
+
+**Offline Behaviour:**
+- Show offline indicator banner when disconnected
+- Cache critical data for offline access
+- Queue actions when offline, sync when online
+- Graceful degradation (read-only mode if needed)
+
+**Visual Consistency:**
+- Consistent spacing scale (Tailwind: 2, 3, 4, 6, 8)
+- Consistent border radius (rounded-lg for cards, rounded-full for avatars)
+- Consistent shadows (shadow-sm for cards, shadow-lg for modals)
+- Consistent icon sizes (w-5 h-5 for inline, w-6 h-6 for buttons)
+
+**Anti-Patterns to Avoid:**
+- ❌ Browser alert/confirm/prompt dialogs
+- ❌ Hover-only interactions (must work on touch)
+- ❌ Tiny touch targets (< 44px)
+- ❌ Jarring instant transitions (no animation)
+- ❌ Blocking the UI during data fetch
+- ❌ Losing scroll position on navigation
+- ❌ Form data loss on navigation (warn user)
+- ❌ Desktop-style dropdowns on mobile (use bottom sheets)
+
 ### Form Validation (MANDATORY)
 
 **ALL forms must use the validation system** - including modal forms. Never bypass validation for "simple" forms.
