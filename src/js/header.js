@@ -467,8 +467,8 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
 
 async function openSearch() {
   // Fade in the search overlay
-  searchOverlay.classList.remove('opacity-0', 'invisible');
-  searchOverlay.classList.add('opacity-100', 'visible');
+  searchOverlay.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+  searchOverlay.classList.add('opacity-100', 'visible', 'pointer-events-auto');
   document.body.style.overflow = 'hidden'; // Prevent body scroll
   if (!isMobile()) searchInput.focus();
   initIcons();
@@ -493,8 +493,8 @@ async function openSearch() {
 
 function closeSearch() {
   // Fade out the search overlay
-  searchOverlay.classList.remove('opacity-100', 'visible');
-  searchOverlay.classList.add('opacity-0', 'invisible');
+  searchOverlay.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
+  searchOverlay.classList.add('opacity-0', 'invisible', 'pointer-events-none');
   document.body.style.overflow = ''; // Restore body scroll
   searchInput.value = '';
   searchResults.innerHTML = '';

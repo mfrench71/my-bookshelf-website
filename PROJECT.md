@@ -1489,6 +1489,119 @@ Cons: Slower, no metadata storage
 
 ---
 
+## Wishlist Feature Enhancements (Research)
+
+### Competitor Analysis
+
+| Feature | Goodreads | StoryGraph | Literal | Amazon Kindle |
+|---------|-----------|------------|---------|---------------|
+| **Price Displayed** | Deals only | No | No | ✓ |
+| **Availability** | Via extensions | No | No | ✓ |
+| **Release Date** | ✓ | ✓ | Limited | ✓ |
+| **Priority Ranking** | Custom shelves | Up Next (5 books) | Random picker | List priority |
+| **Price Drop Alerts** | Deals emails (US) | No | No | ✓ (built-in) |
+| **New Release Notifications** | ✓ | Planned | No | Via Amazon |
+| **Import from Other Sources** | Limited | Goodreads | GR/SG | URL/tools |
+| **Recommendations** | Strong algorithm | Mood-based | Club-based | Purchase-based |
+| **Shareable Wishlists** | Manual | Public tags | Shelves/API | ✓ (full) |
+| **Gift List Feature** | Workaround | Planned (22 votes) | No | ✓ (registry) |
+| **Library Availability** | Via extensions | No | No | No |
+| **Where to Buy Links** | Deals program | No | No | ✓ (integrated) |
+
+### Key Findings
+
+**Goodreads:**
+- Pre-published book alerts when shelved book hits stores
+- "Goodreads Deals" emails for US members (price promotions on Want-to-Read)
+- Users create workaround "wishlist" custom shelves for priority
+- Third-party extensions (Library Extension, Available Reads) for library availability
+- Recommendation engine uses 20 billion data points
+
+**StoryGraph:**
+- "Up Next" feature: Flag up to 5 priority books from TBR
+- No author follow/new release notifications yet (highly requested)
+- Wishlist with gift reservation planned (22 upvotes) - prevents duplicate purchases
+- "Let us Pick for You" random selector from TBR
+
+**Literal:**
+- "Jump to a Random Book" from database or TBR
+- Shareable shelves as playlists
+- Website embedding widget for reading lists
+- Open API for custom integrations
+
+**Amazon Kindle:**
+- Full price tracking with drop alerts
+- Gift registry with reservation system
+- Shareable lists with view/edit permissions
+- Third-party tools: eReaderIQ, CamelCamelCamel, Keepa for enhanced tracking
+
+### Market Gaps (Opportunities)
+
+1. **Unified Price + Library** - No app combines price tracking with library availability
+2. **Smart Priority Systems** - No interest level ratings (1-5 excitement scale)
+3. **Notification Hub** - Author follow + release + price alerts in one place
+4. **Gift Coordination** - Only Amazon prevents duplicate gift purchases
+5. **Cross-Platform Import** - Most only support Goodreads import
+
+### Recommended Implementation
+
+**High Priority (Must Have):**
+1. **Release Date Display** - Show publication date for upcoming books
+2. **Release Notifications** - Alert when wishlisted books release
+3. **Priority/Interest Level** - 1-5 scale for TBR ranking (not just high/medium/low)
+4. **Import from Goodreads** - CSV import for want-to-read shelf
+
+**Medium Priority (Should Have):**
+5. **Library Availability** - Check Libby/OverDrive availability
+6. **Shareable Wishlists** - Public link for gift coordination
+7. **Gift Reservation** - Prevent duplicate purchases (mark "someone's getting this")
+
+**Lower Priority (Nice to Have):**
+8. **Where to Buy Links** - Links to major retailers (Amazon, Waterstones, etc.)
+9. **Random Picker** - "What should I read next?" from TBR
+10. **Price Tracking** - Integration with price tracking services
+
+### Library Availability Integration
+
+**Potential APIs:**
+| Service | API | Notes |
+|---------|-----|-------|
+| **OverDrive/Libby** | Partner API | Requires library partnership |
+| **Library Extension** | Browser only | 5,000+ library systems |
+| **WorldCat** | OCLC API | Requires subscription |
+| **Open Library** | Free | Limited availability data |
+
+**Recommendation:** Start with Open Library (free), consider OverDrive partnership later.
+
+### Gift List Data Model
+
+```
+/users/{userId}/wishlist/{itemId}
+  + giftReservedBy: string | null  // Other user's ID
+  + giftReservedAt: timestamp
+  + isPublic: boolean              // Shareable link visibility
+```
+
+**Gift Coordination Flow:**
+1. User shares wishlist link
+2. Friend views wishlist, clicks "I'll get this"
+3. Item marked as reserved (hidden from other gift-givers)
+4. Original user doesn't see reservation (surprise preserved)
+
+### Price Tracking Considerations
+
+**Build vs Partner:**
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Build own** | Full control | Massive undertaking, retailer relationships |
+| **Partner with eReaderIQ** | Existing data | May have API costs, dependency |
+| **Link to CamelCamelCamel** | Free, trusted | No in-app data, external redirect |
+| **User-entered prices** | Simple | Manual, stale data |
+
+**Recommendation:** Link to existing price tracking tools rather than building. Focus on core reading features.
+
+---
+
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
 **Last Updated**: 2025-12-29
