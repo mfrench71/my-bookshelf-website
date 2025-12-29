@@ -358,7 +358,9 @@ async function loadAllBooksForSearch() {
         books = cachedBooks.map(b => ({
           ...b,
           _normalizedTitle: b._normalizedTitle || normalizeText(b.title),
-          _normalizedAuthor: b._normalizedAuthor || normalizeText(b.author)
+          _normalizedAuthor: b._normalizedAuthor || normalizeText(b.author),
+          _normalizedPublisher: b._normalizedPublisher || normalizeText(b.publisher),
+          _normalizedNotes: b._normalizedNotes || normalizeText(b.notes)
         }));
         if (!hasMore) {
           // Cache has all books
@@ -388,7 +390,9 @@ async function loadAllBooksForSearch() {
           updatedAt: serializeTimestamp(data.updatedAt),
           // Pre-normalize for faster search
           _normalizedTitle: normalizeText(data.title),
-          _normalizedAuthor: normalizeText(data.author)
+          _normalizedAuthor: normalizeText(data.author),
+          _normalizedPublisher: normalizeText(data.publisher),
+          _normalizedNotes: normalizeText(data.notes)
         };
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books
@@ -545,11 +549,22 @@ function performSearch(queryText) {
     return;
   }
 
-  // Use pre-normalized fields for faster search
-  const results = books.filter(b =>
-    (b._normalizedTitle || '').includes(queryText) ||
-    (b._normalizedAuthor || '').includes(queryText)
-  );
+  // Search across multiple fields (title, author, ISBN, series, notes, publisher)
+  const results = books.filter(b => {
+    // Check pre-normalized fields
+    if ((b._normalizedTitle || '').includes(queryText)) return true;
+    if ((b._normalizedAuthor || '').includes(queryText)) return true;
+    if ((b._normalizedPublisher || '').includes(queryText)) return true;
+    if ((b._normalizedNotes || '').includes(queryText)) return true;
+    // Check ISBN (exact or partial match, no normalization needed)
+    if (b.isbn && b.isbn.includes(queryText)) return true;
+    // Check series name (lookup from seriesLookup)
+    if (b.seriesId && seriesLookup) {
+      const series = seriesLookup.get(b.seriesId);
+      if (series && normalizeText(series.name).includes(queryText)) return true;
+    }
+    return false;
+  });
 
   // Update result count badge
   if (searchResultCount) {
