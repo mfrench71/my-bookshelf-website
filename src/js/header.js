@@ -120,7 +120,7 @@ function showRecentSearches() {
       <div class="py-8 text-center">
         <i data-lucide="search" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">Search your library</p>
-        <p class="text-gray-400 text-sm mt-1">Find books by title or author</p>
+        <p class="text-gray-400 text-sm mt-1">Find books by title, author, ISBN, series, notes or publisher</p>
       </div>
     `;
     initIcons();
