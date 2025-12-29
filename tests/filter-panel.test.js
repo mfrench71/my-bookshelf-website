@@ -4,7 +4,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Mock the utils module
 vi.mock('../src/js/utils.js', () => ({
   initIcons: vi.fn(),
-  debounce: (fn) => fn  // Return the function immediately for tests
+  debounce: (fn) => fn,  // Return the function immediately for tests
+  escapeHtml: (str) => str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''
 }));
 
 import { FilterPanel } from '../src/js/components/filter-panel.js';
