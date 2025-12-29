@@ -445,7 +445,7 @@ function performSearch(queryText) {
   }
 
   let html = results.length
-    ? results.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('')
+    ? results.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup, highlightQuery: queryText })).join('')
     : `<div class="py-8 text-center">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">No books found</p>

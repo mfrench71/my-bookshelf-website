@@ -1,8 +1,49 @@
 // Shared Book Card Component
-import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus, isValidImageUrl } from '../utils.js';
+import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus, isValidImageUrl, normalizeText } from '../utils.js';
 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
+
+/**
+ * Highlight matching text in a string (case-insensitive)
+ * @param {string} text - Original text
+ * @param {string} query - Search query to highlight (normalized)
+ * @returns {string} HTML string with highlighted matches
+ */
+function highlightMatch(text, query) {
+  if (!text || !query) return escapeHtml(text || '');
+
+  // Normalize the text for matching but keep original for display
+  const normalizedText = normalizeText(text);
+  const escapedText = escapeHtml(text);
+
+  // Find all match positions in normalized text
+  const matches = [];
+  let pos = 0;
+  while ((pos = normalizedText.indexOf(query, pos)) !== -1) {
+    matches.push({ start: pos, end: pos + query.length });
+    pos += 1;
+  }
+
+  if (matches.length === 0) return escapedText;
+
+  // Build result with highlights (working with original text positions)
+  let result = '';
+  let lastEnd = 0;
+
+  for (const match of matches) {
+    // Add text before match
+    result += escapeHtml(text.substring(lastEnd, match.start));
+    // Add highlighted match
+    result += `<mark class="bg-yellow-200 text-yellow-900 rounded px-0.5">${escapeHtml(text.substring(match.start, match.end))}</mark>`;
+    lastEnd = match.end;
+  }
+
+  // Add remaining text
+  result += escapeHtml(text.substring(lastEnd));
+
+  return result;
+}
 
 // Maximum series name length before truncation
 const MAX_SERIES_NAME_LENGTH = 20;
@@ -84,10 +125,11 @@ function renderGenreBadges(genreDetails) {
  * @param {boolean} options.showDate - Whether to show the date added (default: false)
  * @param {Map} options.genreLookup - Map of genreId -> genre object for enriching genres
  * @param {Map} options.seriesLookup - Map of seriesId -> series object for enriching series
+ * @param {string} options.highlightQuery - Normalized search query to highlight in title/author
  * @returns {string} HTML string for the book card
  */
 export function bookCard(book, options = {}) {
-  const { showDate = false, genreLookup = null, seriesLookup = null } = options;
+  const { showDate = false, genreLookup = null, seriesLookup = null, highlightQuery = '' } = options;
 
   const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
     ? `<div class="book-cover-wrapper">
@@ -131,12 +173,20 @@ export function bookCard(book, options = {}) {
   // Combine status and series badges on same line if both present
   const topBadges = [statusBadge, seriesBadge].filter(Boolean).join(' ');
 
+  // Highlight title and author if search query provided
+  const titleHtml = highlightQuery
+    ? highlightMatch(book.title, highlightQuery)
+    : escapeHtml(book.title);
+  const authorHtml = highlightQuery
+    ? highlightMatch(book.author || 'Unknown author', highlightQuery)
+    : escapeHtml(book.author || 'Unknown author');
+
   return `
     <a href="/books/view/?id=${book.id}" class="book-card card-animate">
       ${cover}
       <div class="flex-1 min-w-0">
-        <h3 class="font-medium text-gray-900 truncate">${escapeHtml(book.title)}</h3>
-        <p class="text-sm text-gray-500 truncate">${escapeHtml(book.author || 'Unknown author')}</p>
+        <h3 class="font-medium text-gray-900 truncate">${titleHtml}</h3>
+        <p class="text-sm text-gray-500 truncate">${authorHtml}</p>
         ${topBadges ? `<div class="flex flex-wrap gap-1 mt-1">${topBadges}</div>` : ''}
         ${rating ? `<div class="mt-1">${rating}</div>` : ''}
         ${genreBadges}
