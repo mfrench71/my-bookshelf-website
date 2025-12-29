@@ -1283,6 +1283,33 @@ Genres from APIs are automatically processed:
 | Zod | 251KB | Minified ✅ |
 | Custom JS | 259KB | Minified & bundled ✅ |
 
+### Lighthouse Audit (Dec 2025)
+
+**Scores (excluding login page):**
+| Category | Score |
+|----------|-------|
+| Accessibility | 100% ✅ |
+| Best Practices | 100% ✅ |
+| SEO | 100% ✅ |
+| Performance | Needs improvement |
+
+**Performance Issues Identified:**
+1. Render-blocking resources (CSS, JS)
+2. No cache headers on static assets
+3. Back/forward cache not optimised
+
+**Implemented Fixes:**
+- [x] Add cache headers for static assets (netlify.toml)
+- [x] Defer non-critical scripts (lucide.min.js)
+
+**Future Improvements:**
+- [ ] Inline critical CSS for above-the-fold content
+- [ ] Lazy load Firebase SDK on pages that need it
+- [ ] Code split large bundles (books/add.js: 89KB)
+- [ ] Pre-cache critical assets in service worker
+
+**Run audit:** `npm run audit` (requires server on port 8080)
+
 ### Scalability (Tested: ~100 books)
 For 500+ books:
 - [ ] Server-side filtering with Firestore indexes
