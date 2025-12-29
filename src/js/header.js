@@ -9,7 +9,7 @@ import {
   doc,
   getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, isValidImageUrl } from './utils.js';
+import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, isValidImageUrl, escapeHtml, escapeAttr } from './utils.js';
 import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
@@ -29,6 +29,117 @@ let genreLookup = null;
 let series = [];
 let seriesLookup = null;
 let onlineListenersAttached = false;
+
+// Recent searches
+const RECENT_SEARCHES_KEY = 'mybookshelf_recent_searches';
+const MAX_RECENT_SEARCHES = 5;
+
+/**
+ * Get recent searches from localStorage
+ * @returns {Array<string>} Array of recent search queries
+ */
+function getRecentSearches() {
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save a search to recent searches
+ * @param {string} query - Search query to save
+ */
+function saveRecentSearch(query) {
+  if (!query || query.length < 2) return;
+
+  try {
+    let searches = getRecentSearches();
+    // Remove if already exists (to move to top)
+    searches = searches.filter(s => s !== query);
+    // Add to beginning
+    searches.unshift(query);
+    // Keep only max
+    searches = searches.slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Clear all recent searches
+ */
+function clearRecentSearches() {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Render recent searches section
+ * @returns {string} HTML string for recent searches
+ */
+function renderRecentSearches() {
+  const searches = getRecentSearches();
+  if (searches.length === 0) return '';
+
+  const searchItems = searches.map(query => `
+    <button type="button" class="recent-search-item flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition-colors" data-query="${escapeAttr(query)}">
+      <i data-lucide="history" class="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true"></i>
+      <span class="text-gray-700 truncate">${escapeHtml(query)}</span>
+    </button>
+  `).join('');
+
+  return `
+    <div id="recent-searches-section" class="mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-medium text-gray-500">Recent searches</h3>
+        <button type="button" id="clear-recent-searches" class="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+      </div>
+      <div class="space-y-1">${searchItems}</div>
+    </div>
+  `;
+}
+
+/**
+ * Show recent searches in the search results area
+ */
+function showRecentSearches() {
+  const html = renderRecentSearches();
+  if (html) {
+    searchResults.innerHTML = html;
+    initIcons();
+    attachRecentSearchListeners();
+  }
+}
+
+/**
+ * Attach click listeners to recent search items
+ */
+function attachRecentSearchListeners() {
+  // Click on recent search item
+  searchResults.querySelectorAll('.recent-search-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const query = item.dataset.query;
+      searchInput.value = query;
+      if (clearSearchInputBtn) clearSearchInputBtn.classList.remove('hidden');
+      performSearch(normalizeText(query));
+    });
+  });
+
+  // Clear recent searches button
+  const clearBtn = document.getElementById('clear-recent-searches');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      clearRecentSearches();
+      searchResults.innerHTML = '';
+    });
+  }
+}
 
 // DOM Elements
 const menuBtn = document.getElementById('menu-btn');
@@ -417,7 +528,8 @@ function performSearch(queryText) {
     if (isLoadingBooks) {
       searchResults.innerHTML = '<p class="text-gray-500 text-center py-4"><span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2"></span>Loading books...</p>';
     } else {
-      searchResults.innerHTML = '';
+      // Show recent searches when query is cleared
+      showRecentSearches();
     }
     // Hide result count when no query
     if (searchResultCount) {
@@ -425,6 +537,12 @@ function performSearch(queryText) {
       searchResultCount.textContent = '';
     }
     return;
+  }
+
+  // Save search to recent searches (use original input value)
+  const originalQuery = searchInput?.value?.trim();
+  if (originalQuery) {
+    saveRecentSearch(originalQuery);
   }
 
   // Use pre-normalized fields for faster search
@@ -501,10 +619,15 @@ async function openSearch() {
   if (!isMobile()) searchInput.focus();
   initIcons();
 
+  // Show recent searches if no current query
+  if (!currentSearchQuery) {
+    showRecentSearches();
+  }
+
   // Start loading books in background if not already loaded
   if (!allBooksLoaded && !isLoadingBooks) {
-    // Show initial loading state
-    if (books.length === 0) {
+    // Show initial loading state (but preserve recent searches if shown)
+    if (books.length === 0 && !getRecentSearches().length) {
       searchResults.innerHTML = '<p class="text-gray-500 text-center py-4"><span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2"></span>Loading books...</p>';
     }
 
@@ -513,8 +636,8 @@ async function openSearch() {
     // Re-run search with current query after loading completes
     if (currentSearchQuery) {
       performSearch(currentSearchQuery);
-    } else {
-      searchResults.innerHTML = '';
+    } else if (!searchResults.innerHTML) {
+      showRecentSearches();
     }
   }
 }
