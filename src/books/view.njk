@@ -174,8 +174,8 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
   <!-- Counter -->
   <div id="lightbox-counter" class="absolute top-4 left-4 text-white/80 text-sm font-medium px-3 py-1.5 bg-black/30 rounded-full lightbox-controls-enter" aria-hidden="true"></div>
 
-  <!-- Previous button -->
-  <button id="lightbox-prev" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Previous image">
+  <!-- Previous button (hidden by default, shown if multiple images) -->
+  <button id="lightbox-prev" class="hidden absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Previous image">
     <i data-lucide="chevron-left" class="w-8 h-8"></i>
   </button>
 
@@ -187,8 +187,8 @@ scripts: '<script type="module" src="/js/books/view.js"></script>'
     <img id="lightbox-image" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-xl lightbox-image-glow">
   </div>
 
-  <!-- Next button -->
-  <button id="lightbox-next" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Next image">
+  <!-- Next button (hidden by default, shown if multiple images) -->
+  <button id="lightbox-next" class="hidden absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Next image">
     <i data-lucide="chevron-right" class="w-8 h-8"></i>
   </button>
 
