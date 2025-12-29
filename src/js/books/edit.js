@@ -596,6 +596,7 @@ editForm.addEventListener('submit', async (e) => {
   } catch (error) {
     console.error('Error saving:', error);
     showToast('Error saving changes', { type: 'error' });
+  } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
   }

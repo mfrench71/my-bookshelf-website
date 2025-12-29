@@ -422,9 +422,10 @@ confirmDeleteBtn.addEventListener('click', async () => {
   } catch (error) {
     console.error('Error moving to bin:', error);
     showToast('Error moving book to bin', { type: 'error' });
+    deleteSheet?.close();
+  } finally {
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = 'Move to Bin';
-    deleteSheet?.close();
   }
 });
 

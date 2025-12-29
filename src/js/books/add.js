@@ -628,8 +628,6 @@ async function handleAddToWishlist(resultEl, btn) {
     const existing = await checkWishlistDuplicate(currentUser.uid, isbn, title, author);
     if (existing) {
       showToast(`"${existing.title}" is already in your wishlist`, { type: 'error' });
-      btn.disabled = false;
-      btn.classList.remove('opacity-50');
       return;
     }
 
@@ -664,8 +662,12 @@ async function handleAddToWishlist(resultEl, btn) {
   } catch (error) {
     console.error('Error adding to wishlist:', error);
     showToast('Failed to add to wishlist', { type: 'error' });
-    btn.disabled = false;
-    btn.classList.remove('opacity-50');
+  } finally {
+    // Only re-enable if not successfully added to wishlist (pink = success state)
+    if (!btn.classList.contains('text-pink-500')) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+    }
   }
 }
 
@@ -863,64 +865,64 @@ bookForm.addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Checking...';
 
-  // Check for duplicates (unless already bypassed)
-  if (!duplicateCheckBypassed) {
-    try {
-      const { isDuplicate, matchType, existingBook } = await checkForDuplicate(
-        currentUser.uid, isbn, title, author
-      );
-
-      if (isDuplicate) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Add Anyway';
-        // Visual distinction: amber/warning styling for override action
-        submitBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
-        submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
-        duplicateCheckBypassed = true;
-
-        const matchDesc = matchType === 'isbn'
-          ? `A book with ISBN "${isbn}" already exists`
-          : `"${existingBook.title}" by ${existingBook.author} already exists`;
-
-        showToast(`${matchDesc}. Click "Add Anyway" to add duplicate.`, { type: 'error', duration: 5000 });
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking for duplicates:', error);
-      // Continue with add if duplicate check fails
-    }
-  }
-
-  submitBtn.textContent = 'Adding...';
-
-  // Get selected genres from picker
-  const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
-
-  // Get selected series from picker
-  const selectedSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: null, position: null };
-
-  const bookData = {
-    title,
-    author,
-    coverImageUrl: coverUrlInput.value.trim(),
-    covers: coverPicker && coverPicker.hasCovers() ? coverPicker.getCovers() : null,
-    rating: ratingInput ? ratingInput.getValue() : null,
-    notes: notesInput.value.trim(),
-    isbn,
-    genres: selectedGenres,
-    publisher: publisherInput.value.trim(),
-    publishedDate: publishedDateInput.value.trim(),
-    physicalFormat: physicalFormatInput.value.trim(),
-    pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
-    seriesId: selectedSeries.seriesId,
-    seriesPosition: selectedSeries.position,
-    images: imageGallery ? imageGallery.getImages() : [],
-    reads: [], // Reading status inferred from reads array
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  };
-
   try {
+    // Check for duplicates (unless already bypassed)
+    if (!duplicateCheckBypassed) {
+      try {
+        const { isDuplicate, matchType, existingBook } = await checkForDuplicate(
+          currentUser.uid, isbn, title, author
+        );
+
+        if (isDuplicate) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Add Anyway';
+          // Visual distinction: amber/warning styling for override action
+          submitBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
+          submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+          duplicateCheckBypassed = true;
+
+          const matchDesc = matchType === 'isbn'
+            ? `A book with ISBN "${isbn}" already exists`
+            : `"${existingBook.title}" by ${existingBook.author} already exists`;
+
+          showToast(`${matchDesc}. Click "Add Anyway" to add duplicate.`, { type: 'error', duration: 5000 });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking for duplicates:', error);
+        // Continue with add if duplicate check fails
+      }
+    }
+
+    submitBtn.textContent = 'Adding...';
+
+    // Get selected genres from picker
+    const selectedGenres = genrePicker ? genrePicker.getSelected() : [];
+
+    // Get selected series from picker
+    const selectedSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: null, position: null };
+
+    const bookData = {
+      title,
+      author,
+      coverImageUrl: coverUrlInput.value.trim(),
+      covers: coverPicker && coverPicker.hasCovers() ? coverPicker.getCovers() : null,
+      rating: ratingInput ? ratingInput.getValue() : null,
+      notes: notesInput.value.trim(),
+      isbn,
+      genres: selectedGenres,
+      publisher: publisherInput.value.trim(),
+      publishedDate: publishedDateInput.value.trim(),
+      physicalFormat: physicalFormatInput.value.trim(),
+      pageCount: pageCountInput.value ? parseInt(pageCountInput.value, 10) : null,
+      seriesId: selectedSeries.seriesId,
+      seriesPosition: selectedSeries.position,
+      images: imageGallery ? imageGallery.getImages() : [],
+      reads: [], // Reading status inferred from reads array
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     await addDoc(booksRef, bookData);
 
@@ -954,15 +956,15 @@ bookForm.addEventListener('submit', async (e) => {
   } catch (error) {
     console.error('Error adding book:', error);
     showToast('Error adding book', { type: 'error' });
+  } finally {
+    // Always re-enable button (redirect handles success case)
     submitBtn.disabled = false;
     if (duplicateCheckBypassed) {
       submitBtn.textContent = 'Add Anyway';
-      // Keep amber styling for bypass mode
       submitBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
       submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
     } else {
       submitBtn.textContent = 'Add Book';
-      // Ensure default styling
       submitBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
       submitBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
     }
