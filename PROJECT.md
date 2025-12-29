@@ -223,6 +223,7 @@ firebase deploy --only functions:cleanupOrphanedImages
 | TBR Stack | To-be-read with random pick | 6 (half) |
 | Author Spotlight | Featured author's books | 12 (full) |
 | Reading Calendar | Activity heatmap | 12 (full) |
+| Uploaded Images | Gallery of user-uploaded book photos | 12 (full) |
 
 ---
 
@@ -401,6 +402,416 @@ firebase deploy --only functions:cleanupOrphanedImages
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
 - [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
 - [ ] Audit: Check disabled buttons remain disabled until required (site-wide)
+
+---
+
+## Public Frontend (Marketing Site)
+
+Currently, non-logged-in users see minimal content. Need a proper marketing frontend to attract new users.
+
+### Current State
+- `/` - Redirects to `/books/` (requires login) or shows login prompt
+- `/login/` - Login/register form
+- `/privacy/` - Privacy policy (public)
+- No features page, screenshots, or promotional content
+
+### Proposed Pages
+
+| Page | Purpose | Content |
+|------|---------|---------|
+| **Landing** `/` | First impression, conversion | Hero, value prop, screenshots, CTA |
+| **Features** `/features/` | Detailed feature showcase | Feature grid, comparisons, screenshots |
+| **About** `/about/` | Story, mission, differentiators | Why we built it, privacy focus |
+| **Pricing** `/pricing/` | If monetising | Free tier, premium features |
+
+### Landing Page Elements
+- [ ] Hero section with tagline and primary CTA
+- [ ] App screenshots/mockups (mobile + desktop)
+- [ ] Key features grid (3-6 highlights)
+- [ ] Social proof (if available - user count, testimonials)
+- [ ] "No tracking, no ads" privacy message
+- [ ] Secondary CTA (learn more → features page)
+- [ ] Footer with links (privacy, about, login)
+
+### Differentiators to Highlight
+- **Privacy-first**: No tracking, no ads, no data selling
+- **Offline-capable**: PWA works without internet
+- **Book bin**: 30-day soft delete (unique feature)
+- **Multiple images**: Up to 10 photos per book
+- **Series tracking**: With completion progress
+- **Import/export**: Own your data
+
+### Competitor Landing Pages (Reference)
+| App | Style | Notable Elements |
+|-----|-------|------------------|
+| StoryGraph | Clean, friendly | Stats preview, mood tracking pitch |
+| Literal | Minimalist | Quote-focused, social features |
+| Hardcover | Modern, polished | Feature comparison table |
+| Oku | Ultra-minimal | Single hero, immediate signup |
+
+### Technical Considerations
+- Static pages (no auth required)
+- SEO optimised (meta tags, structured data)
+- Fast loading (minimal JS)
+- Mobile-responsive
+- Separate from app chrome (no header menu)
+
+### Implementation Priority
+1. Landing page (essential for discoverability)
+2. Features page (for users wanting details)
+3. About page (builds trust)
+4. Pricing page (only if monetising)
+
+---
+
+## Demo Account & Monetisation
+
+### Demo Account Options
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Shared read-only demo** | Simple, no signup friction | Can't test adding books, stale data |
+| **Personal sandbox** | Full experience, isolated | Needs cleanup job, storage costs |
+| **Interactive tour** | Guided, no real data | Complex to build, not "real" |
+| **Time-limited trial** | Full features, urgency | Annoying, may lose users |
+
+**Recommendation:** Shared demo account with curated library (50-100 books). Read-only by default, or reset nightly if allowing writes.
+
+### Demo Account Implementation
+- [ ] Create demo user in Firebase Auth (demo@mybookshelf.app)
+- [ ] Pre-populate with diverse library (various genres, series, ratings)
+- [ ] "Try Demo" button on landing page (auto-login as demo user)
+- [ ] Banner when logged in as demo: "This is a demo. Sign up to save your own books."
+- [ ] Restrict destructive actions in demo mode (delete account, empty bin)
+- [ ] Optional: Nightly Cloud Function to reset demo data
+
+### Monetisation Models
+
+| Model | Description | Competitors Using |
+|-------|-------------|-------------------|
+| **Freemium** | Core free, premium features paid | StoryGraph, Literal |
+| **Pay once** | One-time purchase, lifetime access | BookTrack (iOS) |
+| **Subscription** | Monthly/annual recurring | Goodreads (ad-free) |
+| **Donation/tip** | Free with optional support | Oku |
+| **Usage-based** | Free tier with limits | — |
+
+### Potential Premium Features
+| Feature | Free Tier | Premium |
+|---------|-----------|---------|
+| Books | 100 books | Unlimited |
+| Images per book | 3 | 10 |
+| Storage | 100MB | 5GB |
+| Export formats | JSON only | JSON, CSV, Goodreads |
+| Reading stats | Basic | Advanced + charts |
+| Backups | Manual | Automatic daily |
+| Series tracking | ✓ | ✓ |
+| Offline mode | ✓ | ✓ |
+
+### Payment Integration
+- **Stripe** - Industry standard, good docs, handles subscriptions
+- **Paddle** - Handles VAT/tax for international (simpler compliance)
+- **RevenueCat** - If adding native mobile apps later
+
+### Implementation Considerations
+- [ ] User record: `isPremium`, `premiumUntil`, `stripeCustomerId`
+- [ ] Feature flags: Check premium status before allowing action
+- [ ] Graceful degradation: Don't break existing data if subscription lapses
+- [ ] Trial period: 14-day free trial of premium?
+- [ ] Upgrade prompts: Non-annoying, contextual (e.g., "Upgrade for more images")
+
+### Pricing Research (Competitors)
+| App | Free | Paid | Model |
+|-----|------|------|-------|
+| StoryGraph | Yes (limited stats) | $4.99/mo or $49.99/yr | Subscription |
+| Literal | Yes | $5/mo | Subscription |
+| Hardcover | Yes | $5/mo or $50/yr | Subscription |
+| BookTrack | — | $4.99 once (iOS) | One-time |
+
+### UK Legal Considerations
+
+| Legislation | Requirement | Impact |
+|-------------|-------------|--------|
+| **UK GDPR / Data Protection Act 2018** | Privacy policy, consent, data rights | Already compliant ✓ |
+| **Consumer Rights Act 2015** | Digital content must be as described, fit for purpose | Clear feature descriptions |
+| **Consumer Contracts Regulations 2013** | 14-day cooling-off period for online purchases | Must offer refunds within 14 days |
+| **VAT (digital services)** | 20% VAT on UK sales; VAT MOSS for EU | Use Paddle/Stripe Tax to handle |
+| **Electronic Commerce Regulations 2002** | Business details, clear pricing, order confirmation | Footer with business info |
+| **Payment Services Regulations 2017** | If handling payments directly | Use Stripe/Paddle (they're regulated) |
+
+**Practical Steps:**
+- [ ] Terms of Service page (subscription terms, cancellation, refunds)
+- [ ] Clear pricing with VAT included (or clearly marked "+ VAT")
+- [ ] Business name/address in footer (or link to About page)
+- [ ] Order confirmation emails via payment provider
+- [ ] Easy cancellation process (can't make it harder than signup)
+- [ ] Consider Paddle over Stripe (Paddle is Merchant of Record, handles VAT compliance)
+
+**VAT Thresholds (2024):**
+- UK VAT registration required if turnover > £85,000/year
+- Below threshold: Can still voluntarily register
+- Using Paddle: They handle VAT as Merchant of Record (simplest option)
+
+### Decision Points
+1. **Monetise at all?** Could stay free/donation-based
+2. **What to gate?** Must not punish early adopters
+3. **Pricing?** $3-5/mo or $30-50/yr seems standard
+4. **When to implement?** After user base established?
+5. **Payment provider?** Paddle (handles UK/EU VAT) vs Stripe (more control)
+
+---
+
+## Other Considerations
+
+### Growth & Marketing
+| Channel | Effort | Cost | Notes |
+|---------|--------|------|-------|
+| **SEO/Content** | High | Free | Blog posts, book lists, reading tips |
+| **Reddit/forums** | Medium | Free | r/books, r/52book, book communities |
+| **Product Hunt** | Low | Free | One-time launch boost |
+| **Word of mouth** | Low | Free | Referral program? |
+| **Social media** | High | Free | Ongoing effort required |
+| **Paid ads** | Low | $$ | Google/Meta ads (expensive for niche) |
+
+### Privacy-Respecting Analytics
+Since we don't track users, how to measure success?
+- **Aggregate Firebase counts**: Total users, total books (no PII)
+- **Plausible/Fathom**: Privacy-friendly, GDPR compliant, ~$9/mo
+- **Self-hosted Umami**: Free, open source, own your data
+- **None**: Just track signups and trust the product
+
+### User Feedback & Support
+- [ ] Feedback form in-app (Settings → Send Feedback)
+- [ ] GitHub Issues for bug reports (if open source)
+- [ ] Email support (support@mybookshelf.app)
+- [ ] In-app changelog with "What's New" prompt
+- [ ] Feature voting board? (Canny, Nolt, or simple Google Form)
+
+### Native Mobile Apps
+| Option | Pros | Cons |
+|--------|------|------|
+| **PWA only** | Single codebase, no app store fees | No push notifications (iOS), less "native" feel |
+| **Capacitor wrapper** | Reuse web code, app store presence | Still web-based, limited native APIs |
+| **React Native** | True native, good performance | Separate codebase, more maintenance |
+| **Flutter** | Cross-platform, fast | Learn Dart, separate codebase |
+
+**Recommendation**: Stay PWA for now. Consider Capacitor wrapper if app store presence becomes important.
+
+### Apple App Store Considerations
+If going native iOS:
+- 30% cut on subscriptions (15% after year 1 for small developers <$1M)
+- Must use Apple In-App Purchase for digital goods
+- Review process can reject/delay releases
+- "Reader apps" exception may apply (content purchased elsewhere)
+
+### Import/Export & Portability
+Key for user trust and reducing lock-in:
+- [x] Export to JSON (implemented)
+- [ ] Export to CSV
+- [ ] Export to Goodreads format
+- [ ] Import from Goodreads CSV
+- [ ] Import from StoryGraph
+- [ ] Import from LibraryThing
+- [ ] Import from JSON backup
+
+### Open Source?
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Fully open** | Community contributions, trust | Competitors can copy, harder to monetise |
+| **Open core** | Core open, premium closed | Complex to manage |
+| **Source available** | Visible but not OSS license | Limited community benefit |
+| **Closed** | Full control, easier monetisation | Less trust, no contributions |
+
+### Disaster Recovery
+- Firebase handles backups automatically
+- [ ] Document manual restore process
+- [ ] Test restore from backup periodically
+- [ ] Consider multi-region for high availability (cost increase)
+
+### Competition Risk
+What if Goodreads/Amazon adds our differentiating features?
+- **Mitigation**: Focus on privacy (Amazon won't), niche features, community
+- **Moat**: Data portability (easy to leave = easy to stay), no lock-in
+
+### Beta/Early Adopter Program
+- [ ] Invite-only beta before public launch?
+- [ ] Early adopter perks (lifetime discount, founder badge)
+- [ ] Feedback loop with beta users
+
+### Internationalisation (i18n)
+
+**Current State:** English only, British English for UI text.
+
+**What Needs Localising:**
+| Content Type | Complexity | Notes |
+|--------------|------------|-------|
+| UI text (buttons, labels) | Medium | ~200-500 strings |
+| Error messages | Medium | Validation, toasts |
+| Date formatting | Low | Use `Intl.DateTimeFormat` |
+| Number formatting | Low | Use `Intl.NumberFormat` |
+| Currency (payments) | Low | Handled by Stripe/Paddle |
+| Book metadata | N/A | User-entered, stays as-is |
+| Email templates | Medium | If sending transactional emails |
+
+**Technical Implementation Options:**
+| Library | Size | Notes |
+|---------|------|-------|
+| **i18next** | ~40KB | Industry standard, many plugins |
+| **FormatJS/react-intl** | ~30KB | React-focused, ICU format |
+| **Lit Localize** | ~5KB | Lightweight, build-time |
+| **DIY JSON** | 0KB | Simple key-value, no plurals |
+| **Browser Intl API** | 0KB | Built-in, dates/numbers only |
+
+**Recommended Approach:**
+1. Extract strings to JSON files (`/locales/en.json`, `/locales/es.json`)
+2. Use i18next (well-supported, handles plurals, interpolation)
+3. Detect language from browser (`navigator.language`) with manual override
+4. Store preference in user settings
+
+**Language Priority (by potential users):**
+| Language | Speakers | Book Market | Priority |
+|----------|----------|-------------|----------|
+| English | 1.5B | Largest | ✅ Current |
+| Spanish | 550M | Large | High |
+| German | 130M | Strong book culture | High |
+| French | 280M | Strong book culture | High |
+| Portuguese | 260M | Growing | Medium |
+| Japanese | 125M | Huge manga/book market | Medium |
+| Chinese | 1.1B | Complex (simplified/traditional) | Low (complexity) |
+| Arabic | 420M | RTL support needed | Low (complexity) |
+
+**RTL (Right-to-Left) Considerations:**
+- Arabic, Hebrew, Farsi need RTL layout
+- Tailwind has `rtl:` variant for RTL-specific styles
+- Significant CSS work, defer unless targeting these markets
+
+**Implementation Checklist:**
+- [ ] Audit all hardcoded strings in `.njk` and `.js` files
+- [ ] Set up i18next with JSON locale files
+- [ ] Add language selector (Settings or footer)
+- [ ] Store language preference in user profile
+- [ ] Handle pluralisation (`1 book` vs `2 books`)
+- [ ] Format dates/numbers with `Intl` API
+- [ ] Consider professional translation vs community/AI
+
+**Translation Management:**
+| Service | Cost | Notes |
+|---------|------|-------|
+| **Crowdin** | Free for open source | Community translations |
+| **Lokalise** | $120/mo+ | Professional, integrations |
+| **Phrase** | $25/mo+ | Good for small teams |
+| **POEditor** | Free tier | Simple, affordable |
+| **Google Translate API** | Pay per character | For initial drafts only |
+| **DeepL API** | €5/mo+ | Higher quality than Google |
+| **Community volunteers** | Free | Slow, inconsistent quality |
+
+**Recommendation:** Start English-only. Add i18n infrastructure when expanding to new markets. Spanish/German/French are highest ROI for European book readers.
+
+### Accessibility Legal Requirements
+
+| Legislation | Region | Requirement |
+|-------------|--------|-------------|
+| **Equality Act 2010** | UK | Services must be accessible to disabled users |
+| **European Accessibility Act** | EU | Digital services must meet EN 301 549 by June 2025 |
+| **ADA Title III** | US | Websites as "places of public accommodation" |
+| **WCAG 2.1 AA** | Standard | Target level for compliance |
+
+**Current Status:** Basic accessibility implemented (see CLAUDE.md checklist).
+- [ ] Run automated audit (axe-core, Lighthouse)
+- [ ] Manual screen reader testing (VoiceOver, NVDA)
+- [ ] Keyboard-only navigation test
+- [ ] Add accessibility statement page
+
+### Monitoring & Error Tracking
+
+| Service | Cost | Notes |
+|---------|------|-------|
+| **Sentry** | Free tier (5K errors/mo) | Error tracking, stack traces |
+| **LogRocket** | Free tier | Session replay, debugging |
+| **Firebase Crashlytics** | Free | Mobile-focused but works for web |
+| **Uptime Robot** | Free tier | Uptime monitoring, alerts |
+| **Better Uptime** | Free tier | Status page included |
+
+**Recommended:** Sentry (free tier) + Uptime Robot for basics.
+
+### Security Hardening
+
+- [x] HTTPS everywhere (Netlify handles)
+- [x] Firestore security rules (user can only access own data)
+- [ ] Content Security Policy headers
+- [ ] Rate limiting on auth endpoints (Firebase handles some)
+- [ ] Security headers audit (securityheaders.com)
+- [ ] Dependency vulnerability scanning (npm audit in CI)
+- [ ] Consider penetration testing before public launch
+
+### Domain & Branding
+
+- [ ] Secure domain (mybookshelf.app, mybookshelf.co.uk?)
+- [ ] Logo design (simple book icon?)
+- [ ] Favicon and PWA icons (multiple sizes)
+- [ ] Open Graph images for social sharing
+- [ ] Brand colours (already have primary blue)
+- [ ] Email domain (hello@mybookshelf.app)
+
+### Legal Entity (UK)
+
+| Structure | Pros | Cons |
+|-----------|------|------|
+| **Sole Trader** | Simple, cheap, private | Personal liability, less credible |
+| **Ltd Company** | Limited liability, tax efficient | Admin, public accounts, £50/yr |
+| **LLP** | Flexible, limited liability | Needs 2+ partners |
+
+**Recommendation:** Start as sole trader. Incorporate Ltd if revenue exceeds ~£30-40K or wanting investment.
+
+### Insurance
+
+| Type | Coverage | Cost |
+|------|----------|------|
+| **Professional Indemnity** | Errors, bad advice | ~£100-200/yr |
+| **Cyber Liability** | Data breaches, hacks | ~£150-300/yr |
+| **Public Liability** | If meeting users in person | ~£50-100/yr |
+
+**Recommendation:** Professional indemnity at minimum if charging users.
+
+### Scalability Checkpoints
+
+| Users | Concerns | Actions |
+|-------|----------|---------|
+| **100** | Nothing | Current setup fine |
+| **1,000** | Firebase free tier limits | Monitor usage |
+| **10,000** | Firestore reads, Storage bandwidth | Optimize caching, consider paid tier |
+| **100,000** | Performance, search speed | Algolia search, CDN for images |
+| **1,000,000** | Everything | Major architecture review |
+
+### User Documentation
+
+- [ ] Getting started guide
+- [ ] FAQ page
+- [ ] Feature documentation (how to use series, genres, etc.)
+- [ ] Video tutorials? (YouTube, Loom)
+- [ ] In-app tooltips/onboarding tour
+
+### Book Cover Copyright
+
+Book covers are copyrighted by publishers. Current approach:
+- Linking to Google Books / Open Library URLs (not hosting)
+- User uploads are user's responsibility
+- **Risk:** Low for personal use app, higher if displaying publicly
+- **Mitigation:** Terms of service disclaimer, don't scrape/redistribute
+
+### Email Deliverability (if sending emails)
+
+- [ ] Use transactional email service (SendGrid, Postmark, Resend)
+- [ ] Set up SPF, DKIM, DMARC records
+- [ ] Warm up sending domain gradually
+- [ ] Keep emails relevant (avoid spam triggers)
+- [ ] Easy unsubscribe
+
+### Rate Limiting & Abuse Prevention
+
+- Firebase Auth has built-in rate limiting
+- [ ] Consider Cloudflare for DDoS protection (free tier)
+- [ ] Monitor for spam account creation
+- [ ] CAPTCHA on registration? (hurts UX, defer unless needed)
 
 ---
 
@@ -603,9 +1014,37 @@ Uses last word of author name (e.g., "Stephen King" → "King").
 - Future: Store separate `authorSurname` field
 
 ### Reading Stats Data Model
-Available per book: `pageCount`, `reads[]`, `rating`, `genres[]`, `createdAt`
 
-Can calculate: Total books/pages, books per month, genre distribution, reading streaks, average completion time.
+**Current Data Quality:**
+| Data | Field | Quality |
+|------|-------|---------|
+| Start/finish dates | `reads[].startedAt/finishedAt` | ✅ Good |
+| Page count | `pageCount` | ⚠️ Often missing |
+| Rating | `rating` (1-5) | ✅ Good |
+| Genres | `genres[]` | ✅ Good |
+| Author | `author` | ✅ Good |
+| Format | `physicalFormat` | ⚠️ Often missing |
+| Published date | `publishedDate` | ⚠️ Inconsistent format |
+
+**Stats We Can Calculate Now:**
+- ✅ Books read per year/month/week
+- ✅ Pages read (where pageCount exists)
+- ✅ Rating distribution chart
+- ✅ Genre breakdown
+- ✅ Author breakdown
+- ✅ Basic reading streaks (consecutive finish dates)
+- ✅ Average book length, average rating
+
+**Competitor Features We're Missing (StoryGraph, Goodreads):**
+| Feature | What We'd Need |
+|---------|----------------|
+| Reading goals | New `readingGoals` user setting |
+| Daily progress tracking | New `currentPage` field + daily logs |
+| Reading pace (pages/day) | Daily progress tracking |
+| DNF (Did Not Finish) | Add DNF status to reads array |
+| Mood/pacing tags | Additional content metadata |
+
+**Conclusion:** Sufficient data for basic Reading Stats widget (books/pages this year, rating distribution, genre breakdown). Advanced features like reading pace and goals would require schema changes.
 
 ---
 
