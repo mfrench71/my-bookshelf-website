@@ -1451,9 +1451,13 @@ function openFilterSheet() {
       rating: ratingFilter,
       genres: genreFilters,
       statuses: statusFilters,
-      seriesIds: seriesFilters
+      seriesIds: seriesFilters,
+      author: authorFilter
     });
   }
+
+  // Update counts to ensure they're fresh when sheet opens
+  updateFilterCounts();
 
   filterSheet.classList.remove('hidden');
   lockBodyScroll();

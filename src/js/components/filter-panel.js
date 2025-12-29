@@ -118,7 +118,7 @@ export class FilterPanel {
         <!-- Status: Checkboxes -->
         <div class="filter-group">
           <span class="block text-sm font-semibold text-gray-900 mb-2">Status</span>
-          <div class="space-y-3 pr-1 status-checkboxes">
+          <div class="space-y-3 pr-3 status-checkboxes">
             <label for="filter-status-reading-${this.instanceId}" class="flex items-center justify-between cursor-pointer">
               <span class="filter-label text-sm text-gray-900">Reading</span>
               <span class="flex items-center gap-3">
@@ -165,7 +165,7 @@ export class FilterPanel {
         <!-- Genre: Checkboxes (scrollable if many) -->
         <div class="filter-group">
           <label class="block text-sm font-semibold text-gray-900 mb-2">Genre</label>
-          <div class="space-y-3 max-h-48 overflow-y-auto pr-1 genre-checkboxes">
+          <div class="space-y-3 max-h-48 overflow-y-auto pr-3 genre-checkboxes">
             <!-- Dynamically populated -->
           </div>
         </div>
@@ -180,7 +180,7 @@ export class FilterPanel {
         <div class="secondary-filters ${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
           <div class="filter-group">
             <label class="block text-sm font-semibold text-gray-900 mb-2">Series</label>
-            <div class="space-y-3 max-h-48 overflow-y-auto pr-1 series-checkboxes">
+            <div class="space-y-3 max-h-48 overflow-y-auto pr-3 series-checkboxes">
               <!-- Dynamically populated -->
             </div>
           </div>
