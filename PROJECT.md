@@ -189,6 +189,49 @@ firebase deploy --only functions:cleanupOrphanedImages
 2. `pagehide` event listener - Best-effort cleanup on navigation
 3. Maintenance page "Scan for Orphaned Images" - Manual user-triggered cleanup
 
+#### Image Duplicate Detection (Future Enhancement)
+
+Prevent users uploading the same image twice per book using content hashing.
+
+**Detection Methods:**
+| Method | How It Works | Pros | Cons |
+|--------|--------------|------|------|
+| **Content hash (SHA-256)** | Hash file bytes with Web Crypto API | Fast, exact match | Won't catch resized/recompressed |
+| **Canvas fingerprint** | Draw to canvas, hash pixel data | Format-agnostic | Slower, won't catch crops/edits |
+| **Perceptual hash (pHash)** | Hash visual features | Catches similar images | Needs library, complex |
+| **Size + dimensions** | Compare file size & width/height | Very fast | Many false negatives |
+
+**Recommended Approach: Content Hash (SHA-256)**
+
+```javascript
+/**
+ * Generate SHA-256 hash of file content
+ * @param {File} file
+ * @returns {Promise<string>} Hex hash
+ */
+async function hashFile(file) {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Before upload, check if hash exists in book.images
+const hash = await hashFile(file);
+const isDuplicate = book.images.some(img => img.hash === hash);
+if (isDuplicate) {
+  showToast('This image has already been added', { type: 'error' });
+  return;
+}
+```
+
+**Implementation Steps:**
+- [ ] Add `hash` field to ImageSchema
+- [ ] Hash file before compression (original content)
+- [ ] Store hash in image metadata on upload
+- [ ] Check existing hashes before uploading new image
+- [ ] Show user-friendly duplicate message
+
 ---
 
 ## Completed: Widget Dashboard (Sprint 4) ✅
