@@ -36,6 +36,7 @@ let hasMoreFromFirebase = true;
 let isLoading = false;
 let forceServerFetch = false;
 let cachedFilteredBooks = null; // Cache for filtered/sorted results
+let isInitialLoad = true; // Flag to skip rendering during initial load (prevents double render)
 let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
 let genreFilters = []; // Array of selected genre IDs for filtering (multi-select)
@@ -187,8 +188,11 @@ onAuthStateChanged(auth, async (user) => {
       switchToSeriesOrder();
     }
 
-    // Re-render now that all lookups are ready (loadBooks may have rendered before genres/series loaded)
+    // Render now that all data is ready (genres, series, books loaded in parallel)
     renderBooks();
+
+    // Mark initial load as complete (prevents duplicate renders on subsequent loadBooks calls)
+    isInitialLoad = false;
 
     // Mark this as an initial load for visibility refresh cooldown
     setLastRefreshTime();
@@ -340,7 +344,9 @@ async function loadBooks(forceRefresh = false) {
     lastDoc = null;
     hasMoreFromFirebase = false;
     loadingState.classList.add('hidden');
-    renderBooks();
+    // Skip rendering during initial load - let the main init render handle it
+    // This prevents double rendering when genres/series load in parallel
+    if (!isInitialLoad) renderBooks();
     return;
   }
 
@@ -351,7 +357,7 @@ async function loadBooks(forceRefresh = false) {
       lastDoc = null;
       hasMoreFromFirebase = false;
       loadingState.classList.add('hidden');
-      renderBooks();
+      if (!isInitialLoad) renderBooks();
       showToast('Showing cached books (offline)', { type: 'info' });
       return;
     } else {
@@ -380,7 +386,7 @@ async function loadBooks(forceRefresh = false) {
     forceServerFetch = false; // Reset after fetch
 
     loadingState.classList.add('hidden');
-    renderBooks();
+    if (!isInitialLoad) renderBooks();
   } catch (error) {
     console.error('Error loading books:', error);
     loadingState.classList.add('hidden');
@@ -390,7 +396,7 @@ async function loadBooks(forceRefresh = false) {
       books = cached.books;
       lastDoc = null;
       hasMoreFromFirebase = false;
-      renderBooks();
+      if (!isInitialLoad) renderBooks();
       showToast('Using cached books (connection error)', { type: 'info' });
     } else {
       // User-friendly error message instead of raw error
@@ -894,15 +900,42 @@ function renderBooks() {
 
 /**
  * Load more books for infinite scroll
- * Increases displayLimit and re-renders
+ * Appends new books to the list instead of re-rendering entire list
  */
 function loadMore() {
   const filtered = getFilteredBooks();
+  const previousLimit = displayLimit;
 
   // If we have more loaded data to display
   if (displayLimit < filtered.length) {
     displayLimit += BOOKS_PER_PAGE;
-    renderBooks();
+
+    // Get only the new books to append
+    const newBooks = filtered.slice(previousLimit, displayLimit);
+    const hasMoreToDisplay = filtered.length > displayLimit;
+
+    // Remove the old scroll sentinel
+    const oldSentinel = document.getElementById('scroll-sentinel');
+    if (oldSentinel) oldSentinel.remove();
+
+    // Append new book cards
+    const newCardsHtml = newBooks.map(book =>
+      bookCard(book, { showDate: true, genreLookup, seriesLookup })
+    ).join('');
+    bookList.insertAdjacentHTML('beforeend', newCardsHtml);
+
+    // Add new scroll sentinel if more to load
+    if (hasMoreToDisplay) {
+      bookList.insertAdjacentHTML('beforeend', `
+        <div id="scroll-sentinel" class="py-6 flex justify-center">
+          <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      `);
+      const sentinel = document.getElementById('scroll-sentinel');
+      if (sentinel) scrollObserver.observe(sentinel);
+    }
+
+    initIcons();
   }
 }
 
