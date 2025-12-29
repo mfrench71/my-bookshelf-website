@@ -688,10 +688,48 @@ Current add book page shows all lookup methods and full form at once. Proposed p
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
 - [x] Event listener cleanup - Added guards to prevent duplicate listeners (header.js online/offline, books/index.js touch), fixed beforeunload stacking (add.js, edit.js), added destroy() methods to CoverPicker and RatingInput
-- [ ] Split large files: books/index.js (955 lines), books/add.js (848 lines) - Deferred (risk outweighs benefit)
+- [ ] Split large files (see File Size Review below)
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
 - [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
 - [ ] Audit: Check disabled buttons remain disabled until required (site-wide)
+
+### File Size Review (Dec 2025)
+
+Several JS files have grown large and should be considered for refactoring:
+
+| File | Lines | Status | Priority |
+|------|-------|--------|----------|
+| `books/index.js` | 1,688 | ⚠️ Very large | High |
+| `settings/library.js` | 1,118 | ⚠️ Large | Medium |
+| `books/add.js` | 1,011 | ⚠️ Large | Medium |
+| `components/filter-panel.js` | 935 | Borderline | Low |
+| `books/edit.js` | 771 | OK | - |
+| `components/modal.js` | 635 | OK | - |
+| `books/view.js` | 616 | OK | - |
+
+**Recommended Refactoring:**
+
+**1. `books/index.js` (1,688 lines)** - Split into:
+- `books/list-renderer.js` - Book card rendering, infinite scroll
+- `books/filter-logic.js` - Filter state, count calculation, filter application
+- `books/index.js` - Page orchestration only
+
+**2. `settings/library.js` (1,118 lines)** - Split into:
+- `settings/genre-manager.js` - Genre CRUD, merge, colour picker
+- `settings/series-manager.js` - Series CRUD
+- `settings/backup-restore.js` - Export/import logic
+- `settings/library.js` - Page orchestration
+
+**3. `books/add.js` (1,011 lines)** - Split into:
+- `books/barcode-scanner.js` - Quagga setup, camera handling
+- `books/isbn-lookup.js` - API calls, result parsing
+- `books/add.js` - Form handling, page orchestration
+
+**Guidelines for splitting:**
+- Extract pure functions first (no side effects, easy to test)
+- Keep page orchestration in main file (DOM setup, event binding)
+- Each extracted module should have single responsibility
+- Add tests for extracted modules before splitting
 
 ---
 
@@ -1340,4 +1378,4 @@ Uses last word of author name (e.g., "Stephen King" → "King").
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-28
+**Last Updated**: 2025-12-29
