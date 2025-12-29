@@ -6,6 +6,10 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-29
 
+- Fix semantic HTML structure across all templates:
+  - Remove duplicate `<main id="main-content">` elements that conflicted with base.njk
+  - Fix blank book view/edit pages caused by duplicate IDs
+  - Add Semantic HTML section to CLAUDE.md with guidelines
 - Fix mobile filter panel counts not updating when clicking checkboxes:
   - Filter counts now update live as user interacts with mobile bottom sheet
   - Fixed missing author filter sync when opening mobile filter sheet
@@ -16,6 +20,10 @@ All notable changes to MyBookShelf are documented here.
   - Widget loading: crossfade animation when skeleton is replaced with content
   - Navigation menu: backdrop fade animation when opening/closing
   - Search overlay: backdrop blur effect and fade transitions
+  - Page entry: fade-in animation using `.page-content` class
+  - Book cards: stagger animation on initial load using `.card-animate` class
+  - Search results: live result count badge ("12 results")
+  - Toast: tap-to-dismiss functionality with cursor pointer affordance
 
 ---
 

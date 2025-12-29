@@ -404,7 +404,7 @@ Current toasts are functional but basic.
 
 **Mobile Gestures:**
 - [ ] Swipe-to-dismiss on touch devices
-- [ ] Tap anywhere on toast to dismiss early
+- [x] Tap anywhere on toast to dismiss early
 
 **Performance & Loading:**
 - [ ] Toast queue system (stack multiple toasts, don't replace)
@@ -425,8 +425,8 @@ Current toasts are functional but basic.
 Book cards have basic hover states but could feel more premium.
 
 **Transitions & Animations:**
-- [ ] Stagger animation on initial load (cards appear sequentially)
-- [ ] Use existing `.card-animate` class (already defined in CSS)
+- [x] Stagger animation on initial load (cards appear sequentially)
+- [x] Use existing `.card-animate` class (already defined in CSS)
 - [ ] Smooth skeleton→content fade transition
 - [ ] Badge count update animation (brief pulse)
 
@@ -480,7 +480,7 @@ Search works but appears/disappears instantly.
 
 **Visual Polish:**
 - [x] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
-- [ ] Result count badge in header ("12 results")
+- [x] Result count badge in header ("12 results")
 - [ ] Recent searches section (stored in localStorage)
 - [ ] "No results" state with illustration
 
@@ -513,8 +513,8 @@ Mobile menu shows/hides without animation.
 Currently no page entry/exit animations.
 
 **Transitions & Animations:**
-- [ ] Page content fades in on load (use existing `@keyframes pageIn`)
-- [ ] Add `.page-enter` class to main content areas
+- [x] Page content fades in on load (use existing `@keyframes pageIn`)
+- [x] Add `.page-content` class to main content area (in base.njk)
 - [ ] Stagger animation for page sections
 - [ ] Consider View Transitions API for SPA-like feel
 
