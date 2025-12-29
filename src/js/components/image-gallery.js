@@ -160,7 +160,7 @@ export class ImageGallery {
       console.error('Upload error:', error);
       this.uploading.delete(tempId);
       this.render();
-      showToast(error.message || 'Failed to upload image', { type: 'error' });
+      showToast('Failed to upload image. Please try again.', { type: 'error' });
     }
   }
 
