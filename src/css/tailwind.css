@@ -642,6 +642,12 @@ select {
   animation: toastQueueOut 0.15s ease-in forwards;
 }
 
+/* Toast swipe-to-dismiss transitions */
+.toast-item {
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  touch-action: pan-x;
+}
+
 /* Secondary filters collapse/expand animation */
 .secondary-filters {
   overflow: hidden;

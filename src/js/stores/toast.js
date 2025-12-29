@@ -111,14 +111,19 @@ function displayToast(toastData) {
   // Dismiss handlers
   const dismiss = () => dismissToast(toastState);
 
-  // Click to dismiss
-  toast.addEventListener('click', dismiss);
+  // Click to dismiss (only if not swiping)
+  toast.addEventListener('click', (e) => {
+    if (!toastState.isSwiping) dismiss();
+  });
 
   // Pause on hover/focus
   toast.addEventListener('mouseenter', () => pauseToast(toastState));
   toast.addEventListener('mouseleave', () => resumeToast(toastState, duration));
   toast.addEventListener('focus', () => pauseToast(toastState));
   toast.addEventListener('blur', () => resumeToast(toastState, duration));
+
+  // Swipe-to-dismiss (touch devices)
+  setupSwipeToDismiss(toast, toastState, duration);
 
   // Schedule auto-dismiss
   scheduleAutoDismiss(toastState, duration);
@@ -163,6 +168,60 @@ function resumeToast(toastState, originalDuration) {
   toastState.timeout = setTimeout(() => {
     dismissToast(toastState);
   }, remaining);
+}
+
+/**
+ * Set up swipe-to-dismiss gesture for touch devices
+ * @param {HTMLElement} toast - Toast element
+ * @param {Object} toastState - Toast state object
+ * @param {number} duration - Original duration
+ */
+function setupSwipeToDismiss(toast, toastState, duration) {
+  let startX = 0;
+  let currentX = 0;
+  const SWIPE_THRESHOLD = 80; // pixels to trigger dismiss
+
+  toast.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    currentX = startX;
+    toastState.isSwiping = false;
+    toast.style.transition = 'none';
+    pauseToast(toastState);
+  }, { passive: true });
+
+  toast.addEventListener('touchmove', (e) => {
+    currentX = e.touches[0].clientX;
+    const diffX = currentX - startX;
+
+    // Only allow swiping right (positive direction)
+    if (diffX > 10) {
+      toastState.isSwiping = true;
+      toast.style.transform = `translateX(${diffX}px)`;
+      toast.style.opacity = Math.max(0.3, 1 - diffX / 150);
+    }
+  }, { passive: true });
+
+  toast.addEventListener('touchend', () => {
+    const diffX = currentX - startX;
+    toast.style.transition = '';
+
+    if (diffX > SWIPE_THRESHOLD) {
+      // Swipe complete - dismiss with slide out animation
+      toast.style.transform = `translateX(100%)`;
+      toast.style.opacity = '0';
+      setTimeout(() => dismissToast(toastState), 150);
+    } else {
+      // Reset position
+      toast.style.transform = '';
+      toast.style.opacity = '';
+      resumeToast(toastState, duration);
+    }
+
+    // Reset swiping state after a short delay (to prevent click firing)
+    setTimeout(() => {
+      toastState.isSwiping = false;
+    }, 50);
+  }, { passive: true });
 }
 
 /**
