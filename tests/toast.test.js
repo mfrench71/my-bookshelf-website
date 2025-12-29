@@ -34,15 +34,21 @@ describe('Toast Store', () => {
       expect(toast.textContent).toContain('Test message');
     });
 
-    it('should hide toast after default duration', () => {
+    it('should hide toast after default duration plus exit animation', () => {
       showToast('Test message');
       const toast = document.getElementById('toast');
 
-      // Toast should be visible initially
+      // Toast should be visible initially with enter animation
+      expect(toast.classList.contains('hidden')).toBe(false);
+      expect(toast.classList.contains('toast-enter')).toBe(true);
+
+      // After 3000ms (default duration), exit animation starts
+      vi.advanceTimersByTime(3000);
+      expect(toast.classList.contains('toast-exit')).toBe(true);
       expect(toast.classList.contains('hidden')).toBe(false);
 
-      // After 3000ms (default duration), toast should be hidden
-      vi.advanceTimersByTime(3000);
+      // After exit animation (150ms), toast should be hidden
+      vi.advanceTimersByTime(150);
       expect(toast.classList.contains('hidden')).toBe(true);
     });
 
@@ -53,7 +59,10 @@ describe('Toast Store', () => {
       vi.advanceTimersByTime(3000);
       expect(toast.classList.contains('hidden')).toBe(false);
 
+      // Wait for duration (5000ms total) + exit animation (150ms)
       vi.advanceTimersByTime(2000);
+      expect(toast.classList.contains('toast-exit')).toBe(true);
+      vi.advanceTimersByTime(150);
       expect(toast.classList.contains('hidden')).toBe(true);
     });
 
@@ -64,7 +73,10 @@ describe('Toast Store', () => {
       vi.advanceTimersByTime(3000);
       expect(toast.classList.contains('hidden')).toBe(false);
 
+      // Wait for duration (5000ms total) + exit animation (150ms)
       vi.advanceTimersByTime(2000);
+      expect(toast.classList.contains('toast-exit')).toBe(true);
+      vi.advanceTimersByTime(150);
       expect(toast.classList.contains('hidden')).toBe(true);
     });
 
@@ -114,8 +126,13 @@ describe('Toast Store', () => {
       const toast = document.getElementById('toast');
       expect(toast.classList.contains('hidden')).toBe(false);
 
-      // New timeout fires at 1500 + 3000 = 4500ms from start
+      // New timeout fires at 1500 + 3000 = 4500ms from start (exit animation begins)
       vi.advanceTimersByTime(1000);
+      expect(toast.classList.contains('toast-exit')).toBe(true);
+      expect(toast.classList.contains('hidden')).toBe(false);
+
+      // After exit animation (150ms), toast should be hidden
+      vi.advanceTimersByTime(150);
       expect(toast.classList.contains('hidden')).toBe(true);
     });
 

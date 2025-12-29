@@ -299,7 +299,9 @@ if (menuOverlay) {
 }
 
 function openMenu() {
-  menuOverlay?.classList.remove('hidden');
+  // Show overlay with fade animation
+  menuOverlay?.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+  menuOverlay?.classList.add('opacity-100', 'visible', 'pointer-events-auto');
   document.body.style.overflow = 'hidden';
 
   if (isMobileViewport()) {
@@ -328,17 +330,21 @@ function closeMenu() {
     menuPanelMobile?.classList.add('translate-y-full');
     menuPanelMobile.style.transform = ''; // Clear any inline transform from swipe
     document.body.style.overflow = '';
+    // Fade out overlay after panel slides down
     setTimeout(() => {
-      menuOverlay?.classList.add('hidden');
+      menuOverlay?.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
+      menuOverlay?.classList.add('opacity-0', 'invisible', 'pointer-events-none');
     }, 200);
   } else {
     // Desktop: slide out panel to right
     menuPanelDesktop?.classList.remove('translate-x-0');
     menuPanelDesktop?.classList.add('translate-x-full');
     document.body.style.overflow = '';
+    // Fade out overlay after panel slides out
     setTimeout(() => {
       menuPanelDesktop?.classList.add('hidden');
-      menuOverlay?.classList.add('hidden');
+      menuOverlay?.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
+      menuOverlay?.classList.add('opacity-0', 'invisible', 'pointer-events-none');
     }, 200);
   }
 }

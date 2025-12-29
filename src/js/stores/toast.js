@@ -4,6 +4,7 @@ import { escapeHtml, initIcons } from '../utils.js';
 
 // Track toast timeout to clear it when showing a new toast
 let toastTimeout = null;
+let exitTimeout = null;
 
 // Icon names for each toast type
 const TOAST_ICONS = {
@@ -13,7 +14,7 @@ const TOAST_ICONS = {
 };
 
 /**
- * Show a toast notification
+ * Show a toast notification with slide-in animation
  * @param {string} message - The message to display
  * @param {Object} options - Optional settings
  * @param {number} options.duration - Duration in ms (default: 3000)
@@ -31,16 +32,20 @@ export function showToast(message, options = {}) {
     document.body.appendChild(toast);
   }
 
-  // Clear any existing timeout to prevent premature hiding
+  // Clear any existing timeouts
   if (toastTimeout) {
     clearTimeout(toastTimeout);
     toastTimeout = null;
   }
+  if (exitTimeout) {
+    clearTimeout(exitTimeout);
+    exitTimeout = null;
+  }
 
-  // Base classes
+  // Base classes (animation class added separately)
   const baseClasses = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
 
-  // Type-specific colors
+  // Type-specific colours
   const typeClasses = {
     success: 'bg-green-600 text-white',
     error: 'bg-red-600 text-white',
@@ -49,17 +54,26 @@ export function showToast(message, options = {}) {
 
   const icon = TOAST_ICONS[type] || TOAST_ICONS.info;
 
-  toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info}`;
+  // Set classes with enter animation
+  toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info} toast-enter`;
   toast.innerHTML = `
     <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
     <span>${escapeHtml(message)}</span>
   `;
 
-  // Initialize the icon
+  // Initialise the icon
   initIcons(toast);
 
+  // Schedule exit animation after duration
   toastTimeout = setTimeout(() => {
-    toast.classList.add('hidden');
+    toast.classList.remove('toast-enter');
+    toast.classList.add('toast-exit');
     toastTimeout = null;
+
+    // Hide completely after exit animation (150ms)
+    exitTimeout = setTimeout(() => {
+      toast.classList.add('hidden');
+      exitTimeout = null;
+    }, 150);
   }, duration);
 }

@@ -594,13 +594,20 @@ describe('showToast', () => {
     expect(toast.className).toContain('bg-gray-800');
   });
 
-  it('should hide after duration', () => {
+  it('should hide after duration plus exit animation', () => {
     showToast('Temporary', { duration: 1000 });
     const toast = document.getElementById('toast');
 
     expect(toast.classList.contains('hidden')).toBe(false);
+    expect(toast.classList.contains('toast-enter')).toBe(true);
 
+    // After duration, exit animation starts
     vi.advanceTimersByTime(1000);
+    expect(toast.classList.contains('toast-exit')).toBe(true);
+    expect(toast.classList.contains('hidden')).toBe(false);
+
+    // After exit animation (150ms), hidden is applied
+    vi.advanceTimersByTime(150);
     expect(toast.classList.contains('hidden')).toBe(true);
   });
 
@@ -611,7 +618,13 @@ describe('showToast', () => {
     vi.advanceTimersByTime(1999);
     expect(toast.classList.contains('hidden')).toBe(false);
 
+    // After duration, exit animation starts
     vi.advanceTimersByTime(1);
+    expect(toast.classList.contains('toast-exit')).toBe(true);
+    expect(toast.classList.contains('hidden')).toBe(false);
+
+    // After exit animation (150ms), hidden is applied
+    vi.advanceTimersByTime(150);
     expect(toast.classList.contains('hidden')).toBe(true);
   });
 });

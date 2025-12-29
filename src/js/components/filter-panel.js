@@ -177,7 +177,7 @@ export class FilterPanel {
         </button>
 
         <!-- Secondary Filters (collapsible) -->
-        <div class="secondary-filters ${hasActiveSecondaryFilter ? '' : 'hidden'} space-y-4">
+        <div class="secondary-filters ${hasActiveSecondaryFilter ? 'expanded' : 'collapsed'} space-y-4">
           <div class="filter-group">
             <label class="block text-sm font-semibold text-gray-900 mb-2">Series</label>
             <div class="space-y-3 max-h-48 overflow-y-auto pr-3 series-checkboxes">
@@ -330,22 +330,25 @@ export class FilterPanel {
   }
 
   /**
-   * Toggle secondary filters visibility
+   * Toggle secondary filters visibility with smooth height transition
    */
   toggleSecondaryFilters() {
-    const isHidden = this.elements.secondaryFilters.classList.contains('hidden');
-    this.elements.secondaryFilters.classList.toggle('hidden');
+    const isCollapsed = this.elements.secondaryFilters.classList.contains('collapsed');
+
+    // Toggle between collapsed and expanded states
+    this.elements.secondaryFilters.classList.toggle('collapsed', !isCollapsed);
+    this.elements.secondaryFilters.classList.toggle('expanded', isCollapsed);
 
     // Update toggle button text
     const text = this.elements.moreFiltersToggle.querySelector('span');
     if (text) {
-      text.textContent = isHidden ? 'Less' : 'More';
+      text.textContent = isCollapsed ? 'Less' : 'More';
     }
 
     // Update icon rotation (find svg or i element)
     const icon = this.elements.moreFiltersToggle.querySelector('svg, i');
     if (icon) {
-      icon.classList.toggle('rotate-180', isHidden);
+      icon.classList.toggle('rotate-180', isCollapsed);
     }
   }
 

@@ -10,6 +10,12 @@ All notable changes to MyBookShelf are documented here.
   - Filter counts now update live as user interacts with mobile bottom sheet
   - Fixed missing author filter sync when opening mobile filter sheet
   - Add tests for filter count calculation with override support
+- Add UX polish animations and transitions:
+  - Toast notifications: slide-in from bottom (mobile) / right (desktop) with fade-out animation
+  - Filter panel: smooth height transition when expanding/collapsing secondary filters
+  - Widget loading: crossfade animation when skeleton is replaced with content
+  - Navigation menu: backdrop fade animation when opening/closing
+  - Search overlay: backdrop blur effect and fade transitions
 
 ---
 

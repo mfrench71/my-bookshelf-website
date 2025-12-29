@@ -605,33 +605,36 @@ describe('FilterPanel', () => {
       expect(toggleBtn.textContent).toContain('More');
     });
 
-    it('should hide secondary filters by default', () => {
+    it('should collapse secondary filters by default', () => {
       const panel = new FilterPanel({ container });
 
       const secondaryFilters = container.querySelector('.secondary-filters');
-      expect(secondaryFilters.classList.contains('hidden')).toBe(true);
+      expect(secondaryFilters.classList.contains('collapsed')).toBe(true);
+      expect(secondaryFilters.classList.contains('expanded')).toBe(false);
     });
 
-    it('should show secondary filters when toggle is clicked', () => {
+    it('should expand secondary filters when toggle is clicked', () => {
       const panel = new FilterPanel({ container });
 
       const toggleBtn = container.querySelector('.toggle-more-filters');
       toggleBtn.click();
 
       const secondaryFilters = container.querySelector('.secondary-filters');
-      expect(secondaryFilters.classList.contains('hidden')).toBe(false);
+      expect(secondaryFilters.classList.contains('expanded')).toBe(true);
+      expect(secondaryFilters.classList.contains('collapsed')).toBe(false);
       expect(toggleBtn.textContent).toContain('Less');
     });
 
-    it('should hide secondary filters when toggle is clicked again', () => {
+    it('should collapse secondary filters when toggle is clicked again', () => {
       const panel = new FilterPanel({ container });
 
       const toggleBtn = container.querySelector('.toggle-more-filters');
-      toggleBtn.click(); // Show
-      toggleBtn.click(); // Hide
+      toggleBtn.click(); // Expand
+      toggleBtn.click(); // Collapse
 
       const secondaryFilters = container.querySelector('.secondary-filters');
-      expect(secondaryFilters.classList.contains('hidden')).toBe(true);
+      expect(secondaryFilters.classList.contains('collapsed')).toBe(true);
+      expect(secondaryFilters.classList.contains('expanded')).toBe(false);
       expect(toggleBtn.textContent).toContain('More');
     });
 
@@ -644,7 +647,8 @@ describe('FilterPanel', () => {
       });
 
       const secondaryFilters = container.querySelector('.secondary-filters');
-      expect(secondaryFilters.classList.contains('hidden')).toBe(false);
+      expect(secondaryFilters.classList.contains('expanded')).toBe(true);
+      expect(secondaryFilters.classList.contains('collapsed')).toBe(false);
 
       const toggleBtn = container.querySelector('.toggle-more-filters');
       expect(toggleBtn.textContent).toContain('Less');

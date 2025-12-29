@@ -565,6 +565,68 @@ select {
   transition: opacity 0.15s ease-in;
 }
 
+/* Toast slide-in animations */
+@keyframes toastSlideInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toastSlideInBottom 0.25s ease-out forwards;
+}
+
+@media (min-width: 640px) {
+  .toast-enter {
+    animation: toastSlideInRight 0.25s ease-out forwards;
+  }
+}
+
+.toast-exit {
+  animation: toastFadeOut 0.15s ease-in forwards;
+}
+
+/* Secondary filters collapse/expand animation */
+.secondary-filters {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.secondary-filters.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.secondary-filters.expanded {
+  max-height: 500px; /* Generous max to accommodate content */
+  opacity: 1;
+}
+
 /* Respect user preference for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -965,4 +1027,20 @@ button, a {
 .widget-skeleton .skeleton-book-author {
   height: 0.625rem;
   width: 70%;
+}
+
+/* Widget crossfade transition (skeleton → content) */
+@keyframes widgetFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.widget-grid.fade-in {
+  animation: widgetFadeIn 0.2s ease-out forwards;
 }

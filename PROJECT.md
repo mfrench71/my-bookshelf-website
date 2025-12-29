@@ -397,10 +397,10 @@ Current lightbox is functional but needs polish for a premium feel.
 Current toasts are functional but basic.
 
 **Transitions & Animations:**
-- [ ] Add type icons (checkmark for success, X for error, info circle for info)
-- [ ] Smooth slide-in from bottom (mobile) / right (desktop)
+- [x] Add type icons (checkmark for success, X for error, info circle for info)
+- [x] Smooth slide-in from bottom (mobile) / right (desktop)
 - [ ] Progress bar showing time remaining
-- [ ] Fade out animation on dismiss
+- [x] Fade out animation on dismiss
 
 **Mobile Gestures:**
 - [ ] Swipe-to-dismiss on touch devices
@@ -412,8 +412,8 @@ Current toasts are functional but basic.
 - [ ] Auto-dismiss pauses on hover/focus
 
 **Visual Polish:**
-- [ ] Icon indicators per type (Lucide: `check-circle`, `x-circle`, `info`)
-- [ ] Subtle shadow for depth
+- [x] Icon indicators per type (Lucide: `check-circle`, `x-circle`, `info`)
+- [x] Subtle shadow for depth (shadow-lg in toast classes)
 - [ ] Optional action button ("Undo", "View")
 
 **Accessibility:**
@@ -452,8 +452,8 @@ Book cards have basic hover states but could feel more premium.
 Filter panel is functional but transitions feel instant.
 
 **Transitions & Animations:**
-- [ ] Secondary filters: smooth height transition (max-height 0→auto)
-- [ ] Chevron rotation animation (already done via class)
+- [x] Secondary filters: smooth height transition (max-height 0→auto)
+- [x] Chevron rotation animation (already done via class)
 - [ ] Dropdown options fade-in on open
 - [ ] Active filter chips: scale animation on add/remove
 
@@ -473,13 +473,13 @@ Filter panel is functional but transitions feel instant.
 Search works but appears/disappears instantly.
 
 **Transitions & Animations:**
-- [ ] Overlay fade in (opacity 0→1, 150ms)
+- [x] Overlay fade in (opacity 0→1, 200ms)
 - [ ] Search input slide down from top
 - [ ] Results stagger animation (like book cards)
-- [ ] Close animation (fade out, 100ms)
+- [x] Close animation (fade out, 200ms)
 
 **Visual Polish:**
-- [ ] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
+- [x] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
 - [ ] Result count badge in header ("12 results")
 - [ ] Recent searches section (stored in localStorage)
 - [ ] "No results" state with illustration
@@ -496,8 +496,8 @@ Search works but appears/disappears instantly.
 Mobile menu shows/hides without animation.
 
 **Transitions & Animations:**
-- [ ] Menu slides in from left (translateX -100%→0)
-- [ ] Backdrop fades in (opacity 0→1)
+- [x] Menu slides in (mobile: bottom sheet from below, desktop: slide from right)
+- [x] Backdrop fades in (opacity 0→1, 200ms)
 - [ ] Menu icon morphs to X on open
 - [ ] Stagger animation for menu items
 
@@ -534,8 +534,8 @@ Currently no page entry/exit animations.
 Widgets have skeleton loaders but swap is instant.
 
 **Transitions & Animations:**
-- [ ] Skeleton fades out, content fades in (crossfade)
-- [ ] Widget scroll snap with momentum (already done)
+- [x] Skeleton fades out, content fades in (crossfade)
+- [x] Widget scroll snap with momentum (already done)
 - [ ] Empty state fade-in animation
 
 **Performance & Loading:**

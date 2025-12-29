@@ -72,7 +72,8 @@ export function renderWidgets(container, books, settings, genreLookup = {}, seri
     return `<div class="${sizeClass}">${html}</div>`;
   }).join('');
 
-  container.innerHTML = `<div class="widget-grid">${widgetHtml}</div>`;
+  // Replace skeletons with actual widgets using crossfade animation
+  container.innerHTML = `<div class="widget-grid fade-in">${widgetHtml}</div>`;
 
   // Initialize Lucide icons after rendering
   initIcons();
