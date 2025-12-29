@@ -404,7 +404,7 @@ Current toasts are functional but basic.
 - [x] Fade out animation on dismiss
 
 **Mobile Gestures:**
-- [ ] Swipe-to-dismiss on touch devices
+- [x] Swipe-to-dismiss on touch devices
 - [x] Tap anywhere on toast to dismiss early
 
 **Performance & Loading:**
@@ -482,12 +482,12 @@ Search works but appears/disappears instantly.
 **Visual Polish:**
 - [x] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
 - [x] Result count badge in header ("12 results")
-- [ ] Recent searches section (stored in localStorage)
+- [x] Recent searches section (stored in localStorage)
 - [ ] "No results" state with illustration
 
 **Performance & Loading:**
 - [ ] Search skeleton while loading
-- [ ] Highlight matching text in results
+- [x] Highlight matching text in results
 
 **Accessibility:**
 - [ ] Search landmark role (`role="search"`)
