@@ -114,6 +114,16 @@ function showRecentSearches() {
     searchResults.innerHTML = html;
     initIcons();
     attachRecentSearchListeners();
+  } else {
+    // Show empty state prompt
+    searchResults.innerHTML = `
+      <div class="py-8 text-center">
+        <i data-lucide="search" class="w-12 h-12 text-gray-300 mx-auto"></i>
+        <p class="text-gray-500 mt-3">Search your library</p>
+        <p class="text-gray-400 text-sm mt-1">Find books by title or author</p>
+      </div>
+    `;
+    initIcons();
   }
 }
 
@@ -626,20 +636,13 @@ async function openSearch() {
     showRecentSearches();
   }
 
-  // Start loading books in background if not already loaded
+  // Start loading books in background if not already loaded (silently, no spinner)
   if (!allBooksLoaded && !isLoadingBooks) {
-    // Show initial loading state (but preserve recent searches if shown)
-    if (books.length === 0 && !getRecentSearches().length) {
-      searchResults.innerHTML = '<p class="text-gray-500 text-center py-4"><span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2"></span>Loading books...</p>';
-    }
-
     await loadAllBooksForSearch();
 
     // Re-run search with current query after loading completes
     if (currentSearchQuery) {
       performSearch(currentSearchQuery);
-    } else if (!searchResults.innerHTML) {
-      showRecentSearches();
     }
   }
 }
