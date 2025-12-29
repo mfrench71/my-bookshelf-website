@@ -392,6 +392,155 @@ Current lightbox is functional but needs polish for a premium feel.
 
 **Recommendation:** Start with CSS transitions for open/close and crossfade. Add pinch-zoom later if needed (complex). Consider `glightbox` if gestures become priority.
 
+### Toast Notifications UX Polish
+Current toasts are functional but basic.
+
+**Transitions & Animations:**
+- [ ] Add type icons (checkmark for success, X for error, info circle for info)
+- [ ] Smooth slide-in from bottom (mobile) / right (desktop)
+- [ ] Progress bar showing time remaining
+- [ ] Fade out animation on dismiss
+
+**Mobile Gestures:**
+- [ ] Swipe-to-dismiss on touch devices
+- [ ] Tap anywhere on toast to dismiss early
+
+**Performance & Loading:**
+- [ ] Toast queue system (stack multiple toasts, don't replace)
+- [ ] Max 3 visible toasts, queue remainder
+- [ ] Auto-dismiss pauses on hover/focus
+
+**Visual Polish:**
+- [ ] Icon indicators per type (Lucide: `check-circle`, `x-circle`, `info`)
+- [ ] Subtle shadow for depth
+- [ ] Optional action button ("Undo", "View")
+
+**Accessibility:**
+- [ ] `aria-live="polite"` on toast container
+- [ ] Role="alert" for error toasts
+- [ ] Focus management for action buttons
+
+### Book Cards & List UX Polish
+Book cards have basic hover states but could feel more premium.
+
+**Transitions & Animations:**
+- [ ] Stagger animation on initial load (cards appear sequentially)
+- [ ] Use existing `.card-animate` class (already defined in CSS)
+- [ ] Smooth skeleton→content fade transition
+- [ ] Badge count update animation (brief pulse)
+
+**Mobile Gestures:**
+- [ ] Long-press context menu (edit, delete, share)
+- [ ] Swipe actions on list view (quick status change)
+
+**Performance & Loading:**
+- [ ] Skeleton loader for card content (not just cover)
+- [ ] Progressive image loading (blur placeholder → full)
+- [ ] Virtualised list for 100+ books (render only visible)
+
+**Visual Polish:**
+- [ ] Cover image shadow/depth effect
+- [ ] Status badge micro-animations
+- [ ] Empty state illustration (not just icon)
+
+**Accessibility:**
+- [ ] Announce list updates to screen readers
+- [ ] Card selection states for keyboard users
+
+### Filter Panel UX Polish
+Filter panel is functional but transitions feel instant.
+
+**Transitions & Animations:**
+- [ ] Secondary filters: smooth height transition (max-height 0→auto)
+- [ ] Chevron rotation animation (already done via class)
+- [ ] Dropdown options fade-in on open
+- [ ] Active filter chips: scale animation on add/remove
+
+**Mobile Gestures:**
+- [ ] Pull-to-refresh on book list triggers filter reset option
+
+**Performance & Loading:**
+- [ ] Skeleton loader for filter counts
+- [ ] Debounced filter application (150ms, already done)
+
+**Visual Polish:**
+- [ ] Filter count badges pulse when count changes
+- [ ] Clear all filters button appears with animation
+- [ ] Bottom sheet handle affordance (already present)
+
+### Search Overlay UX Polish
+Search works but appears/disappears instantly.
+
+**Transitions & Animations:**
+- [ ] Overlay fade in (opacity 0→1, 150ms)
+- [ ] Search input slide down from top
+- [ ] Results stagger animation (like book cards)
+- [ ] Close animation (fade out, 100ms)
+
+**Visual Polish:**
+- [ ] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
+- [ ] Result count badge in header ("12 results")
+- [ ] Recent searches section (stored in localStorage)
+- [ ] "No results" state with illustration
+
+**Performance & Loading:**
+- [ ] Search skeleton while loading
+- [ ] Highlight matching text in results
+
+**Accessibility:**
+- [ ] Search landmark role (`role="search"`)
+- [ ] Announce result count changes
+
+### Navigation Menu UX Polish
+Mobile menu shows/hides without animation.
+
+**Transitions & Animations:**
+- [ ] Menu slides in from left (translateX -100%→0)
+- [ ] Backdrop fades in (opacity 0→1)
+- [ ] Menu icon morphs to X on open
+- [ ] Stagger animation for menu items
+
+**Mobile Gestures:**
+- [ ] Swipe from left edge to open menu
+- [ ] Swipe left to close menu
+
+**Visual Polish:**
+- [ ] Active page indicator animation
+- [ ] Menu item hover/active states with transitions
+
+### Page Transitions UX Polish
+Currently no page entry/exit animations.
+
+**Transitions & Animations:**
+- [ ] Page content fades in on load (use existing `@keyframes pageIn`)
+- [ ] Add `.page-enter` class to main content areas
+- [ ] Stagger animation for page sections
+- [ ] Consider View Transitions API for SPA-like feel
+
+**Implementation Notes:**
+```css
+/* Already defined in tailwind.css */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageIn 300ms ease-out;
+}
+```
+
+### Widget Loading UX Polish
+Widgets have skeleton loaders but swap is instant.
+
+**Transitions & Animations:**
+- [ ] Skeleton fades out, content fades in (crossfade)
+- [ ] Widget scroll snap with momentum (already done)
+- [ ] Empty state fade-in animation
+
+**Performance & Loading:**
+- [ ] Preload widget data during idle time
+- [ ] Stagger widget loading (most important first)
+
 ### Add Book UX Redesign
 Current add book page shows all lookup methods and full form at once. Proposed progressive disclosure approach:
 
