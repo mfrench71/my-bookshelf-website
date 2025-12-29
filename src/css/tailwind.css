@@ -611,6 +611,37 @@ select {
   animation: toastFadeOut 0.15s ease-in forwards;
 }
 
+/* Toast Queue Animations */
+@keyframes toastQueueIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastQueueOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+}
+
+.toast-queue-enter {
+  animation: toastQueueIn 0.2s ease-out forwards;
+}
+
+.toast-queue-exit {
+  animation: toastQueueOut 0.15s ease-in forwards;
+}
+
 /* Secondary filters collapse/expand animation */
 .secondary-filters {
   overflow: hidden;
@@ -711,8 +742,9 @@ select {
     bottom: calc(1.5rem + env(safe-area-inset-bottom));
   }
 
-  #toast {
-    bottom: calc(5rem + env(safe-area-inset-bottom));
+  #toast,
+  #toast-container {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -1043,4 +1075,19 @@ button, a {
 
 .widget-grid.fade-in {
   animation: widgetFadeIn 0.2s ease-out forwards;
+}
+
+/* Skeleton fade-out when hidden */
+.skeleton-fade {
+  transition: opacity 0.15s ease-out;
+}
+
+.skeleton-fade.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Content fade-in after skeleton */
+.content-fade-in {
+  animation: widgetFadeIn 0.2s ease-out;
 }
