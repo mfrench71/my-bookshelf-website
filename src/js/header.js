@@ -525,24 +525,14 @@ function performSearch(queryText) {
   currentSearchQuery = queryText;
 
   if (!queryText) {
-    if (isLoadingBooks) {
-      searchResults.innerHTML = '<p class="text-gray-500 text-center py-4"><span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2"></span>Loading books...</p>';
-    } else {
-      // Show recent searches when query is cleared
-      showRecentSearches();
-    }
+    // Show recent searches when query is cleared (never show loading here)
+    showRecentSearches();
     // Hide result count when no query
     if (searchResultCount) {
       searchResultCount.classList.add('hidden');
       searchResultCount.textContent = '';
     }
     return;
-  }
-
-  // Save search to recent searches (use original input value)
-  const originalQuery = searchInput?.value?.trim();
-  if (originalQuery) {
-    saveRecentSearch(originalQuery);
   }
 
   // Use pre-normalized fields for faster search
@@ -577,6 +567,18 @@ function performSearch(queryText) {
 
   searchResults.innerHTML = html;
   initIcons();
+
+  // Save search when user clicks a result (not on every keystroke)
+  if (results.length > 0) {
+    searchResults.querySelectorAll('.book-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const originalQuery = searchInput?.value?.trim();
+        if (originalQuery) {
+          saveRecentSearch(originalQuery);
+        }
+      }, { once: true });
+    });
+  }
 }
 
 if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults) {
