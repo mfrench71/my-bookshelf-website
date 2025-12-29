@@ -18,7 +18,8 @@
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:headed": "npx playwright test --headed",
-    "prepare": "husky"
+    "prepare": "husky",
+    "audit": "node scripts/lighthouse-audit.js"
   },
   "repository": {
     "type": "git",

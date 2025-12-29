@@ -357,6 +357,9 @@ npx serve _site
 npm test              # Run all tests once
 npm run test:watch    # Watch mode for development
 npm run test:coverage # Run with coverage report
+
+# Lighthouse audit (requires server running on port 8080)
+npm run audit         # Run Lighthouse on key pages, outputs to reports/
 ```
 
 ## Architecture

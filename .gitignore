@@ -25,6 +25,7 @@ Thumbs.db
 coverage/
 playwright-report/
 test-results/
+reports/
 
 # Claude Code
 .claude/settings.local.json
