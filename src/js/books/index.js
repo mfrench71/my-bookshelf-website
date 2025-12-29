@@ -1078,6 +1078,9 @@ async function handleSidebarFilterChange(filters) {
     renderBooks();
   }
 
+  // Scroll to top so user sees filtered results
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   // Sync mobile sort dropdown
   if (sortSelectMobile) {
     sortSelectMobile.value = currentSort;
@@ -1145,6 +1148,9 @@ async function applyMobileFilters(keepSheetOpen = false) {
   updateFilterCounts();
   updateUrlWithFilters();
 
+  // Scroll to top so user sees filtered results
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   if (!keepSheetOpen) {
     closeFilterSheet();
   }
@@ -1172,6 +1178,9 @@ if (sortSelectMobile) {
         invalidateFilteredCache();
         renderBooks();
       }
+
+      // Scroll to top so user sees sorted results
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       updateFilterCountBadge();
       updateUrlWithFilters();
