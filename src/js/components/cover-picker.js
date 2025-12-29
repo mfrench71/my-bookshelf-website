@@ -36,7 +36,7 @@ export class CoverPicker {
   render() {
     this.container.innerHTML = `
       <div class="cover-options flex gap-4 flex-wrap">
-        <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
+        <div data-source="googleBooks" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-2 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Google Books</div>
           <div class="relative w-16 h-24 mx-auto">
             <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
@@ -48,7 +48,7 @@ export class CoverPicker {
             <i data-lucide="check" class="w-3 h-3 text-white"></i>
           </div>
         </div>
-        <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
+        <div data-source="openLibrary" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-2 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Open Library</div>
           <div class="relative w-16 h-24 mx-auto">
             <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
@@ -60,7 +60,7 @@ export class CoverPicker {
             <i data-lucide="check" class="w-3 h-3 text-white"></i>
           </div>
         </div>
-        <div data-source="userUpload" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-1 transition-colors relative">
+        <div data-source="userUpload" class="cover-option hidden cursor-pointer rounded-lg border-2 border-transparent hover:border-primary p-2 transition-colors relative">
           <div class="text-xs text-gray-500 text-center mb-1">Your Upload</div>
           <div class="relative w-16 h-24 mx-auto">
             <div class="cover-loading absolute inset-0 flex items-center justify-center bg-gray-100 rounded">

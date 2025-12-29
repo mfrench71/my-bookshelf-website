@@ -155,7 +155,7 @@ export class FilterPanel {
           <label for="filter-author-${this.instanceId}" class="block text-sm font-semibold text-gray-900 mb-2">Author</label>
           <div class="relative author-container">
             <input type="text" id="filter-author-${this.instanceId}" class="filter-author w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm" placeholder="Search authors..." autocomplete="off">
-            <button type="button" class="clear-author hidden absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-10 h-full flex items-center justify-center" aria-label="Clear author filter">
+            <button type="button" class="clear-author hidden absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-11 h-full flex items-center justify-center" aria-label="Clear author filter">
               <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
             </button>
             <div class="author-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10" role="listbox" aria-label="Author suggestions"></div>
@@ -368,7 +368,7 @@ export class FilterPanel {
       label.className = 'flex items-center justify-between cursor-pointer';
       label.setAttribute('for', checkboxId);
       label.innerHTML = `
-        <span class="filter-label text-sm text-gray-900">${genre.name}</span>
+        <span class="filter-label text-sm text-gray-900">${escapeHtml(genre.name)}</span>
         <span class="flex items-center gap-3">
           <span class="filter-count text-sm text-gray-500"></span>
           <input type="checkbox" id="${checkboxId}" name="genre" value="${genre.id}" class="filter-checkbox w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" />
