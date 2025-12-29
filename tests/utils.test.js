@@ -30,6 +30,8 @@ import {
   isValidHexColor
 } from '../src/js/utils.js';
 
+import { resetToastState } from '../src/js/stores/toast.js';
+
 describe('escapeHtml', () => {
   it('should return empty string for null/undefined', () => {
     expect(escapeHtml(null)).toBe('');
@@ -547,85 +549,88 @@ describe('renderStars', () => {
 });
 
 describe('showToast', () => {
+  // Note: Comprehensive toast tests are in tests/toast.test.js
+  // These tests verify basic functionality of showToast exported from utils.js
   beforeEach(() => {
-    document.body.innerHTML = '<div id="toast" class="hidden"></div>';
+    // Reset toast module state between tests
+    resetToastState();
     vi.useFakeTimers();
   });
 
   afterEach(() => {
-    document.body.innerHTML = '';
     vi.useRealTimers();
+    resetToastState();
   });
+
+  function getToasts() {
+    const container = document.getElementById('toast-container');
+    return container ? Array.from(container.querySelectorAll('.toast-item')) : [];
+  }
 
   it('should display message in toast', () => {
     showToast('Hello World');
-    const toast = document.getElementById('toast');
+    const toasts = getToasts();
 
-    expect(toast.textContent).toContain('Hello World');
+    expect(toasts.length).toBe(1);
+    expect(toasts[0].textContent).toContain('Hello World');
   });
 
-  it('should create toast element if not exists', () => {
-    document.body.innerHTML = '';
+  it('should create toast container if not exists', () => {
     showToast('Test message');
 
-    const toast = document.getElementById('toast');
-    expect(toast).toBeTruthy();
-    expect(toast.textContent).toContain('Test message');
+    const container = document.getElementById('toast-container');
+    expect(container).toBeTruthy();
+    expect(getToasts()[0].textContent).toContain('Test message');
   });
 
   it('should apply success styling', () => {
     showToast('Success!', { type: 'success' });
-    const toast = document.getElementById('toast');
+    const toast = getToasts()[0];
 
     expect(toast.className).toContain('bg-green-600');
   });
 
   it('should apply error styling', () => {
     showToast('Error!', { type: 'error' });
-    const toast = document.getElementById('toast');
+    const toast = getToasts()[0];
 
     expect(toast.className).toContain('bg-red-600');
   });
 
   it('should apply info styling by default', () => {
     showToast('Info');
-    const toast = document.getElementById('toast');
+    const toast = getToasts()[0];
 
     expect(toast.className).toContain('bg-gray-800');
   });
 
-  it('should hide after duration plus exit animation', () => {
+  it('should remove toast after duration plus exit animation', () => {
     showToast('Temporary', { duration: 1000 });
-    const toast = document.getElementById('toast');
-
-    expect(toast.classList.contains('hidden')).toBe(false);
-    expect(toast.classList.contains('toast-enter')).toBe(true);
+    expect(getToasts().length).toBe(1);
 
     // After duration, exit animation starts
     vi.advanceTimersByTime(1000);
-    expect(toast.classList.contains('toast-exit')).toBe(true);
-    expect(toast.classList.contains('hidden')).toBe(false);
+    expect(getToasts()[0].classList.contains('toast-queue-exit')).toBe(true);
 
-    // After exit animation (150ms), hidden is applied
+    // After exit animation (150ms), toast is removed
     vi.advanceTimersByTime(150);
-    expect(toast.classList.contains('hidden')).toBe(true);
+    expect(getToasts().length).toBe(0);
   });
 
   it('should accept duration as second argument (legacy)', () => {
     showToast('Legacy', 2000);
-    const toast = document.getElementById('toast');
+    expect(getToasts().length).toBe(1);
 
     vi.advanceTimersByTime(1999);
-    expect(toast.classList.contains('hidden')).toBe(false);
+    expect(getToasts().length).toBe(1);
 
     // After duration, exit animation starts
     vi.advanceTimersByTime(1);
-    expect(toast.classList.contains('toast-exit')).toBe(true);
-    expect(toast.classList.contains('hidden')).toBe(false);
+    expect(getToasts()[0].classList.contains('toast-queue-exit')).toBe(true);
 
-    // After exit animation (150ms), hidden is applied
+    // After exit animation (150ms), toast is removed
     vi.advanceTimersByTime(150);
-    expect(toast.classList.contains('hidden')).toBe(true);
+    expect(getToasts().length).toBe(0);
   });
 });
 
