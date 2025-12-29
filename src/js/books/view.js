@@ -30,7 +30,7 @@ if (!bookId) {
 
 // DOM Elements
 const loading = document.getElementById('loading');
-const content = document.getElementById('main-content');
+const content = document.getElementById('book-content');
 const breadcrumb = document.getElementById('breadcrumb');
 const editBtn = document.getElementById('edit-btn');
 const deleteBtn = document.getElementById('delete-btn');

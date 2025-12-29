@@ -31,7 +31,7 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
 {% set activePage = 'bin' %}
 {% include "settings-nav.njk" %}
 
-<main id="main-content" class="max-w-2xl mx-auto px-4 py-6 page-content">
+<div class="max-w-2xl mx-auto px-4 py-6 page-content">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Bin</h1>
     <p id="bin-count" class="hidden text-sm text-gray-500"></p>
@@ -55,7 +55,7 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
 
   <!-- Book List -->
   <div id="book-list" class="hidden space-y-4"></div>
-</main>
+</div>
 
 <!-- Restore Confirmation Bottom Sheet -->
 <div id="restore-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4">

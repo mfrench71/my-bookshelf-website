@@ -133,6 +133,45 @@ This is a **mobile-first PWA** that should feel like a native app. Every feature
 - [ ] Dynamic content announced? (`aria-live` regions for async updates)
 - [ ] Touch targets 44px minimum? (mobile tap areas)
 
+### Semantic HTML (MANDATORY)
+
+**Use semantic HTML elements correctly** to ensure proper document structure and accessibility.
+
+**Base Layout Structure:**
+- `base.njk` provides the `<main id="main-content">` wrapper for all pages
+- Page templates should NOT include their own `<main>` element (it's provided by the layout)
+- Use `<div>` or `<section>` for content sections within pages
+- Never create duplicate element IDs (e.g., two elements with `id="main-content"`)
+
+**Landmark Elements:**
+- `<header>` - site header (provided by `header.njk`)
+- `<nav>` - navigation menus, breadcrumbs
+- `<main>` - primary page content (ONE per page, provided by base.njk)
+- `<section>` - thematic groupings with headings
+- `<aside>` - sidebar content (e.g., filter panel)
+- `<footer>` - site footer (provided by `footer.njk`)
+
+**Common Mistakes to Avoid:**
+```html
+<!-- ❌ WRONG: Nested main elements (base.njk already provides <main>) -->
+<main id="main-content">
+  <main id="content">...</main>
+</main>
+
+<!-- ✅ CORRECT: Use div/section within the page template -->
+<div id="book-content" class="max-w-2xl mx-auto px-4 py-6">
+  ...
+</div>
+
+<!-- ❌ WRONG: Duplicate IDs -->
+<div id="loading">...</div>
+<div id="loading">...</div>
+
+<!-- ✅ CORRECT: Unique IDs -->
+<div id="loading-skeleton">...</div>
+<div id="book-content">...</div>
+```
+
 ### Form Label Association (MANDATORY)
 
 **Every form input must have an associated label.** Screen readers need this to announce what each field is for.

@@ -44,9 +44,9 @@
     {% include "header.njk" %}
   {% endif %}
 
-  <div class="flex-1">
+  <main id="main-content" class="flex-1 page-content">
     {{ content | safe }}
-  </div>
+  </main>
 
   {% if not hideFooter %}
     {% include "footer.njk" %}
