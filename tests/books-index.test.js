@@ -1505,3 +1505,214 @@ describe('calculateDynamicFilterCounts', () => {
     expect(counts.status.finished).toBe(0);
   });
 });
+
+describe('calculateFilterCounts with overrides (mobile panel integration)', () => {
+  // Simulates the calculateFilterCounts function from books/index.js
+  // This tests the fix for mobile panel counts not updating when checkboxes are clicked
+  //
+  // The issue: Mobile panel was created with onChange: null, so when users clicked
+  // checkboxes (e.g., "Finished" status), the counts never updated because no
+  // callback was fired to recalculate counts based on the panel's internal state.
+  //
+  // The fix: calculateFilterCounts now accepts optional filter overrides that
+  // allow the mobile panel's onChange callback to pass its internal state.
+
+  // Replicate calculateFilterCounts logic with override support
+  function calculateFilterCounts(
+    books,
+    globalFilters,
+    filterOverrides = null
+  ) {
+    // Use overrides if provided, otherwise fall back to global filters
+    const activeRating = filterOverrides?.rating ?? globalFilters.rating;
+    const activeGenres = filterOverrides?.genres ?? globalFilters.genres;
+    const activeStatuses = filterOverrides?.statuses ?? globalFilters.statuses;
+    const activeSeriesIds = filterOverrides?.seriesIds ?? globalFilters.seriesIds;
+    const activeAuthor = filterOverrides?.author ?? globalFilters.author;
+
+    // For rating counts: apply all filters EXCEPT rating
+    let booksForRating = books;
+    if (activeGenres.length > 0) {
+      booksForRating = booksForRating.filter(b =>
+        b.genres && activeGenres.some(g => b.genres.includes(g))
+      );
+    }
+    if (activeStatuses.length > 0) {
+      booksForRating = booksForRating.filter(b => {
+        const status = getBookStatus(b);
+        return activeStatuses.includes(status);
+      });
+    }
+    if (activeSeriesIds.length > 0) {
+      booksForRating = booksForRating.filter(b => activeSeriesIds.includes(b.seriesId));
+    }
+    if (activeAuthor) {
+      booksForRating = booksForRating.filter(b =>
+        b.author?.toLowerCase() === activeAuthor.toLowerCase()
+      );
+    }
+
+    const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    booksForRating.forEach(b => {
+      const r = b.rating || 0;
+      if (r >= 1 && r <= 5) ratings[r]++;
+    });
+
+    // For status counts: apply all filters EXCEPT status
+    let booksForStatus = books;
+    if (activeRating > 0) {
+      booksForStatus = booksForStatus.filter(b => (b.rating || 0) >= activeRating);
+    }
+    if (activeGenres.length > 0) {
+      booksForStatus = booksForStatus.filter(b =>
+        b.genres && activeGenres.some(g => b.genres.includes(g))
+      );
+    }
+    if (activeSeriesIds.length > 0) {
+      booksForStatus = booksForStatus.filter(b => activeSeriesIds.includes(b.seriesId));
+    }
+    if (activeAuthor) {
+      booksForStatus = booksForStatus.filter(b =>
+        b.author?.toLowerCase() === activeAuthor.toLowerCase()
+      );
+    }
+
+    const statuses = { reading: 0, finished: 0 };
+    booksForStatus.forEach(b => {
+      const status = getBookStatus(b);
+      if (status === 'reading') statuses.reading++;
+      else if (status === 'finished') statuses.finished++;
+    });
+
+    return { ratings, statuses };
+  }
+
+  const books = [
+    { id: '1', title: 'Book A', rating: 5, genres: ['fantasy'], reads: [{ startDate: '2024-01-01' }] },
+    { id: '2', title: 'Book B', rating: 4, genres: ['fantasy'], reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] },
+    { id: '3', title: 'Book C', rating: 5, genres: ['scifi'], reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] },
+    { id: '4', title: 'Book D', rating: 3, genres: ['scifi'], reads: [{ startDate: '2024-01-01' }] },
+    { id: '5', title: 'Book E', rating: 4, genres: ['mystery'], reads: [{ startDate: '2024-01-01', finishDate: '2024-02-01' }] }
+  ];
+
+  const defaultGlobalFilters = {
+    rating: 0,
+    genres: [],
+    statuses: [],
+    seriesIds: [],
+    author: ''
+  };
+
+  it('should use global filters when no overrides provided', () => {
+    const counts = calculateFilterCounts(books, defaultGlobalFilters, null);
+
+    expect(counts.statuses.reading).toBe(2);
+    expect(counts.statuses.finished).toBe(3);
+  });
+
+  it('should use override filters when provided (simulating mobile panel onChange)', () => {
+    // Simulate: user clicks "Finished" checkbox on mobile panel
+    // The panel's internal state changes but global state hasn't updated yet
+    const panelInternalState = {
+      rating: 0,
+      genres: [],
+      statuses: ['finished'], // User just selected this
+      seriesIds: [],
+      author: ''
+    };
+
+    const counts = calculateFilterCounts(books, defaultGlobalFilters, panelInternalState);
+
+    // Status counts should show what WOULD match if we applied this filter
+    // (excludes status filter from its own count calculation)
+    expect(counts.statuses.reading).toBe(2);
+    expect(counts.statuses.finished).toBe(3);
+
+    // Rating counts should be filtered by status=finished
+    // Only finished books: Book B (4), Book C (5), Book E (4)
+    expect(counts.ratings[5]).toBe(1);  // Book C
+    expect(counts.ratings[4]).toBe(2);  // Book B, Book E
+    expect(counts.ratings[3]).toBe(0);  // Book D is reading, not finished
+  });
+
+  it('should handle multiple status selections in override', () => {
+    // Simulate: user selects both "Reading" and "Finished"
+    const panelInternalState = {
+      rating: 0,
+      genres: [],
+      statuses: ['reading', 'finished'],
+      seriesIds: [],
+      author: ''
+    };
+
+    const counts = calculateFilterCounts(books, defaultGlobalFilters, panelInternalState);
+
+    // All books match (both statuses selected), so all ratings should be counted
+    expect(counts.ratings[5]).toBe(2);  // Book A, Book C
+    expect(counts.ratings[4]).toBe(2);  // Book B, Book E
+    expect(counts.ratings[3]).toBe(1);  // Book D
+  });
+
+  it('should use overrides for genre filters too', () => {
+    // Simulate: user selects "fantasy" genre on mobile panel
+    const panelInternalState = {
+      rating: 0,
+      genres: ['fantasy'],
+      statuses: [],
+      seriesIds: [],
+      author: ''
+    };
+
+    const counts = calculateFilterCounts(books, defaultGlobalFilters, panelInternalState);
+
+    // Only fantasy books: Book A (5, reading), Book B (4, finished)
+    expect(counts.ratings[5]).toBe(1);  // Book A
+    expect(counts.ratings[4]).toBe(1);  // Book B
+    expect(counts.statuses.reading).toBe(1);   // Book A
+    expect(counts.statuses.finished).toBe(1);  // Book B
+  });
+
+  it('should combine multiple override filters correctly', () => {
+    // Simulate: user selects genre=fantasy AND status=finished
+    const panelInternalState = {
+      rating: 0,
+      genres: ['fantasy'],
+      statuses: ['finished'],
+      seriesIds: [],
+      author: ''
+    };
+
+    const counts = calculateFilterCounts(books, defaultGlobalFilters, panelInternalState);
+
+    // Fantasy + finished = Book B only (rating 4)
+    // Rating counts filtered by genre+status (except rating itself)
+    expect(counts.ratings[4]).toBe(1);  // Book B
+    expect(counts.ratings[5]).toBe(0);  // Book A is reading, not finished
+  });
+
+  it('should allow partial overrides (mix of global and override filters)', () => {
+    // Global has rating=4 set
+    const globalWithRating = {
+      rating: 4,
+      genres: [],
+      statuses: [],
+      seriesIds: [],
+      author: ''
+    };
+
+    // Override only has status, rating should come from global
+    const panelInternalState = {
+      rating: 4, // Panel preserved the rating
+      genres: [],
+      statuses: ['finished'],
+      seriesIds: [],
+      author: ''
+    };
+
+    const counts = calculateFilterCounts(books, globalWithRating, panelInternalState);
+
+    // 4+ star finished books: Book B (4), Book C (5), Book E (4)
+    expect(counts.statuses.finished).toBe(3);
+    expect(counts.statuses.reading).toBe(1); // Book A (5 stars, reading)
+  });
+});

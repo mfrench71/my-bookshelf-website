@@ -688,19 +688,27 @@ function invalidateFilteredCache() {
 }
 
 /**
- * Calculate dynamic book counts for filter options (faceted search)
+ * Calculate faceted filter counts for filter options
  * Each count shows books that would match if that option were selected
+ * @param {Object} [filterOverrides] - Optional filter values to use instead of globals
  * @returns {Object} Counts for ratings, genres, status, series, authors
  */
-function calculateFilterCounts() {
+function calculateFilterCounts(filterOverrides = null) {
+  // Use overrides if provided, otherwise use global filter state
+  const activeRating = filterOverrides?.rating ?? ratingFilter;
+  const activeGenres = filterOverrides?.genres ?? genreFilters;
+  const activeStatuses = filterOverrides?.statuses ?? statusFilters;
+  const activeSeriesIds = filterOverrides?.seriesIds ?? seriesFilters;
+  const activeAuthor = filterOverrides?.author ?? authorFilter;
+
   const activeBooks = filterActivebooks(books);
 
   // For rating counts: apply all filters EXCEPT rating
   let booksForRating = activeBooks;
-  booksForRating = filterByGenres(booksForRating, genreFilters);
-  booksForRating = filterByStatuses(booksForRating, statusFilters);
-  booksForRating = filterBySeriesIds(booksForRating, seriesFilters);
-  booksForRating = filterByAuthor(booksForRating, authorFilter);
+  booksForRating = filterByGenres(booksForRating, activeGenres);
+  booksForRating = filterByStatuses(booksForRating, activeStatuses);
+  booksForRating = filterBySeriesIds(booksForRating, activeSeriesIds);
+  booksForRating = filterByAuthor(booksForRating, activeAuthor);
 
   const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unrated: 0 };
   booksForRating.forEach(b => {
@@ -716,10 +724,10 @@ function calculateFilterCounts() {
 
   // For genre counts: apply all filters EXCEPT genres
   let booksForGenre = activeBooks;
-  booksForGenre = filterByRating(booksForGenre, ratingFilter);
-  booksForGenre = filterByStatuses(booksForGenre, statusFilters);
-  booksForGenre = filterBySeriesIds(booksForGenre, seriesFilters);
-  booksForGenre = filterByAuthor(booksForGenre, authorFilter);
+  booksForGenre = filterByRating(booksForGenre, activeRating);
+  booksForGenre = filterByStatuses(booksForGenre, activeStatuses);
+  booksForGenre = filterBySeriesIds(booksForGenre, activeSeriesIds);
+  booksForGenre = filterByAuthor(booksForGenre, activeAuthor);
 
   const genresCounts = {};
   booksForGenre.forEach(b => {
@@ -734,10 +742,10 @@ function calculateFilterCounts() {
 
   // For status counts: apply all filters EXCEPT statuses
   let booksForStatus = activeBooks;
-  booksForStatus = filterByRating(booksForStatus, ratingFilter);
-  booksForStatus = filterByGenres(booksForStatus, genreFilters);
-  booksForStatus = filterBySeriesIds(booksForStatus, seriesFilters);
-  booksForStatus = filterByAuthor(booksForStatus, authorFilter);
+  booksForStatus = filterByRating(booksForStatus, activeRating);
+  booksForStatus = filterByGenres(booksForStatus, activeGenres);
+  booksForStatus = filterBySeriesIds(booksForStatus, activeSeriesIds);
+  booksForStatus = filterByAuthor(booksForStatus, activeAuthor);
 
   const statusCounts = { reading: 0, finished: 0 };
   booksForStatus.forEach(b => {
@@ -750,10 +758,10 @@ function calculateFilterCounts() {
 
   // For series counts: apply all filters EXCEPT series
   let booksForSeries = activeBooks;
-  booksForSeries = filterByRating(booksForSeries, ratingFilter);
-  booksForSeries = filterByGenres(booksForSeries, genreFilters);
-  booksForSeries = filterByStatuses(booksForSeries, statusFilters);
-  booksForSeries = filterByAuthor(booksForSeries, authorFilter);
+  booksForSeries = filterByRating(booksForSeries, activeRating);
+  booksForSeries = filterByGenres(booksForSeries, activeGenres);
+  booksForSeries = filterByStatuses(booksForSeries, activeStatuses);
+  booksForSeries = filterByAuthor(booksForSeries, activeAuthor);
 
   const seriesCounts = {};
   booksForSeries.forEach(b => {
@@ -766,10 +774,10 @@ function calculateFilterCounts() {
 
   // For author counts: apply all filters EXCEPT author
   let booksForAuthor = activeBooks;
-  booksForAuthor = filterByRating(booksForAuthor, ratingFilter);
-  booksForAuthor = filterByGenres(booksForAuthor, genreFilters);
-  booksForAuthor = filterByStatuses(booksForAuthor, statusFilters);
-  booksForAuthor = filterBySeriesIds(booksForAuthor, seriesFilters);
+  booksForAuthor = filterByRating(booksForAuthor, activeRating);
+  booksForAuthor = filterByGenres(booksForAuthor, activeGenres);
+  booksForAuthor = filterByStatuses(booksForAuthor, activeStatuses);
+  booksForAuthor = filterBySeriesIds(booksForAuthor, activeSeriesIds);
 
   const authorCounts = {};
   booksForAuthor.forEach(b => {
@@ -977,7 +985,11 @@ function initializeFilterPanels() {
       authors: getUniqueAuthors(),
       showSort: false,
       initialFilters,
-      onChange: null // Don't auto-apply, wait for Apply button
+      // Update counts live as user interacts, but don't apply filters until Apply button
+      onChange: (filters) => {
+        const counts = calculateFilterCounts(filters);
+        mobilePanel.setBookCounts(counts);
+      }
     });
   }
 

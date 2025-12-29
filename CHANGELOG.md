@@ -4,6 +4,15 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-29
+
+- Fix mobile filter panel counts not updating when clicking checkboxes:
+  - Filter counts now update live as user interacts with mobile bottom sheet
+  - Fixed missing author filter sync when opening mobile filter sheet
+  - Add tests for filter count calculation with override support
+
+---
+
 ## 2025-12-28
 
 - Add book image gallery with Firebase Storage:
