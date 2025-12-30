@@ -6,6 +6,14 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- New AuthorPicker component for book add/edit forms:
+  - Library-aware suggestions showing authors from your existing books
+  - Book counts displayed next to each author (e.g., "Stephen King (5 books)")
+  - Fuzzy matching handles variations like "J.R.R. Tolkien" vs "JRR Tolkien"
+  - "Use typed value" option for entering new authors not in your library
+  - Close button and keyboard navigation (arrow keys, Enter, Escape)
+- Fix false dirty state on book edit page (Save Changes button no longer active on load)
+- Fix discard changes modal on book add page (now only shows when form has actual content)
 - Barcode scanner UX improvements:
   - Add viewfinder frame with corner accents to guide barcode positioning
   - Add loading spinner ("Starting camera...") while camera initialises

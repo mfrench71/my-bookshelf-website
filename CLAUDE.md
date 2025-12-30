@@ -458,6 +458,7 @@ src/
 │   │   ├── maintenance.js  # Data cleanup, cover fetch
 │   │   └── about.js        # Changelog accordion
 │   ├── components/         # Reusable UI components
+│   │   ├── author-picker.js # Single-select author input with library suggestions
 │   │   ├── book-card.js    # Book card for list display
 │   │   ├── cover-picker.js # Cover image source picker
 │   │   ├── genre-picker.js # Multi-select genre input
@@ -503,6 +504,7 @@ Common utilities are consolidated in shared modules:
 - `utils/library-health.js` - analyzeLibraryHealth, calculateLibraryCompleteness, getCompletenessRating, fixBookFromAPI, fixBooksFromAPI, HEALTH_FIELDS
 
 Reusable UI components in `src/js/components/`:
+- `author-picker.js` - AuthorPicker class for single-select author input with library suggestions and book counts
 - `book-card.js` - BookCard component for rendering book list items with genre/series badges
 - `breadcrumb.js` - Breadcrumb navigation with presets for each page type
 - `cover-picker.js` - CoverPicker for selecting from Google Books or Open Library covers

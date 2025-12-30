@@ -18,6 +18,64 @@ A mobile-friendly book tracking PWA with barcode scanning. Built with vanilla HT
 
 ---
 
+## Multi-User Architecture Assessment
+
+### Current State: Secure Single-User Design
+
+The app is built with proper multi-user data isolation:
+
+**Data Structure** - All data under `/users/{userId}/`:
+- `/users/{userId}/books/{bookId}`
+- `/users/{userId}/genres/{genreId}`
+- `/users/{userId}/series/{seriesId}`
+- `/users/{userId}/wishlist/{itemId}`
+
+**Security Rules** (firestore.rules):
+- `request.auth.uid == userId` enforced on all paths
+- Users can ONLY access their own data
+- No shared/global collections
+
+**Code Patterns**:
+- All queries use `currentUser.uid` consistently
+- Caches keyed by user ID with validation
+- No hardcoded user assumptions
+
+### Concerns for Scaling
+
+| Area | Issue | Impact | Mitigation |
+|------|-------|--------|------------|
+| Soft-Delete | `deletedAt` filtered in memory | Slower at scale | Add Firestore index |
+| No Roles | All users equal peers | Can't have admins | Add role field if needed |
+| Book IDs | User-scoped paths | URLs not shareable | Redesign for global IDs |
+| Gravatar | Email hash sent to API | Privacy concern | Document or make optional |
+| Rate Limits | No client-side throttling | API abuse risk | Add debounce/throttle |
+
+### Future: Social/Sharing Features
+
+If sharing is desired, these changes are needed:
+
+1. **Global Book IDs** - Use ISBN or app-wide IDs instead of user-scoped Firestore paths
+2. **Visibility Field** - Add `visibility: 'private' | 'public' | 'link-only'` to book schema
+3. **User Profiles** - Create `/profile/{username}/` with URL-safe usernames
+4. **Firestore Rules Update** - Allow public reads on visible content:
+   ```
+   allow read: if resource.data.visibility == 'public'
+               || request.auth.uid == userId;
+   ```
+5. **Sharing Tokens** - Generate temporary access tokens for wishlists/lists
+6. **Follow System** - New collection for user-to-user relationships
+
+### Privacy Considerations
+
+- [ ] Document Gravatar usage in privacy policy (email hash sent externally)
+- [ ] Consider Gravatar opt-out setting
+- [ ] Document Google Books API usage (ISBN lookups)
+- [ ] Document Open Library API usage (cover images, book data)
+- [ ] No user PII in URLs (book IDs are opaque)
+- [ ] localStorage contains only non-sensitive caches
+
+---
+
 ## Project Structure
 
 ```
@@ -1442,6 +1500,63 @@ Uses last word of author name (e.g., "Stephen King" → "King").
 
 ## Author Lookup & Suggestions (Research)
 
+### Implementation Status (2025-12-30)
+
+**AuthorPicker component implemented** (`src/js/components/author-picker.js`) with:
+- ✅ User Library Priority - Authors derived from user's existing books
+- ✅ Library Indicator - Shows book count (e.g., "Stephen King (5 books)")
+- ✅ Name Normalisation - Handles "J.R.R. Tolkien" vs "JRR Tolkien" via substring matching
+- ✅ "Use typed value" option for new authors not in library
+- ✅ Close button and keyboard navigation (consistent with other pickers)
+- ✅ Data Model: Option B (derive from books, no new collection)
+
+**Still to consider for future:**
+- API Fallback - Search Open Library for external authors (see API details below)
+- Fuse.js fuzzy matching - Better typo tolerance
+- Multiple Authors - Support multiple authors with roles
+- Author Thumbnails - Display author images in dropdown
+
+### Open Library Authors API
+
+Best free option for author data. No API key required (just User-Agent header).
+
+**Search authors:**
+```
+GET https://openlibrary.org/search/authors.json?q=tolkien
+```
+
+**Response fields:**
+- `key` - Author ID (e.g., "OL26320A")
+- `name` - Author name
+- `alternate_names` - Name variants (handles "J.R.R. Tolkien" vs "John Ronald Reuel Tolkien")
+- `birth_date` - Birth date string
+- `top_work` - Most notable work title
+- `work_count` - Total number of works
+- `top_subjects` - Subject categories
+
+**Get author details:**
+```
+GET https://openlibrary.org/authors/OL26320A.json
+```
+
+**Get author photo:**
+```
+https://covers.openlibrary.org/a/olid/OL26320A-M.jpg
+```
+Sizes: S (small), M (medium), L (large)
+
+**Get author's works:**
+```
+GET https://openlibrary.org/authors/OL26320A/works.json?limit=50
+```
+
+**Why Open Library over Google Books:**
+- Dedicated author search endpoint
+- Author photos available
+- Work counts (similar to our "X books" indicator)
+- Alternate names built-in (helps with matching)
+- No API key required
+
 ### Competitor Analysis
 
 | Feature | Goodreads | StoryGraph | Literal | BookTrack | Hardcover |
@@ -1550,6 +1665,121 @@ Pros: No schema change, always in sync
 Cons: Slower, no metadata storage
 
 **Recommendation:** Start with Option B, migrate to Option A if performance becomes an issue or author metadata features are needed.
+
+---
+
+## Author Pages Feature (Research)
+
+### Competitor Analysis
+
+| Feature | Goodreads | StoryGraph | Literal | Hardcover |
+|---------|-----------|------------|---------|-----------|
+| **Dedicated Author Pages** | ✓ (comprehensive) | Planned (not priority) | ✓ (basic) | ✓ |
+| **Author Photo** | ✓ | No | ✓ | ✓ |
+| **Author Bio** | ✓ (editable by author) | No | Limited | ✓ |
+| **Bibliography** | ✓ (complete) | Basic list | ✓ | ✓ |
+| **Series Grouping** | ✓ | Requested | Unknown | ✓ |
+| **Sort/Filter Works** | Limited | Requested (high demand) | Unknown | ✓ |
+| **Follow Author** | ✓ (77K+ followers for popular) | Requested | Unknown | ✓ |
+| **New Release Notifications** | ✓ | Requested | No | ✓ |
+| **Books in My Library** | No indicator | Highly requested | Unknown | Unknown |
+| **Author Q&A** | ✓ (Ask the Author) | No | ✓ (club Q&As) | No |
+| **Author Quotes** | ✓ | No | ✓ (highlights) | No |
+
+### Key Findings
+
+**Goodreads (Most Comprehensive):**
+- Full author profiles with photo, bio, birthdate, birthplace
+- Complete bibliography with ratings (e.g., The Hobbit: 4.30, 4.4M ratings)
+- Series organisation (Middle-earth, Tales of Middle Earth)
+- Follower system (77,333 followers for Tolkien)
+- "Ask the Author" Q&A feature
+- Notable quotes section with engagement metrics
+- Related news, interviews, videos
+- Author-managed via Goodreads Author Program
+
+**StoryGraph (Major Gap):**
+- Author pages described as "a mess" by team
+- Highly requested feature (core feature for book tracking)
+- Users want: series grouping, publication date sorting, "already in library" indicator
+- Follow author with new release notifications requested
+- Not prioritised - team hopes to address "early 2025"
+- Users rely on external sites (BookSeriesInOrder.com) for bibliographies
+
+**Literal:**
+- Basic author pages implemented
+- Focus on quotes/highlights integration
+- Author Q&As through book clubs
+- Less emphasis on comprehensive bibliographies
+
+**Hardcover:**
+- Uses "contributors" model (more flexible for roles)
+- GraphQL API includes contributor data with images
+- Developer-friendly approach
+
+### User-Requested Features (from StoryGraph roadmap)
+
+1. **Navigation & Organisation**
+   - Navigate backlist by series/publication dates
+   - Group books by series with publication order
+   - Filter out certain content types (e.g., novellas under 50 pages)
+
+2. **Library Integration**
+   - Highlight books already in read/DNF/to-read lists
+   - Show which works user has already added
+   - DNR (Do Not Read) tagging with visual flags
+
+3. **Discovery**
+   - Show upcoming releases
+   - Display most-read titles
+   - Sort by popularity/ratings
+
+4. **Notifications**
+   - Follow authors for new book releases
+   - Different notification levels (new book, new edition, publication date)
+
+### Recommended Implementation for MyBookShelf
+
+**Phase 1 - Basic Author Page (MVP):**
+- `/authors/{name}` or `/authors/?name={name}` route
+- Author name, photo (from Open Library API)
+- List of user's books by this author
+- Book count, average rating from user's collection
+- Link to filter book list by author (already exists)
+
+**Phase 2 - Enhanced Author Page:**
+- Full bibliography from Open Library API
+- "In My Library" indicators on works
+- Series grouping (derive from existing series data)
+- Birth date, bio from API
+
+**Phase 3 - Author Tracking:**
+- Follow/unfollow authors (store in user collection)
+- New release notifications (requires background job)
+- Author notes/tags
+
+### Data Sources
+
+**Open Library Authors API** (see above section for endpoints):
+- Author search, details, photo, works list
+- No API key required
+- Good coverage for most authors
+
+**Potential Schema Addition:**
+```
+/users/{userId}/followedAuthors/{authorId}
+  - name: string
+  - openLibraryKey: string (optional)
+  - followedAt: timestamp
+  - notifyOnNewRelease: boolean
+```
+
+### Differentiation Opportunity
+
+StoryGraph users are frustrated with lack of author pages - this is a gap we could fill:
+- "Already in library" indicator (StoryGraph's most requested)
+- Series organisation (high demand)
+- Clean, fast author bibliography
 
 ---
 
@@ -1668,4 +1898,4 @@ Cons: Slower, no metadata storage
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-29
+**Last Updated**: 2025-12-30
