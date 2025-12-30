@@ -20,6 +20,7 @@ import { SeriesPicker } from '../components/series-picker.js';
 import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
+import { ConfirmSheet } from '../components/modal.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { addWishlistItem, checkWishlistDuplicate, loadWishlistItems, createWishlistLookup } from '../wishlist.js';
@@ -174,16 +175,9 @@ function showFormSection(source = 'manual') {
 }
 
 /**
- * Reset form and return to search
+ * Perform the actual form reset (called after confirmation or if no changes)
  */
-function startOver() {
-  // Confirm if form has data
-  if (formDirty) {
-    if (!confirm('Discard current book data and start over?')) {
-      return;
-    }
-  }
-
+function doStartOver() {
   // Reset form
   bookForm.reset();
   currentISBN = '';
@@ -217,6 +211,29 @@ function startOver() {
   searchStatus.classList.add('hidden');
 
   showSearchSection();
+}
+
+/**
+ * Reset form and return to search (with confirmation if dirty)
+ */
+function startOver() {
+  // Confirm if form has data
+  if (formDirty) {
+    const confirmSheet = new ConfirmSheet({
+      title: 'Discard Changes?',
+      message: 'You have unsaved book data. Are you sure you want to start over?',
+      confirmText: 'Discard',
+      cancelText: 'Keep Editing',
+      confirmClass: 'bg-red-600 hover:bg-red-700',
+      onConfirm: () => {
+        doStartOver();
+      }
+    });
+    confirmSheet.show();
+    return;
+  }
+
+  doStartOver();
 }
 
 // Auth Check - header.js handles redirect, just capture user
