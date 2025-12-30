@@ -114,7 +114,7 @@ let dataSource = 'manual'; // 'manual' | 'google' | 'openlibrary' | 'scan'
 // DOM Elements - Search Section
 const searchSection = document.getElementById('search-section');
 const bookSearchInput = document.getElementById('book-search');
-const searchBtn = document.getElementById('search-btn');
+const searchBtn = document.getElementById('book-search-btn');
 const clearSearchBtn = document.getElementById('clear-search');
 const searchHint = document.getElementById('search-hint');
 const searchStatus = document.getElementById('search-status');
@@ -197,11 +197,10 @@ function doStartOver() {
   bookForm.reset();
   currentISBN = '';
   dataSource = 'manual';
-  formDirty = false;
   duplicateCheckBypassed = false;
   apiGenreSuggestions = [];
 
-  // Reset pickers
+  // Reset pickers (these may trigger onChange callbacks that set formDirty)
   if (ratingInput) ratingInput.setValue(0);
   if (coverPicker) coverPicker.setCovers(null);
   if (genrePicker) {
@@ -210,6 +209,9 @@ function doStartOver() {
   }
   if (seriesPicker) seriesPicker.clear();
   if (imageGallery) imageGallery.cleanupUnsavedUploads();
+
+  // Reset formDirty AFTER pickers (their onChange callbacks set it to true)
+  formDirty = false;
 
   // Reset submit button state
   submitBtn.disabled = true;
@@ -420,6 +422,9 @@ async function handleSearch() {
     hideSearchStatus();
     return;
   }
+
+  // Hide the ISBN hint when search starts
+  hideSearchStatus();
 
   if (isISBN(input)) {
     // ISBN detected - do direct lookup
@@ -682,6 +687,11 @@ function renderSearchResults(books, append = false) {
 async function selectSearchResult(el) {
   const { title, author, cover, publisher, published, isbn, pagecount, categories } = el.dataset;
 
+  // Show loading state on the clicked result
+  el.classList.add('opacity-50', 'pointer-events-none');
+  el.innerHTML += '<div class="absolute inset-0 flex items-center justify-center bg-white/50"><div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div></div>';
+  el.classList.add('relative');
+
   currentISBN = isbn || '';
   titleInput.value = title;
   authorInput.value = author;
@@ -846,8 +856,8 @@ bookSearchInput.addEventListener('keypress', (e) => {
 const debouncedSearch = debounce(async (query) => {
   // Don't auto-search ISBNs - wait for explicit Go/Enter
   if (isISBN(query)) {
-    hideSearchStatus();
     searchResultsDiv.classList.add('hidden');
+    showSearchStatus('ISBN detected — press Go to look up', 'info');
     return;
   }
 
