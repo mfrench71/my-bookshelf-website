@@ -234,4 +234,52 @@ test.describe('Accessibility - Authenticated Pages (JS Disabled)', () => {
     const h2Count = await page.locator('h2').count();
     expect(h2Count).toBeGreaterThan(0);
   });
+
+  test('home page has correct structure', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('book edit page has correct structure', async ({ page }) => {
+    await page.goto('/books/edit/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('book view page has correct structure', async ({ page }) => {
+    await page.goto('/books/view/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('settings library page has correct structure', async ({ page }) => {
+    await page.goto('/settings/library/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('settings preferences page has correct structure', async ({ page }) => {
+    await page.goto('/settings/preferences/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('settings maintenance page has correct structure', async ({ page }) => {
+    await page.goto('/settings/maintenance/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('settings bin page has correct structure', async ({ page }) => {
+    await page.goto('/settings/bin/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
+
+  test('settings about page has correct structure', async ({ page }) => {
+    await page.goto('/settings/about/');
+    await expect(page.locator('h1')).toBeAttached();
+    await expect(page.locator('main#main-content')).toBeAttached();
+  });
 });
