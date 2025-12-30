@@ -670,6 +670,44 @@ Current add book page shows all lookup methods and full form at once. Proposed p
 - [x] Merged old "Fetch Book Covers" tool into Health Dashboard
 - [ ] "Mark as fixed" option for books where data will never be available (e.g., pre-ISBN editions)
 
+#### Library Health Scalability (Future)
+As libraries grow, the health dashboard could become unwieldy with many issues listed.
+
+**Potential Solutions:**
+- [ ] Collapse issue sections by default, show count badges only
+- [ ] "Show first 10" with "Load more" button per section
+- [ ] Virtual scrolling for sections with 50+ items
+- [ ] Filter by issue type (missing cover vs missing genre)
+- [ ] Sort by severity or date added
+- [ ] Batch fix actions with progress indicator
+
+### Settings Page Scalability (Future)
+
+#### Genres & Series Management
+As users accumulate many genres/series, the Settings > Library page lists will need better management.
+
+**Competitor Research Summary:**
+
+| App | Pagination | Search/Filter | Sort | Performance |
+|-----|------------|---------------|------|-------------|
+| **Goodreads** | Yes (10/20/30 per page) | Limited | Alphabetical | Issues with 500+ items |
+| **StoryGraph** | No (infinite scroll) | Yes (tags) | Alphabetical, by count | Lazy-loading planned |
+| **Literal** | Not specified | Available | Custom | Not specified |
+| **Hardcover** | Not specified | Typesense search | Most-used first | Slow with large lists |
+
+**Key Findings:**
+- No major app uses virtual scrolling (opportunity to differentiate)
+- Bulk/batch editing commonly requested but not standard
+- Performance degrades significantly at 500+ items
+- StoryGraph actively working on lazy-loading for tag management
+
+**Recommended Implementation:**
+- [ ] Search/filter input above genre/series lists
+- [ ] Sort options: alphabetical, by book count, recently used
+- [ ] Virtual scrolling or "load more" for 50+ items
+- [ ] Bulk select with multi-delete capability
+- [ ] Collapse unused genres/series into "Show all" expander
+
 ### Privacy Settings
 - [ ] Profile visibility (public/private)
 - [ ] Per-book privacy controls

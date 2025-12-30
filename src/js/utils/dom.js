@@ -66,7 +66,8 @@ export function unlockBodyScroll() {
  */
 export function initIcons(container) {
   if (typeof lucide !== 'undefined') {
-    if (container) {
+    // Only use container if it's a valid HTMLElement (not an Event or other object)
+    if (container instanceof HTMLElement) {
       lucide.createIcons({ root: container });
     } else {
       lucide.createIcons();
