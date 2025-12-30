@@ -6,6 +6,10 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- Book view page improvements:
+  - Author link now clickable (blue with arrow, filters book list by author)
+  - Genre badges now clickable (filters book list by genre)
+  - Hover effects on genre badges (opacity + scale)
 - Fix service worker missing pages (wishlist, bin, privacy) - found via PWA audit
 - Increase test coverage from 73% to 77% (exceeds 75% target)
   - Add ImageGallery component tests (41 tests)
