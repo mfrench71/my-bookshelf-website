@@ -10,7 +10,7 @@ import {
   getDocs,
   getDocsFromServer
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime, lockBodyScroll, unlockBodyScroll } from '../utils.js';
+import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime, lockBodyScroll, unlockBodyScroll, escapeHtml, escapeAttr } from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
@@ -1305,8 +1305,8 @@ function renderActiveFilterChips() {
       const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       const delay = index * 50; // Stagger animation delay
       return `
-        <button data-filter-type="${chip.type}" data-filter-value="${chip.value}" class="chip-enter inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" style="animation-delay: ${delay}ms" aria-label="Remove ${chip.label} filter">
-          <span>${chip.label}</span>
+        <button data-filter-type="${escapeAttr(chip.type)}" data-filter-value="${escapeAttr(chip.value)}" class="chip-enter inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" style="animation-delay: ${delay}ms" aria-label="Remove ${escapeAttr(chip.label)} filter">
+          <span>${escapeHtml(chip.label)}</span>
           <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>
       `;
