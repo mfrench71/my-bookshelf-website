@@ -168,12 +168,16 @@ describe('Form HTML Alignment', () => {
       it('should have name attributes matching BookSchema required fields', () => {
         const names = extractInputNames(addHtml, 'book-form');
         expect(names).toContain('title');
-        expect(names).toContain('author');
+        // Author is handled by AuthorPicker component (dynamically rendered with label + required indicator)
+      });
+
+      it('should have container for AuthorPicker component', () => {
+        expect(addHtml).toContain('id="author-picker-container"');
       });
 
       it('should mark required fields', () => {
         expect(hasRequiredIndicator(addHtml, 'Title')).toBe(true);
-        expect(hasRequiredIndicator(addHtml, 'Author')).toBe(true);
+        // Author required indicator is rendered by AuthorPicker component
       });
     });
   });
@@ -189,12 +193,16 @@ describe('Form HTML Alignment', () => {
       it('should have name attributes matching BookSchema required fields', () => {
         const names = extractInputNames(editHtml, 'edit-form');
         expect(names).toContain('title');
-        expect(names).toContain('author');
+        // Author is handled by AuthorPicker component (dynamically rendered with label + required indicator)
+      });
+
+      it('should have container for AuthorPicker component', () => {
+        expect(editHtml).toContain('id="author-picker-container"');
       });
 
       it('should mark required fields', () => {
         expect(hasRequiredIndicator(editHtml, 'Title')).toBe(true);
-        expect(hasRequiredIndicator(editHtml, 'Author')).toBe(true);
+        // Author required indicator is rendered by AuthorPicker component
       });
     });
   });

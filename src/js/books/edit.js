@@ -12,6 +12,7 @@ import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { SeriesPicker } from '../components/series-picker.js';
+import { AuthorPicker } from '../components/author-picker.js';
 import { CoverPicker } from '../components/cover-picker.js';
 import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
@@ -31,6 +32,7 @@ let book = null;
 let ratingInput = null;
 let genrePicker = null;
 let seriesPicker = null;
+let authorPicker = null;
 let coverPicker = null;
 let imageGallery = null;
 let originalGenres = [];
@@ -57,7 +59,7 @@ const breadcrumb = document.getElementById('breadcrumb');
 const cancelBtn = document.getElementById('cancel-btn');
 const editForm = document.getElementById('edit-form');
 const titleInput = document.getElementById('title');
-const authorInput = document.getElementById('author');
+const authorPickerContainer = document.getElementById('author-picker-container');
 const coverUrlInput = document.getElementById('cover-url');
 const coverPickerContainer = document.getElementById('cover-picker-container');
 const coverPickerHint = document.getElementById('cover-picker-hint');
@@ -162,6 +164,26 @@ async function initSeriesPicker() {
   if (book && book.seriesId) {
     seriesPicker.setSelected(book.seriesId, book.seriesPosition);
     originalSeriesId = book.seriesId;
+  }
+}
+
+// Initialize Author Picker
+async function initAuthorPicker() {
+  if (authorPicker || !authorPickerContainer) return;
+
+  authorPicker = new AuthorPicker({
+    container: authorPickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      updateSaveButtonState();
+    }
+  });
+
+  await authorPicker.init();
+
+  // Set initial author if book has one
+  if (book && book.author) {
+    authorPicker.setValue(book.author);
   }
 }
 
@@ -270,7 +292,7 @@ function renderForm() {
 
   // Form fields
   titleInput.value = book.title || '';
-  authorInput.value = book.author || '';
+  // Author is set via initAuthorPicker
   coverUrlInput.value = book.coverImageUrl || '';
   publisherInput.value = book.publisher || '';
   publishedDateInput.value = book.publishedDate || '';
@@ -309,6 +331,7 @@ function renderForm() {
   // Initialize pickers
   initGenrePicker();
   initSeriesPicker();
+  initAuthorPicker();
   initImageGallery();
 
   // Cover picker
@@ -472,7 +495,7 @@ toggleHistoryBtn.addEventListener('click', () => {
 // Form dirty checking
 function checkFormDirty() {
   if (titleInput.value.trim() !== originalValues.title) return true;
-  if (authorInput.value.trim() !== originalValues.author) return true;
+  if (authorPicker && authorPicker.getValue().trim() !== originalValues.author) return true;
   if (coverUrlInput.value.trim() !== originalValues.coverImageUrl) return true;
   if (publisherInput.value.trim() !== originalValues.publisher) return true;
   if (publishedDateInput.value.trim() !== originalValues.publishedDate) return true;
@@ -518,7 +541,7 @@ editForm.addEventListener('submit', async (e) => {
 
   const formData = {
     title: titleInput.value.trim(),
-    author: authorInput.value.trim(),
+    author: authorPicker ? authorPicker.getValue().trim() : '',
     coverImageUrl: coverUrlInput.value.trim(),
     publisher: publisherInput.value.trim(),
     publishedDate: publishedDateInput.value.trim(),
@@ -531,7 +554,10 @@ editForm.addEventListener('submit', async (e) => {
   const validation = validateForm(BookFormSchema, formData);
   if (!validation.success) {
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
-    if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
+    if (validation.errors.author) {
+      const authorInput = authorPickerContainer.querySelector('.author-picker-input');
+      if (authorInput) showFieldError(authorInput, validation.errors.author);
+    }
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
@@ -606,8 +632,8 @@ editForm.addEventListener('submit', async (e) => {
   }
 });
 
-// Track input changes
-[titleInput, authorInput, publisherInput, publishedDateInput, physicalFormatInput, pageCountInput, notesInput].forEach(el => {
+// Track input changes (authorPicker handles its own onChange)
+[titleInput, publisherInput, publishedDateInput, physicalFormatInput, pageCountInput, notesInput].forEach(el => {
   el.addEventListener('input', () => {
     updateSaveButtonState();
   });
@@ -724,7 +750,17 @@ refreshDataBtn.addEventListener('click', async () => {
     };
 
     normalizeField(titleInput, normalizeTitle, 'title');
-    normalizeField(authorInput, normalizeAuthor, 'author');
+    // Handle author normalization via AuthorPicker
+    if (authorPicker) {
+      const currentAuthor = authorPicker.getValue();
+      const normalizedAuthor = normalizeAuthor(currentAuthor);
+      if (currentAuthor && normalizedAuthor !== currentAuthor) {
+        authorPicker.setValue(normalizedAuthor);
+        const authorInput = authorPickerContainer.querySelector('.author-picker-input');
+        if (authorInput) authorInput.classList.add('field-changed');
+        changedFields.push('author');
+      }
+    }
     normalizeField(publisherInput, normalizePublisher, 'publisher');
     normalizeField(publishedDateInput, normalizePublishedDate, 'published date');
 
@@ -742,7 +778,13 @@ refreshDataBtn.addEventListener('click', async () => {
       };
 
       fillEmptyField(titleInput, apiData.title, 'title');
-      fillEmptyField(authorInput, apiData.author, 'author');
+      // Author uses AuthorPicker instead of standard input
+      if (authorPicker && apiData.author && !authorPicker.getValue().trim()) {
+        authorPicker.setValue(apiData.author);
+        const authorInput = authorPickerContainer.querySelector('.author-picker-input');
+        if (authorInput) authorInput.classList.add('field-changed');
+        if (!changedFields.includes('author')) changedFields.push('author');
+      }
       fillEmptyField(publisherInput, apiData.publisher, 'publisher');
       fillEmptyField(publishedDateInput, apiData.publishedDate, 'published date');
       fillEmptyField(physicalFormatInput, apiData.physicalFormat, 'format');

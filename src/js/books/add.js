@@ -17,6 +17,7 @@ import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { CoverPicker } from '../components/cover-picker.js';
 import { SeriesPicker } from '../components/series-picker.js';
+import { AuthorPicker } from '../components/author-picker.js';
 import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
@@ -100,6 +101,7 @@ let currentUser = null;
 let ratingInput = null;
 let coverPicker = null;
 let seriesPicker = null;
+let authorPicker = null;
 let imageGallery = null;
 let scannerRunning = false;
 let formDirty = false;
@@ -130,7 +132,7 @@ const dataSourceText = document.getElementById('data-source-text');
 const startOverBtn = document.getElementById('start-over-btn');
 const bookForm = document.getElementById('book-form');
 const titleInput = document.getElementById('title');
-const authorInput = document.getElementById('author');
+const authorPickerContainer = document.getElementById('author-picker-container');
 const coverUrlInput = document.getElementById('cover-url');
 const coverPickerContainer = document.getElementById('cover-picker-container');
 const coverPickerHint = document.getElementById('cover-picker-hint');
@@ -152,6 +154,35 @@ const closeScannerBtn = document.getElementById('close-scanner');
 const scannerContainer = document.getElementById('scanner-container');
 const scannerLoading = document.getElementById('scanner-loading');
 const scannerViewfinder = document.getElementById('scanner-viewfinder');
+
+/**
+ * Check if the form has actual content that would be lost
+ * For add page, form is only dirty if there's meaningful content
+ * @returns {boolean}
+ */
+function hasFormContent() {
+  // Check text inputs
+  if (titleInput?.value.trim()) return true;
+  if (authorPicker?.getValue().trim()) return true;
+  if (coverUrlInput?.value.trim()) return true;
+  if (publisherInput?.value.trim()) return true;
+  if (publishedDateInput?.value.trim()) return true;
+  if (physicalFormatInput?.value.trim()) return true;
+  if (pageCountInput?.value.trim()) return true;
+  if (notesInput?.value.trim()) return true;
+
+  // Check rating
+  if (ratingInput?.getValue() > 0) return true;
+
+  // Check pickers
+  if (genrePicker?.getSelected().length > 0) return true;
+  if (seriesPicker?.getSelected().seriesId) return true;
+
+  // Check images
+  if (imageGallery?.getImages().length > 0) return true;
+
+  return false;
+}
 
 /**
  * Show the search section and hide form with animation
@@ -265,7 +296,7 @@ function doStartOver() {
  */
 function startOver() {
   // Confirm if form has data
-  if (formDirty) {
+  if (hasFormContent()) {
     const confirmSheet = new ConfirmSheet({
       title: 'Discard Changes?',
       message: 'You have unsaved book data. Are you sure you want to go back?',
@@ -292,6 +323,7 @@ onAuthStateChanged(auth, async (user) => {
     initImageGallery();
     initGenrePicker();
     initSeriesPicker();
+    initAuthorPicker();
     // Load wishlist for pre-checking search results
     try {
       const wishlistItems = await loadWishlistItems(user.uid);
@@ -361,6 +393,22 @@ async function initSeriesPicker() {
   });
 
   await seriesPicker.init();
+}
+
+// Initialize Author Picker
+async function initAuthorPicker() {
+  if (authorPicker || !authorPickerContainer) return;
+
+  authorPicker = new AuthorPicker({
+    container: authorPickerContainer,
+    userId: currentUser.uid,
+    onChange: () => {
+      formDirty = true;
+      updateSubmitButtonState();
+    }
+  });
+
+  await authorPicker.init();
 }
 
 // Initialize Cover Picker
@@ -479,7 +527,7 @@ async function handleISBNLookup(isbn, fromScan = false) {
 
       // Populate form
       titleInput.value = bookData.title || '';
-      authorInput.value = bookData.author || '';
+      if (authorPicker) authorPicker.setValue(bookData.author || '');
       setCoverPickerCovers(bookData.covers);
       publisherInput.value = bookData.publisher || '';
       publishedDateInput.value = bookData.publishedDate || '';
@@ -724,7 +772,7 @@ async function selectSearchResult(el) {
 
   currentISBN = isbn || '';
   titleInput.value = title;
-  authorInput.value = author;
+  if (authorPicker) authorPicker.setValue(author);
 
   // Extract and suggest genres from categories (parse through normalizer)
   if (categories) {
@@ -1101,7 +1149,7 @@ function closeScanner() {
  */
 function isFormValid() {
   if (!titleInput?.value?.trim()) return false;
-  if (!authorInput?.value?.trim()) return false;
+  if (!authorPicker?.getValue()?.trim()) return false;
   return true;
 }
 
@@ -1115,12 +1163,8 @@ function updateSubmitButtonState() {
   submitBtn.classList.toggle('cursor-not-allowed', !isValid);
 }
 
-// Update submit button state when title or author changes
+// Update submit button state when title changes
 titleInput?.addEventListener('input', () => {
-  formDirty = true;
-  updateSubmitButtonState();
-});
-authorInput?.addEventListener('input', () => {
   formDirty = true;
   updateSubmitButtonState();
 });
@@ -1147,7 +1191,7 @@ bookForm.addEventListener('submit', async (e) => {
   }
 
   const title = titleInput.value.trim();
-  const author = authorInput.value.trim();
+  const author = authorPicker ? authorPicker.getValue().trim() : '';
   const isbn = currentISBN;
 
   // Validate form data
@@ -1168,7 +1212,10 @@ bookForm.addEventListener('submit', async (e) => {
   if (!validation.success) {
     // Show field-level errors
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
-    if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
+    if (validation.errors.author) {
+      const authorInput = authorPickerContainer.querySelector('.author-picker-input');
+      if (authorInput) showFieldError(authorInput, validation.errors.author);
+    }
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
@@ -1307,7 +1354,7 @@ if (beforeUnloadHandler) {
   window.removeEventListener('beforeunload', beforeUnloadHandler);
 }
 beforeUnloadHandler = (e) => {
-  if (formDirty) {
+  if (hasFormContent()) {
     e.preventDefault();
     e.returnValue = '';
   }
@@ -1316,7 +1363,7 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 // Cleanup on page hide (best-effort)
 window.addEventListener('pagehide', () => {
-  if (imageGallery && formDirty) {
+  if (imageGallery && hasFormContent()) {
     imageGallery.cleanupUnsavedUploads();
   }
 });
@@ -1324,7 +1371,7 @@ window.addEventListener('pagehide', () => {
 // Intercept in-app navigation (header/breadcrumb links) when form is dirty
 // Shows custom ConfirmSheet instead of allowing immediate navigation
 interceptNavigation({
-  isDirty: () => formDirty,
+  isDirty: () => hasFormContent(),
   showConfirmation: () => ConfirmSheet.show({
     title: 'Discard Changes?',
     message: 'You have unsaved book data. Are you sure you want to leave?',
