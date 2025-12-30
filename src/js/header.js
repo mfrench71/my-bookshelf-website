@@ -26,6 +26,7 @@ import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
 import { getWishlistCount, clearWishlistCache } from './wishlist.js';
+import { getRecentSearches, saveRecentSearch, clearRecentSearches } from './utils/recent-searches.js';
 
 // Initialize icons once on load
 initIcons();
@@ -40,55 +41,6 @@ let genreLookup = null;
 let series = [];
 let seriesLookup = null;
 let onlineListenersAttached = false;
-
-// Recent searches
-const RECENT_SEARCHES_KEY = 'mybookshelf_recent_searches';
-const MAX_RECENT_SEARCHES = 5;
-
-/**
- * Get recent searches from localStorage
- * @returns {Array<string>} Array of recent search queries
- */
-function getRecentSearches() {
-  try {
-    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Save a search to recent searches
- * @param {string} query - Search query to save
- */
-function saveRecentSearch(query) {
-  if (!query || query.length < 2) return;
-
-  try {
-    let searches = getRecentSearches();
-    // Remove if already exists (to move to top)
-    searches = searches.filter(s => s !== query);
-    // Add to beginning
-    searches.unshift(query);
-    // Keep only max
-    searches = searches.slice(0, MAX_RECENT_SEARCHES);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-/**
- * Clear all recent searches
- */
-function clearRecentSearches() {
-  try {
-    localStorage.removeItem(RECENT_SEARCHES_KEY);
-  } catch {
-    // Ignore storage errors
-  }
-}
 
 /**
  * Render recent searches section
