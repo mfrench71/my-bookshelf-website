@@ -3,6 +3,7 @@ layout: base.njk
 title: Bin
 scripts: '<script type="module" src="/js/settings/bin.js"></script>'
 ---
+
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
@@ -21,15 +22,17 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
         </li>
       </ol>
     </nav>
-    <button id="empty-bin-btn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors min-h-[44px]">
+    <button
+      id="empty-bin-btn"
+      class="hidden flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors min-h-[44px]"
+    >
       <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
       <span>Empty Bin</span>
     </button>
   </div>
 </div>
 
-{% set activePage = 'bin' %}
-{% include "settings-nav.njk" %}
+{% set activePage = 'bin' %} {% include "settings-nav.njk" %}
 
 <div class="max-w-2xl mx-auto px-4 py-6 page-content">
   <div class="flex items-center justify-between mb-6">
@@ -48,7 +51,9 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
   <div id="empty-state" class="hidden text-center py-12 empty-state-animate">
     <i data-lucide="trash-2" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
     <p class="text-gray-500 mt-3">Bin is empty</p>
-    <p class="text-gray-400 text-sm mt-1">Deleted books will appear here for 30 days before being permanently removed.</p>
+    <p class="text-gray-400 text-sm mt-1">
+      Deleted books will appear here for 30 days before being permanently removed.
+    </p>
   </div>
 
   <!-- Book List -->
@@ -62,10 +67,16 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
     <h3 class="text-lg font-semibold mb-2">Restore Book?</h3>
     <p class="text-gray-500 mb-6">This book will be restored to your library.</p>
     <div class="flex gap-3">
-      <button id="cancel-restore" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-restore"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-restore" class="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px]">
+      <button
+        id="confirm-restore"
+        class="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px]"
+      >
         Restore
       </button>
     </div>
@@ -79,10 +90,16 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
     <h3 class="text-lg font-semibold text-red-600 mb-2">Permanently Delete?</h3>
     <p class="text-gray-500 mb-6">This action cannot be undone. The book will be permanently deleted.</p>
     <div class="flex gap-3">
-      <button id="cancel-delete" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-delete"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-delete" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+      <button
+        id="confirm-delete"
+        class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]"
+      >
         Delete Forever
       </button>
     </div>
@@ -94,12 +111,20 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
   <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold text-red-600 mb-2">Empty Bin?</h3>
-    <p id="empty-bin-text" class="text-gray-500 mb-6">All books in the bin will be permanently deleted. This cannot be undone.</p>
+    <p id="empty-bin-text" class="text-gray-500 mb-6">
+      All books in the bin will be permanently deleted. This cannot be undone.
+    </p>
     <div class="flex gap-3">
-      <button id="cancel-empty-bin" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-empty-bin"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-empty-bin" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+      <button
+        id="confirm-empty-bin"
+        class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]"
+      >
         Empty Bin
       </button>
     </div>
@@ -107,4 +132,7 @@ scripts: '<script type="module" src="/js/settings/bin.js"></script>'
 </div>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

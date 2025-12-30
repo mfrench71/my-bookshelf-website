@@ -131,7 +131,7 @@ export function getContrastColor(hex) {
 export function interceptNavigation({ isDirty, showConfirmation, onBeforeNavigate }) {
   // Intercept header nav links and breadcrumbs
   document.querySelectorAll('header a[href], nav a[href]').forEach(link => {
-    link.addEventListener('click', async (e) => {
+    link.addEventListener('click', async e => {
       if (!isDirty()) return; // No unsaved changes, allow navigation
 
       e.preventDefault();

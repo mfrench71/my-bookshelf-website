@@ -1,5 +1,13 @@
 // Shared Book Card Component
-import { escapeHtml, renderStars, formatDate, getContrastColor, getBookStatus, isValidImageUrl, normalizeText } from '../utils.js';
+import {
+  escapeHtml,
+  renderStars,
+  formatDate,
+  getContrastColor,
+  getBookStatus,
+  isValidImageUrl,
+  normalizeText,
+} from '../utils.js';
 
 // Maximum number of genre badges to show
 const MAX_GENRE_BADGES = 3;
@@ -50,8 +58,8 @@ const MAX_SERIES_NAME_LENGTH = 20;
 
 // Status badge configuration (status inferred from reads array)
 const STATUS_CONFIG = {
-  'reading': { icon: 'book-open', label: 'Reading', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
-  'finished': { icon: 'check-circle', label: 'Finished', bgClass: 'bg-green-100', textClass: 'text-green-700' }
+  reading: { icon: 'book-open', label: 'Reading', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
+  finished: { icon: 'check-circle', label: 'Finished', bgClass: 'bg-green-100', textClass: 'text-green-700' },
 };
 
 /**
@@ -131,19 +139,25 @@ function renderGenreBadges(genreDetails) {
  * @returns {string} HTML string for the book card
  */
 export function bookCard(book, options = {}) {
-  const { showDate = false, genreLookup = null, seriesLookup = null, highlightQuery = '', className = '', animationDelay = 0 } = options;
+  const {
+    showDate = false,
+    genreLookup = null,
+    seriesLookup = null,
+    highlightQuery = '',
+    className = '',
+    animationDelay = 0,
+  } = options;
 
-  const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
-    ? `<div class="book-cover-wrapper">
+  const cover =
+    book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
+      ? `<div class="book-cover-wrapper">
         <div class="book-cover-placeholder"><i data-lucide="book"></i></div>
         <div class="book-cover-spinner"><i data-lucide="loader-2" class="w-6 h-6 text-gray-400 animate-spin"></i></div>
         <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="book-cover" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='none'">
       </div>`
-    : `<div class="book-cover-placeholder"><i data-lucide="book"></i></div>`;
+      : `<div class="book-cover-placeholder"><i data-lucide="book"></i></div>`;
 
-  const rating = book.rating
-    ? `<div class="rating-stars">${renderStars(book.rating)}</div>`
-    : '';
+  const rating = book.rating ? `<div class="rating-stars">${renderStars(book.rating)}</div>` : '';
 
   // Resolve genre IDs to genre objects (sorted alphabetically)
   let genreBadges = '';
@@ -176,9 +190,7 @@ export function bookCard(book, options = {}) {
   const topBadges = [statusBadge, seriesBadge].filter(Boolean).join(' ');
 
   // Highlight title and author if search query provided
-  const titleHtml = highlightQuery
-    ? highlightMatch(book.title, highlightQuery)
-    : escapeHtml(book.title);
+  const titleHtml = highlightQuery ? highlightMatch(book.title, highlightQuery) : escapeHtml(book.title);
   const authorHtml = highlightQuery
     ? highlightMatch(book.author || 'Unknown author', highlightQuery)
     : escapeHtml(book.author || 'Unknown author');

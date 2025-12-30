@@ -15,23 +15,33 @@ import { initIcons } from '../utils.js';
  * @param {number} count - Number of skeleton widgets to show
  */
 export function renderWidgetSkeletons(container, count = 4) {
-  const skeletons = Array(count).fill(0).map(() => `
+  const skeletons = Array(count)
+    .fill(0)
+    .map(
+      () => `
     <div class="widget-skeleton widget-col-12">
       <div class="skeleton-header">
         <div class="skeleton skeleton-icon"></div>
         <div class="skeleton skeleton-title"></div>
       </div>
       <div class="skeleton-content">
-        ${Array(4).fill(0).map(() => `
+        ${Array(4)
+          .fill(0)
+          .map(
+            () => `
           <div class="skeleton-book">
             <div class="skeleton skeleton-book-cover"></div>
             <div class="skeleton skeleton-book-title"></div>
             <div class="skeleton skeleton-book-author"></div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   container.innerHTML = `<div class="widget-grid">${skeletons}</div>`;
 }
@@ -57,20 +67,22 @@ export function renderWidgets(container, books, settings, genreLookup = {}, seri
     return;
   }
 
-  const widgetHtml = enabledWidgets.map(config => {
-    const Widget = widgetRegistry.get(config.id);
-    if (!Widget) {
-      console.warn(`Widget not found: ${config.id}`);
-      return '';
-    }
+  const widgetHtml = enabledWidgets
+    .map(config => {
+      const Widget = widgetRegistry.get(config.id);
+      if (!Widget) {
+        console.warn(`Widget not found: ${config.id}`);
+        return '';
+      }
 
-    const sizeClass = `widget-col-${config.size || Widget.defaultSize}`;
-    // Pass wishlist items instead of books for widgets that require it
-    const data = Widget.requiresWishlist ? wishlistItems : books;
-    const html = Widget.renderWidget(data, config, genreLookup, seriesLookup);
+      const sizeClass = `widget-col-${config.size || Widget.defaultSize}`;
+      // Pass wishlist items instead of books for widgets that require it
+      const data = Widget.requiresWishlist ? wishlistItems : books;
+      const html = Widget.renderWidget(data, config, genreLookup, seriesLookup);
 
-    return `<div class="${sizeClass}">${html}</div>`;
-  }).join('');
+      return `<div class="${sizeClass}">${html}</div>`;
+    })
+    .join('');
 
   // Replace skeletons with actual widgets using crossfade animation
   container.innerHTML = `<div class="widget-grid fade-in">${widgetHtml}</div>`;
@@ -109,7 +121,7 @@ export function getWidgetInfo() {
     iconColor: Widget.iconColor,
     defaultSize: Widget.defaultSize,
     defaultSettings: Widget.defaultSettings,
-    settingsSchema: Widget.settingsSchema
+    settingsSchema: Widget.settingsSchema,
   }));
 }
 
@@ -120,5 +132,5 @@ export const WIDGET_SIZES = [
   { value: 3, label: 'Small', description: 'Quarter width' },
   { value: 6, label: 'Medium', description: 'Half width' },
   { value: 9, label: 'Large', description: 'Three-quarter width' },
-  { value: 12, label: 'Full', description: 'Full width' }
+  { value: 12, label: 'Full', description: 'Full width' },
 ];

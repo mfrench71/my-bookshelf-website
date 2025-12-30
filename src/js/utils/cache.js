@@ -11,7 +11,7 @@ export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 export function clearBooksCache(userId) {
   try {
     localStorage.removeItem(`${CACHE_KEY}_${userId}`);
-  } catch (e) {
+  } catch (_e) {
     // Ignore cache clear errors
   }
 }
@@ -22,7 +22,7 @@ const DEFAULT_HOME_SETTINGS = {
   currentlyReading: { enabled: true, count: 6 },
   recentlyAdded: { enabled: true, count: 6 },
   topRated: { enabled: true, count: 6 },
-  recentlyFinished: { enabled: true, count: 6 }
+  recentlyFinished: { enabled: true, count: 6 },
 };
 
 /**
@@ -35,8 +35,8 @@ export function getHomeSettings() {
     if (stored) {
       return { ...DEFAULT_HOME_SETTINGS, ...JSON.parse(stored) };
     }
-  } catch (e) {
-    console.warn('Error loading home settings:', e);
+  } catch (err) {
+    console.warn('Error loading home settings:', err);
   }
   return { ...DEFAULT_HOME_SETTINGS };
 }
@@ -48,8 +48,8 @@ export function getHomeSettings() {
 export function saveHomeSettings(settings) {
   try {
     localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('Error saving home settings:', e);
+  } catch (err) {
+    console.warn('Error saving home settings:', err);
   }
 }
 
@@ -68,10 +68,12 @@ let userProfileCacheTime = 0;
  */
 export async function getCachedUserProfile(fetchFn, userId, forceRefresh = false) {
   const now = Date.now();
-  if (!forceRefresh &&
-      userProfileCache &&
-      userProfileCacheUserId === userId &&
-      now - userProfileCacheTime < USER_PROFILE_CACHE_TTL) {
+  if (
+    !forceRefresh &&
+    userProfileCache &&
+    userProfileCacheUserId === userId &&
+    now - userProfileCacheTime < USER_PROFILE_CACHE_TTL
+  ) {
     return userProfileCache;
   }
 
@@ -110,8 +112,8 @@ export function getISBNCache(isbn) {
     }
     // Expired, remove it
     localStorage.removeItem(`${ISBN_CACHE_KEY}_${isbn}`);
-  } catch (e) {
-    console.warn('ISBN cache read error:', e.message);
+  } catch (err) {
+    console.warn('ISBN cache read error:', err.message);
   }
   return null;
 }
@@ -123,11 +125,14 @@ export function getISBNCache(isbn) {
  */
 export function setISBNCache(isbn, data) {
   try {
-    localStorage.setItem(`${ISBN_CACHE_KEY}_${isbn}`, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  } catch (e) {
-    console.warn('ISBN cache write error:', e.message);
+    localStorage.setItem(
+      `${ISBN_CACHE_KEY}_${isbn}`,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (err) {
+    console.warn('ISBN cache write error:', err.message);
   }
 }

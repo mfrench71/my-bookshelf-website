@@ -2,7 +2,12 @@
 // Firebase Storage upload, compression, and validation for book images
 
 import { storage } from '../firebase-config.js';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -118,7 +123,7 @@ export async function compressImage(file, options = {}) {
 
       // Convert to blob
       canvas.toBlob(
-        (blob) => {
+        blob => {
           if (blob) {
             resolve({ blob, mimeType, extension });
           } else {
@@ -168,16 +173,16 @@ export async function uploadImage(file, userId, bookId, onProgress = () => {}) {
   // Upload with progress tracking
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, compressedBlob, {
-      contentType: mimeType
+      contentType: mimeType,
     });
 
     uploadTask.on(
       'state_changed',
-      (snapshot) => {
+      snapshot => {
         const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
         onProgress(progress);
       },
-      (error) => {
+      error => {
         console.error('Upload error:', error);
         reject(new Error('Failed to upload image. Please try again.'));
       },
@@ -190,7 +195,7 @@ export async function uploadImage(file, userId, bookId, onProgress = () => {}) {
             storagePath,
             sizeBytes: compressedBlob.size,
             width: dimensions.width,
-            height: dimensions.height
+            height: dimensions.height,
           });
         } catch (error) {
           console.error('Error getting download URL:', error);
@@ -231,6 +236,6 @@ export async function deleteImage(storagePath) {
 export async function deleteImages(images) {
   if (!images || images.length === 0) return;
 
-  const deletePromises = images.map((img) => deleteImage(img.storagePath));
+  const deletePromises = images.map(img => deleteImage(img.storagePath));
   await Promise.allSettled(deletePromises);
 }

@@ -14,7 +14,7 @@ if (document.readyState === 'loading') {
 }
 
 // Auth Check (for settings indicators)
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, user => {
   if (user) {
     updateSettingsIndicators(user.uid);
   }

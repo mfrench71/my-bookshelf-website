@@ -26,7 +26,7 @@ export const HEALTH_FIELDS = {
   physicalFormat: { weight: 1, label: 'Format', apiFixable: false }, // Very poor API coverage
   publisher: { weight: 1, label: 'Publisher', apiFixable: true },
   publishedDate: { weight: 1, label: 'Published Date', apiFixable: true },
-  isbn: { weight: 0, label: 'ISBN', apiFixable: false } // Not counted in score, but tracked
+  isbn: { weight: 0, label: 'ISBN', apiFixable: false }, // Not counted in score, but tracked
 };
 
 /**
@@ -123,7 +123,7 @@ export function analyzeLibraryHealth(books) {
     missingFormat: [],
     missingPublisher: [],
     missingPublishedDate: [],
-    missingIsbn: []
+    missingIsbn: [],
   };
 
   for (const book of activeBooks) {
@@ -139,7 +139,8 @@ export function analyzeLibraryHealth(books) {
   const completenessScore = calculateLibraryCompleteness(activeBooks);
 
   // Calculate total issues (excluding ISBN since it's not in completeness score)
-  const totalIssues = issues.missingCover.length +
+  const totalIssues =
+    issues.missingCover.length +
     issues.missingGenres.length +
     issues.missingPageCount.length +
     issues.missingFormat.length +
@@ -154,7 +155,7 @@ export function analyzeLibraryHealth(books) {
     completenessScore,
     totalIssues,
     fixableBooks: fixableBooks.length,
-    issues
+    issues,
   };
 }
 
@@ -183,7 +184,7 @@ export async function previewBookFix(book) {
   let apiData;
   try {
     apiData = await lookupISBN(book.isbn, { skipCache: true });
-  } catch (e) {
+  } catch (_e) {
     return { hasChanges: false, changes: [], error: 'API lookup failed' };
   }
 
@@ -216,7 +217,7 @@ export async function previewBookFix(book) {
   return {
     hasChanges: changes.length > 0,
     changes,
-    apiData // Include full API data for later use
+    apiData, // Include full API data for later use
   };
 }
 
@@ -231,7 +232,7 @@ export async function previewBooksFromAPI(books, onProgress, delayMs = 500) {
   const results = {
     booksWithChanges: [],
     booksNoChanges: [],
-    errors: []
+    errors: [],
   };
 
   for (let i = 0; i < books.length; i++) {
@@ -326,9 +327,12 @@ export async function applyPreviewedChanges(userId, booksWithChanges, onProgress
     try {
       updates.updatedAt = serverTimestamp();
       await updateDoc(doc(db, 'users', userId, 'books', book.id), updates);
-      results.saved.push({ book, fieldsUpdated: Object.keys(updates).filter(k => k !== 'updatedAt' && k !== 'covers') });
-    } catch (e) {
-      results.errors.push({ book, error: e.message });
+      results.saved.push({
+        book,
+        fieldsUpdated: Object.keys(updates).filter(k => k !== 'updatedAt' && k !== 'covers'),
+      });
+    } catch (err) {
+      results.errors.push({ book, error: err.message });
     }
   }
 
@@ -350,7 +354,7 @@ export async function fixBookFromAPI(userId, book) {
   let apiData;
   try {
     apiData = await lookupISBN(book.isbn, { skipCache: true });
-  } catch (e) {
+  } catch (_e) {
     return { success: false, fieldsFixed: [], error: 'API lookup failed' };
   }
 
@@ -411,8 +415,8 @@ export async function fixBookFromAPI(userId, book) {
     updates.updatedAt = serverTimestamp();
     await updateDoc(doc(db, 'users', userId, 'books', book.id), updates);
     return { success: true, fieldsFixed };
-  } catch (e) {
-    return { success: false, fieldsFixed: [], error: `Save failed: ${e.message}` };
+  } catch (err) {
+    return { success: false, fieldsFixed: [], error: `Save failed: ${err.message}` };
   }
 }
 
@@ -429,7 +433,7 @@ export async function fixBooksFromAPI(userId, books, onProgress, delayMs = 500) 
     fixed: [],
     skipped: [],
     errors: [],
-    fieldsFixedCount: {}
+    fieldsFixedCount: {},
   };
 
   for (let i = 0; i < books.length; i++) {

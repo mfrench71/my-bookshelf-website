@@ -16,15 +16,12 @@ function formatDate(isoDate) {
   return d.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   });
 }
 
-module.exports = function() {
-  const content = fs.readFileSync(
-    path.join(__dirname, '../../CHANGELOG.md'),
-    'utf8'
-  );
+module.exports = function () {
+  const content = fs.readFileSync(path.join(__dirname, '../../CHANGELOG.md'), 'utf8');
 
   // Parse dated changelog entries
   const entries = [];
@@ -38,7 +35,7 @@ module.exports = function() {
       currentEntry = {
         date: dateMatch[1],
         displayDate: formatDate(dateMatch[1]),
-        items: []
+        items: [],
       };
       continue;
     }
@@ -61,6 +58,6 @@ module.exports = function() {
 
   return {
     entries,
-    version
+    version,
   };
 };

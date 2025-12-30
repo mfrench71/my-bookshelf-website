@@ -9,9 +9,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeText, lookupISBN } from './utils.js';
 
@@ -29,9 +28,7 @@ const WISHLIST_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 export async function loadWishlistItems(userId, forceRefresh = false) {
   const now = Date.now();
-  const cacheValid = wishlistCache &&
-                     wishlistCacheUserId === userId &&
-                     (now - wishlistCacheTime) < WISHLIST_CACHE_TTL;
+  const cacheValid = wishlistCache && wishlistCacheUserId === userId && now - wishlistCacheTime < WISHLIST_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
     return wishlistCache;
@@ -44,7 +41,7 @@ export async function loadWishlistItems(userId, forceRefresh = false) {
 
     wishlistCache = snapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
     wishlistCacheUserId = userId;
     wishlistCacheTime = Date.now();
@@ -115,12 +112,7 @@ export async function checkWishlistDuplicate(userId, isbn, title, author) {
  */
 export async function addWishlistItem(userId, itemData) {
   // Check for duplicate
-  const existing = await checkWishlistDuplicate(
-    userId,
-    itemData.isbn,
-    itemData.title,
-    itemData.author
-  );
+  const existing = await checkWishlistDuplicate(userId, itemData.isbn, itemData.title, itemData.author);
 
   if (existing) {
     throw new Error(`"${existing.title}" is already in your wishlist`);
@@ -139,7 +131,7 @@ export async function addWishlistItem(userId, itemData) {
     notes: itemData.notes || null,
     addedFrom: itemData.addedFrom || 'manual',
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   };
 
   try {
@@ -242,7 +234,7 @@ export async function moveToLibrary(userId, itemId) {
             publisher: apiData.publisher || item.publisher,
             publishedDate: apiData.publishedDate || item.publishedDate,
             physicalFormat: apiData.physicalFormat || '',
-            pageCount: apiData.pageCount || item.pageCount
+            pageCount: apiData.pageCount || item.pageCount,
           };
         }
       } catch (e) {
@@ -270,7 +262,7 @@ export async function moveToLibrary(userId, itemId) {
       reads: [],
       deletedAt: null,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     // Add to books collection

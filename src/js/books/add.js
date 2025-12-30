@@ -8,11 +8,25 @@ import {
   query,
   where,
   limit,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl, interceptNavigation } from '../utils.js';
+import {
+  escapeHtml,
+  escapeAttr,
+  debounce,
+  showToast,
+  initIcons,
+  clearBooksCache,
+  normalizeText,
+  isOnline,
+  lockBodyScroll,
+  unlockBodyScroll,
+  lookupISBN,
+  searchBooks as searchBooksAPI,
+  isValidImageUrl,
+  interceptNavigation,
+} from '../utils.js';
 import { parseHierarchicalGenres } from '../utils/genre-parser.js';
-import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { CoverPicker } from '../components/cover-picker.js';
@@ -104,21 +118,21 @@ let seriesPicker = null;
 let authorPicker = null;
 let imageGallery = null;
 let scannerRunning = false;
-let formDirty = false;
+let _formDirty = false;
 let beforeUnloadHandler = null;
 let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false;
 let wishlistLookup = null;
 let currentISBN = ''; // Track ISBN from lookup (since there's no input field now)
-let dataSource = 'manual'; // 'manual' | 'google' | 'openlibrary' | 'scan'
+let _dataSource = 'manual'; // 'manual' | 'google' | 'openlibrary' | 'scan'
 
 // DOM Elements - Search Section
 const searchSection = document.getElementById('search-section');
 const bookSearchInput = document.getElementById('book-search');
 const searchBtn = document.getElementById('book-search-btn');
 const clearSearchBtn = document.getElementById('clear-search');
-const searchHint = document.getElementById('search-hint');
+const _searchHint = document.getElementById('search-hint');
 const searchStatus = document.getElementById('search-status');
 const searchResultsDiv = document.getElementById('book-search-results');
 const resultsCount = document.getElementById('results-count');
@@ -212,7 +226,7 @@ function showSearchSection() {
  * @param {string} source - Data source: 'manual' | 'google' | 'openlibrary' | 'scan'
  */
 function showFormSection(source = 'manual') {
-  dataSource = source;
+  _dataSource = source;
 
   // Animate search out
   searchSection.classList.add('section-exit');
@@ -225,14 +239,14 @@ function showFormSection(source = 'manual') {
     if (source === 'manual') {
       dataSourceEl.classList.add('hidden');
       // Reset dirty flag for manual entry - user hasn't made changes yet
-      // (API lookups set formDirty = true when populating form data)
-      formDirty = false;
+      // (API lookups set _formDirty = true when populating form data)
+      _formDirty = false;
     } else {
       dataSourceEl.classList.remove('hidden');
       const sourceLabels = {
         google: 'Found via Google Books',
         openlibrary: 'Found via Open Library',
-        scan: 'Found via barcode scan'
+        scan: 'Found via barcode scan',
       };
       dataSourceText.textContent = sourceLabels[source] || 'Book data loaded';
     }
@@ -257,7 +271,7 @@ function doStartOver() {
   // Reset form
   bookForm.reset();
   currentISBN = '';
-  dataSource = 'manual';
+  _dataSource = 'manual';
   duplicateCheckBypassed = false;
   apiGenreSuggestions = [];
 
@@ -272,7 +286,7 @@ function doStartOver() {
   if (imageGallery) imageGallery.cleanupUnsavedUploads();
 
   // Reset formDirty AFTER pickers (their onChange callbacks set it to true)
-  formDirty = false;
+  _formDirty = false;
 
   // Reset submit button state
   submitBtn.disabled = true;
@@ -305,7 +319,7 @@ function startOver() {
       confirmClass: 'bg-red-600 hover:bg-red-700',
       onConfirm: () => {
         doStartOver();
-      }
+      },
     });
     confirmSheet.show();
     return;
@@ -315,7 +329,7 @@ function startOver() {
 }
 
 // Auth Check - header.js handles redirect, just capture user
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     initRatingInput();
@@ -328,8 +342,8 @@ onAuthStateChanged(auth, async (user) => {
     try {
       const wishlistItems = await loadWishlistItems(user.uid);
       wishlistLookup = createWishlistLookup(wishlistItems);
-    } catch (e) {
-      console.warn('Failed to load wishlist for search:', e.message);
+    } catch (_e) {
+      console.warn('Wishlist load failed');
       wishlistLookup = new Map();
     }
   }
@@ -343,8 +357,8 @@ function initRatingInput() {
     container: ratingInputContainer,
     value: 0,
     onChange: () => {
-      formDirty = true;
-    }
+      _formDirty = true;
+    },
   });
 }
 
@@ -356,8 +370,8 @@ async function initGenrePicker() {
     container: genrePickerContainer,
     userId: currentUser.uid,
     onChange: () => {
-      formDirty = true;
-    }
+      _formDirty = true;
+    },
   });
 
   await genrePicker.init();
@@ -388,8 +402,8 @@ async function initSeriesPicker() {
     container: seriesPickerContainer,
     userId: currentUser.uid,
     onChange: () => {
-      formDirty = true;
-    }
+      _formDirty = true;
+    },
   });
 
   await seriesPicker.init();
@@ -403,9 +417,9 @@ async function initAuthorPicker() {
     container: authorPickerContainer,
     userId: currentUser.uid,
     onChange: () => {
-      formDirty = true;
+      _formDirty = true;
       updateSubmitButtonState();
-    }
+    },
   });
 
   await authorPicker.init();
@@ -417,14 +431,14 @@ function initCoverPicker() {
 
   coverPicker = new CoverPicker({
     container: coverPickerContainer,
-    onSelect: (url) => {
+    onSelect: url => {
       coverUrlInput.value = url;
-      formDirty = true;
+      _formDirty = true;
       // Show hint if multiple covers available
       const covers = coverPicker.getCovers();
       const hasMultiple = covers.googleBooks && covers.openLibrary;
       coverPickerHint.classList.toggle('hidden', !hasMultiple);
-    }
+    },
   });
 }
 
@@ -447,8 +461,8 @@ function initImageGallery() {
       }
     },
     onChange: () => {
-      formDirty = true;
-    }
+      _formDirty = true;
+    },
   });
 }
 
@@ -481,8 +495,7 @@ function showSearchStatus(message, type = 'info') {
   searchStatus.textContent = message;
   searchStatus.classList.remove('hidden', 'text-gray-500', 'text-green-600', 'text-red-600');
   searchStatus.classList.add(
-    type === 'success' ? 'text-green-600' :
-    type === 'error' ? 'text-red-600' : 'text-gray-500'
+    type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : 'text-gray-500'
   );
 }
 
@@ -535,11 +548,11 @@ async function handleISBNLookup(isbn, fromScan = false) {
       pageCountInput.value = bookData.pageCount || '';
       setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
 
-      formDirty = true;
+      _formDirty = true;
       updateSubmitButtonState();
 
       // Show form with data source
-      const source = fromScan ? 'scan' : (bookData.source || 'google');
+      const source = fromScan ? 'scan' : bookData.source || 'google';
       showFormSection(source);
       showToast('Book found!', { type: 'success' });
     } else {
@@ -566,7 +579,7 @@ let searchState = {
   useOpenLibrary: false,
   hasMore: true,
   loading: false,
-  totalItems: 0
+  totalItems: 0,
 };
 const SEARCH_PAGE_SIZE = 10;
 
@@ -576,15 +589,18 @@ let searchScrollObserver = null;
 function setupSearchScrollObserver() {
   if (searchScrollObserver) searchScrollObserver.disconnect();
 
-  searchScrollObserver = new IntersectionObserver(async (entries) => {
-    if (entries[0].isIntersecting && !searchState.loading && searchState.hasMore) {
-      try {
-        await loadMoreSearchResults();
-      } catch (e) {
-        console.error('Error loading more results:', e);
+  searchScrollObserver = new IntersectionObserver(
+    async entries => {
+      if (entries[0].isIntersecting && !searchState.loading && searchState.hasMore) {
+        try {
+          await loadMoreSearchResults();
+        } catch (_e) {
+          console.error('Error loading more results');
+        }
       }
-    }
-  }, { root: resultsList, rootMargin: '50px' });
+    },
+    { root: resultsList, rootMargin: '50px' }
+  );
 }
 
 setupSearchScrollObserver();
@@ -606,14 +622,16 @@ async function searchBooks(query) {
     useOpenLibrary: false,
     hasMore: true,
     loading: true,
-    totalItems: 0
+    totalItems: 0,
   };
 
   // Clear accumulated genre suggestions from previous searches
   apiGenreSuggestions = [];
 
   // Show skeleton loaders
-  resultsList.innerHTML = Array(3).fill(`
+  resultsList.innerHTML = Array(3)
+    .fill(
+      `
     <div class="flex gap-3 p-3 border-b border-gray-100">
       <div class="skeleton w-12 h-18 rounded flex-shrink-0"></div>
       <div class="flex-1 space-y-2">
@@ -622,7 +640,9 @@ async function searchBooks(query) {
         <div class="skeleton h-2 w-2/3 rounded"></div>
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
   searchResultsDiv.classList.remove('hidden');
 
   const result = await fetchSearchResults();
@@ -653,7 +673,7 @@ async function fetchSearchResults() {
   const result = await searchBooksAPI(query, {
     startIndex,
     maxResults: SEARCH_PAGE_SIZE,
-    useOpenLibrary
+    useOpenLibrary,
   });
 
   // Update search state with API results
@@ -671,7 +691,8 @@ async function loadMoreSearchResults() {
   // Add loading indicator
   const sentinel = resultsList.querySelector('#search-sentinel');
   if (sentinel) {
-    sentinel.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>';
+    sentinel.innerHTML =
+      '<div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>';
   }
 
   const result = await fetchSearchResults();
@@ -687,10 +708,11 @@ async function loadMoreSearchResults() {
 }
 
 function renderSearchResults(books, append = false) {
-  const html = books.map(book => {
-    const hasCover = book.cover && isValidImageUrl(book.cover);
-    const isWishlisted = book.isbn && wishlistLookup?.has(book.isbn);
-    return `
+  const html = books
+    .map(book => {
+      const hasCover = book.cover && isValidImageUrl(book.cover);
+      const isWishlisted = book.isbn && wishlistLookup?.has(book.isbn);
+      return `
     <div class="search-result flex gap-3 p-3 hover:bg-gray-50 cursor-pointer"
          data-title="${escapeAttr(book.title)}"
          data-author="${escapeAttr(book.author)}"
@@ -700,9 +722,10 @@ function renderSearchResults(books, append = false) {
          data-isbn="${escapeAttr(book.isbn)}"
          data-pagecount="${book.pageCount || ''}"
          data-categories="${escapeAttr(JSON.stringify(book.categories || []))}">
-      ${hasCover
-        ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        : ''
+      ${
+        hasCover
+          ? `<img src="${escapeAttr(book.cover)}" alt="" class="w-12 h-18 object-cover rounded flex-shrink-0" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : ''
       }
       <div class="w-12 h-18 bg-gray-200 rounded flex-shrink-0 items-center justify-center${hasCover ? ' hidden' : ' flex'}"><i data-lucide="book" class="w-6 h-6 text-gray-400"></i></div>
       <div class="flex-1 min-w-0">
@@ -718,7 +741,9 @@ function renderSearchResults(books, append = false) {
         <i data-lucide="heart" class="w-5 h-5${isWishlisted ? ' fill-current' : ''}"></i>
       </button>
     </div>
-  `;}).join('');
+  `;
+    })
+    .join('');
 
   // Remove old sentinel if appending
   if (append) {
@@ -732,7 +757,7 @@ function renderSearchResults(books, append = false) {
     resultsList.innerHTML = html;
 
     // Set up click delegation once
-    resultsList.onclick = (e) => {
+    resultsList.onclick = e => {
       // Handle wishlist button click
       const wishlistBtn = e.target.closest('.wishlist-btn');
       if (wishlistBtn) {
@@ -750,11 +775,14 @@ function renderSearchResults(books, append = false) {
 
   // Add sentinel for infinite scroll if there are more results
   if (searchState.hasMore) {
-    resultsList.insertAdjacentHTML('beforeend', `
+    resultsList.insertAdjacentHTML(
+      'beforeend',
+      `
       <div id="search-sentinel" class="py-3 text-center text-xs text-gray-400">
         Scroll for more...
       </div>
-    `);
+    `
+    );
     const sentinel = resultsList.querySelector('#search-sentinel');
     if (sentinel) searchScrollObserver.observe(sentinel);
   }
@@ -767,7 +795,8 @@ async function selectSearchResult(el) {
 
   // Show loading state on the clicked result
   el.classList.add('opacity-50', 'pointer-events-none');
-  el.innerHTML += '<div class="absolute inset-0 flex items-center justify-center bg-white/50"><div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div></div>';
+  el.innerHTML +=
+    '<div class="absolute inset-0 flex items-center justify-center bg-white/50"><div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div></div>';
   el.classList.add('relative');
 
   currentISBN = isbn || '';
@@ -782,7 +811,7 @@ async function selectSearchResult(el) {
         const parsedGenres = parseHierarchicalGenres(categoryList);
         updateGenreSuggestions(parsedGenres);
       }
-    } catch (e) {
+    } catch (_e) {
       // Ignore parse errors
     }
   }
@@ -825,8 +854,8 @@ async function selectSearchResult(el) {
 
         source = bookData.source || 'google';
       }
-    } catch (e) {
-      console.error('ISBN lookup error:', e);
+    } catch (_e) {
+      console.error('ISBN lookup error');
       // Fall back to search result cover only
       if (cover) {
         covers.googleBooks = cover;
@@ -842,7 +871,7 @@ async function selectSearchResult(el) {
   // Set covers in picker
   setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);
 
-  formDirty = true;
+  _formDirty = true;
   updateSubmitButtonState();
 
   // Show form
@@ -889,7 +918,7 @@ async function handleAddToWishlist(resultEl, btn) {
       publisher: publisher || null,
       publishedDate: published || null,
       pageCount: pagecount ? parseInt(pagecount, 10) : null,
-      addedFrom: 'search'
+      addedFrom: 'search',
     });
 
     // Update local lookup so subsequent searches show this item as wishlisted
@@ -923,7 +952,7 @@ async function handleAddToWishlist(resultEl, btn) {
 searchBtn.addEventListener('click', handleSearch);
 
 // Enter key in search input
-bookSearchInput.addEventListener('keypress', (e) => {
+bookSearchInput.addEventListener('keypress', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
     handleSearch();
@@ -931,7 +960,7 @@ bookSearchInput.addEventListener('keypress', (e) => {
 });
 
 // Debounced search on input (only for text, not ISBN)
-const debouncedSearch = debounce(async (query) => {
+const debouncedSearch = debounce(async query => {
   // Don't auto-search ISBNs - wait for explicit Go/Enter
   if (isISBN(query)) {
     searchResultsDiv.classList.add('hidden');
@@ -968,7 +997,7 @@ clearSearchBtn.addEventListener('click', () => {
     useOpenLibrary: false,
     hasMore: true,
     loading: false,
-    totalItems: 0
+    totalItems: 0,
   };
   bookSearchInput.focus();
 });
@@ -996,7 +1025,7 @@ async function openScanner() {
   initIcons();
 
   // Close on escape key
-  const escapeHandler = (e) => {
+  const escapeHandler = e => {
     if (e.key === 'Escape') closeScanner();
   };
   document.addEventListener('keydown', escapeHandler);
@@ -1005,7 +1034,7 @@ async function openScanner() {
   try {
     // Add 10s timeout for camera access to prevent indefinite waiting
     const cameraPromise = navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
+      video: { facingMode: 'environment' },
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Camera access timed out')), 10000)
@@ -1020,7 +1049,7 @@ async function openScanner() {
     const errorMessages = {
       NotAllowedError: 'Camera permission denied. Allow camera access.',
       NotFoundError: 'No camera found.',
-      NotReadableError: 'Camera in use by another app.'
+      NotReadableError: 'Camera in use by another app.',
     };
     showToast(errorMessages[err.name] || 'Scanner error. Please try again.', { type: 'error' });
   }
@@ -1044,46 +1073,47 @@ function playBeep() {
 
     oscillator.start();
     oscillator.stop(audioContext.currentTime + 0.1); // 100ms beep
-  } catch (e) {
+  } catch (_e) {
     // Ignore audio errors
   }
 }
 
 function startQuagga() {
   return new Promise((resolve, reject) => {
-    Quagga.init({
-      inputStream: {
-        name: 'Live',
-        type: 'LiveStream',
-        target: scannerContainer,
-        constraints: { facingMode: 'environment' }
+    Quagga.init(
+      {
+        inputStream: {
+          name: 'Live',
+          type: 'LiveStream',
+          target: scannerContainer,
+          constraints: { facingMode: 'environment' },
+        },
+        locator: { patchSize: 'medium', halfSample: true },
+        numOfWorkers: 0,
+        frequency: 10,
+        decoder: {
+          readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader'],
+        },
+        locate: true,
       },
-      locator: { patchSize: 'medium', halfSample: true },
-      numOfWorkers: 0,
-      frequency: 10,
-      decoder: {
-        readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader']
-      },
-      locate: true
-    }, function(err) {
-      if (err) {
-        reject(err);
-        return;
+      function (err) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        Quagga.start();
+        scannerRunning = true;
+        // Hide loading, show viewfinder
+        scannerLoading.classList.add('hidden');
+        scannerViewfinder.classList.remove('hidden');
+        resolve();
       }
-      Quagga.start();
-      scannerRunning = true;
-      // Hide loading, show viewfinder
-      scannerLoading.classList.add('hidden');
-      scannerViewfinder.classList.remove('hidden');
-      resolve();
-    });
+    );
 
-    Quagga.onDetected(function(result) {
+    Quagga.onDetected(function (result) {
       if (!result?.codeResult?.code) return;
 
-      const errors = result.codeResult.decodedCodes
-        .filter(x => x.error !== undefined)
-        .map(x => x.error);
+      const errors = result.codeResult.decodedCodes.filter(x => x.error !== undefined).map(x => x.error);
       const avgError = errors.reduce((a, b) => a + b, 0) / errors.length;
 
       // Reject scans with high error rate (lower is better, 0.1 is acceptable threshold)
@@ -1124,7 +1154,7 @@ function closeScanner() {
     try {
       Quagga.stop();
       Quagga.offDetected();
-    } catch (e) {
+    } catch (_e) {
       // Ignore stop errors
     }
     scannerRunning = false;
@@ -1165,7 +1195,7 @@ function updateSubmitButtonState() {
 
 // Update submit button state when title changes
 titleInput?.addEventListener('input', () => {
-  formDirty = true;
+  _formDirty = true;
   updateSubmitButtonState();
 });
 
@@ -1173,7 +1203,7 @@ titleInput?.addEventListener('input', () => {
 updateSubmitButtonState();
 
 // Form Submit
-bookForm.addEventListener('submit', async (e) => {
+bookForm.addEventListener('submit', async e => {
   e.preventDefault();
 
   // Clear previous validation errors
@@ -1205,7 +1235,7 @@ bookForm.addEventListener('submit', async (e) => {
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value,
     rating: ratingInput ? ratingInput.getValue() : null,
-    notes: notesInput.value.trim()
+    notes: notesInput.value.trim(),
   };
 
   const validation = validateForm(BookFormSchema, formData);
@@ -1231,9 +1261,7 @@ bookForm.addEventListener('submit', async (e) => {
     // Check for duplicates (unless already bypassed)
     if (!duplicateCheckBypassed) {
       try {
-        const { isDuplicate, matchType, existingBook } = await checkForDuplicate(
-          currentUser.uid, isbn, title, author
-        );
+        const { isDuplicate, matchType, existingBook } = await checkForDuplicate(currentUser.uid, isbn, title, author);
 
         if (isDuplicate) {
           submitBtn.disabled = false;
@@ -1243,9 +1271,10 @@ bookForm.addEventListener('submit', async (e) => {
           submitBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
           duplicateCheckBypassed = true;
 
-          const matchDesc = matchType === 'isbn'
-            ? `A book with ISBN "${isbn}" already exists`
-            : `"${existingBook.title}" by ${existingBook.author} already exists`;
+          const matchDesc =
+            matchType === 'isbn'
+              ? `A book with ISBN "${isbn}" already exists`
+              : `"${existingBook.title}" by ${existingBook.author} already exists`;
 
           showToast(`${matchDesc}. Click "Add Anyway" to add duplicate.`, { type: 'error', duration: 5000 });
           return;
@@ -1282,7 +1311,7 @@ bookForm.addEventListener('submit', async (e) => {
       images: imageGallery ? imageGallery.getImages() : [],
       reads: [], // Reading status inferred from reads array
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
@@ -1298,7 +1327,7 @@ bookForm.addEventListener('submit', async (e) => {
       await updateSeriesBookCounts(currentUser.uid, selectedSeries.seriesId, null);
     }
 
-    formDirty = false;
+    _formDirty = false;
     duplicateCheckBypassed = false;
 
     // Mark uploaded images as saved (prevents cleanup on navigation)
@@ -1334,9 +1363,9 @@ bookForm.addEventListener('submit', async (e) => {
 });
 
 // Track unsaved changes and reset duplicate bypass when form changes
-document.querySelectorAll('#book-form input, #book-form textarea, #book-form select')
-  .forEach(el => el.addEventListener('input', () => {
-    formDirty = true;
+document.querySelectorAll('#book-form input, #book-form textarea, #book-form select').forEach(el =>
+  el.addEventListener('input', () => {
+    _formDirty = true;
     // Reset duplicate bypass if user changes title or author
     if (['title', 'author'].includes(el.id)) {
       if (duplicateCheckBypassed) {
@@ -1347,13 +1376,14 @@ document.querySelectorAll('#book-form input, #book-form textarea, #book-form sel
         submitBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
       }
     }
-  }));
+  })
+);
 
 // Warn before leaving with unsaved changes
 if (beforeUnloadHandler) {
   window.removeEventListener('beforeunload', beforeUnloadHandler);
 }
-beforeUnloadHandler = (e) => {
+beforeUnloadHandler = e => {
   if (hasFormContent()) {
     e.preventDefault();
     e.returnValue = '';
@@ -1372,18 +1402,19 @@ window.addEventListener('pagehide', () => {
 // Shows custom ConfirmSheet instead of allowing immediate navigation
 interceptNavigation({
   isDirty: () => hasFormContent(),
-  showConfirmation: () => ConfirmSheet.show({
-    title: 'Discard Changes?',
-    message: 'You have unsaved book data. Are you sure you want to leave?',
-    confirmText: 'Discard',
-    cancelText: 'Keep Editing',
-    confirmClass: 'bg-red-600 hover:bg-red-700'
-  }),
+  showConfirmation: () =>
+    ConfirmSheet.show({
+      title: 'Discard Changes?',
+      message: 'You have unsaved book data. Are you sure you want to leave?',
+      confirmText: 'Discard',
+      cancelText: 'Keep Editing',
+      confirmClass: 'bg-red-600 hover:bg-red-700',
+    }),
   onBeforeNavigate: () => {
     // Clear dirty flag to prevent beforeunload from also triggering
-    formDirty = false;
+    _formDirty = false;
     if (imageGallery?.hasUnsavedUploads()) {
       imageGallery.cleanupUnsavedUploads();
     }
-  }
+  },
 });

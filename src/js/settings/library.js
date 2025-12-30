@@ -7,9 +7,8 @@ import {
   orderBy,
   getDocs,
   doc,
-  setDoc,
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   loadUserGenres,
@@ -19,9 +18,8 @@ import {
   mergeGenres,
   GENRE_COLORS,
   getUsedColors,
-  getAvailableColors,
   clearGenresCache,
-  recalculateGenreBookCounts
+  recalculateGenreBookCounts,
 } from '../genres.js';
 import {
   loadUserSeries,
@@ -30,9 +28,19 @@ import {
   deleteSeries,
   mergeSeries,
   clearSeriesCache,
-  findPotentialDuplicates
+  findPotentialDuplicates,
 } from '../series.js';
-import { showToast, initIcons, getContrastColor, escapeHtml, clearBooksCache, CACHE_KEY, serializeTimestamp, isMobile, isValidHexColor } from '../utils.js';
+import {
+  showToast,
+  initIcons,
+  getContrastColor,
+  escapeHtml,
+  clearBooksCache,
+  CACHE_KEY,
+  serializeTimestamp,
+  isMobile,
+  isValidHexColor,
+} from '../utils.js';
 import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
@@ -135,7 +143,7 @@ const mergeSeriesSheet = mergeSeriesModal ? new BottomSheet({ container: mergeSe
 
 // Event delegation for genre list (prevents memory leaks from re-adding listeners on each render)
 if (genreList) {
-  genreList.addEventListener('click', (e) => {
+  genreList.addEventListener('click', e => {
     const editBtn = e.target.closest('.edit-btn');
     if (editBtn) {
       openEditGenreModal(editBtn.dataset.id);
@@ -155,7 +163,7 @@ if (genreList) {
 
 // Event delegation for series list
 if (seriesList) {
-  seriesList.addEventListener('click', (e) => {
+  seriesList.addEventListener('click', e => {
     const editBtn = e.target.closest('.edit-series-btn');
     if (editBtn) {
       openEditSeriesModal(editBtn.dataset.id);
@@ -174,7 +182,7 @@ if (seriesList) {
 }
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     await Promise.all([loadGenres(), loadSeries()]);
@@ -211,9 +219,10 @@ function renderGenres() {
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table class="w-full">
           <tbody class="divide-y divide-gray-100">
-            ${genres.map(genre => {
-              const safeColor = isValidHexColor(genre.color) ? genre.color : '#6b7280';
-              return `
+            ${genres
+              .map(genre => {
+                const safeColor = isValidHexColor(genre.color) ? genre.color : '#6b7280';
+                return `
                 <tr class="hover:bg-gray-50">
                   <td class="py-1.5 px-3">
                     <div class="flex items-center gap-2">
@@ -235,12 +244,12 @@ function renderGenres() {
                   </td>
                 </tr>
               `;
-            }).join('')}
+              })
+              .join('')}
           </tbody>
         </table>
       </div>
     `;
-
   }
 
   initIcons();
@@ -255,17 +264,19 @@ function renderColorPicker() {
   // Only render available colours (hide used instead of disabling)
   const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
 
-  colorPicker.innerHTML = availableColors.map(color => {
-    const isSelected = color.toLowerCase() === selectedColor?.toLowerCase();
-    const textColor = getContrastColor(color);
+  colorPicker.innerHTML = availableColors
+    .map(color => {
+      const isSelected = color.toLowerCase() === selectedColor?.toLowerCase();
+      const textColor = getContrastColor(color);
 
-    return `
+      return `
       <button type="button" class="color-btn w-8 h-8 rounded-full border-2 ${isSelected ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-400' : 'border-transparent'} hover:scale-110 transition-transform"
         style="background-color: ${color}" data-color="${color}" aria-label="Select ${color} colour${isSelected ? ' (selected)' : ''}" aria-pressed="${isSelected}">
         ${isSelected ? `<i data-lucide="check" class="w-4 h-4 mx-auto" style="color: ${textColor}" aria-hidden="true"></i>` : ''}
       </button>
     `;
-  }).join('');
+    })
+    .join('');
 
   colorPicker.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -350,9 +361,10 @@ function closeGenreModal() {
 
 function openDeleteGenreModal(genreId, name, bookCount) {
   deletingGenreId = genreId;
-  deleteGenreMessage.textContent = bookCount > 0
-    ? `This will remove "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
-    : `Are you sure you want to delete "${name}"?`;
+  deleteGenreMessage.textContent =
+    bookCount > 0
+      ? `This will remove "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
+      : `Are you sure you want to delete "${name}"?`;
   deleteGenreSheet?.open();
 }
 
@@ -365,13 +377,11 @@ function openMergeGenreModal(genreId, name) {
   mergingGenreId = genreId;
   mergeGenreSourceName.textContent = name;
 
-  mergeGenreTargetSelect.innerHTML = '<option value="">Select a genre...</option>' +
+  mergeGenreTargetSelect.innerHTML =
+    '<option value="">Select a genre...</option>' +
     genres
       .filter(g => g.id !== genreId)
-      .map(g => {
-        const safeColor = isValidHexColor(g.color) ? g.color : '#6b7280';
-        return `<option value="${g.id}">${escapeHtml(g.name)}</option>`;
-      })
+      .map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`)
       .join('');
 
   confirmMergeGenreBtn.disabled = true;
@@ -396,7 +406,7 @@ mergeGenreTargetSelect?.addEventListener('change', () => {
   confirmMergeGenreBtn.disabled = !mergeGenreTargetSelect.value;
 });
 
-genreForm?.addEventListener('submit', async (e) => {
+genreForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   clearFormErrors(genreForm);
@@ -488,9 +498,10 @@ confirmMergeGenreBtn?.addEventListener('click', async () => {
   try {
     const result = await mergeGenres(currentUser.uid, mergingGenreId, mergeGenreTargetSelect.value);
 
-    const message = result.booksUpdated > 0
-      ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} updated.`
-      : 'Genre merged!';
+    const message =
+      result.booksUpdated > 0
+        ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} updated.`
+        : 'Genre merged!';
 
     showToast(message, { type: 'success' });
     closeMergeGenreModal();
@@ -538,12 +549,11 @@ function renderSeries() {
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table class="w-full">
           <tbody class="divide-y divide-gray-100">
-            ${series.map(s => {
-              const completionText = s.totalBooks
-                ? `${s.bookCount || 0}/${s.totalBooks}`
-                : `${s.bookCount || 0}`;
+            ${series
+              .map(s => {
+                const completionText = s.totalBooks ? `${s.bookCount || 0}/${s.totalBooks}` : `${s.bookCount || 0}`;
 
-              return `
+                return `
                 <tr class="hover:bg-gray-50">
                   <td class="py-1.5 px-3">
                     <span class="text-sm text-gray-900">${escapeHtml(s.name)}</span>
@@ -562,12 +572,12 @@ function renderSeries() {
                   </td>
                 </tr>
               `;
-            }).join('')}
+              })
+              .join('')}
           </tbody>
         </table>
       </div>
     `;
-
   }
 
   renderDuplicateWarnings();
@@ -584,10 +594,12 @@ function renderDuplicateWarnings() {
     return;
   }
 
-  duplicateList.innerHTML = duplicates.map(group => {
-    const names = group.map(s => `"${escapeHtml(s.name)}"`).join(', ');
-    return `<p class="text-sm text-amber-800">${names}</p>`;
-  }).join('');
+  duplicateList.innerHTML = duplicates
+    .map(group => {
+      const names = group.map(s => `"${escapeHtml(s.name)}"`).join(', ');
+      return `<p class="text-sm text-amber-800">${names}</p>`;
+    })
+    .join('');
 
   seriesDuplicates.classList.remove('hidden');
   initIcons();
@@ -647,7 +659,7 @@ function openEditSeriesModal(seriesId) {
   originalSeriesValues = {
     name: s.name,
     description: s.description || '',
-    totalBooks: s.totalBooks ? String(s.totalBooks) : ''
+    totalBooks: s.totalBooks ? String(s.totalBooks) : '',
   };
   // Initialize button state (disabled until changes made)
   updateSeriesSaveButtonState();
@@ -662,9 +674,10 @@ function closeSeriesModal() {
 
 function openDeleteSeriesModal(seriesId, name, bookCount) {
   deletingSeriesId = seriesId;
-  deleteSeriesMessage.textContent = bookCount > 0
-    ? `This will unlink "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
-    : `Are you sure you want to delete "${name}"?`;
+  deleteSeriesMessage.textContent =
+    bookCount > 0
+      ? `This will unlink "${name}" from ${bookCount} book${bookCount !== 1 ? 's' : ''}.`
+      : `Are you sure you want to delete "${name}"?`;
   deleteSeriesSheet?.open();
 }
 
@@ -677,7 +690,8 @@ function openMergeSeriesModal(seriesId, name) {
   mergingSeriesId = seriesId;
   mergeSourceName.textContent = name;
 
-  mergeTargetSelect.innerHTML = '<option value="">Select a series...</option>' +
+  mergeTargetSelect.innerHTML =
+    '<option value="">Select a series...</option>' +
     series
       .filter(s => s.id !== seriesId)
       .map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
@@ -707,14 +721,14 @@ mergeTargetSelect?.addEventListener('change', () => {
   confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;
 });
 
-seriesForm?.addEventListener('submit', async (e) => {
+seriesForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   clearFormErrors(seriesForm);
   const formData = {
     name: seriesNameInput.value,
     description: seriesDescriptionInput.value || null,
-    totalBooks: seriesTotalBooksInput.value
+    totalBooks: seriesTotalBooksInput.value,
   };
 
   const result = validateForm(SeriesFormSchema, formData);
@@ -731,7 +745,7 @@ seriesForm?.addEventListener('submit', async (e) => {
       await updateSeries(currentUser.uid, editingSeriesId, {
         name: result.data.name,
         description: result.data.description,
-        totalBooks: result.data.totalBooks
+        totalBooks: result.data.totalBooks,
       });
       showToast('Series updated!', { type: 'success' });
     } else {
@@ -786,9 +800,10 @@ confirmMergeSeriesBtn?.addEventListener('click', async () => {
   try {
     const result = await mergeSeries(currentUser.uid, mergingSeriesId, mergeTargetSelect.value);
 
-    const message = result.booksUpdated > 0
-      ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} moved.`
-      : 'Series merged!';
+    const message =
+      result.booksUpdated > 0
+        ? `Merged! ${result.booksUpdated} book${result.booksUpdated !== 1 ? 's' : ''} moved.`
+        : 'Series merged!';
 
     showToast(message, { type: 'success' });
     closeMergeSeriesModal();
@@ -822,8 +837,8 @@ async function loadAllBooks() {
         return;
       }
     }
-  } catch (e) {
-    console.warn('Cache read error:', e.message);
+  } catch (_e) {
+    console.warn('Cache read error');
   }
 
   try {
@@ -836,7 +851,7 @@ async function loadAllBooks() {
         id: doc.id,
         ...data,
         createdAt: serializeTimestamp(data.createdAt),
-        updatedAt: serializeTimestamp(data.updatedAt)
+        updatedAt: serializeTimestamp(data.updatedAt),
       };
     });
     allBooksLoaded = true;
@@ -848,15 +863,16 @@ async function loadAllBooks() {
 
 async function exportBackup() {
   exportBtn.disabled = true;
-  exportBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
+  exportBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
 
   try {
     await loadAllBooks();
     // Load wishlist for export
     try {
       wishlist = await loadWishlistItems(currentUser.uid);
-    } catch (e) {
-      console.warn('Failed to load wishlist for export:', e.message);
+    } catch (_e) {
+      console.warn('Failed to load wishlist for export');
       wishlist = [];
     }
 
@@ -869,8 +885,8 @@ async function exportBackup() {
       version: 1,
       exportedAt: new Date().toISOString(),
       genres: genres.map(({ id, ...genre }) => ({ ...genre, _exportId: id })),
-      books: books.map(({ id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
-      wishlist: wishlist.map(({ id, ...item }) => item)
+      books: books.map(({ id: _id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
+      wishlist: wishlist.map(({ id: _id, ...item }) => item),
     };
 
     const json = JSON.stringify(exportData, null, 2);
@@ -908,7 +924,7 @@ async function importBackup(file) {
 
     try {
       data = JSON.parse(text);
-    } catch (e) {
+    } catch (_e) {
       throw new Error('Invalid JSON file');
     }
 
@@ -932,8 +948,8 @@ async function importBackup(file) {
     let existingWishlist = [];
     try {
       existingWishlist = await loadWishlistItems(currentUser.uid);
-    } catch (e) {
-      console.warn('Failed to load existing wishlist:', e.message);
+    } catch (_e) {
+      console.warn('Failed to load existing wishlist');
     }
 
     const genreIdMap = new Map();
@@ -970,9 +986,14 @@ async function importBackup(file) {
       for (const book of importBooks) {
         const isDuplicate = books.some(existing => {
           if (book.isbn && existing.isbn && book.isbn === existing.isbn) return true;
-          if (book.title && existing.title &&
-              book.title.toLowerCase() === existing.title.toLowerCase() &&
-              (book.author || '').toLowerCase() === (existing.author || '').toLowerCase()) return true;
+          if (
+            book.title &&
+            existing.title &&
+            book.title.toLowerCase() === existing.title.toLowerCase() &&
+            (book.author || '').toLowerCase() === (existing.author || '').toLowerCase()
+          ) {
+            return true;
+          }
           return false;
         });
 
@@ -983,9 +1004,7 @@ async function importBackup(file) {
 
         let remappedGenres = [];
         if (book.genres && Array.isArray(book.genres)) {
-          remappedGenres = book.genres
-            .map(oldId => genreIdMap.get(oldId))
-            .filter(id => id);
+          remappedGenres = book.genres.map(oldId => genreIdMap.get(oldId)).filter(id => id);
         }
 
         const bookData = { ...book };
@@ -994,7 +1013,7 @@ async function importBackup(file) {
 
         booksToImport.push({
           ...bookData,
-          genres: remappedGenres
+          genres: remappedGenres,
         });
 
         // Track for wishlist cross-check
@@ -1016,7 +1035,7 @@ async function importBackup(file) {
           batch.set(docRef, {
             ...bookData,
             createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
           });
         }
 
@@ -1051,9 +1070,14 @@ async function importBackup(file) {
         // Check if already in wishlist
         const isDuplicate = existingWishlist.some(existing => {
           if (item.isbn && existing.isbn && item.isbn === existing.isbn) return true;
-          if (item.title && existing.title &&
-              item.title.toLowerCase() === existing.title.toLowerCase() &&
-              (item.author || '').toLowerCase() === (existing.author || '').toLowerCase()) return true;
+          if (
+            item.title &&
+            existing.title &&
+            item.title.toLowerCase() === existing.title.toLowerCase() &&
+            (item.author || '').toLowerCase() === (existing.author || '').toLowerCase()
+          ) {
+            return true;
+          }
           return false;
         });
 
@@ -1063,8 +1087,10 @@ async function importBackup(file) {
         }
 
         // Cross-check: skip if already in library (owned)
-        const isOwned = (item.isbn && ownedBooksLookup.has(`isbn:${item.isbn}`)) ||
-          (item.title && ownedBooksLookup.has(`title:${item.title.toLowerCase()}|${(item.author || '').toLowerCase()}`));
+        const isOwned =
+          (item.isbn && ownedBooksLookup.has(`isbn:${item.isbn}`)) ||
+          (item.title &&
+            ownedBooksLookup.has(`title:${item.title.toLowerCase()}|${(item.author || '').toLowerCase()}`));
 
         if (isOwned) {
           wishlistSkippedOwned++;
@@ -1088,13 +1114,15 @@ async function importBackup(file) {
           batch.set(docRef, {
             ...itemData,
             createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
           });
         }
 
         await batch.commit();
         wishlistImported += batchItems.length;
-        if (importStatus) importStatus.textContent = `Importing wishlist... ${wishlistImported}/${wishlistToImport.length}`;
+        if (importStatus) {
+          importStatus.textContent = `Importing wishlist... ${wishlistImported}/${wishlistToImport.length}`;
+        }
       }
     }
 
@@ -1106,14 +1134,17 @@ async function importBackup(file) {
       for (const wishlistItem of existingWishlist) {
         const matchesImportedBook =
           (wishlistItem.isbn && importedBookKeys.has(`isbn:${wishlistItem.isbn}`)) ||
-          (wishlistItem.title && importedBookKeys.has(`title:${wishlistItem.title.toLowerCase()}|${(wishlistItem.author || '').toLowerCase()}`));
+          (wishlistItem.title &&
+            importedBookKeys.has(
+              `title:${wishlistItem.title.toLowerCase()}|${(wishlistItem.author || '').toLowerCase()}`
+            ));
 
         if (matchesImportedBook) {
           try {
             await deleteWishlistItem(currentUser.uid, wishlistItem.id);
             wishlistAutoRemoved++;
-          } catch (e) {
-            console.warn('Failed to auto-remove wishlist item:', e.message);
+          } catch (_e) {
+            console.warn('Failed to auto-remove wishlist item');
           }
         }
       }
@@ -1136,32 +1167,48 @@ async function importBackup(file) {
 
     // Imported counts
     if (booksImported > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="book-open" class="w-4 h-4 text-green-600"></i>${booksImported} book${booksImported !== 1 ? 's' : ''} added to library</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2"><i data-lucide="book-open" class="w-4 h-4 text-green-600"></i>${booksImported} book${booksImported !== 1 ? 's' : ''} added to library</div>`
+      );
     }
     if (genresImported > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-green-600"></i>${genresImported} genre${genresImported !== 1 ? 's' : ''} created</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-green-600"></i>${genresImported} genre${genresImported !== 1 ? 's' : ''} created</div>`
+      );
     }
     if (wishlistImported > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2"><i data-lucide="heart" class="w-4 h-4 text-green-600"></i>${wishlistImported} wishlist item${wishlistImported !== 1 ? 's' : ''} added</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2"><i data-lucide="heart" class="w-4 h-4 text-green-600"></i>${wishlistImported} wishlist item${wishlistImported !== 1 ? 's' : ''} added</div>`
+      );
     }
 
     // Skipped counts
     if (booksSkipped > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${booksSkipped} duplicate book${booksSkipped !== 1 ? 's' : ''} skipped</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${booksSkipped} duplicate book${booksSkipped !== 1 ? 's' : ''} skipped</div>`
+      );
     }
     if (genresSkipped > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${genresSkipped} existing genre${genresSkipped !== 1 ? 's' : ''} skipped</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${genresSkipped} existing genre${genresSkipped !== 1 ? 's' : ''} skipped</div>`
+      );
     }
     if (wishlistSkipped > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${wishlistSkipped} duplicate wishlist item${wishlistSkipped !== 1 ? 's' : ''} skipped</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${wishlistSkipped} duplicate wishlist item${wishlistSkipped !== 1 ? 's' : ''} skipped</div>`
+      );
     }
     if (wishlistSkippedOwned > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2 text-gray-500"><i data-lucide="check-circle" class="w-4 h-4"></i>${wishlistSkippedOwned} wishlist item${wishlistSkippedOwned !== 1 ? 's' : ''} skipped (already owned)</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="check-circle" class="w-4 h-4"></i>${wishlistSkippedOwned} wishlist item${wishlistSkippedOwned !== 1 ? 's' : ''} skipped (already owned)</div>`
+      );
     }
 
     // Auto-removed from wishlist
     if (wishlistAutoRemoved > 0) {
-      summaryLines.push(`<div class="flex items-center gap-2 text-blue-600"><i data-lucide="sparkles" class="w-4 h-4"></i>${wishlistAutoRemoved} wishlist item${wishlistAutoRemoved !== 1 ? 's' : ''} auto-removed (now owned)</div>`);
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-blue-600"><i data-lucide="sparkles" class="w-4 h-4"></i>${wishlistAutoRemoved} wishlist item${wishlistAutoRemoved !== 1 ? 's' : ''} auto-removed (now owned)</div>`
+      );
     }
 
     // Nothing imported
@@ -1183,7 +1230,6 @@ async function importBackup(file) {
     } else {
       showToast('Nothing new to import', { type: 'info' });
     }
-
   } catch (error) {
     console.error('Error importing backup:', error);
     showToast('Failed to import backup. Please check the file format.', { type: 'error' });
@@ -1196,7 +1242,7 @@ async function importBackup(file) {
 
 exportBtn?.addEventListener('click', exportBackup);
 importBtn?.addEventListener('click', () => importFileInput?.click());
-importFileInput?.addEventListener('change', (e) => {
+importFileInput?.addEventListener('change', e => {
   const file = e.target.files[0];
   if (file) importBackup(file);
 });

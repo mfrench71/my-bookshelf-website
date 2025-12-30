@@ -21,9 +21,9 @@ export class AuthorPicker {
     this.onChange = onChange;
 
     // State
-    this.authors = [];          // { name, normalizedName, count }[]
-    this.value = '';            // Current author value
-    this.previousValue = '';    // Track previous value for change detection
+    this.authors = []; // { name, normalizedName, count }[]
+    this.value = ''; // Current author value
+    this.previousValue = ''; // Track previous value for change detection
     this.searchQuery = '';
     this.isOpen = false;
     this.isLoading = false;
@@ -81,7 +81,7 @@ export class AuthorPicker {
    */
   setValue(author) {
     this.value = author || '';
-    this.previousValue = author || '';  // Don't trigger dirty state for initial set
+    this.previousValue = author || ''; // Don't trigger dirty state for initial set
     this.searchQuery = author || '';
     this.render();
   }
@@ -120,7 +120,7 @@ export class AuthorPicker {
         if (cachedBooks.length > 0 && age < CACHE_TTL) {
           books = cachedBooks;
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore parse errors
       }
     }
@@ -159,8 +159,8 @@ export class AuthorPicker {
   _normalizeAuthor(name) {
     return name
       .toLowerCase()
-      .replace(/[.,\-']/g, '')  // Remove punctuation
-      .replace(/\s+/g, ' ')     // Normalize whitespace
+      .replace(/[.,\-']/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
   }
 
@@ -191,7 +191,9 @@ export class AuthorPicker {
             aria-haspopup="listbox"
           >
 
-          ${this.isOpen ? `
+          ${
+            this.isOpen
+              ? `
             <div class="author-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
               <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">Select author</span>
@@ -203,7 +205,9 @@ export class AuthorPicker {
               </div>
               ${this._renderDropdownContent(filteredAuthors, showUseTyped)}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     `;
@@ -296,7 +300,7 @@ export class AuthorPicker {
    * @param {Array} filteredAuthors
    * @returns {boolean}
    */
-  _shouldShowUseTyped(filteredAuthors) {
+  _shouldShowUseTyped(_filteredAuthors) {
     if (!this.searchQuery || this.searchQuery.trim().length < 1) return false;
 
     // Check if exact match exists
@@ -311,7 +315,7 @@ export class AuthorPicker {
   _attachEventListeners() {
     const input = this.container.querySelector('.author-picker-input');
     if (input) {
-      input.addEventListener('input', (e) => {
+      input.addEventListener('input', e => {
         this.searchQuery = e.target.value;
         this.value = e.target.value;
         this.isOpen = true;
@@ -341,7 +345,7 @@ export class AuthorPicker {
     // Close button
     const closeBtn = this.container.querySelector('.author-picker-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+      closeBtn.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         this.isOpen = false;
@@ -352,7 +356,7 @@ export class AuthorPicker {
 
     // Author selection
     this.container.querySelectorAll('[data-author]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.preventDefault();
         const author = btn.dataset.author;
         this._selectAuthor(author);
@@ -362,7 +366,7 @@ export class AuthorPicker {
     // Use typed value
     const useTypedBtn = this.container.querySelector('[data-use-typed]');
     if (useTypedBtn) {
-      useTypedBtn.addEventListener('click', (e) => {
+      useTypedBtn.addEventListener('click', e => {
         e.preventDefault();
         this._selectAuthor(this.searchQuery);
       });

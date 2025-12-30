@@ -1,7 +1,7 @@
 // Settings Tab Indicators
 // Updates badge indicators on settings navigation tabs
 
-import { auth, db } from '/js/firebase-config.js';
+import { db } from '/js/firebase-config.js';
 import { collection, getDocs, query, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CACHE_KEY = 'mybookshelf_settings_indicators';
@@ -24,27 +24,27 @@ export async function updateSettingsIndicators(userId) {
         return;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore cache errors
   }
 
   // Fetch fresh data
   try {
-    const [binCount, hasIssues] = await Promise.all([
-      getBinCount(userId),
-      hasMaintenanceIssues(userId)
-    ]);
+    const [binCount, hasIssues] = await Promise.all([getBinCount(userId), hasMaintenanceIssues(userId)]);
 
     const data = { binCount, hasIssues };
     applyIndicators(data);
 
     // Cache the result
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
-    } catch (e) {
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({
+          data,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (_e) {
       // Ignore cache write errors
     }
   } catch (error) {
@@ -126,7 +126,7 @@ function applyIndicators({ binCount, hasIssues }) {
 export function clearIndicatorsCache() {
   try {
     localStorage.removeItem(CACHE_KEY);
-  } catch (e) {
+  } catch (_e) {
     // Ignore
   }
 }

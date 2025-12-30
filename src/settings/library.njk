@@ -3,6 +3,7 @@ layout: base.njk
 title: Library Settings
 scripts: '<script type="module" src="/js/settings/library.js"></script>'
 ---
+
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
@@ -24,8 +25,7 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
   </div>
 </div>
 
-{% set activePage = 'library' %}
-{% include "settings-nav.njk" %}
+{% set activePage = 'library' %} {% include "settings-nav.njk" %}
 
 <div class="max-w-6xl mx-auto px-4 py-6">
   <div class="lg:flex lg:gap-8">
@@ -34,9 +34,27 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
       <nav class="sticky top-36" aria-label="In this section">
         <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">In this section</h2>
         <ul class="space-y-1">
-          <li><a href="#genres" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Genres</a></li>
-          <li><a href="#series" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Series</a></li>
-          <li><a href="#backup" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Backup & Restore</a></li>
+          <li>
+            <a
+              href="#genres"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Genres</a
+            >
+          </li>
+          <li>
+            <a
+              href="#series"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Series</a
+            >
+          </li>
+          <li>
+            <a
+              href="#backup"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Backup & Restore</a
+            >
+          </li>
         </ul>
       </nav>
     </aside>
@@ -48,9 +66,21 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
       <!-- Mobile Section Navigation (Pills) -->
       <nav class="lg:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar" aria-label="Jump to section">
         <div class="flex gap-2">
-          <a href="#genres" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Genres</a>
-          <a href="#series" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Series</a>
-          <a href="#backup" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Backup</a>
+          <a
+            href="#genres"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Genres</a
+          >
+          <a
+            href="#series"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Series</a
+          >
+          <a
+            href="#backup"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Backup</a
+          >
         </div>
       </nav>
 
@@ -58,11 +88,14 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
       <section id="genres" class="mb-8 scroll-mt-36">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-900">Genres</h2>
-      <button id="add-genre-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
-        <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
-        <span>Add</span>
-      </button>
-    </div>
+          <button
+            id="add-genre-btn"
+            class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]"
+          >
+            <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Add</span>
+          </button>
+        </div>
 
         <!-- Loading State (Skeleton) -->
         <div id="genres-loading" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -84,26 +117,32 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
           </table>
         </div>
 
-    <!-- Empty State -->
-    <div id="genres-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200 empty-state-animate">
-      <i data-lucide="tags" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
-      <p class="text-gray-500 mt-3">No genres yet</p>
-      <p class="text-gray-400 text-sm mt-1">Create your first genre to organise books</p>
-    </div>
+        <!-- Empty State -->
+        <div
+          id="genres-empty"
+          class="hidden py-8 text-center bg-white rounded-xl border border-gray-200 empty-state-animate"
+        >
+          <i data-lucide="tags" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
+          <p class="text-gray-500 mt-3">No genres yet</p>
+          <p class="text-gray-400 text-sm mt-1">Create your first genre to organise books</p>
+        </div>
 
-    <!-- Genre List -->
-    <div id="genre-list" class="space-y-2"></div>
-  </section>
+        <!-- Genre List -->
+        <div id="genre-list" class="space-y-2"></div>
+      </section>
 
       <!-- Series Section -->
       <section id="series" class="mb-8 scroll-mt-36">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-900">Series</h2>
-      <button id="add-series-btn" class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
-        <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
-        <span>Add</span>
-      </button>
-    </div>
+          <button
+            id="add-series-btn"
+            class="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]"
+          >
+            <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Add</span>
+          </button>
+        </div>
 
         <!-- Loading State (Skeleton) -->
         <div id="series-loading" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -120,28 +159,31 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
           </table>
         </div>
 
-    <!-- Empty State -->
-    <div id="series-empty" class="hidden py-8 text-center bg-white rounded-xl border border-gray-200 empty-state-animate">
-      <i data-lucide="library" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
-      <p class="text-gray-500 mt-3">No series yet</p>
-      <p class="text-gray-400 text-sm mt-1">Add series to track book collections</p>
-    </div>
-
-    <!-- Series List -->
-    <div id="series-list" class="space-y-2"></div>
-
-    <!-- Duplicate Detection -->
-    <div id="series-duplicates" class="hidden mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-      <div class="flex items-start gap-3">
-        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true"></i>
-        <div>
-          <h4 class="font-medium text-amber-900">Potential Duplicates Found</h4>
-          <p class="text-sm text-amber-700 mt-1">The following series may be duplicates. Consider merging them.</p>
-          <div id="duplicate-list" class="mt-2 space-y-1"></div>
+        <!-- Empty State -->
+        <div
+          id="series-empty"
+          class="hidden py-8 text-center bg-white rounded-xl border border-gray-200 empty-state-animate"
+        >
+          <i data-lucide="library" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
+          <p class="text-gray-500 mt-3">No series yet</p>
+          <p class="text-gray-400 text-sm mt-1">Add series to track book collections</p>
         </div>
-      </div>
-    </div>
-  </section>
+
+        <!-- Series List -->
+        <div id="series-list" class="space-y-2"></div>
+
+        <!-- Duplicate Detection -->
+        <div id="series-duplicates" class="hidden mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div class="flex items-start gap-3">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true"></i>
+            <div>
+              <h4 class="font-medium text-amber-900">Potential Duplicates Found</h4>
+              <p class="text-sm text-amber-700 mt-1">The following series may be duplicates. Consider merging them.</p>
+              <div id="duplicate-list" class="mt-2 space-y-1"></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Backup & Restore Section -->
       <section id="backup" class="mb-8 scroll-mt-36">
@@ -151,7 +193,10 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
         <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
           <h3 class="font-medium text-gray-900 mb-2">Export Backup</h3>
           <p class="text-gray-600 text-sm mb-4">Download all your books and genres as a JSON file.</p>
-          <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
+          <button
+            id="export-btn"
+            class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]"
+          >
             <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
             <span>Download Backup</span>
           </button>
@@ -160,15 +205,22 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
         <!-- Import -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
           <h3 class="font-medium text-gray-900 mb-2">Import Backup</h3>
-          <p class="text-gray-600 text-sm mb-4">Restore books and genres from a backup file. Duplicates will be skipped.</p>
-          <input type="file" id="import-file" accept=".json" class="hidden">
-          <button id="import-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+          <p class="text-gray-600 text-sm mb-4">
+            Restore books and genres from a backup file. Duplicates will be skipped.
+          </p>
+          <input type="file" id="import-file" accept=".json" class="hidden" />
+          <button
+            id="import-btn"
+            class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]"
+          >
             <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
             <span>Select Backup File</span>
           </button>
           <div id="import-progress" class="hidden mt-4">
             <div class="flex items-center gap-2 text-sm text-gray-600">
-              <span class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></span>
+              <span
+                class="inline-block animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"
+              ></span>
               <span id="import-status">Importing...</span>
             </div>
           </div>
@@ -187,25 +239,51 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Create/Edit Genre Bottom Sheet -->
-<div id="genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-labelledby="genre-modal-title">
+<div
+  id="genre-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="genre-modal-title"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-md p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 id="genre-modal-title" class="text-lg font-semibold mb-4">Add Genre</h3>
     <form id="genre-form" class="space-y-4" novalidate>
       <div>
-        <label for="genre-name" class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
-        <input type="text" id="genre-name" name="name" placeholder="e.g., Science Fiction"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        <label for="genre-name" class="block font-semibold text-gray-700 mb-1"
+          >Name <span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          id="genre-name"
+          name="name"
+          placeholder="e.g., Science Fiction"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+        />
       </div>
       <div id="color-picker-section" class="hidden">
         <span id="color-picker-label" class="block font-semibold text-gray-700 mb-2">Colour</span>
-        <div id="color-picker" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 -m-1" role="radiogroup" aria-labelledby="color-picker-label"></div>
+        <div
+          id="color-picker"
+          class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 -m-1"
+          role="radiogroup"
+          aria-labelledby="color-picker-label"
+        ></div>
       </div>
       <div class="flex gap-3 pt-2">
-        <button type="button" id="cancel-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+        <button
+          type="button"
+          id="cancel-genre"
+          class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+        >
           Cancel
         </button>
-        <button type="submit" id="save-genre" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]">
+        <button
+          type="submit"
+          id="save-genre"
+          class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]"
+        >
           Save
         </button>
       </div>
@@ -214,16 +292,28 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Delete Genre Confirmation Bottom Sheet -->
-<div id="delete-genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-label="Delete genre confirmation">
+<div
+  id="delete-genre-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Delete genre confirmation"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-2">Delete Genre?</h3>
     <p id="delete-genre-message" class="text-gray-500 mb-6">This will remove the genre from all books.</p>
     <div class="flex gap-3">
-      <button id="cancel-delete-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-delete-genre"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-delete-genre" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+      <button
+        id="confirm-delete-genre"
+        class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]"
+      >
         Delete
       </button>
     </div>
@@ -231,22 +321,41 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Merge Genre Bottom Sheet -->
-<div id="merge-genre-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-label="Merge genre">
+<div
+  id="merge-genre-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Merge genre"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-md p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-4">Merge Genre</h3>
-    <p class="text-gray-600 text-sm mb-4">Merge "<span id="merge-genre-source-name" class="font-medium"></span>" into another genre. Books will be moved and the source genre will be deleted.</p>
+    <p class="text-gray-600 text-sm mb-4">
+      Merge "<span id="merge-genre-source-name" class="font-medium"></span>" into another genre. Books will be moved and
+      the source genre will be deleted.
+    </p>
     <div class="mb-4">
       <label for="merge-genre-target-select" class="block font-semibold text-gray-700 mb-1">Target Genre</label>
-      <select id="merge-genre-target-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+      <select
+        id="merge-genre-target-select"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white"
+      >
         <option value="">Select a genre...</option>
       </select>
     </div>
     <div class="flex gap-3">
-      <button id="cancel-merge-genre" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-merge-genre"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-merge-genre" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]" disabled>
+      <button
+        id="confirm-merge-genre"
+        class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+        disabled
+      >
         Merge
       </button>
     </div>
@@ -254,32 +363,68 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Create/Edit Series Bottom Sheet -->
-<div id="series-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-labelledby="series-modal-title">
+<div
+  id="series-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="series-modal-title"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-md p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 id="series-modal-title" class="text-lg font-semibold mb-4">Add Series</h3>
     <form id="series-form" class="space-y-4" novalidate>
       <div>
-        <label for="series-name" class="block font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
-        <input type="text" id="series-name" name="name" placeholder="e.g., Harry Potter"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        <label for="series-name" class="block font-semibold text-gray-700 mb-1"
+          >Name <span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          id="series-name"
+          name="name"
+          placeholder="e.g., Harry Potter"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+        />
       </div>
       <div>
-        <label for="series-description" class="block font-semibold text-gray-700 mb-1">Description <span class="font-normal text-gray-400">(optional)</span></label>
-        <textarea id="series-description" name="description" rows="2" placeholder="Notes about this series"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"></textarea>
+        <label for="series-description" class="block font-semibold text-gray-700 mb-1"
+          >Description <span class="font-normal text-gray-400">(optional)</span></label
+        >
+        <textarea
+          id="series-description"
+          name="description"
+          rows="2"
+          placeholder="Notes about this series"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"
+        ></textarea>
       </div>
       <div>
-        <label for="series-total-books" class="block font-semibold text-gray-700 mb-1">Total Books <span class="font-normal text-gray-400">(optional)</span></label>
-        <input type="number" id="series-total-books" name="totalBooks" placeholder="e.g., 7" inputmode="numeric"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        <label for="series-total-books" class="block font-semibold text-gray-700 mb-1"
+          >Total Books <span class="font-normal text-gray-400">(optional)</span></label
+        >
+        <input
+          type="number"
+          id="series-total-books"
+          name="totalBooks"
+          placeholder="e.g., 7"
+          inputmode="numeric"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+        />
         <p class="text-xs text-gray-400 mt-1">How many books are in the complete series?</p>
       </div>
       <div class="flex gap-3 pt-2">
-        <button type="button" id="cancel-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+        <button
+          type="button"
+          id="cancel-series"
+          class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+        >
           Cancel
         </button>
-        <button type="submit" id="save-series" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]">
+        <button
+          type="submit"
+          id="save-series"
+          class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark min-h-[44px]"
+        >
           Save
         </button>
       </div>
@@ -288,16 +433,28 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Delete Series Confirmation Bottom Sheet -->
-<div id="delete-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-label="Delete series confirmation">
+<div
+  id="delete-series-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Delete series confirmation"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-2">Delete Series?</h3>
     <p id="delete-series-message" class="text-gray-500 mb-6">This will unlink the series from all books.</p>
     <div class="flex gap-3">
-      <button id="cancel-delete-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-delete-series"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-delete-series" class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]">
+      <button
+        id="confirm-delete-series"
+        class="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-[44px]"
+      >
         Delete
       </button>
     </div>
@@ -305,22 +462,41 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Merge Series Bottom Sheet -->
-<div id="merge-series-modal" class="hidden fixed inset-0 bg-black/50 z-50 md:p-4" role="dialog" aria-modal="true" aria-label="Merge series">
+<div
+  id="merge-series-modal"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:p-4"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Merge series"
+>
   <div class="bottom-sheet-content bg-white w-full md:max-w-md p-6 md:mx-auto">
     <div class="bottom-sheet-handle md:hidden"></div>
     <h3 class="text-lg font-semibold mb-4">Merge Series</h3>
-    <p class="text-gray-600 text-sm mb-4">Merge "<span id="merge-source-name" class="font-medium"></span>" into another series. Books will be moved and the source series will be deleted.</p>
+    <p class="text-gray-600 text-sm mb-4">
+      Merge "<span id="merge-source-name" class="font-medium"></span>" into another series. Books will be moved and the
+      source series will be deleted.
+    </p>
     <div class="mb-4">
       <label for="merge-target-select" class="block font-semibold text-gray-700 mb-1">Target Series</label>
-      <select id="merge-target-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+      <select
+        id="merge-target-select"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white"
+      >
         <option value="">Select a series...</option>
       </select>
     </div>
     <div class="flex gap-3">
-      <button id="cancel-merge-series" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]">
+      <button
+        id="cancel-merge-series"
+        class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 min-h-[44px]"
+      >
         Cancel
       </button>
-      <button id="confirm-merge-series" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]" disabled>
+      <button
+        id="confirm-merge-series"
+        class="flex-1 py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+        disabled
+      >
         Merge
       </button>
     </div>
@@ -328,4 +504,7 @@ scripts: '<script type="module" src="/js/settings/library.js"></script>'
 </div>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

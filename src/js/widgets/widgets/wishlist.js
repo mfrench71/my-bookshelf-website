@@ -25,9 +25,9 @@ export class WishlistWidget extends BaseWidget {
       options: [
         { value: 'priority', label: 'Priority' },
         { value: 'createdAt', label: 'Date Added' },
-        { value: 'title', label: 'Title' }
-      ]
-    }
+        { value: 'title', label: 'Title' },
+      ],
+    },
   ];
 
   /**
@@ -43,26 +43,25 @@ export class WishlistWidget extends BaseWidget {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
 
     // Sort items (base widget handles count limiting in renderWidget)
-    return [...items]
-      .sort((a, b) => {
-        if (sortBy === 'priority') {
-          // Sort by priority first (high > medium > low > none)
-          const pa = priorityOrder[a.priority] ?? 3;
-          const pb = priorityOrder[b.priority] ?? 3;
-          if (pa !== pb) return pa - pb;
-          // Secondary sort by date added (newest first)
-          const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
-          const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
-          return bTime - aTime;
-        }
-        if (sortBy === 'createdAt') {
-          const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
-          const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
-          return bTime - aTime;
-        }
-        // Sort by title
-        return (a.title || '').localeCompare(b.title || '');
-      });
+    return [...items].sort((a, b) => {
+      if (sortBy === 'priority') {
+        // Sort by priority first (high > medium > low > none)
+        const pa = priorityOrder[a.priority] ?? 3;
+        const pb = priorityOrder[b.priority] ?? 3;
+        if (pa !== pb) return pa - pb;
+        // Secondary sort by date added (newest first)
+        const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
+        const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
+        return bTime - aTime;
+      }
+      if (sortBy === 'createdAt') {
+        const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
+        const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
+        return bTime - aTime;
+      }
+      // Sort by title
+      return (a.title || '').localeCompare(b.title || '');
+    });
   }
 
   static getEmptyMessage() {
@@ -79,7 +78,7 @@ export class WishlistWidget extends BaseWidget {
    * @param {Object} config - Widget configuration
    * @returns {string} HTML string
    */
-  static render(items, config) {
+  static render(items, _config) {
     if (!items || items.length === 0) {
       return `<p class="text-gray-500 text-sm p-4">${this.getEmptyMessage()}</p>`;
     }
@@ -100,21 +99,23 @@ export class WishlistWidget extends BaseWidget {
     const priorityColors = {
       high: 'bg-red-100 text-red-700',
       medium: 'bg-yellow-100 text-yellow-700',
-      low: 'bg-gray-100 text-gray-600'
+      low: 'bg-gray-100 text-gray-600',
     };
 
-    const cover = item.coverImageUrl && isValidImageUrl(item.coverImageUrl)
-      ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
+    const cover =
+      item.coverImageUrl && isValidImageUrl(item.coverImageUrl)
+        ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
           <img src="${escapeHtml(item.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
         </div>`
-      : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
+        : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
         </div>`;
 
-    const priorityBadge = item.priority && priorityColors[item.priority]
-      ? `<span class="text-xs px-1.5 py-0.5 rounded mt-1 inline-block ${priorityColors[item.priority]} capitalize">${item.priority}</span>`
-      : '';
+    const priorityBadge =
+      item.priority && priorityColors[item.priority]
+        ? `<span class="text-xs px-1.5 py-0.5 rounded mt-1 inline-block ${priorityColors[item.priority]} capitalize">${item.priority}</span>`
+        : '';
 
     return `
       <a href="/wishlist/" class="flex-shrink-0 w-24 snap-start">

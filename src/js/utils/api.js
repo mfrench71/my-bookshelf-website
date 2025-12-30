@@ -5,7 +5,7 @@ import {
   normalizeAuthor,
   normalizePublisher,
   normalizePublishedDate,
-  normalizeGenreName
+  normalizeGenreName,
 } from './format.js';
 import { getISBNCache, setISBNCache } from './cache.js';
 import { parseHierarchicalGenres } from './genre-parser.js';
@@ -25,7 +25,7 @@ export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
   try {
     const response = await fetch(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(id);
     return response;
@@ -71,9 +71,7 @@ export async function lookupISBN(isbn, options = {}) {
 
   // Try Google Books first
   try {
-    const response = await fetchWithTimeout(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
-    );
+    const response = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
     const data = await response.json();
 
     if (data.items?.length > 0) {
@@ -95,11 +93,11 @@ export async function lookupISBN(isbn, options = {}) {
         publishedDate: normalizePublishedDate(book.publishedDate),
         physicalFormat: '',
         pageCount: book.pageCount || null,
-        genres: parseHierarchicalGenres(book.categories || [])
+        genres: parseHierarchicalGenres(book.categories || []),
       };
     }
-  } catch (e) {
-    console.error('Google Books API error:', e);
+  } catch (err) {
+    console.error('Google Books API error:', err);
   }
 
   // Try Open Library (as fallback or to supplement missing fields)
@@ -112,9 +110,7 @@ export async function lookupISBN(isbn, options = {}) {
 
     if (book) {
       // Parse all Open Library subjects (no limit)
-      const olGenres = parseHierarchicalGenres(
-        book.subjects?.map(s => s.name || s) || []
-      );
+      const olGenres = parseHierarchicalGenres(book.subjects?.map(s => s.name || s) || []);
       // Prefer large cover, fall back to medium
       openLibraryCover = book.cover?.large || book.cover?.medium || '';
 
@@ -143,14 +139,14 @@ export async function lookupISBN(isbn, options = {}) {
           publishedDate: normalizePublishedDate(book.publish_date),
           physicalFormat: '',
           pageCount: book.number_of_pages || null,
-          genres: olGenres
+          genres: olGenres,
         };
       }
     }
-  } catch (e) {
+  } catch (err) {
     // Open Library is supplementary - only warn if we have no result at all
     if (!result) {
-      console.warn('Open Library API unavailable:', e.message);
+      console.warn('Open Library API unavailable:', err.message);
     }
     // Otherwise silently continue - Google Books data is sufficient
   }
@@ -165,9 +161,7 @@ export async function lookupISBN(isbn, options = {}) {
   // Try Open Library edition endpoint for physical_format, page count, and series (not in jscmd=data)
   if (result && (!result.physicalFormat || !result.pageCount || !result.seriesName)) {
     try {
-      const editionResponse = await fetchWithTimeout(
-        `https://openlibrary.org/isbn/${isbn}.json`
-      );
+      const editionResponse = await fetchWithTimeout(`https://openlibrary.org/isbn/${isbn}.json`);
       // Only parse if response is OK (ISBN exists in Open Library)
       if (editionResponse.ok) {
         const edition = await editionResponse.json();
@@ -191,7 +185,7 @@ export async function lookupISBN(isbn, options = {}) {
         }
       }
       // 404 responses are expected for ISBNs not in Open Library - silently skip
-    } catch (e) {
+    } catch (_e) {
       // Network errors or timeouts - silently skip
     }
   }
@@ -233,15 +227,21 @@ export async function searchBooks(query, options = {}) {
             return {
               title: normalizeTitle(book.title) || 'Unknown Title',
               author: normalizeAuthor(book.authors?.join(', ') || '') || 'Unknown Author',
-              cover: (book.imageLinks?.large || book.imageLinks?.medium || book.imageLinks?.small || book.imageLinks?.thumbnail || '').replace('http:', 'https:'),
+              cover: (
+                book.imageLinks?.large ||
+                book.imageLinks?.medium ||
+                book.imageLinks?.small ||
+                book.imageLinks?.thumbnail ||
+                ''
+              ).replace('http:', 'https:'),
               publisher: normalizePublisher(book.publisher || ''),
               publishedDate: normalizePublishedDate(book.publishedDate),
               pageCount: book.pageCount || '',
               isbn: book.industryIdentifiers?.[0]?.identifier || '',
-              categories: parseHierarchicalGenres(book.categories || [])
+              categories: parseHierarchicalGenres(book.categories || []),
             };
           });
-          hasMore = (startIndex + books.length) < totalItems;
+          hasMore = startIndex + books.length < totalItems;
         }
       } else {
         shouldUseOpenLibrary = true;
@@ -270,9 +270,9 @@ export async function searchBooks(query, options = {}) {
             publishedDate: normalizePublishedDate(doc.first_publish_year),
             pageCount: doc.number_of_pages_median || '',
             isbn: doc.isbn?.[0] || '',
-            categories: parseHierarchicalGenres(doc.subject || [])
+            categories: parseHierarchicalGenres(doc.subject || []),
           }));
-          hasMore = (startIndex + books.length) < totalItems;
+          hasMore = startIndex + books.length < totalItems;
         }
       }
     } catch (error) {

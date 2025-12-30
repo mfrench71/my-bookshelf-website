@@ -28,4 +28,12 @@ widgetRegistry.register(WishlistWidget);
 
 // Export for external use
 export { widgetRegistry, BaseWidget };
-export { WelcomeWidget, CurrentlyReadingWidget, RecentlyAddedWidget, TopRatedWidget, RecentlyFinishedWidget, SeriesProgressWidget, WishlistWidget };
+export {
+  WelcomeWidget,
+  CurrentlyReadingWidget,
+  RecentlyAddedWidget,
+  TopRatedWidget,
+  RecentlyFinishedWidget,
+  SeriesProgressWidget,
+  WishlistWidget,
+};

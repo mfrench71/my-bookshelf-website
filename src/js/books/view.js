@@ -1,8 +1,26 @@
 // Book View Page Logic (Read-only display)
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, getDoc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, renderStars, getContrastColor, migrateBookReads, getBookStatus, escapeHtml, isValidHexColor } from '../utils.js';
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {
+  parseTimestamp,
+  formatDate,
+  showToast,
+  initIcons,
+  renderStars,
+  getContrastColor,
+  migrateBookReads,
+  getBookStatus,
+  escapeHtml,
+  isValidHexColor,
+} from '../utils.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup, softDeleteSeries } from '../series.js';
 import { formatSeriesDisplay } from '../utils/series-parser.js';
@@ -108,14 +126,11 @@ const modifiedRow = document.getElementById('modified-row');
 const bookModified = document.getElementById('book-modified');
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     // Load genres and series for badge display
-    const [genres, series] = await Promise.all([
-      loadUserGenres(user.uid),
-      loadUserSeries(user.uid)
-    ]);
+    const [genres, series] = await Promise.all([loadUserGenres(user.uid), loadUserSeries(user.uid)]);
     genreLookup = createGenreLookup(genres);
     seriesLookup = createSeriesLookup(series);
     loadBook();
@@ -130,7 +145,7 @@ async function loadBook() {
 
     if (!bookSnap.exists()) {
       showToast('Book not found', { type: 'error' });
-      setTimeout(() => window.location.href = '/books/', 1500);
+      setTimeout(() => (window.location.href = '/books/'), 1500);
       return;
     }
 
@@ -139,7 +154,7 @@ async function loadBook() {
     // Redirect to bin if book is in bin
     if (book.deletedAt) {
       showToast('This book is in the bin', { type: 'info' });
-      setTimeout(() => window.location.href = '/settings/bin/', 1500);
+      setTimeout(() => (window.location.href = '/settings/bin/'), 1500);
       return;
     }
 
@@ -203,10 +218,12 @@ function renderBook() {
   if (status) {
     if (status === 'reading') {
       readingStatus.innerHTML = '<i data-lucide="book-open" class="w-4 h-4"></i> Reading';
-      readingStatus.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800';
+      readingStatus.className =
+        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800';
     } else if (status === 'finished') {
       readingStatus.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Finished';
-      readingStatus.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800';
+      readingStatus.className =
+        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800';
     }
     statusSection.classList.remove('hidden');
   }
@@ -256,28 +273,40 @@ function renderBook() {
   }
   const dateAdded = parseTimestamp(book.createdAt);
   if (dateAdded) {
-    bookAdded.textContent = dateAdded.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    bookAdded.textContent = dateAdded.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
     addedRow.classList.remove('hidden');
   }
   const dateModified = parseTimestamp(book.updatedAt);
   if (dateModified && dateAdded && dateModified.getTime() !== dateAdded.getTime()) {
-    bookModified.textContent = dateModified.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    bookModified.textContent = dateModified.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
     modifiedRow.classList.remove('hidden');
   }
 
   // Reading History
   const reads = migratedBook.reads || [];
   if (reads.length > 0) {
-    const historyHtml = reads.slice().reverse().map(read => {
-      const started = formatDate(read.startedAt) || 'Unknown';
-      const finished = read.finishedAt ? formatDate(read.finishedAt) : 'In progress';
-      return `
+    const historyHtml = reads
+      .slice()
+      .reverse()
+      .map(read => {
+        const started = formatDate(read.startedAt) || 'Unknown';
+        const finished = read.finishedAt ? formatDate(read.finishedAt) : 'In progress';
+        return `
         <div class="flex items-center gap-2 text-sm">
           <i data-lucide="calendar" class="w-4 h-4 text-gray-400"></i>
           <span>${started} - ${finished}</span>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
     readingHistory.innerHTML = historyHtml;
     readingHistorySection.classList.remove('hidden');
   }
@@ -314,9 +343,7 @@ async function renderSeriesSection() {
     const snapshot = await getDocs(seriesQuery);
 
     // Filter out binned (soft-deleted) books
-    const seriesBooksData = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(b => !b.deletedAt);
+    const seriesBooksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(b => !b.deletedAt);
 
     // Sort by position (nulls at end)
     seriesBooksData.sort((a, b) => {
@@ -328,27 +355,29 @@ async function renderSeriesSection() {
 
     // Render book list
     if (seriesBooksData.length > 1) {
-      const booksHtml = seriesBooksData.map(b => {
-        const isCurrent = b.id === bookId;
-        const positionStr = b.seriesPosition ? `#${b.seriesPosition}` : '';
-        const displayText = positionStr ? `${positionStr} ${b.title}` : b.title;
+      const booksHtml = seriesBooksData
+        .map(b => {
+          const isCurrent = b.id === bookId;
+          const positionStr = b.seriesPosition ? `#${b.seriesPosition}` : '';
+          const displayText = positionStr ? `${positionStr} ${b.title}` : b.title;
 
-        if (isCurrent) {
-          return `
+          if (isCurrent) {
+            return `
             <div class="flex items-center gap-2 text-sm py-1 text-primary font-medium">
               <i data-lucide="book-open" class="w-4 h-4"></i>
               <span>${displayText}</span>
               <span class="text-xs text-gray-400">(viewing)</span>
             </div>
           `;
-        }
-        return `
+          }
+          return `
           <a href="/books/view/?id=${b.id}" class="flex items-center gap-2 text-sm py-1 text-gray-700 hover:text-primary">
             <i data-lucide="book" class="w-4 h-4 text-gray-400"></i>
             <span>${displayText}</span>
           </a>
         `;
-      }).join('');
+        })
+        .join('');
 
       seriesBooks.innerHTML = booksHtml;
 
@@ -427,7 +456,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
       showToast('Book moved to bin', { type: 'success' });
     }
 
-    setTimeout(() => window.location.href = '/books/', 1000);
+    setTimeout(() => (window.location.href = '/books/'), 1000);
   } catch (error) {
     console.error('Error moving to bin:', error);
     showToast('Error moving book to bin', { type: 'error' });
@@ -450,7 +479,9 @@ function renderGallery() {
   lightboxImages = book.images;
 
   // Render gallery thumbnails
-  const html = book.images.map((img, index) => `
+  const html = book.images
+    .map(
+      (img, index) => `
     <button type="button"
             class="gallery-thumb aspect-square bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer hover:opacity-90 transition-opacity"
             data-index="${index}"
@@ -464,13 +495,19 @@ function renderGallery() {
            class="w-full h-full object-cover hidden"
            onload="this.classList.remove('hidden'); this.previousElementSibling.classList.add('hidden');"
            onerror="this.style.display='none'; this.previousElementSibling.innerHTML='<i data-lucide=\\'image-off\\' class=\\'w-6 h-6 text-gray-400\\'></i>'; lucide.createIcons();">
-      ${img.isPrimary ? `
+      ${
+        img.isPrimary
+          ? `
         <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium">
           Cover
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </button>
-  `).join('');
+  `
+    )
+    .join('');
 
   imagesGallery.innerHTML = html;
   imagesSection.classList.remove('hidden');
@@ -683,7 +720,7 @@ if (lightboxNext) {
 
 // Close on backdrop click
 if (lightbox) {
-  lightbox.addEventListener('click', (e) => {
+  lightbox.addEventListener('click', e => {
     if (e.target === lightbox || e.target.id === 'lightbox-content') {
       closeLightbox();
     }
@@ -691,7 +728,7 @@ if (lightbox) {
 }
 
 // Keyboard navigation with focus trap
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
   if (lightbox.classList.contains('hidden')) return;
 
   switch (e.key) {
@@ -717,69 +754,81 @@ let touchCurrentY = 0;
 let isDragging = false;
 
 if (lightbox) {
-  lightbox.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-    touchCurrentY = touchStartY;
-    isDragging = false;
-  }, { passive: true });
+  lightbox.addEventListener(
+    'touchstart',
+    e => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+      touchCurrentY = touchStartY;
+      isDragging = false;
+    },
+    { passive: true }
+  );
 
-  lightbox.addEventListener('touchmove', (e) => {
-    const currentX = e.changedTouches[0].screenX;
-    touchCurrentY = e.changedTouches[0].screenY;
-    const diffY = touchCurrentY - touchStartY;
-    const diffX = currentX - touchStartX;
+  lightbox.addEventListener(
+    'touchmove',
+    e => {
+      const currentX = e.changedTouches[0].screenX;
+      touchCurrentY = e.changedTouches[0].screenY;
+      const diffY = touchCurrentY - touchStartY;
+      const diffX = currentX - touchStartX;
 
-    // Only handle vertical swipe (swipe down to close)
-    // Require more vertical than horizontal movement
-    if (Math.abs(diffY) > Math.abs(diffX) && diffY > 20) {
-      isDragging = true;
-      lightbox.classList.add('lightbox-dragging');
+      // Only handle vertical swipe (swipe down to close)
+      // Require more vertical than horizontal movement
+      if (Math.abs(diffY) > Math.abs(diffX) && diffY > 20) {
+        isDragging = true;
+        lightbox.classList.add('lightbox-dragging');
 
-      // Move content with finger
-      if (lightboxContent) {
-        const translateY = Math.max(0, diffY * 0.5); // Dampen the movement
-        const opacity = Math.max(0.3, 1 - (diffY / 300));
-        lightboxContent.style.transform = `translateY(${translateY}px)`;
-        lightboxContent.style.opacity = opacity;
+        // Move content with finger
+        if (lightboxContent) {
+          const translateY = Math.max(0, diffY * 0.5); // Dampen the movement
+          const opacity = Math.max(0.3, 1 - diffY / 300);
+          lightboxContent.style.transform = `translateY(${translateY}px)`;
+          lightboxContent.style.opacity = opacity;
+        }
+
+        // Hide swipe hint when dragging
+        if (lightboxSwipeHint) {
+          lightboxSwipeHint.classList.add('hidden');
+        }
+      }
+    },
+    { passive: true }
+  );
+
+  lightbox.addEventListener(
+    'touchend',
+    e => {
+      const endX = e.changedTouches[0].screenX;
+      const endY = e.changedTouches[0].screenY;
+      const diffX = endX - touchStartX;
+      const diffY = endY - touchStartY;
+
+      lightbox.classList.remove('lightbox-dragging');
+
+      // Check for swipe down to close
+      if (isDragging && diffY > 100) {
+        closeLightbox();
+        return;
       }
 
-      // Hide swipe hint when dragging
-      if (lightboxSwipeHint) {
-        lightboxSwipeHint.classList.add('hidden');
+      // Reset position if not closing
+      if (isDragging && lightboxContent) {
+        lightboxContent.style.transform = '';
+        lightboxContent.style.opacity = '';
       }
-    }
-  }, { passive: true });
 
-  lightbox.addEventListener('touchend', (e) => {
-    const endX = e.changedTouches[0].screenX;
-    const endY = e.changedTouches[0].screenY;
-    const diffX = endX - touchStartX;
-    const diffY = endY - touchStartY;
-
-    lightbox.classList.remove('lightbox-dragging');
-
-    // Check for swipe down to close
-    if (isDragging && diffY > 100) {
-      closeLightbox();
-      return;
-    }
-
-    // Reset position if not closing
-    if (isDragging && lightboxContent) {
-      lightboxContent.style.transform = '';
-      lightboxContent.style.opacity = '';
-    }
-
-    // Handle horizontal swipe for navigation
-    if (!isDragging && Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > 0) {
-        prevImage(); // Swipe right = previous
-      } else {
-        nextImage(); // Swipe left = next
+      // Handle horizontal swipe for navigation
+      if (!isDragging && Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) {
+          prevImage(); // Swipe right = previous
+        } else {
+          nextImage(); // Swipe left = next
+        }
       }
-    }
 
-    isDragging = false;
-  }, { passive: true });
+      isDragging = false;
+    },
+    { passive: true }
+  );
 }

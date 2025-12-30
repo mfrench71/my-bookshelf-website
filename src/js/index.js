@@ -1,13 +1,15 @@
 // Home Page Logic
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
-  collection,
-  query,
-  orderBy,
-  getDocs
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { initIcons, CACHE_KEY, serializeTimestamp, showToast, setupVisibilityRefresh, setLastRefreshTime } from './utils.js';
+  initIcons,
+  CACHE_KEY,
+  serializeTimestamp,
+  showToast,
+  setupVisibilityRefresh,
+  setLastRefreshTime,
+} from './utils.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { loadWidgetSettings } from './utils/widget-settings.js';
@@ -38,7 +40,7 @@ const dismissVerifyBanner = document.getElementById('dismiss-verify-banner');
 const VERIFY_BANNER_DISMISSED_KEY = 'verifyBannerDismissed';
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     checkEmailVerification();
@@ -121,7 +123,7 @@ async function loadDashboard() {
       loadSeriesData(),
       loadBooksData(),
       loadWishlistData(),
-      loadWidgetSettings(currentUser.uid)
+      loadWidgetSettings(currentUser.uid),
     ]);
 
     genres = genresResult;
@@ -213,7 +215,7 @@ async function loadBooksData() {
           createdAt: serializeTimestamp(data.createdAt),
           updatedAt: serializeTimestamp(data.updatedAt),
           startedAt: serializeTimestamp(data.startedAt),
-          finishedAt: serializeTimestamp(data.finishedAt)
+          finishedAt: serializeTimestamp(data.finishedAt),
         };
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books
@@ -222,4 +224,3 @@ async function loadBooksData() {
     return []; // Return empty array to allow page to render without books
   }
 }
-

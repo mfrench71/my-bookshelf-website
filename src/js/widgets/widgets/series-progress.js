@@ -17,15 +17,20 @@ export class SeriesProgressWidget extends BaseWidget {
 
   static settingsSchema = [
     { key: 'count', label: 'Series to show', type: 'select', options: [3, 6, 9, 12] },
-    { key: 'sortBy', label: 'Sort by', type: 'select', options: [
-      { value: 'name', label: 'Name' },
-      { value: 'progress', label: 'Progress' },
-      { value: 'bookCount', label: 'Books owned' }
-    ]}
+    {
+      key: 'sortBy',
+      label: 'Sort by',
+      type: 'select',
+      options: [
+        { value: 'name', label: 'Name' },
+        { value: 'progress', label: 'Progress' },
+        { value: 'bookCount', label: 'Books owned' },
+      ],
+    },
   ];
 
   // This widget doesn't use filterAndSort for books
-  static filterAndSort(books) {
+  static filterAndSort(_books) {
     return [];
   }
 
@@ -40,7 +45,7 @@ export class SeriesProgressWidget extends BaseWidget {
   /**
    * Override renderWidget to handle series data instead of books
    */
-  static renderWidget(books, config, genreLookup, seriesLookup) {
+  static renderWidget(_books, config, _genreLookup, seriesLookup) {
     // Get series from lookup
     const series = seriesLookup ? Array.from(seriesLookup.values()) : [];
 
@@ -69,12 +74,15 @@ export class SeriesProgressWidget extends BaseWidget {
     const count = config.settings?.count || 6;
     const displaySeries = sortedSeries.slice(0, count);
 
-    const seeAllHtml = series.length > count ? `
+    const seeAllHtml =
+      series.length > count
+        ? `
       <a href="${this.getSeeAllLink()}" class="text-sm text-primary hover:underline flex items-center gap-1">
         Manage series
         <i data-lucide="chevron-right" class="w-4 h-4"></i>
       </a>
-    ` : '';
+    `
+        : '';
 
     return `
       <div class="widget-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -101,14 +109,15 @@ export class SeriesProgressWidget extends BaseWidget {
   static sortSeries(series, sortBy) {
     return [...series].sort((a, b) => {
       switch (sortBy) {
-        case 'progress':
+        case 'progress': {
           // Sort by completion percentage (descending), incomplete first
-          const aProgress = a.totalBooks ? (a.bookCount / a.totalBooks) : 0;
-          const bProgress = b.totalBooks ? (b.bookCount / b.totalBooks) : 0;
+          const aProgress = a.totalBooks ? a.bookCount / a.totalBooks : 0;
+          const bProgress = b.totalBooks ? b.bookCount / b.totalBooks : 0;
           // Incomplete series first, then by progress
           if (aProgress < 1 && bProgress >= 1) return -1;
           if (bProgress < 1 && aProgress >= 1) return 1;
           return bProgress - aProgress;
+        }
         case 'bookCount':
           return (b.bookCount || 0) - (a.bookCount || 0);
         case 'name':
@@ -153,11 +162,15 @@ export class SeriesProgressWidget extends BaseWidget {
           <span class="font-medium text-gray-900 truncate flex-1 mr-2">${escapeHtml(series.name)}</span>
           ${statusText}
         </div>
-        ${hasTotal ? `
+        ${
+          hasTotal
+            ? `
           <div class="h-2 ${bgColor} rounded-full overflow-hidden">
             <div class="h-full ${barColor} rounded-full transition-all duration-300" style="width: ${progress}%"></div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </a>
     `;
   }

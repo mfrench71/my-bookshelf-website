@@ -5,8 +5,8 @@ const SYNC_SETTINGS_KEY = 'mybookshelf_sync_settings';
 
 const DEFAULT_SETTINGS = {
   autoRefreshEnabled: true,
-  hiddenThreshold: 30,    // seconds - min hidden time before refresh
-  cooldownPeriod: 300     // seconds - min time between refreshes (5 min)
+  hiddenThreshold: 30, // seconds - min hidden time before refresh
+  cooldownPeriod: 300, // seconds - min time between refreshes (5 min)
 };
 
 /**

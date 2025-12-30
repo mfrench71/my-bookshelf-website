@@ -47,10 +47,10 @@ export class FilterPanel {
     this.filters = {
       sort: 'createdAt-desc',
       rating: 0,
-      genres: [],      // array of genreIds
-      statuses: [],    // ['reading'] and/or ['finished']
-      seriesIds: [],   // array of seriesIds
-      author: ''       // single author string
+      genres: [], // array of genreIds
+      statuses: [], // ['reading'] and/or ['finished']
+      seriesIds: [], // array of seriesIds
+      author: '', // single author string
     };
 
     // Apply initial filters if provided
@@ -91,7 +91,8 @@ export class FilterPanel {
    * Render the filter panel UI
    */
   render() {
-    const sortSection = this.showSort ? `
+    const sortSection = this.showSort
+      ? `
       <div class="filter-group">
         <label for="filter-sort-${this.instanceId}" class="block text-sm font-semibold text-gray-900 mb-2">Sort By</label>
         <select id="filter-sort-${this.instanceId}" class="filter-sort filter-select">
@@ -106,7 +107,8 @@ export class FilterPanel {
           <option value="seriesPosition-asc" class="series-sort-option hidden">Series Order</option>
         </select>
       </div>
-    ` : '';
+    `
+      : '';
 
     // Check if any secondary filter is active (auto-expand)
     const hasActiveSecondaryFilter = this.filters.seriesIds.length > 0;
@@ -230,7 +232,7 @@ export class FilterPanel {
 
     // Status: checkbox changes
     if (this.elements.statusCheckboxes) {
-      this.elements.statusCheckboxes.addEventListener('change', (e) => {
+      this.elements.statusCheckboxes.addEventListener('change', e => {
         if (e.target.type === 'checkbox') {
           this.syncArrayFromCheckboxes('statuses', this.elements.statusCheckboxes);
           this.emitChange();
@@ -264,7 +266,7 @@ export class FilterPanel {
       });
 
       // Keyboard navigation
-      this.elements.authorInput.addEventListener('keydown', (e) => {
+      this.elements.authorInput.addEventListener('keydown', e => {
         this.handleAuthorKeydown(e);
       });
 
@@ -276,7 +278,7 @@ export class FilterPanel {
       }
 
       // Click outside to close dropdown
-      document.addEventListener('click', (e) => {
+      document.addEventListener('click', e => {
         if (this.elements.authorContainer && !this.elements.authorContainer.contains(e.target)) {
           this.closeAuthorDropdown();
         }
@@ -285,7 +287,7 @@ export class FilterPanel {
 
     // Genre: checkbox changes
     if (this.elements.genreCheckboxes) {
-      this.elements.genreCheckboxes.addEventListener('change', (e) => {
+      this.elements.genreCheckboxes.addEventListener('change', e => {
         if (e.target.type === 'checkbox') {
           this.syncArrayFromCheckboxes('genres', this.elements.genreCheckboxes);
           this.emitChange();
@@ -295,7 +297,7 @@ export class FilterPanel {
 
     // Series: checkbox changes
     if (this.elements.seriesCheckboxes) {
-      this.elements.seriesCheckboxes.addEventListener('change', (e) => {
+      this.elements.seriesCheckboxes.addEventListener('change', e => {
         if (e.target.type === 'checkbox') {
           this.syncArrayFromCheckboxes('seriesIds', this.elements.seriesCheckboxes);
           this.updateSeriesSortVisibility();
@@ -503,7 +505,7 @@ export class FilterPanel {
       const r2 = (counts.ratings['2'] || 0) + r3;
       const r1 = (counts.ratings['1'] || 0) + r2;
       const unrated = counts.ratings['unrated'] || 0;
-      const cumulative = { '0': counts.ratingTotal || 0, '5': r5, '4': r4, '3': r3, '2': r2, '1': r1, 'unrated': unrated };
+      const cumulative = { 0: counts.ratingTotal || 0, 5: r5, 4: r4, 3: r3, 2: r2, 1: r1, unrated: unrated };
 
       options.forEach(opt => {
         const val = opt.value;
@@ -656,7 +658,7 @@ export class FilterPanel {
       genres: [...this.filters.genres],
       statuses: [...this.filters.statuses],
       seriesIds: [...this.filters.seriesIds],
-      author: this.filters.author
+      author: this.filters.author,
     };
   }
 
@@ -706,7 +708,7 @@ export class FilterPanel {
       genres: [],
       statuses: [],
       seriesIds: [],
-      author: ''
+      author: '',
     };
     this.authorSearchQuery = '';
     this.syncUIFromState();
@@ -778,9 +780,7 @@ export class FilterPanel {
   getFilteredAuthors() {
     if (!this.authorSearchQuery) return this.authors;
     const query = this.authorSearchQuery.toLowerCase().trim();
-    return this.authors.filter(author =>
-      author.toLowerCase().includes(query)
-    );
+    return this.authors.filter(author => author.toLowerCase().includes(query));
   }
 
   /**
@@ -799,13 +799,14 @@ export class FilterPanel {
       return;
     }
 
-    this.elements.authorDropdown.innerHTML = filtered.map((author, index) => {
-      const count = this.authorCounts[author] || 0;
-      const isDisabled = count === 0;
-      const isSelected = this.filters.author === author;
-      const isFocused = index === this.authorFocusedIndex;
+    this.elements.authorDropdown.innerHTML = filtered
+      .map((author, index) => {
+        const count = this.authorCounts[author] || 0;
+        const isDisabled = count === 0;
+        const isSelected = this.filters.author === author;
+        const isFocused = index === this.authorFocusedIndex;
 
-      return `
+        return `
         <button type="button"
                 class="author-option w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-gray-100 min-h-[44px] ${isFocused ? 'bg-gray-100' : ''} ${isSelected ? 'text-primary font-medium' : 'text-gray-900'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
                 data-author="${escapeHtml(author)}"
@@ -816,7 +817,8 @@ export class FilterPanel {
           <span class="text-gray-400 text-xs ml-2">(${count})</span>
         </button>
       `;
-    }).join('');
+      })
+      .join('');
 
     this.elements.authorDropdown.classList.remove('hidden');
 

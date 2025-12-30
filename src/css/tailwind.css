@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @source "../../src/**/*.{njk,html,js}";
 
 @theme {
@@ -45,12 +45,12 @@
 /* Custom Styles for MyBookShelf */
 
 /* Form Elements - ensure white background and proper styling */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-input[type="search"],
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='date'],
+input[type='search'],
 textarea,
 select {
   background-color: white;
@@ -91,7 +91,9 @@ select {
   display: flex;
   gap: 1rem;
   cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.15s;
+  transition:
+    box-shadow 0.15s,
+    transform 0.15s;
 }
 
 .book-card:hover {
@@ -132,7 +134,9 @@ select {
 
 /* Cover shadow utility - applies to any size cover */
 .cover-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover {
@@ -142,7 +146,9 @@ select {
   object-fit: cover;
   background-color: #f3f4f6;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover-placeholder {
@@ -154,7 +160,9 @@ select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover-placeholder svg {
@@ -289,13 +297,21 @@ select {
 
 /* Modal Animations */
 @keyframes modalBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalBackdropOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes modalContentIn {
@@ -466,9 +482,15 @@ select {
 
 /* Badge Pulse Animation (for count updates) */
 @keyframes badgePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .badge-pulse {
@@ -549,12 +571,7 @@ select {
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
-  );
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 0.375rem;
@@ -601,16 +618,30 @@ select {
 }
 
 /* Stagger delays for list items */
-.card-animate:nth-child(1) { animation-delay: 0ms; }
-.card-animate:nth-child(2) { animation-delay: 50ms; }
-.card-animate:nth-child(3) { animation-delay: 100ms; }
-.card-animate:nth-child(4) { animation-delay: 150ms; }
-.card-animate:nth-child(5) { animation-delay: 200ms; }
-.card-animate:nth-child(n+6) { animation-delay: 250ms; }
+.card-animate:nth-child(1) {
+  animation-delay: 0ms;
+}
+.card-animate:nth-child(2) {
+  animation-delay: 50ms;
+}
+.card-animate:nth-child(3) {
+  animation-delay: 100ms;
+}
+.card-animate:nth-child(4) {
+  animation-delay: 150ms;
+}
+.card-animate:nth-child(5) {
+  animation-delay: 200ms;
+}
+.card-animate:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
 
 /* Button Press Feedback */
 .btn-press {
-  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  transition:
+    transform 0.1s ease-out,
+    box-shadow 0.1s ease-out;
 }
 
 .btn-press:active {
@@ -619,7 +650,9 @@ select {
 
 /* FAB Press Animation */
 .fab-press {
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out;
 }
 
 .fab-press:active {
@@ -648,7 +681,8 @@ select {
 
 /* Pulse Animation (for notifications/badges) */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -789,14 +823,18 @@ select {
 
 /* Toast swipe-to-dismiss transitions */
 .toast-item {
-  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  transition:
+    transform 0.15s ease-out,
+    opacity 0.15s ease-out;
   touch-action: pan-x;
 }
 
 /* Secondary filters collapse/expand animation */
 .secondary-filters {
   overflow: hidden;
-  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+  transition:
+    max-height 0.2s ease-out,
+    opacity 0.2s ease-out;
 }
 
 .secondary-filters.collapsed {
@@ -900,7 +938,8 @@ select {
 }
 
 /* Prevent pull-to-refresh on iOS */
-html, body {
+html,
+body {
   overscroll-behavior-y: none;
 }
 
@@ -909,7 +948,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-button, a {
+button,
+a {
   touch-action: manipulation;
 }
 
@@ -928,7 +968,9 @@ button, a {
 /* Clickable genre badge (used on book view page) */
 .genre-badge-link {
   text-decoration: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .genre-badge-link:hover {
@@ -961,7 +1003,9 @@ button, a {
 /* Settings Navigation */
 .settings-nav-btn {
   color: #374151;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .settings-nav-btn svg {
@@ -983,7 +1027,9 @@ button, a {
   outline: 2px solid #4ade80;
   outline-offset: -2px;
   background-color: #f0fdf4;
-  transition: outline 0.3s, background-color 0.3s;
+  transition:
+    outline 0.3s,
+    background-color 0.3s;
 }
 
 /* Cover Image Changed Highlight */
@@ -1053,23 +1099,39 @@ button, a {
 }
 
 /* Widget size classes (desktop: 12-column grid) */
-[class*="widget-col-"] {
+[class*='widget-col-'] {
   min-width: 0; /* Prevent grid blowout from content */
 }
-.widget-col-3 { grid-column: span 3; }   /* Quarter width */
-.widget-col-6 { grid-column: span 6; }   /* Half width */
-.widget-col-9 { grid-column: span 9; }   /* Three-quarter width */
-.widget-col-12 { grid-column: span 12; } /* Full width */
+.widget-col-3 {
+  grid-column: span 3;
+} /* Quarter width */
+.widget-col-6 {
+  grid-column: span 6;
+} /* Half width */
+.widget-col-9 {
+  grid-column: span 9;
+} /* Three-quarter width */
+.widget-col-12 {
+  grid-column: span 12;
+} /* Full width */
 
 /* Tablet: 6-column grid (widgets respect sizes proportionally) */
 @media (max-width: 1023px) {
   .widget-grid {
     grid-template-columns: repeat(6, 1fr);
   }
-  .widget-col-3 { grid-column: span 3; }   /* Half width on tablet */
-  .widget-col-6 { grid-column: span 3; }   /* Half width on tablet */
-  .widget-col-9 { grid-column: span 6; }   /* Full width on tablet */
-  .widget-col-12 { grid-column: span 6; }  /* Full width on tablet */
+  .widget-col-3 {
+    grid-column: span 3;
+  } /* Half width on tablet */
+  .widget-col-6 {
+    grid-column: span 3;
+  } /* Half width on tablet */
+  .widget-col-9 {
+    grid-column: span 6;
+  } /* Full width on tablet */
+  .widget-col-12 {
+    grid-column: span 6;
+  } /* Full width on tablet */
 }
 
 /* Mobile: single column */
@@ -1077,7 +1139,7 @@ button, a {
   .widget-grid {
     grid-template-columns: 1fr;
   }
-  [class*="widget-col-"] {
+  [class*='widget-col-'] {
     grid-column: 1 / -1;
   }
 }
@@ -1350,7 +1412,8 @@ button, a {
 
 /* Lightbox swipe indicator */
 @keyframes lightboxSwipeHint {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
     opacity: 0.7;
   }

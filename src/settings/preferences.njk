@@ -3,6 +3,7 @@ layout: base.njk
 title: Preferences
 scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
 ---
+
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
@@ -24,8 +25,7 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
   </div>
 </div>
 
-{% set activePage = 'preferences' %}
-{% include "settings-nav.njk" %}
+{% set activePage = 'preferences' %} {% include "settings-nav.njk" %}
 
 <div class="max-w-6xl mx-auto px-4 py-6">
   <div class="lg:flex lg:gap-8">
@@ -34,9 +34,27 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
       <nav class="sticky top-36" aria-label="In this section">
         <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">In this section</h2>
         <ul class="space-y-1">
-          <li><a href="#sync" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Sync</a></li>
-          <li><a href="#widgets" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Widgets</a></li>
-          <li><a href="#browser" class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md">Browser</a></li>
+          <li>
+            <a
+              href="#sync"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Sync</a
+            >
+          </li>
+          <li>
+            <a
+              href="#widgets"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Widgets</a
+            >
+          </li>
+          <li>
+            <a
+              href="#browser"
+              class="section-link block py-1.5 px-2 text-sm text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md"
+              >Browser</a
+            >
+          </li>
         </ul>
       </nav>
     </aside>
@@ -48,9 +66,21 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
       <!-- Mobile Section Navigation (Pills) -->
       <nav class="lg:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar" aria-label="Jump to section">
         <div class="flex gap-2">
-          <a href="#sync" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Sync</a>
-          <a href="#widgets" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Widgets</a>
-          <a href="#browser" class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center">Browser</a>
+          <a
+            href="#sync"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Sync</a
+          >
+          <a
+            href="#widgets"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Widgets</a
+          >
+          <a
+            href="#browser"
+            class="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors min-h-[44px] inline-flex items-center"
+            >Browser</a
+          >
         </div>
       </nav>
 
@@ -58,75 +88,97 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
       <section id="sync" class="mb-8 scroll-mt-36">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Sync</h2>
 
-    <!-- Auto-Refresh Settings -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-      <h3 class="font-medium text-gray-900 mb-4">Auto-Refresh Settings</h3>
-      <p class="text-gray-600 text-sm mb-4">When you switch back to the app after being away, your library can automatically refresh to sync changes from other devices.</p>
+        <!-- Auto-Refresh Settings -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+          <h3 class="font-medium text-gray-900 mb-4">Auto-Refresh Settings</h3>
+          <p class="text-gray-600 text-sm mb-4">
+            When you switch back to the app after being away, your library can automatically refresh to sync changes
+            from other devices.
+          </p>
 
-      <div class="space-y-4">
-        <!-- Toggle -->
-        <div class="flex items-center justify-between">
-          <label for="auto-refresh-toggle" class="text-sm text-gray-700">Enable auto-refresh on tab focus</label>
-          <input type="checkbox" id="auto-refresh-toggle" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary">
+          <div class="space-y-4">
+            <!-- Toggle -->
+            <div class="flex items-center justify-between">
+              <label for="auto-refresh-toggle" class="text-sm text-gray-700">Enable auto-refresh on tab focus</label>
+              <input
+                type="checkbox"
+                id="auto-refresh-toggle"
+                class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+            </div>
+
+            <!-- Options (shown when enabled) -->
+            <div id="sync-options" class="space-y-4">
+              <div>
+                <label for="hidden-threshold" class="block text-sm text-gray-700 mb-1">Refresh after hidden for</label>
+                <select
+                  id="hidden-threshold"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="30">30 seconds</option>
+                  <option value="60">1 minute</option>
+                  <option value="120">2 minutes</option>
+                  <option value="300">5 minutes</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="cooldown-period" class="block text-sm text-gray-700 mb-1"
+                  >Minimum time between refreshes</label
+                >
+                <select
+                  id="cooldown-period"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="60">1 minute</option>
+                  <option value="300">5 minutes</option>
+                  <option value="600">10 minutes</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Options (shown when enabled) -->
-        <div id="sync-options" class="space-y-4">
-          <div>
-            <label for="hidden-threshold" class="block text-sm text-gray-700 mb-1">Refresh after hidden for</label>
-            <select id="hidden-threshold" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-              <option value="30">30 seconds</option>
-              <option value="60">1 minute</option>
-              <option value="120">2 minutes</option>
-              <option value="300">5 minutes</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="cooldown-period" class="block text-sm text-gray-700 mb-1">Minimum time between refreshes</label>
-            <select id="cooldown-period" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-              <option value="60">1 minute</option>
-              <option value="300">5 minutes</option>
-              <option value="600">10 minutes</option>
-            </select>
-          </div>
+        <!-- Manual Refresh -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-medium text-gray-900 mb-2">Manual Refresh</h3>
+          <p class="text-gray-600 text-sm mb-4">
+            Force a full refresh of your library from the server to sync the latest changes.
+          </p>
+          <button
+            id="refresh-library-btn"
+            class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]"
+          >
+            <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Refresh Library Now</span>
+          </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Manual Refresh -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 class="font-medium text-gray-900 mb-2">Manual Refresh</h3>
-      <p class="text-gray-600 text-sm mb-4">Force a full refresh of your library from the server to sync the latest changes.</p>
-      <button id="refresh-library-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
-        <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
-        <span>Refresh Library Now</span>
-      </button>
-    </div>
-  </section>
+      </section>
 
       <!-- Home Content Section -->
       <section id="widgets" class="mb-8 scroll-mt-36">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Home Page Widgets</h2>
-    <p class="text-gray-600 text-sm mb-4">Configure which widgets appear on your home page. Use the arrows to reorder.</p>
+        <p class="text-gray-600 text-sm mb-4">
+          Configure which widgets appear on your home page. Use the arrows to reorder.
+        </p>
 
-    <!-- Loading State -->
-    <div id="widgets-loading" class="space-y-3">
-      {% for i in range(0, 4) %}
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="flex items-center gap-3">
-          <div class="skeleton w-5 h-5 rounded"></div>
-          <div class="skeleton h-4 w-32 rounded"></div>
-          <div class="flex-1"></div>
-          <div class="skeleton w-11 h-6 rounded-full"></div>
+        <!-- Loading State -->
+        <div id="widgets-loading" class="space-y-3">
+          {% for i in range(0, 4) %}
+          <div class="bg-white rounded-xl border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+              <div class="skeleton w-5 h-5 rounded"></div>
+              <div class="skeleton h-4 w-32 rounded"></div>
+              <div class="flex-1"></div>
+              <div class="skeleton w-11 h-6 rounded-full"></div>
+            </div>
+          </div>
+          {% endfor %}
         </div>
-      </div>
-      {% endfor %}
-    </div>
 
-    <!-- Widget List (populated by JS) -->
-    <div id="widget-settings-list" class="hidden space-y-3"></div>
-  </section>
+        <!-- Widget List (populated by JS) -->
+        <div id="widget-settings-list" class="hidden space-y-3"></div>
+      </section>
 
       <!-- Browser Section -->
       <section id="browser" class="mb-8 scroll-mt-36">
@@ -135,8 +187,14 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
         <!-- Clear Local Cache -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
           <h3 class="font-medium text-gray-900 mb-2">Clear Local Cache</h3>
-          <p class="text-gray-600 text-sm mb-4">Clear cached data stored in your browser. This includes genre and series caches, sync settings, and widget preferences. Your data in the cloud will not be affected.</p>
-          <button id="clear-cache-btn" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+          <p class="text-gray-600 text-sm mb-4">
+            Clear cached data stored in your browser. This includes genre and series caches, sync settings, and widget
+            preferences. Your data in the cloud will not be affected.
+          </p>
+          <button
+            id="clear-cache-btn"
+            class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]"
+          >
             <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
             <span>Clear Cache</span>
           </button>
@@ -150,7 +208,12 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
 <div id="clear-cache-modal" class="hidden fixed inset-0 z-50">
   <div class="absolute inset-0 bg-black/50" data-backdrop></div>
   <div class="absolute inset-x-0 bottom-0 md:relative md:flex md:items-center md:justify-center md:min-h-full md:p-4">
-    <div class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-6 relative" role="dialog" aria-modal="true" aria-labelledby="clear-cache-title">
+    <div
+      class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-6 relative"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="clear-cache-title"
+    >
       <!-- Drag handle (mobile only) -->
       <div class="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full md:hidden"></div>
 
@@ -159,16 +222,31 @@ scripts: '<script type="module" src="/js/settings/preferences.js"></script>'
           <i data-lucide="trash-2" class="w-6 h-6 text-amber-600" aria-hidden="true"></i>
         </div>
         <h3 id="clear-cache-title" class="text-lg font-semibold text-gray-900">Clear Local Cache?</h3>
-        <p class="text-gray-600 text-sm mt-2">This will clear all cached data from your browser. Your data in the cloud will not be affected.</p>
+        <p class="text-gray-600 text-sm mt-2">
+          This will clear all cached data from your browser. Your data in the cloud will not be affected.
+        </p>
       </div>
 
       <div class="flex gap-3">
-        <button id="cancel-clear-cache" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium min-h-[44px]">Cancel</button>
-        <button id="confirm-clear-cache" class="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium min-h-[44px]">Clear Cache</button>
+        <button
+          id="cancel-clear-cache"
+          class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium min-h-[44px]"
+        >
+          Cancel
+        </button>
+        <button
+          id="confirm-clear-cache"
+          class="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium min-h-[44px]"
+        >
+          Clear Cache
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

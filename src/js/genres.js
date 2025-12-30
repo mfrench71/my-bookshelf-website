@@ -6,12 +6,11 @@ import {
   getDocs,
   addDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeGenreName } from './utils.js';
 
@@ -159,7 +158,7 @@ export const GENRE_COLORS = [
   '#cbd5e1', // slate-300
   '#94a3b8', // slate-400
   '#64748b', // slate-500
-  '#475569'  // slate-600
+  '#475569', // slate-600
 ];
 
 // In-memory cache for genres (with TTL)
@@ -176,9 +175,7 @@ const GENRES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 export async function loadUserGenres(userId, forceRefresh = false) {
   const now = Date.now();
-  const cacheValid = genresCache &&
-                     genresCacheUserId === userId &&
-                     (now - genresCacheTime) < GENRES_CACHE_TTL;
+  const cacheValid = genresCache && genresCacheUserId === userId && now - genresCacheTime < GENRES_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
     return genresCache;
@@ -191,7 +188,7 @@ export async function loadUserGenres(userId, forceRefresh = false) {
 
     genresCache = snapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
     genresCacheUserId = userId;
     genresCacheTime = Date.now();
@@ -210,11 +207,7 @@ export async function loadUserGenres(userId, forceRefresh = false) {
  * @returns {Set<string>} Set of used color hex values
  */
 export function getUsedColors(genres, excludeGenreId = null) {
-  return new Set(
-    genres
-      .filter(g => g.id !== excludeGenreId)
-      .map(g => g.color?.toLowerCase())
-  );
+  return new Set(genres.filter(g => g.id !== excludeGenreId).map(g => g.color?.toLowerCase()));
 }
 
 /**
@@ -259,9 +252,10 @@ export async function createGenre(userId, name, color = null) {
     } else {
       // Auto-assign random available colour for visual variety
       const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
-      color = availableColors.length > 0
-        ? availableColors[Math.floor(Math.random() * availableColors.length)]
-        : GENRE_COLORS[Math.floor(Math.random() * GENRE_COLORS.length)];
+      color =
+        availableColors.length > 0
+          ? availableColors[Math.floor(Math.random() * availableColors.length)]
+          : GENRE_COLORS[Math.floor(Math.random() * GENRE_COLORS.length)];
     }
 
     const genreData = {
@@ -270,7 +264,7 @@ export async function createGenre(userId, name, color = null) {
       color,
       bookCount: 0,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     const genresRef = collection(db, 'users', userId, 'genres');
@@ -364,7 +358,7 @@ export async function deleteGenre(userId, genreId) {
       const currentGenres = bookData.genres || [];
       batch.update(bookRef, {
         genres: currentGenres.filter(g => g !== genreId),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
     });
 
@@ -405,7 +399,7 @@ export async function updateGenreBookCounts(userId, addedGenreIds = [], removedG
         const genreRef = doc(db, 'users', userId, 'genres', genreId);
         batch.update(genreRef, {
           bookCount: (genre.bookCount || 0) + 1,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
       }
     }
@@ -417,7 +411,7 @@ export async function updateGenreBookCounts(userId, addedGenreIds = [], removedG
         const genreRef = doc(db, 'users', userId, 'genres', genreId);
         batch.update(genreRef, {
           bookCount: Math.max(0, (genre.bookCount || 0) - 1),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
       }
     }
@@ -486,7 +480,7 @@ export async function recalculateGenreBookCounts(userId) {
         const genreRef = doc(db, 'users', userId, 'genres', genre.id);
         batch.update(genreRef, {
           bookCount: newCount,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
         genresUpdated++;
       }
@@ -503,7 +497,7 @@ export async function recalculateGenreBookCounts(userId) {
     const activeBookCount = booksSnapshot.docs.filter(d => !d.data().deletedAt).length;
     return {
       genresUpdated,
-      totalBooks: activeBookCount
+      totalBooks: activeBookCount,
     };
   } catch (error) {
     console.error('Error recalculating genre book counts:', error);
@@ -560,7 +554,7 @@ export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
       const hasTarget = currentGenres.includes(targetGenreId);
 
       // Build new genres array
-      let newGenres = currentGenres.filter(g => g !== sourceGenreId);
+      const newGenres = currentGenres.filter(g => g !== sourceGenreId);
       if (!hasTarget) {
         newGenres.push(targetGenreId);
       }
@@ -568,7 +562,7 @@ export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
       const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
       batch.update(bookRef, {
         genres: newGenres,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
       booksUpdated++;
     });
@@ -583,7 +577,7 @@ export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
     const targetGenreRef = doc(db, 'users', userId, 'genres', targetGenreId);
     batch.update(targetGenreRef, {
       bookCount: (targetGenre.bookCount || 0) + booksWithoutTarget,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
 
     // Delete source genre

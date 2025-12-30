@@ -1,72 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#3b82f6">
-  <meta name="description" content="{{ description | default('Track your book collection with barcode scanning') }}">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="MyBookShelf">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta
+      name="description"
+      content="{{ description | default('Track your book collection with barcode scanning') }}"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MyBookShelf" />
 
-  <!-- SEO -->
-  <title>{{ title }} - MyBookShelf</title>
-  <link rel="canonical" href="https://mybookshelf.app{{ page.url }}">
+    <!-- SEO -->
+    <title>{{ title }} - MyBookShelf</title>
+    <link rel="canonical" href="https://mybookshelf.app{{ page.url }}" />
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="{{ title }} - MyBookShelf">
-  <meta property="og:description" content="{{ description | default('Track your book collection with barcode scanning') }}">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mybookshelf.app{{ page.url }}">
-  <meta property="og:image" content="https://mybookshelf.app/icons/icon-512.png">
-  <meta property="og:site_name" content="MyBookShelf">
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{ title }} - MyBookShelf" />
+    <meta
+      property="og:description"
+      content="{{ description | default('Track your book collection with barcode scanning') }}"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mybookshelf.app{{ page.url }}" />
+    <meta property="og:image" content="https://mybookshelf.app/icons/icon-512.png" />
+    <meta property="og:site_name" content="MyBookShelf" />
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="{{ title }} - MyBookShelf">
-  <meta name="twitter:description" content="{{ description | default('Track your book collection with barcode scanning') }}">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{{ title }} - MyBookShelf" />
+    <meta
+      name="twitter:description"
+      content="{{ description | default('Track your book collection with barcode scanning') }}"
+    />
 
-  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
-  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <link rel="stylesheet" href="/css/styles.css">
-  <script src="/vendor/lucide.min.js" defer></script>
-  {{ headScripts | safe }}
-</head>
-<body class="{{ bodyClass | default('bg-gray-50') }} min-h-screen flex flex-col">
-  <!-- Skip to main content link for accessibility -->
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
-    Skip to main content
-  </a>
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="/vendor/lucide.min.js" defer></script>
+    {{ headScripts | safe }}
+  </head>
+  <body class="{{ bodyClass | default('bg-gray-50') }} min-h-screen flex flex-col">
+    <!-- Skip to main content link for accessibility -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+    >
+      Skip to main content
+    </a>
 
-  {% if not hideHeader %}
-    {% include "header.njk" %}
-  {% endif %}
+    {% if not hideHeader %} {% include "header.njk" %} {% endif %}
 
-  <main id="main-content" class="flex-1 page-content">
-    {{ content | safe }}
-  </main>
+    <main id="main-content" class="flex-1 page-content">{{ content | safe }}</main>
 
-  {% if not hideFooter %}
-    {% include "footer.njk" %}
-  {% endif %}
+    {% if not hideFooter %} {% include "footer.njk" %} {% endif %}
 
-  <script type="module" src="/js/firebase-config.js"></script>
-  {% if not hideHeader %}
+    <script type="module" src="/js/firebase-config.js"></script>
+    {% if not hideHeader %}
     <script type="module" src="/js/header.js"></script>
-  {% endif %}
-  {{ scripts | safe }}
+    {% endif %} {{ scripts | safe }}
 
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.warn('SW registration failed:', err));
-      });
-    }
-  </script>
-</body>
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
+  </body>
 </html>

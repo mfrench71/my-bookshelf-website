@@ -7,9 +7,20 @@ import {
   orderBy,
   getDocs,
   doc,
-  getDoc
+  getDoc,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { normalizeText, showToast, debounce, initIcons, CACHE_KEY, serializeTimestamp, isMobile, isValidImageUrl, escapeHtml, escapeAttr } from './utils.js';
+import {
+  normalizeText,
+  showToast,
+  debounce,
+  initIcons,
+  CACHE_KEY,
+  serializeTimestamp,
+  isMobile,
+  isValidImageUrl,
+  escapeHtml,
+  escapeAttr,
+} from './utils.js';
 import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
@@ -87,12 +98,16 @@ function renderRecentSearches() {
   const searches = getRecentSearches();
   if (searches.length === 0) return '';
 
-  const searchItems = searches.map(query => `
+  const searchItems = searches
+    .map(
+      query => `
     <button type="button" class="recent-search-item flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition-colors" data-query="${escapeAttr(query)}">
       <i data-lucide="history" class="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true"></i>
       <span class="text-gray-700 truncate">${escapeHtml(query)}</span>
     </button>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `
     <div id="recent-searches-section" class="mb-4">
@@ -199,7 +214,7 @@ if (!onlineListenersAttached) {
 }
 
 // Auth State
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     // Set email in both mobile and desktop menus
@@ -314,10 +329,13 @@ async function updateMenuAvatar(user) {
     if (!cached || Date.now() - JSON.parse(cached).timestamp >= gravatarCacheTTL) {
       const response = await fetch(gravatarUrl, { method: 'HEAD' });
       gravatarExists = response.ok;
-      localStorage.setItem(gravatarCacheKey, JSON.stringify({
-        exists: gravatarExists,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(
+        gravatarCacheKey,
+        JSON.stringify({
+          exists: gravatarExists,
+          timestamp: Date.now(),
+        })
+      );
     }
 
     if (gravatarExists) {
@@ -339,23 +357,27 @@ async function loadAllBooksForSearch() {
   isLoadingBooks = true;
 
   // Load genres and series in parallel with books
-  const genresPromise = loadUserGenres(currentUser.uid).then(g => {
-    genres = g;
-    genreLookup = createGenreLookup(genres);
-  }).catch(e => {
-    console.error('Error loading genres for search:', e);
-    genres = [];
-    genreLookup = new Map();
-  });
+  const genresPromise = loadUserGenres(currentUser.uid)
+    .then(g => {
+      genres = g;
+      genreLookup = createGenreLookup(genres);
+    })
+    .catch(e => {
+      console.error('Error loading genres for search:', e);
+      genres = [];
+      genreLookup = new Map();
+    });
 
-  const seriesPromise = loadUserSeries(currentUser.uid).then(s => {
-    series = s;
-    seriesLookup = createSeriesLookup(series);
-  }).catch(e => {
-    console.error('Error loading series for search:', e);
-    series = [];
-    seriesLookup = new Map();
-  });
+  const seriesPromise = loadUserSeries(currentUser.uid)
+    .then(s => {
+      series = s;
+      seriesLookup = createSeriesLookup(series);
+    })
+    .catch(e => {
+      console.error('Error loading series for search:', e);
+      series = [];
+      seriesLookup = new Map();
+    });
 
   // Try cache first (check if it has all books via hasMore flag)
   try {
@@ -372,7 +394,7 @@ async function loadAllBooksForSearch() {
           _normalizedTitle: b._normalizedTitle || normalizeText(b.title),
           _normalizedAuthor: b._normalizedAuthor || normalizeText(b.author),
           _normalizedPublisher: b._normalizedPublisher || normalizeText(b.publisher),
-          _normalizedNotes: b._normalizedNotes || normalizeText(b.notes)
+          _normalizedNotes: b._normalizedNotes || normalizeText(b.notes),
         }));
         if (!hasMore) {
           // Cache has all books
@@ -404,7 +426,7 @@ async function loadAllBooksForSearch() {
           _normalizedTitle: normalizeText(data.title),
           _normalizedAuthor: normalizeText(data.author),
           _normalizedPublisher: normalizeText(data.publisher),
-          _normalizedNotes: normalizeText(data.notes)
+          _normalizedNotes: normalizeText(data.notes),
         };
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books
@@ -435,7 +457,7 @@ if (closeMenuBtn) {
   closeMenuBtn.addEventListener('click', closeMenu);
 }
 if (menuOverlay) {
-  menuOverlay.addEventListener('click', (e) => {
+  menuOverlay.addEventListener('click', e => {
     if (e.target === menuOverlay) closeMenu();
   });
 }
@@ -497,38 +519,50 @@ if (menuPanelMobile) {
   let currentY = 0;
   let isDragging = false;
 
-  menuPanelMobile.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
-    currentY = startY;
-    isDragging = true;
-    menuPanelMobile.style.transition = 'none'; // Disable transition during drag
-  }, { passive: true });
+  menuPanelMobile.addEventListener(
+    'touchstart',
+    e => {
+      startY = e.touches[0].clientY;
+      currentY = startY;
+      isDragging = true;
+      menuPanelMobile.style.transition = 'none'; // Disable transition during drag
+    },
+    { passive: true }
+  );
 
-  menuPanelMobile.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
-    currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
+  menuPanelMobile.addEventListener(
+    'touchmove',
+    e => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
 
-    // Only allow dragging downward (positive deltaY)
-    if (deltaY > 0) {
-      menuPanelMobile.style.transform = `translateY(${deltaY}px)`;
-    }
-  }, { passive: true });
+      // Only allow dragging downward (positive deltaY)
+      if (deltaY > 0) {
+        menuPanelMobile.style.transform = `translateY(${deltaY}px)`;
+      }
+    },
+    { passive: true }
+  );
 
-  menuPanelMobile.addEventListener('touchend', () => {
-    if (!isDragging) return;
-    isDragging = false;
+  menuPanelMobile.addEventListener(
+    'touchend',
+    () => {
+      if (!isDragging) return;
+      isDragging = false;
 
-    const deltaY = currentY - startY;
-    menuPanelMobile.style.transition = ''; // Re-enable transition
-    menuPanelMobile.style.transform = ''; // Clear inline transform
+      const deltaY = currentY - startY;
+      menuPanelMobile.style.transition = ''; // Re-enable transition
+      menuPanelMobile.style.transform = ''; // Clear inline transform
 
-    // Close if dragged more than 100px or 30% of panel height
-    const threshold = Math.min(100, menuPanelMobile.offsetHeight * 0.3);
-    if (deltaY > threshold) {
-      closeMenu();
-    }
-  }, { passive: true });
+      // Close if dragged more than 100px or 30% of panel height
+      const threshold = Math.min(100, menuPanelMobile.offsetHeight * 0.3);
+      if (deltaY > threshold) {
+        closeMenu();
+      }
+    },
+    { passive: true }
+  );
 }
 
 // Logout (both mobile and desktop buttons)
@@ -614,14 +648,18 @@ function performSearch(queryText) {
   }
 
   let html = results.length
-    ? results.map((book, index) => bookCard(book, {
-        showDate: true,
-        genreLookup,
-        seriesLookup,
-        highlightQuery: queryText,
-        className: 'card-animate',
-        animationDelay: Math.min(index * 50, 250) // Stagger animation, max 250ms
-      })).join('')
+    ? results
+        .map((book, index) =>
+          bookCard(book, {
+            showDate: true,
+            genreLookup,
+            seriesLookup,
+            highlightQuery: queryText,
+            className: 'card-animate',
+            animationDelay: Math.min(index * 50, 250), // Stagger animation, max 250ms
+          })
+        )
+        .join('')
     : `<div class="py-8 text-center empty-state-animate">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">No books found</p>
@@ -630,7 +668,8 @@ function performSearch(queryText) {
 
   // Show loading indicator if still loading more books
   if (isLoadingBooks) {
-    html += '<p class="text-gray-400 text-center text-sm py-2"><span class="inline-block animate-spin w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full mr-1"></span>Loading more books...</p>';
+    html +=
+      '<p class="text-gray-400 text-center text-sm py-2"><span class="inline-block animate-spin w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full mr-1"></span>Loading more books...</p>';
   }
 
   searchResults.innerHTML = html;
@@ -639,12 +678,16 @@ function performSearch(queryText) {
   // Save search when user clicks a result (not on every keystroke)
   if (results.length > 0) {
     searchResults.querySelectorAll('.book-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const originalQuery = searchInput?.value?.trim();
-        if (originalQuery) {
-          saveRecentSearch(originalQuery);
-        }
-      }, { once: true });
+      card.addEventListener(
+        'click',
+        () => {
+          const originalQuery = searchInput?.value?.trim();
+          if (originalQuery) {
+            saveRecentSearch(originalQuery);
+          }
+        },
+        { once: true }
+      );
     });
   }
 }
@@ -654,7 +697,7 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
   closeSearchBtn.addEventListener('click', closeSearch);
 
   // Debounced search handler
-  const debouncedSearch = debounce((queryText) => performSearch(queryText), 150);
+  const debouncedSearch = debounce(queryText => performSearch(queryText), 150);
 
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
@@ -727,4 +770,3 @@ function closeSearch() {
     searchResultCount.textContent = '';
   }
 }
-

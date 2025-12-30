@@ -5,10 +5,24 @@ import {
   doc,
   getDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { parseTimestamp, formatDate, showToast, initIcons, clearBooksCache, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, lookupISBN, fetchWithTimeout, migrateBookReads, getBookStatus, interceptNavigation } from '../utils.js';
-import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
+import {
+  parseTimestamp,
+  formatDate,
+  showToast,
+  initIcons,
+  clearBooksCache,
+  normalizeTitle,
+  normalizeAuthor,
+  normalizePublisher,
+  normalizePublishedDate,
+  lookupISBN,
+  fetchWithTimeout,
+  migrateBookReads,
+  getBookStatus,
+  interceptNavigation,
+} from '../utils.js';
 import { GenrePicker } from '../components/genre-picker.js';
 import { RatingInput } from '../components/rating-input.js';
 import { SeriesPicker } from '../components/series-picker.js';
@@ -111,11 +125,11 @@ function initCoverPicker() {
 
   coverPicker = new CoverPicker({
     container: coverPickerContainer,
-    onSelect: (url) => {
+    onSelect: url => {
       coverUrlInput.value = url;
       updateCoverPickerHint();
       updateSaveButtonState();
-    }
+    },
   });
 }
 
@@ -155,7 +169,7 @@ async function initSeriesPicker() {
     currentBookId: bookId, // Exclude current book from position conflict check
     onChange: () => {
       updateSaveButtonState();
-    }
+    },
   });
 
   await seriesPicker.init();
@@ -176,7 +190,7 @@ async function initAuthorPicker() {
     userId: currentUser.uid,
     onChange: () => {
       updateSaveButtonState();
-    }
+    },
   });
 
   await authorPicker.init();
@@ -208,7 +222,7 @@ function initImageGallery() {
     },
     onChange: () => {
       updateSaveButtonState();
-    }
+    },
   });
 
   // Load existing images if book has any
@@ -219,7 +233,7 @@ function initImageGallery() {
 }
 
 // Auth Check
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
     loadBook();
@@ -235,7 +249,7 @@ async function initGenrePicker() {
     userId: currentUser.uid,
     onChange: () => {
       updateSaveButtonState();
-    }
+    },
   });
 
   await genrePicker.init();
@@ -271,7 +285,7 @@ async function loadBook() {
 
     if (!bookSnap.exists()) {
       showToast('Book not found', { type: 'error' });
-      setTimeout(() => window.location.href = '/books/', 1500);
+      setTimeout(() => (window.location.href = '/books/'), 1500);
       return;
     }
 
@@ -303,7 +317,7 @@ function renderForm() {
 
   // Reading dates
   const migratedBook = migrateBookReads(book);
-  currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({...r}))] : [];
+  currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({ ...r }))] : [];
   updateReadingDatesUI();
 
   // Store original values
@@ -318,7 +332,7 @@ function renderForm() {
     notes: book.notes || '',
     rating: book.rating || 0,
     genres: book.genres ? [...book.genres] : [],
-    reads: JSON.stringify(currentReads)
+    reads: JSON.stringify(currentReads),
   };
   formDirty = false;
   updateSaveButtonState();
@@ -366,7 +380,7 @@ function initRatingInput(initialValue = 0) {
     value: initialValue,
     onChange: () => {
       updateSaveButtonState();
-    }
+    },
   });
 }
 
@@ -411,11 +425,15 @@ function updateReadingDatesUI() {
 }
 
 function renderReadHistory(previousReads) {
-  const html = previousReads.slice().reverse().map(read => {
-    const started = formatDate(read.startedAt) || 'Unknown';
-    const finished = formatDate(read.finishedAt) || 'In progress';
-    return `<div class="text-gray-500">${started} - ${finished}</div>`;
-  }).join('');
+  const html = previousReads
+    .slice()
+    .reverse()
+    .map(read => {
+      const started = formatDate(read.startedAt) || 'Unknown';
+      const finished = formatDate(read.finishedAt) || 'In progress';
+      return `<div class="text-gray-500">${started} - ${finished}</div>`;
+    })
+    .join('');
   readHistoryList.innerHTML = html;
 }
 
@@ -531,7 +549,7 @@ function updateSaveButtonState() {
 }
 
 // Save Changes
-editForm.addEventListener('submit', async (e) => {
+editForm.addEventListener('submit', async e => {
   e.preventDefault();
 
   clearFormErrors(editForm);
@@ -548,7 +566,7 @@ editForm.addEventListener('submit', async (e) => {
     physicalFormat: physicalFormatInput.value.trim(),
     pageCount: pageCountInput.value,
     rating: ratingInput ? ratingInput.getValue() : null,
-    notes: notesInput.value.trim()
+    notes: notesInput.value.trim(),
   };
 
   const validation = validateForm(BookFormSchema, formData);
@@ -586,7 +604,7 @@ editForm.addEventListener('submit', async (e) => {
     genres: selectedGenres,
     images: imageGallery ? imageGallery.getImages() : [],
     reads: currentReads,
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   };
 
   try {
@@ -643,7 +661,7 @@ editForm.addEventListener('submit', async (e) => {
 if (beforeUnloadHandler) {
   window.removeEventListener('beforeunload', beforeUnloadHandler);
 }
-beforeUnloadHandler = (e) => {
+beforeUnloadHandler = e => {
   if (formDirty) {
     e.preventDefault();
     e.returnValue = '';
@@ -666,20 +684,21 @@ window.addEventListener('pagehide', () => {
 // Shows custom ConfirmSheet instead of allowing immediate navigation
 interceptNavigation({
   isDirty: () => formDirty,
-  showConfirmation: () => ConfirmSheet.show({
-    title: 'Discard Changes?',
-    message: 'You have unsaved changes. Are you sure you want to leave?',
-    confirmText: 'Discard',
-    cancelText: 'Keep Editing',
-    confirmClass: 'bg-red-600 hover:bg-red-700'
-  }),
+  showConfirmation: () =>
+    ConfirmSheet.show({
+      title: 'Discard Changes?',
+      message: 'You have unsaved changes. Are you sure you want to leave?',
+      confirmText: 'Discard',
+      cancelText: 'Keep Editing',
+      confirmClass: 'bg-red-600 hover:bg-red-700',
+    }),
   onBeforeNavigate: () => {
     // Clear dirty flag to prevent beforeunload from also triggering
     formDirty = false;
     if (imageGallery?.hasUnsavedUploads()) {
       imageGallery.cleanupUnsavedUploads();
     }
-  }
+  },
 });
 
 // Refresh Data from APIs
@@ -711,7 +730,7 @@ async function fetchBookDataFromAPI(isbn, title, author) {
           publisher: normalizePublisher(volumeInfo.publisher || ''),
           publishedDate: normalizePublishedDate(volumeInfo.publishedDate),
           physicalFormat: '',
-          pageCount: volumeInfo.pageCount || null
+          pageCount: volumeInfo.pageCount || null,
         };
       }
     } catch (e) {

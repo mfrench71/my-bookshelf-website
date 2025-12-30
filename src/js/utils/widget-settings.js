@@ -38,8 +38,8 @@ function migrateFromHomeSettings(homeSettings) {
         order: index,
         settings: {
           ...config.settings,
-          count: legacy.count || config.settings.count
-        }
+          count: legacy.count || config.settings.count,
+        },
       };
     }
     return config;
@@ -87,7 +87,7 @@ export async function loadWidgetSettings(userId) {
         const migratedWidgets = migrateFromHomeSettings(parsed);
         const newSettings = {
           version: WIDGET_SETTINGS_VERSION,
-          widgets: migratedWidgets
+          widgets: migratedWidgets,
         };
 
         // Save migrated settings to Firestore
@@ -105,7 +105,7 @@ export async function loadWidgetSettings(userId) {
     // Return defaults for new users
     return {
       version: WIDGET_SETTINGS_VERSION,
-      widgets: getDefaultWidgetConfigs()
+      widgets: getDefaultWidgetConfigs(),
     };
   } catch (error) {
     console.error('Error loading widget settings:', error);
@@ -123,7 +123,7 @@ export async function loadWidgetSettings(userId) {
     // Return defaults as last resort
     return {
       version: WIDGET_SETTINGS_VERSION,
-      widgets: getDefaultWidgetConfigs()
+      widgets: getDefaultWidgetConfigs(),
     };
   }
 }
@@ -139,7 +139,7 @@ export async function saveWidgetSettings(userId, settings) {
     const toSave = {
       ...settings,
       version: WIDGET_SETTINGS_VERSION,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     // Save to Firestore
@@ -173,8 +173,8 @@ export async function updateWidgetConfig(userId, widgetId, updates) {
     ...updates,
     settings: {
       ...settings.widgets[widgetIndex].settings,
-      ...updates.settings
-    }
+      ...updates.settings,
+    },
   };
 
   await saveWidgetSettings(userId, settings);
@@ -212,7 +212,7 @@ export async function reorderWidgets(userId, orderedIds) {
 export async function resetWidgetSettings(userId) {
   const settings = {
     version: WIDGET_SETTINGS_VERSION,
-    widgets: getDefaultWidgetConfigs()
+    widgets: getDefaultWidgetConfigs(),
   };
 
   await saveWidgetSettings(userId, settings);
@@ -225,7 +225,5 @@ export async function resetWidgetSettings(userId) {
  * @returns {Array<Object>} - Enabled widgets sorted by order
  */
 export function getEnabledWidgets(settings) {
-  return settings.widgets
-    .filter(w => w.enabled)
-    .sort((a, b) => a.order - b.order);
+  return settings.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order);
 }

@@ -8,22 +8,21 @@ import { GENRE_COLORS } from '../genres.js';
  * - color: optional for add (auto-assigned), required for edit
  */
 export const GenreSchema = z.object({
-  name: z.string()
+  name: z
+    .string()
     .min(1, 'Genre name is required')
     .max(50, 'Genre name must be 50 characters or less')
     .transform(s => s.trim())
-    .refine(
-      (name) => name.length > 0,
-      'Genre name cannot be only whitespace'
-    ),
+    .refine(name => name.length > 0, 'Genre name cannot be only whitespace'),
 
-  color: z.string()
+  color: z
+    .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid colour format')
     .refine(
-      (color) => GENRE_COLORS.map(c => c.toLowerCase()).includes(color.toLowerCase()),
+      color => GENRE_COLORS.map(c => c.toLowerCase()).includes(color.toLowerCase()),
       'Please select a colour from the palette'
     )
-    .optional()
+    .optional(),
 });
 
 /**
@@ -45,9 +44,7 @@ export const UpdateGenreSchema = GenreSchema.partial();
  */
 export function validateGenreUniqueness(name, existingGenres, excludeId = null) {
   const normalizedName = name.trim().toLowerCase();
-  const duplicate = existingGenres.find(g =>
-    g.name.toLowerCase() === normalizedName && g.id !== excludeId
-  );
+  const duplicate = existingGenres.find(g => g.name.toLowerCase() === normalizedName && g.id !== excludeId);
 
   if (duplicate) {
     return 'A genre with this name already exists';
@@ -65,9 +62,7 @@ export function validateGenreUniqueness(name, existingGenres, excludeId = null) 
  */
 export function validateColourUniqueness(color, existingGenres, excludeId = null) {
   const normalizedColor = color.toLowerCase();
-  const duplicate = existingGenres.find(g =>
-    g.color.toLowerCase() === normalizedColor && g.id !== excludeId
-  );
+  const duplicate = existingGenres.find(g => g.color.toLowerCase() === normalizedColor && g.id !== excludeId);
 
   if (duplicate) {
     return 'This colour is already in use';

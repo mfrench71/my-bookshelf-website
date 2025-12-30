@@ -4,20 +4,31 @@ title: My Books
 description: Browse and filter your book collection
 scripts: '<script type="module" src="/js/books/index.js"></script>'
 ---
+
 <!-- Mobile: Sort & Filter Controls -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30 md:hidden">
   <div class="max-w-6xl mx-auto px-4 py-3">
     <div class="flex items-center gap-2">
       <!-- Filter trigger button -->
-      <button id="filter-trigger" class="relative p-2.5 hover:bg-gray-100 rounded-lg text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Open filters">
+      <button
+        id="filter-trigger"
+        class="relative p-2.5 hover:bg-gray-100 rounded-lg text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+        aria-label="Open filters"
+      >
         <i data-lucide="sliders-horizontal" class="w-5 h-5" aria-hidden="true"></i>
-        <span id="filter-count-badge" class="hidden absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-medium">0</span>
+        <span
+          id="filter-count-badge"
+          class="hidden absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-medium"
+          >0</span
+        >
       </button>
       <!-- Sort dropdown (always visible on mobile) -->
       <div class="flex-1">
         <label for="sort-select-mobile" class="sr-only">Sort books by</label>
-        <select id="sort-select-mobile"
-          class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer">
+        <select
+          id="sort-select-mobile"
+          class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none cursor-pointer"
+        >
           <option value="createdAt-desc">Date Added (Newest)</option>
           <option value="createdAt-asc">Date Added (Oldest)</option>
           <option value="title-asc">Title (A-Z)</option>
@@ -38,8 +49,17 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 </div>
 
 <!-- Mobile: Filter Bottom Sheet -->
-<div id="filter-sheet" class="hidden fixed inset-0 bg-black/50 z-50 md:hidden" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title">
-  <div id="filter-sheet-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col translate-y-full transition-transform duration-300">
+<div
+  id="filter-sheet"
+  class="hidden fixed inset-0 bg-black/50 z-50 md:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="filter-sheet-title"
+>
+  <div
+    id="filter-sheet-content"
+    class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col translate-y-full transition-transform duration-300"
+  >
     <!-- Handle -->
     <div class="bottom-sheet-handle cursor-grab"></div>
     <!-- Header -->
@@ -50,7 +70,10 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
     <div id="filter-panel-mobile" class="flex-1 overflow-y-auto p-4"></div>
     <!-- Apply button -->
     <div class="p-4 border-t border-gray-200 flex-shrink-0">
-      <button id="apply-filters-mobile" class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors">
+      <button
+        id="apply-filters-mobile"
+        class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors"
+      >
         Apply Filters
       </button>
     </div>
@@ -77,34 +100,34 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
   <div class="flex gap-4 md:gap-6">
     <!-- Desktop: Filter Sidebar -->
     <aside class="hidden md:block w-72 flex-shrink-0">
-        <!-- Skeleton loader -->
-        <div id="filter-sidebar-skeleton" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-          <div>
-            <div class="skeleton skeleton-text w-16 h-4 mb-2"></div>
-            <div class="skeleton h-10 w-full rounded-lg"></div>
-          </div>
-          <div>
-            <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
-            <div class="skeleton h-10 w-full rounded-lg"></div>
-          </div>
-          <div>
-            <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
-            <div class="skeleton h-10 w-full rounded-lg"></div>
-          </div>
-          <div>
-            <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
-            <div class="skeleton h-10 w-full rounded-lg"></div>
-          </div>
-          <div>
-            <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
-            <div class="skeleton h-10 w-full rounded-lg"></div>
-          </div>
+      <!-- Skeleton loader -->
+      <div id="filter-sidebar-skeleton" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        <div>
+          <div class="skeleton skeleton-text w-16 h-4 mb-2"></div>
           <div class="skeleton h-10 w-full rounded-lg"></div>
         </div>
-        <!-- Actual filter panel (hidden until loaded) -->
-        <div id="filter-sidebar" class="hidden bg-white rounded-xl border border-gray-200 p-4">
-          <!-- FilterPanel renders here -->
+        <div>
+          <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
+          <div class="skeleton h-10 w-full rounded-lg"></div>
         </div>
+        <div>
+          <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
+          <div class="skeleton h-10 w-full rounded-lg"></div>
+        </div>
+        <div>
+          <div class="skeleton skeleton-text w-14 h-4 mb-2"></div>
+          <div class="skeleton h-10 w-full rounded-lg"></div>
+        </div>
+        <div>
+          <div class="skeleton skeleton-text w-12 h-4 mb-2"></div>
+          <div class="skeleton h-10 w-full rounded-lg"></div>
+        </div>
+        <div class="skeleton h-10 w-full rounded-lg"></div>
+      </div>
+      <!-- Actual filter panel (hidden until loaded) -->
+      <div id="filter-sidebar" class="hidden bg-white rounded-xl border border-gray-200 p-4">
+        <!-- FilterPanel renders here -->
+      </div>
     </aside>
 
     <!-- Book Grid -->
@@ -143,7 +166,10 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
       <div id="no-results-state" class="hidden py-12 text-center empty-state-animate">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
         <p id="no-results-title" class="text-gray-500 mt-3">No books match your filters</p>
-        <p class="text-gray-400 text-sm mt-1">Try adjusting your filters or <button id="clear-filters-link" class="text-gray-500 hover:text-gray-700">clear all filters</button></p>
+        <p class="text-gray-400 text-sm mt-1">
+          Try adjusting your filters or
+          <button id="clear-filters-link" class="text-gray-500 hover:text-gray-700">clear all filters</button>
+        </p>
       </div>
 
       <!-- Book List -->
@@ -153,11 +179,16 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 </div>
 
 <!-- FAB - Add Book -->
-<a href="/books/add/"
+<a
+  href="/books/add/"
   class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press"
-  aria-label="Add new book">
+  aria-label="Add new book"
+>
   <i data-lucide="plus" class="w-6 h-6" aria-hidden="true"></i>
 </a>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

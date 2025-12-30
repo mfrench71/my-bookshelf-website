@@ -8,13 +8,27 @@ import {
   limit,
   startAfter,
   getDocs,
-  getDocsFromServer
+  getDocsFromServer,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, CACHE_KEY, CACHE_TTL, serializeTimestamp, clearBooksCache, throttle, getBookStatus, setupVisibilityRefresh, setLastRefreshTime, lockBodyScroll, unlockBodyScroll, escapeHtml, escapeAttr } from '../utils.js';
+import {
+  showToast,
+  initIcons,
+  CACHE_KEY,
+  CACHE_TTL,
+  serializeTimestamp,
+  clearBooksCache,
+  throttle,
+  getBookStatus,
+  setupVisibilityRefresh,
+  setLastRefreshTime,
+  lockBodyScroll,
+  unlockBodyScroll,
+  escapeHtml,
+  escapeAttr,
+} from '../utils.js';
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
-import { normalizeSeriesName } from '../utils/series-parser.js';
 import { filterActivebooks } from '../bin.js';
 import { FilterPanel } from '../components/filter-panel.js';
 
@@ -163,9 +177,7 @@ function buildFilterParams() {
  */
 function updateUrlWithFilters() {
   const params = buildFilterParams();
-  const newUrl = params.toString()
-    ? `${window.location.pathname}?${params}`
-    : window.location.pathname;
+  const newUrl = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
 
   window.history.replaceState({}, '', newUrl);
 }
@@ -174,7 +186,7 @@ function updateUrlWithFilters() {
 applyUrlFilters();
 
 // Auth State
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     // Load genres, series, and books in parallel for faster initial load
@@ -240,9 +252,10 @@ async function loadSeries() {
     // If seriesFilters has entries that are not valid series IDs, try to match by name
     seriesFilters = seriesFilters.map(filterVal => {
       if (!seriesLookup.has(filterVal)) {
-        const matchedSeries = series.find(s =>
-          s.name.toLowerCase() === filterVal.toLowerCase() ||
-          s.normalizedName === filterVal.toLowerCase().replace(/[^a-z0-9]/g, '')
+        const matchedSeries = series.find(
+          s =>
+            s.name.toLowerCase() === filterVal.toLowerCase() ||
+            s.normalizedName === filterVal.toLowerCase().replace(/[^a-z0-9]/g, '')
         );
         return matchedSeries ? matchedSeries.id : filterVal;
       }
@@ -293,7 +306,7 @@ function setCachedBooks(booksData, hasMore) {
       books: booksData,
       timestamp: Date.now(),
       sort: currentSort,
-      hasMore: hasMore
+      hasMore: hasMore,
     };
     localStorage.setItem(`${CACHE_KEY}_${currentUser.uid}`, JSON.stringify(cacheData));
   } catch (e) {
@@ -320,7 +333,7 @@ function serializeBook(doc) {
     id: doc.id,
     ...data,
     createdAt: serializeTimestamp(data.createdAt),
-    updatedAt: serializeTimestamp(data.updatedAt)
+    updatedAt: serializeTimestamp(data.updatedAt),
   };
 }
 
@@ -402,9 +415,10 @@ async function loadBooks(forceRefresh = false) {
       showToast('Using cached books (connection error)', { type: 'info' });
     } else {
       // User-friendly error message instead of raw error
-      const userMessage = error.code === 'permission-denied'
-        ? 'Permission denied. Please log in again.'
-        : 'Unable to load books. Please check your connection.';
+      const userMessage =
+        error.code === 'permission-denied'
+          ? 'Permission denied. Please log in again.'
+          : 'Unable to load books. Please check your connection.';
       showToast(userMessage, { type: 'error' });
       console.error('Error loading books:', error);
     }
@@ -480,11 +494,14 @@ let scrollObserver = null;
 function setupScrollObserver() {
   if (scrollObserver) scrollObserver.disconnect();
 
-  scrollObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !isLoading) {
-      loadMore();
-    }
-  }, { rootMargin: '100px' });
+  scrollObserver = new IntersectionObserver(
+    entries => {
+      if (entries[0].isIntersecting && !isLoading) {
+        loadMore();
+      }
+    },
+    { rootMargin: '100px' }
+  );
 }
 
 setupScrollObserver();
@@ -614,9 +631,7 @@ function filterByRating(booksArray, ratingValue) {
  */
 function filterByGenres(booksArray, genreIds) {
   if (!genreIds || genreIds.length === 0) return booksArray;
-  return booksArray.filter(b =>
-    b.genres && b.genres.some(gId => genreIds.includes(gId))
-  );
+  return booksArray.filter(b => b.genres && b.genres.some(gId => genreIds.includes(gId)));
 }
 
 /**
@@ -658,14 +673,8 @@ function filterByAuthor(booksArray, author) {
  * @returns {Array<string>} Sorted array of unique author names
  */
 function getUniqueAuthors() {
-  const authorSet = new Set(
-    books
-      .filter(b => !b.deletedAt && b.author?.trim())
-      .map(b => b.author.trim())
-  );
-  return Array.from(authorSet).sort((a, b) =>
-    a.toLowerCase().localeCompare(b.toLowerCase())
-  );
+  const authorSet = new Set(books.filter(b => !b.deletedAt && b.author?.trim()).map(b => b.author.trim()));
+  return Array.from(authorSet).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 }
 
 /**
@@ -803,7 +812,7 @@ function calculateFilterCounts(filterOverrides = null) {
     genres: genresCounts,
     status: statusCounts,
     series: seriesCounts,
-    authors: authorCounts
+    authors: authorCounts,
   };
 }
 
@@ -926,18 +935,19 @@ function loadMore() {
     if (oldSentinel) oldSentinel.remove();
 
     // Append new book cards
-    const newCardsHtml = newBooks.map(book =>
-      bookCard(book, { showDate: true, genreLookup, seriesLookup })
-    ).join('');
+    const newCardsHtml = newBooks.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
     bookList.insertAdjacentHTML('beforeend', newCardsHtml);
 
     // Add new scroll sentinel if more to load
     if (hasMoreToDisplay) {
-      bookList.insertAdjacentHTML('beforeend', `
+      bookList.insertAdjacentHTML(
+        'beforeend',
+        `
         <div id="scroll-sentinel" class="py-6 flex justify-center">
           <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
         </div>
-      `);
+      `
+      );
       const sentinel = document.getElementById('scroll-sentinel');
       if (sentinel) scrollObserver.observe(sentinel);
     }
@@ -955,11 +965,7 @@ async function refreshBooks() {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
   // Reload genres, series, and books
-  await Promise.all([
-    loadGenres(),
-    loadSeries(),
-    loadBooks(true)
-  ]);
+  await Promise.all([loadGenres(), loadSeries(), loadBooks(true)]);
   showToast('Books refreshed', { type: 'success' });
 }
 
@@ -971,11 +977,7 @@ async function refreshBooks() {
 async function silentRefreshBooks() {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
-  await Promise.all([
-    loadGenres(),
-    loadSeries(),
-    loadBooks(true)
-  ]);
+  await Promise.all([loadGenres(), loadSeries(), loadBooks(true)]);
   showToast('Library synced', { type: 'info' });
 }
 
@@ -993,7 +995,7 @@ function initializeFilterPanels() {
     genres: genreFilters,
     statuses: statusFilters,
     seriesIds: seriesFilters,
-    author: authorFilter
+    author: authorFilter,
   };
 
   // Desktop sidebar panel
@@ -1005,7 +1007,7 @@ function initializeFilterPanels() {
       authors: getUniqueAuthors(),
       showSort: true,
       initialFilters,
-      onChange: handleSidebarFilterChange
+      onChange: handleSidebarFilterChange,
     });
 
     // Hide skeleton, show actual filters
@@ -1026,10 +1028,10 @@ function initializeFilterPanels() {
       showSort: false,
       initialFilters,
       // Update counts live as user interacts, but don't apply filters until Apply button
-      onChange: (filters) => {
+      onChange: filters => {
         const counts = calculateFilterCounts(filters);
         mobilePanel.setBookCounts(counts);
-      }
+      },
     });
   }
 
@@ -1047,16 +1049,17 @@ function initializeFilterPanels() {
 async function handleSidebarFilterChange(filters) {
   const sortChanged = filters.sort !== currentSort;
   const wasSeriesFiltered = seriesFilters.length > 0;
-  const isSeriesFiltered = filters.seriesIds.length > 0;
+  const _isSeriesFiltered = filters.seriesIds.length > 0;
   const hasSingleSeries = filters.seriesIds.length === 1;
 
   // Detect if this is a reset (all filters at default values)
-  const isReset = filters.sort === 'createdAt-desc' &&
-                  filters.rating === 0 &&
-                  filters.genres.length === 0 &&
-                  filters.statuses.length === 0 &&
-                  filters.seriesIds.length === 0 &&
-                  !filters.author;
+  const _isReset =
+    filters.sort === 'createdAt-desc' &&
+    filters.rating === 0 &&
+    filters.genres.length === 0 &&
+    filters.statuses.length === 0 &&
+    filters.seriesIds.length === 0 &&
+    !filters.author;
 
   // Update global filter state (arrays for multi-select)
   currentSort = filters.sort;
@@ -1109,15 +1112,16 @@ async function applyMobileFilters(keepSheetOpen = false) {
 
   const filters = mobilePanel.getFilters();
   const wasSeriesFiltered = seriesFilters.length > 0;
-  const isSeriesFiltered = filters.seriesIds.length > 0;
+  const _isSeriesFiltered = filters.seriesIds.length > 0;
   const hasSingleSeries = filters.seriesIds.length === 1;
 
   // Detect if this is a reset (all filters at default values)
-  const isReset = filters.rating === 0 &&
-                  filters.genres.length === 0 &&
-                  filters.statuses.length === 0 &&
-                  filters.seriesIds.length === 0 &&
-                  !filters.author;
+  const _isReset =
+    filters.rating === 0 &&
+    filters.genres.length === 0 &&
+    filters.statuses.length === 0 &&
+    filters.seriesIds.length === 0 &&
+    !filters.author;
 
   // Update global filter state (sort comes from mobile header, not panel)
   ratingFilter = filters.rating;
@@ -1144,7 +1148,7 @@ async function applyMobileFilters(keepSheetOpen = false) {
       genres: genreFilters,
       statuses: statusFilters,
       seriesIds: seriesFilters,
-      author: authorFilter
+      author: authorFilter,
     });
   }
 
@@ -1200,11 +1204,13 @@ if (sortSelectMobile) {
  * @returns {boolean} True if any filter is active
  */
 function hasActiveFilters() {
-  return (ratingFilter !== 0 && ratingFilter !== '') ||
-         genreFilters.length > 0 ||
-         statusFilters.length > 0 ||
-         seriesFilters.length > 0 ||
-         authorFilter !== '';
+  return (
+    (ratingFilter !== 0 && ratingFilter !== '') ||
+    genreFilters.length > 0 ||
+    statusFilters.length > 0 ||
+    seriesFilters.length > 0 ||
+    authorFilter !== ''
+  );
 }
 
 /**
@@ -1215,11 +1221,12 @@ function updateFilterCountBadge() {
   if (!filterCountBadge) return;
 
   // Count individual selections (not filter types)
-  const count = (ratingFilter !== 0 ? 1 : 0) +
-                genreFilters.length +
-                statusFilters.length +
-                seriesFilters.length +
-                (authorFilter !== '' ? 1 : 0);
+  const count =
+    (ratingFilter !== 0 ? 1 : 0) +
+    genreFilters.length +
+    statusFilters.length +
+    seriesFilters.length +
+    (authorFilter !== '' ? 1 : 0);
 
   const countChanged = lastFilterCount !== null && lastFilterCount !== count;
 
@@ -1259,7 +1266,7 @@ function renderActiveFilterChips() {
   }
 
   // Statuses (multi-select)
-  const statusLabels = { 'reading': 'Reading', 'finished': 'Finished' };
+  const statusLabels = { reading: 'Reading', finished: 'Finished' };
   for (const status of statusFilters) {
     chips.push({ type: 'status', value: status, label: statusLabels[status] || status });
   }
@@ -1297,20 +1304,22 @@ function renderActiveFilterChips() {
       genre: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
       status: 'bg-green-100 text-green-800 hover:bg-green-200',
       series: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
-      author: 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+      author: 'bg-rose-100 text-rose-800 hover:bg-rose-200',
     };
 
     // Render chips with value attribute for targeted removal
-    let html = chips.map((chip, index) => {
-      const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-      const delay = index * 50; // Stagger animation delay
-      return `
+    let html = chips
+      .map((chip, index) => {
+        const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        const delay = index * 50; // Stagger animation delay
+        return `
         <button data-filter-type="${escapeAttr(chip.type)}" data-filter-value="${escapeAttr(chip.value)}" class="chip-enter inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" style="animation-delay: ${delay}ms" aria-label="Remove ${escapeAttr(chip.label)} filter">
           <span>${escapeHtml(chip.label)}</span>
           <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>
       `;
-    }).join('');
+      })
+      .join('');
 
     // Add "Clear all" if more than one filter
     if (chips.length > 1) {
@@ -1381,7 +1390,7 @@ async function clearFilter(filterType, filterValue = null) {
       genres: genreFilters,
       statuses: statusFilters,
       seriesIds: seriesFilters,
-      author: authorFilter
+      author: authorFilter,
     });
   }
   if (mobilePanel) {
@@ -1390,7 +1399,7 @@ async function clearFilter(filterType, filterValue = null) {
       genres: genreFilters,
       statuses: statusFilters,
       seriesIds: seriesFilters,
-      author: authorFilter
+      author: authorFilter,
     });
   }
 
@@ -1405,7 +1414,7 @@ async function clearFilter(filterType, filterValue = null) {
 // Event delegation for filter chip clicks
 [activeFiltersMobile, activeFiltersDesktop].forEach(container => {
   if (!container) return;
-  container.addEventListener('click', (e) => {
+  container.addEventListener('click', e => {
     const button = e.target.closest('button[data-filter-type]');
     if (button) {
       clearFilter(button.dataset.filterType, button.dataset.filterValue);
@@ -1422,7 +1431,7 @@ function getActiveFilterDescription() {
   const parts = [];
 
   // Statuses (multi-select)
-  const statusLabels = { 'reading': 'Reading', 'finished': 'Finished' };
+  const statusLabels = { reading: 'Reading', finished: 'Finished' };
   for (const status of statusFilters) {
     parts.push(statusLabels[status] || status);
   }
@@ -1525,7 +1534,7 @@ function openFilterSheet() {
       genres: genreFilters,
       statuses: statusFilters,
       seriesIds: seriesFilters,
-      author: authorFilter
+      author: authorFilter,
     });
   }
 
@@ -1571,7 +1580,7 @@ if (applyFiltersMobileBtn) {
 // Reset button in mobile bottom sheet - apply but keep sheet open
 const mobileFilterPanel = document.getElementById('filter-panel-mobile');
 if (mobileFilterPanel) {
-  mobileFilterPanel.addEventListener('click', (e) => {
+  mobileFilterPanel.addEventListener('click', e => {
     if (e.target.closest('.filter-reset')) {
       // Panel already reset via its own handler, now apply to update counts
       applyMobileFilters(true); // keepSheetOpen = true
@@ -1581,7 +1590,7 @@ if (mobileFilterPanel) {
 
 // Close on backdrop click - apply filters before closing
 if (filterSheet) {
-  filterSheet.addEventListener('click', (e) => {
+  filterSheet.addEventListener('click', e => {
     if (e.target === filterSheet) {
       applyMobileFilters();
     }
@@ -1596,51 +1605,63 @@ let isDragging = false;
 if (filterSheetContent) {
   const filterPanelMobile = document.getElementById('filter-panel-mobile');
 
-  filterSheetContent.addEventListener('touchstart', (e) => {
-    // Get the handle element
-    const handle = filterSheetContent.querySelector('.bottom-sheet-handle');
-    const isHandle = handle && handle.contains(e.target);
-    const isScrolledToTop = !filterPanelMobile || filterPanelMobile.scrollTop === 0;
+  filterSheetContent.addEventListener(
+    'touchstart',
+    e => {
+      // Get the handle element
+      const handle = filterSheetContent.querySelector('.bottom-sheet-handle');
+      const isHandle = handle && handle.contains(e.target);
+      const isScrolledToTop = !filterPanelMobile || filterPanelMobile.scrollTop === 0;
 
-    // Only start drag from handle or if content is scrolled to top
-    if (isHandle || (filterPanelMobile?.contains(e.target) && isScrolledToTop)) {
-      isDragging = true;
-      sheetStartY = e.touches[0].clientY;
-      filterSheetContent.style.transition = 'none';
-    }
-  }, { passive: true });
+      // Only start drag from handle or if content is scrolled to top
+      if (isHandle || (filterPanelMobile?.contains(e.target) && isScrolledToTop)) {
+        isDragging = true;
+        sheetStartY = e.touches[0].clientY;
+        filterSheetContent.style.transition = 'none';
+      }
+    },
+    { passive: true }
+  );
 
-  filterSheetContent.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
+  filterSheetContent.addEventListener(
+    'touchmove',
+    e => {
+      if (!isDragging) return;
 
-    sheetCurrentY = e.touches[0].clientY;
-    const deltaY = sheetCurrentY - sheetStartY;
+      sheetCurrentY = e.touches[0].clientY;
+      const deltaY = sheetCurrentY - sheetStartY;
 
-    // Only allow dragging down
-    if (deltaY > 0) {
-      filterSheetContent.style.transform = `translateY(${deltaY}px)`;
-    }
-  }, { passive: true });
+      // Only allow dragging down
+      if (deltaY > 0) {
+        filterSheetContent.style.transform = `translateY(${deltaY}px)`;
+      }
+    },
+    { passive: true }
+  );
 
-  filterSheetContent.addEventListener('touchend', () => {
-    if (!isDragging) return;
+  filterSheetContent.addEventListener(
+    'touchend',
+    () => {
+      if (!isDragging) return;
 
-    isDragging = false;
-    filterSheetContent.style.transition = '';
+      isDragging = false;
+      filterSheetContent.style.transition = '';
 
-    const deltaY = sheetCurrentY - sheetStartY;
+      const deltaY = sheetCurrentY - sheetStartY;
 
-    // If dragged more than 100px down, apply filters and close
-    if (deltaY > 100) {
-      applyMobileFilters();
-    } else {
-      // Snap back
-      filterSheetContent.style.transform = '';
-    }
+      // If dragged more than 100px down, apply filters and close
+      if (deltaY > 100) {
+        applyMobileFilters();
+      } else {
+        // Snap back
+        filterSheetContent.style.transform = '';
+      }
 
-    sheetStartY = 0;
-    sheetCurrentY = 0;
-  }, { passive: true });
+      sheetStartY = 0;
+      sheetCurrentY = 0;
+    },
+    { passive: true }
+  );
 }
 
 // ==================== Pull to Refresh ====================
@@ -1654,7 +1675,7 @@ const mainContent = document.getElementById('main-content');
 let pullStartY = 0;
 let pullCurrentY = 0;
 let isPulling = false;
-let pullThreshold = 80; // Pixels to pull before triggering refresh
+const pullThreshold = 80; // Pixels to pull before triggering refresh
 let touchListenersAttached = false;
 
 // Only enable on touch devices (with guard to prevent duplicates)
@@ -1677,7 +1698,7 @@ function handleTouchStart(e) {
 }
 
 // Throttled UI update for pull-to-refresh (16ms = 60fps)
-const updatePullUI = throttle((pullDistance) => {
+const updatePullUI = throttle(pullDistance => {
   // Calculate display height (with resistance)
   const displayHeight = Math.min(pullDistance * 0.5, pullThreshold + 20);
 

@@ -3,7 +3,13 @@
  * Books in bin are automatically purged after 30 days
  */
 
-import { doc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {
+  doc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  writeBatch,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db } from '/js/firebase-config.js';
 import { updateGenreBookCounts, loadUserGenres, clearGenresCache } from './genres.js';
 import { loadUserSeries, clearSeriesCache, getSeriesById, restoreSeries } from './series.js';
@@ -25,7 +31,7 @@ export async function softDeleteBook(userId, bookId, book) {
 
   await updateDoc(bookRef, {
     deletedAt: Date.now(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
 
   // Decrement genre book counts
@@ -59,7 +65,7 @@ export async function restoreBook(userId, bookId, book) {
   const bookRef = doc(db, 'users', userId, 'books', bookId);
   const updateData = {
     deletedAt: null,
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   };
 
   // Check if series still exists (including soft-deleted)
@@ -100,7 +106,9 @@ export async function restoreBook(userId, bookId, book) {
       // Update book with only valid genres
       updateData.genres = validGenres;
       const removedCount = originalCount - validGenres.length;
-      warnings.push(`${removedCount} genre${removedCount > 1 ? 's' : ''} no longer exist${removedCount === 1 ? 's' : ''}`);
+      warnings.push(
+        `${removedCount} genre${removedCount > 1 ? 's' : ''} no longer exist${removedCount === 1 ? 's' : ''}`
+      );
     }
   }
 
@@ -184,9 +192,7 @@ export async function purgeExpiredBooks(userId, binnedBooks) {
   const now = Date.now();
   const retentionMs = BIN_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
-  const expired = binnedBooks.filter(book =>
-    book.deletedAt && (now - book.deletedAt) > retentionMs
-  );
+  const expired = binnedBooks.filter(book => book.deletedAt && now - book.deletedAt > retentionMs);
 
   if (expired.length === 0) return 0;
 
@@ -262,6 +268,6 @@ async function updateSeriesBookCount(userId, seriesId, delta) {
 
   await updateDoc(seriesRef, {
     bookCount: newCount,
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
 }

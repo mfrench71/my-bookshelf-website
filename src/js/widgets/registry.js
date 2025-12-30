@@ -61,7 +61,7 @@ class WidgetRegistry {
       enabled: true,
       order: index,
       size: Widget.defaultSize,
-      settings: { ...Widget.defaultSettings }
+      settings: { ...Widget.defaultSettings },
     }));
   }
 }

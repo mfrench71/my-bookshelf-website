@@ -41,7 +41,7 @@ export function formatDate(timestamp) {
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 }
 
@@ -61,10 +61,7 @@ export function normalizeText(text) {
  * Lowercase, trim, collapse multiple spaces
  */
 export function normalizeGenreName(name) {
-  return (name || '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
+  return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 /**
@@ -97,7 +94,26 @@ function needsTitleCase(str) {
 
   // Check if any significant word starts with lowercase
   // (words that should be capitalized but aren't)
-  const lowercaseWords = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'];
+  const lowercaseWords = [
+    'a',
+    'an',
+    'and',
+    'as',
+    'at',
+    'but',
+    'by',
+    'for',
+    'in',
+    'nor',
+    'of',
+    'on',
+    'or',
+    'so',
+    'the',
+    'to',
+    'up',
+    'yet',
+  ];
   const words = str.split(' ');
 
   for (let i = 0; i < words.length; i++) {
@@ -125,14 +141,37 @@ function needsTitleCase(str) {
  * Keeps small words lowercase unless they're the first word
  */
 function toTitleCase(str) {
-  const lowercaseWords = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'];
+  const lowercaseWords = [
+    'a',
+    'an',
+    'and',
+    'as',
+    'at',
+    'but',
+    'by',
+    'for',
+    'in',
+    'nor',
+    'of',
+    'on',
+    'or',
+    'so',
+    'the',
+    'to',
+    'up',
+    'yet',
+  ];
 
-  return str.toLowerCase().split(' ').map((word, index) => {
-    if (index === 0 || !lowercaseWords.includes(word)) {
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    }
-    return word;
-  }).join(' ');
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word, index) => {
+      if (index === 0 || !lowercaseWords.includes(word)) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+      return word;
+    })
+    .join(' ');
 }
 
 /**
@@ -210,10 +249,10 @@ export function normalizePublishedDate(date) {
  * Render star rating as SVG HTML
  */
 export function renderStars(rating) {
-  const filledStar = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-  const emptyStar = '<svg class="empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  const filledStar =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  const emptyStar =
+    '<svg class="empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
-  return Array.from({ length: 5 }, (_, i) =>
-    i < rating ? filledStar : emptyStar
-  ).join('');
+  return Array.from({ length: 5 }, (_, i) => (i < rating ? filledStar : emptyStar)).join('');
 }

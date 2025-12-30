@@ -25,11 +25,11 @@ export class SeriesPicker {
     this.onChange = onChange;
 
     // State
-    this.series = [];           // All available series
-    this.selectedId = null;     // Selected series ID
-    this.selectedName = '';     // Selected series name (for display)
-    this.position = null;       // Position in series
-    this.suggestedName = '';    // API-suggested series name
+    this.series = []; // All available series
+    this.selectedId = null; // Selected series ID
+    this.selectedName = ''; // Selected series name (for display)
+    this.position = null; // Position in series
+    this.suggestedName = ''; // API-suggested series name
     this.suggestedPosition = null; // API-suggested position
     this.searchQuery = '';
     this.isOpen = false;
@@ -103,7 +103,7 @@ export class SeriesPicker {
     return {
       seriesId: this.selectedId,
       seriesName: this.selectedName,
-      position: this.position
+      position: this.position,
     };
   }
 
@@ -249,7 +249,9 @@ export class SeriesPicker {
           aria-haspopup="listbox"
         >
 
-        ${this.isOpen ? `
+        ${
+          this.isOpen
+            ? `
           <div class="series-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
             <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
               <span class="text-xs text-gray-500">Select series</span>
@@ -261,7 +263,9 @@ export class SeriesPicker {
             </div>
             ${this._renderDropdownContent(filteredSeries, showSuggestion, showCreateOption)}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
 
       ${this.suggestedName && !this.selectedId && !this.isOpen ? this._renderSuggestionHint() : ''}
@@ -415,7 +419,7 @@ export class SeriesPicker {
   _attachEventListeners() {
     const input = this.container.querySelector('.series-picker-input');
     if (input) {
-      input.addEventListener('input', (e) => {
+      input.addEventListener('input', e => {
         this.searchQuery = e.target.value;
         this.isOpen = true;
         this.focusedIndex = -1;
@@ -436,7 +440,7 @@ export class SeriesPicker {
     // Clear button
     const clearBtn = this.container.querySelector('.series-picker-clear');
     if (clearBtn) {
-      clearBtn.addEventListener('click', (e) => {
+      clearBtn.addEventListener('click', e => {
         e.preventDefault();
         this.clear();
       });
@@ -445,7 +449,7 @@ export class SeriesPicker {
     // Position input
     const positionInput = this.container.querySelector('.series-position-input');
     if (positionInput) {
-      positionInput.addEventListener('input', (e) => {
+      positionInput.addEventListener('input', e => {
         const val = e.target.value;
         this.position = val ? parseInt(val, 10) : null;
 
@@ -458,7 +462,7 @@ export class SeriesPicker {
 
     // Series selection
     this.container.querySelectorAll('[data-series-id]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.preventDefault();
         const seriesId = btn.dataset.seriesId;
         this._selectSeries(seriesId);
@@ -468,7 +472,7 @@ export class SeriesPicker {
     // Suggestion selection
     const suggestionBtn = this.container.querySelector('[data-suggestion]');
     if (suggestionBtn) {
-      suggestionBtn.addEventListener('click', async (e) => {
+      suggestionBtn.addEventListener('click', async e => {
         e.preventDefault();
         await this._addSuggestion();
       });
@@ -477,7 +481,7 @@ export class SeriesPicker {
     // Use suggestion hint
     const useSuggestionBtn = this.container.querySelector('.series-picker-use-suggestion');
     if (useSuggestionBtn) {
-      useSuggestionBtn.addEventListener('click', async (e) => {
+      useSuggestionBtn.addEventListener('click', async e => {
         e.preventDefault();
         await this._addSuggestion();
       });
@@ -485,7 +489,7 @@ export class SeriesPicker {
 
     // Create new series
     this.container.querySelectorAll('[data-create]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', async e => {
         e.preventDefault();
         const name = btn.dataset.create;
         await this._createAndSelect(name);
@@ -495,7 +499,7 @@ export class SeriesPicker {
     // Close button
     const closeBtn = this.container.querySelector('.series-picker-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+      closeBtn.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         this.isOpen = false;
@@ -676,11 +680,7 @@ export class SeriesPicker {
     try {
       // Query books in this series with the same position
       const booksRef = collection(db, 'users', this.userId, 'books');
-      const q = query(
-        booksRef,
-        where('seriesId', '==', this.selectedId),
-        where('seriesPosition', '==', this.position)
-      );
+      const q = query(booksRef, where('seriesId', '==', this.selectedId), where('seriesPosition', '==', this.position));
       const snapshot = await getDocs(q);
 
       // Find conflicting book (excluding current book and deleted books)

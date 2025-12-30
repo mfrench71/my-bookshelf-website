@@ -15,7 +15,7 @@ export const ImageSchema = z.object({
   uploadedAt: z.number().positive('Invalid upload timestamp'),
   sizeBytes: z.number().positive().optional(),
   width: z.number().positive().optional(),
-  height: z.number().positive().optional()
+  height: z.number().positive().optional(),
 });
 
 /**
@@ -26,25 +26,27 @@ export const ImagesArraySchema = z.array(ImageSchema).max(10, 'Maximum 10 images
 /**
  * Schema for creating a new image (from upload result)
  */
-export const CreateImageSchema = z.object({
-  id: z.string().min(1),
-  url: z.string().url(),
-  storagePath: z.string().min(1),
-  isPrimary: z.boolean().default(false),
-  caption: z.string().max(200).optional(),
-  sizeBytes: z.number().positive().optional(),
-  width: z.number().positive().optional(),
-  height: z.number().positive().optional()
-}).transform((data) => ({
-  ...data,
-  uploadedAt: Date.now()
-}));
+export const CreateImageSchema = z
+  .object({
+    id: z.string().min(1),
+    url: z.string().url(),
+    storagePath: z.string().min(1),
+    isPrimary: z.boolean().default(false),
+    caption: z.string().max(200).optional(),
+    sizeBytes: z.number().positive().optional(),
+    width: z.number().positive().optional(),
+    height: z.number().positive().optional(),
+  })
+  .transform(data => ({
+    ...data,
+    uploadedAt: Date.now(),
+  }));
 
 /**
  * Schema for updating image caption
  */
 export const UpdateImageCaptionSchema = z.object({
-  caption: z.string().max(200, 'Caption must be 200 characters or less').optional()
+  caption: z.string().max(200, 'Caption must be 200 characters or less').optional(),
 });
 
 /**
@@ -75,7 +77,7 @@ export function validatePrimaryImage(images) {
 export function setPrimaryImage(images, imageId) {
   return images.map(img => ({
     ...img,
-    isPrimary: img.id === imageId
+    isPrimary: img.id === imageId,
   }));
 }
 

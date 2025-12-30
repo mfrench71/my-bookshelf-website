@@ -1,7 +1,7 @@
 // Image Gallery Component
 // Upload, display, reorder, and manage book images
 
-import { escapeHtml, escapeAttr, showToast, initIcons } from '../utils.js';
+import { escapeAttr, showToast, initIcons } from '../utils.js';
 import { uploadImage, deleteImage, validateImage } from '../utils/image-upload.js';
 import { setPrimaryImage, getPrimaryImage } from '../schemas/image.js';
 import { ConfirmModal } from './modal.js';
@@ -126,15 +126,10 @@ export class ImageGallery {
     this.render();
 
     try {
-      const result = await uploadImage(
-        file,
-        this.userId,
-        this.bookId,
-        (progress) => {
-          this.uploading.set(tempId, progress);
-          this.render();
-        }
-      );
+      const result = await uploadImage(file, this.userId, this.bookId, progress => {
+        this.uploading.set(tempId, progress);
+        this.render();
+      });
 
       // Create image object
       const newImage = {
@@ -145,7 +140,7 @@ export class ImageGallery {
         uploadedAt: Date.now(),
         sizeBytes: result.sizeBytes,
         width: result.width,
-        height: result.height
+        height: result.height,
       };
 
       this.images.push(newImage);
@@ -181,7 +176,7 @@ export class ImageGallery {
         ? 'This is your cover image. Delete it anyway?'
         : 'Are you sure you want to delete this image?',
       confirmText: 'Delete',
-      confirmClass: 'bg-red-600 hover:bg-red-700 text-white'
+      confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
     });
 
     if (!confirmed) return;
@@ -289,15 +284,21 @@ export class ImageGallery {
 
         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           ${this.images.map((img, index) => this.renderImageTile(img, index)).join('')}
-          ${Array.from(this.uploading.entries()).map(([id, progress]) => this.renderUploadingTile(id, progress)).join('')}
+          ${Array.from(this.uploading.entries())
+            .map(([id, progress]) => this.renderUploadingTile(id, progress))
+            .join('')}
           ${canAdd ? this.renderEmptySlot() : ''}
         </div>
 
-        ${this.images.length > 0 ? `
+        ${
+          this.images.length > 0
+            ? `
           <p class="text-xs text-gray-500">
             ${this.images.length > 1 ? 'Drag to reorder. ' : ''}Tap to set as cover image.
           </p>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
 
@@ -333,11 +334,15 @@ export class ImageGallery {
              onerror="this.style.display='none'; this.previousElementSibling.innerHTML='<i data-lucide=\\'image-off\\' class=\\'w-8 h-8 text-gray-400\\'></i>'; lucide.createIcons();">
 
         <!-- Primary badge -->
-        ${isPrimary ? `
+        ${
+          isPrimary
+            ? `
           <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium z-10">
             Cover
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Delete button (always visible, overlapping top-right corner) -->
         <button type="button"
@@ -349,14 +354,18 @@ export class ImageGallery {
         </button>
 
         <!-- Set as cover overlay (visible on hover, only if not primary) -->
-        ${!isPrimary ? `
+        ${
+          !isPrimary
+            ? `
           <button type="button"
                   class="set-primary-btn absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 cursor-pointer"
                   data-image-id="${escapeAttr(img.id)}"
                   aria-label="Set as cover">
             <span class="text-white text-xs font-medium text-center px-2">Set as cover</span>
           </button>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
@@ -402,7 +411,7 @@ export class ImageGallery {
     // File input listeners
     const fileInputs = this.container.querySelectorAll('input[type="file"]');
     fileInputs.forEach(input => {
-      input.addEventListener('change', (e) => {
+      input.addEventListener('change', e => {
         if (e.target.files && e.target.files.length > 0) {
           this.handleFileSelect(e.target.files);
           e.target.value = ''; // Reset for same file selection
@@ -412,7 +421,7 @@ export class ImageGallery {
 
     // Delete buttons
     this.container.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.stopPropagation();
         const imageId = btn.dataset.imageId;
         this.handleDelete(imageId);
@@ -421,7 +430,7 @@ export class ImageGallery {
 
     // Set primary buttons
     this.container.querySelectorAll('.set-primary-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.stopPropagation();
         const imageId = btn.dataset.imageId;
         this.handleSetPrimary(imageId);
@@ -442,57 +451,65 @@ export class ImageGallery {
         this.handleDragEnd();
       });
 
-      tile.addEventListener('dragover', (e) => {
+      tile.addEventListener('dragover', e => {
         e.preventDefault();
         const index = parseInt(tile.dataset.index, 10);
         this.handleDragOver(index, e);
       });
 
       // Touch events for mobile drag and drop
-      tile.addEventListener('touchstart', (e) => {
-        // Only handle if more than one image (reordering makes sense)
-        if (this.images.length <= 1) return;
+      tile.addEventListener(
+        'touchstart',
+        e => {
+          // Only handle if more than one image (reordering makes sense)
+          if (this.images.length <= 1) return;
 
-        const index = parseInt(tile.dataset.index, 10);
-        this.touchStartIndex = index;
-        this.touchStartTime = Date.now();
-        this.touchStartY = e.touches[0].clientY;
-        this.touchStartX = e.touches[0].clientX;
-        this.isTouchDragging = false;
-      }, { passive: true });
+          const index = parseInt(tile.dataset.index, 10);
+          this.touchStartIndex = index;
+          this.touchStartTime = Date.now();
+          this.touchStartY = e.touches[0].clientY;
+          this.touchStartX = e.touches[0].clientX;
+          this.isTouchDragging = false;
+        },
+        { passive: true }
+      );
 
-      tile.addEventListener('touchmove', (e) => {
-        if (this.touchStartIndex === undefined) return;
+      tile.addEventListener(
+        'touchmove',
+        e => {
+          if (this.touchStartIndex === undefined) return;
 
-        const touch = e.touches[0];
-        const deltaX = Math.abs(touch.clientX - this.touchStartX);
-        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+          const touch = e.touches[0];
+          const deltaX = Math.abs(touch.clientX - this.touchStartX);
+          const deltaY = Math.abs(touch.clientY - this.touchStartY);
 
-        // Start dragging after moving 10px
-        if (!this.isTouchDragging && (deltaX > 10 || deltaY > 10)) {
-          this.isTouchDragging = true;
-          this.handleDragStart(this.touchStartIndex);
-          tile.classList.add('opacity-50', 'ring-2', 'ring-primary');
-        }
+          // Start dragging after moving 10px
+          if (!this.isTouchDragging && (deltaX > 10 || deltaY > 10)) {
+            this.isTouchDragging = true;
+            this.handleDragStart(this.touchStartIndex);
+            tile.classList.add('opacity-50', 'ring-2', 'ring-primary');
+          }
 
-        if (this.isTouchDragging) {
-          e.preventDefault();
+          if (this.isTouchDragging) {
+            e.preventDefault();
 
-          // Temporarily hide tile to find element below
-          tile.style.pointerEvents = 'none';
-          const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-          tile.style.pointerEvents = '';
+            // Temporarily hide tile to find element below
+            tile.style.pointerEvents = 'none';
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            tile.style.pointerEvents = '';
 
-          const tileBelow = elementBelow?.closest('[draggable="true"]');
+            const tileBelow = elementBelow?.closest('[draggable="true"]');
 
-          if (tileBelow && tileBelow !== tile) {
-            const targetIndex = parseInt(tileBelow.dataset.index, 10);
-            if (!isNaN(targetIndex) && targetIndex !== this.draggedIndex) {
-              this.handleDragOver(targetIndex, e);
+            if (tileBelow && tileBelow !== tile) {
+              const targetIndex = parseInt(tileBelow.dataset.index, 10);
+              if (!isNaN(targetIndex) && targetIndex !== this.draggedIndex) {
+                this.handleDragOver(targetIndex, e);
+              }
             }
           }
-        }
-      }, { passive: false });
+        },
+        { passive: false }
+      );
 
       tile.addEventListener('touchend', () => {
         if (this.isTouchDragging) {

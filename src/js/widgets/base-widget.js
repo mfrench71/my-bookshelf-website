@@ -5,11 +5,11 @@ import { escapeHtml } from '../utils.js';
  */
 export class BaseWidget {
   // Static properties - must be overridden by subclasses
-  static id = '';              // Unique widget identifier (e.g., 'currentlyReading')
-  static name = '';            // Display name (e.g., 'Currently Reading')
-  static icon = '';            // Lucide icon name (e.g., 'book-open')
-  static iconColor = '';       // Tailwind text color class (e.g., 'text-blue-600')
-  static defaultSize = 12;     // Default column span: 3, 6, 9, or 12
+  static id = ''; // Unique widget identifier (e.g., 'currentlyReading')
+  static name = ''; // Display name (e.g., 'Currently Reading')
+  static icon = ''; // Lucide icon name (e.g., 'book-open')
+  static iconColor = ''; // Tailwind text color class (e.g., 'text-blue-600')
+  static defaultSize = 12; // Default column span: 3, 6, 9, or 12
   static defaultSettings = {}; // Default widget-specific settings
 
   // Settings schema for UI generation (optional)
@@ -31,7 +31,7 @@ export class BaseWidget {
    * @param {Object} genreLookup - Genre ID to genre object map
    * @returns {string} - HTML string
    */
-  static render(books, config, genreLookup) {
+  static render(_books, _config, _genreLookup) {
     return '<p class="text-gray-500">No content</p>';
   }
 
@@ -88,9 +88,10 @@ export class BaseWidget {
       `;
     }
 
-    const content = displayBooks.length > 0
-      ? this.render(displayBooks, config, genreLookup)
-      : `<p class="text-gray-500 text-sm py-4">${escapeHtml(this.getEmptyMessage())}</p>`;
+    const content =
+      displayBooks.length > 0
+        ? this.render(displayBooks, config, genreLookup)
+        : `<p class="text-gray-500 text-sm py-4">${escapeHtml(this.getEmptyMessage())}</p>`;
 
     return `
       <div class="widget-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

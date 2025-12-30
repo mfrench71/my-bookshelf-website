@@ -7,12 +7,11 @@ import {
   getDocs,
   addDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeSeriesName } from './utils/series-parser.js';
 
@@ -30,9 +29,7 @@ const SERIES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 export async function loadUserSeries(userId, forceRefresh = false) {
   const now = Date.now();
-  const cacheValid = seriesCache &&
-                     seriesCacheUserId === userId &&
-                     (now - seriesCacheTime) < SERIES_CACHE_TTL;
+  const cacheValid = seriesCache && seriesCacheUserId === userId && now - seriesCacheTime < SERIES_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
     return seriesCache;
@@ -44,9 +41,7 @@ export async function loadUserSeries(userId, forceRefresh = false) {
     const snapshot = await getDocs(q);
 
     // Filter out soft-deleted series
-    seriesCache = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(s => !s.deletedAt);
+    seriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(s => !s.deletedAt);
     seriesCacheUserId = userId;
     seriesCacheTime = Date.now();
 
@@ -102,7 +97,7 @@ export async function createSeries(userId, name, description = null, totalBooks 
     expectedBooks: [],
     bookCount: 0,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   };
 
   try {
@@ -193,7 +188,7 @@ export async function deleteSeries(userId, seriesId) {
       batch.update(bookRef, {
         seriesId: null,
         seriesPosition: null,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
     });
 
@@ -225,7 +220,7 @@ export async function softDeleteSeries(userId, seriesId) {
     const seriesRef = doc(db, 'users', userId, 'series', seriesId);
     await updateDoc(seriesRef, {
       deletedAt: Date.now(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
 
     // Invalidate cache
@@ -247,7 +242,7 @@ export async function restoreSeries(userId, seriesId) {
     const seriesRef = doc(db, 'users', userId, 'series', seriesId);
     await updateDoc(seriesRef, {
       deletedAt: null,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
 
     // Invalidate cache
@@ -313,7 +308,7 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
       const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
       batch.update(bookRef, {
         seriesId: targetSeriesId,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
     });
 
@@ -322,9 +317,8 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
     const existingIsbns = new Set(mergedExpectedBooks.map(b => b.isbn).filter(Boolean));
     const existingTitles = new Set(mergedExpectedBooks.map(b => b.title.toLowerCase()));
 
-    for (const book of (sourceSeries.expectedBooks || [])) {
-      const isDuplicate = (book.isbn && existingIsbns.has(book.isbn)) ||
-                         existingTitles.has(book.title.toLowerCase());
+    for (const book of sourceSeries.expectedBooks || []) {
+      const isDuplicate = (book.isbn && existingIsbns.has(book.isbn)) || existingTitles.has(book.title.toLowerCase());
       if (!isDuplicate) {
         mergedExpectedBooks.push(book);
         if (book.isbn) existingIsbns.add(book.isbn);
@@ -345,7 +339,7 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
       bookCount: newBookCount,
       totalBooks: newTotalBooks || null,
       expectedBooks: mergedExpectedBooks,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
 
     // Delete source series
@@ -359,7 +353,7 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
 
     return {
       booksUpdated: snapshot.docs.length,
-      expectedBooksMerged: mergedExpectedBooks.length - (targetSeries.expectedBooks || []).length
+      expectedBooksMerged: mergedExpectedBooks.length - (targetSeries.expectedBooks || []).length,
     };
   } catch (error) {
     console.error('Error merging series:', error);
@@ -389,7 +383,7 @@ export async function updateSeriesBookCounts(userId, addedSeriesId = null, remov
         const seriesRef = doc(db, 'users', userId, 'series', addedSeriesId);
         batch.update(seriesRef, {
           bookCount: (addedSeries.bookCount || 0) + 1,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
         hasUpdates = true;
       }
@@ -402,7 +396,7 @@ export async function updateSeriesBookCounts(userId, addedSeriesId = null, remov
         const seriesRef = doc(db, 'users', userId, 'series', removedSeriesId);
         batch.update(seriesRef, {
           bookCount: Math.max(0, (removedSeries.bookCount || 0) - 1),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
         hasUpdates = true;
       }
@@ -461,7 +455,7 @@ export async function recalculateSeriesBookCounts(userId) {
         const seriesRef = doc(db, 'users', userId, 'series', s.id);
         batch.update(seriesRef, {
           bookCount: newCount,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
         seriesUpdated++;
       }
@@ -478,7 +472,7 @@ export async function recalculateSeriesBookCounts(userId) {
     const activeBookCount = booksSnapshot.docs.filter(d => !d.data().deletedAt).length;
     return {
       seriesUpdated,
-      totalBooks: activeBookCount
+      totalBooks: activeBookCount,
     };
   } catch (error) {
     console.error('Error recalculating series book counts:', error);
@@ -520,9 +514,8 @@ export async function addExpectedBook(userId, seriesId, book) {
   const expectedBooks = [...(targetSeries.expectedBooks || [])];
 
   // Check for duplicates
-  const isDuplicate = expectedBooks.some(b =>
-    (book.isbn && b.isbn === book.isbn) ||
-    b.title.toLowerCase() === book.title.toLowerCase()
+  const isDuplicate = expectedBooks.some(
+    b => (book.isbn && b.isbn === book.isbn) || b.title.toLowerCase() === book.title.toLowerCase()
   );
 
   if (isDuplicate) {
@@ -533,7 +526,7 @@ export async function addExpectedBook(userId, seriesId, book) {
     title: book.title.trim(),
     isbn: book.isbn?.trim() || null,
     position: book.position || null,
-    source: book.source || 'manual'
+    source: book.source || 'manual',
   });
 
   // Sort by position
@@ -593,10 +586,8 @@ export function findPotentialDuplicates(series) {
   for (const s of series) {
     if (processed.has(s.id)) continue;
 
-    const matches = series.filter(other =>
-      other.id !== s.id &&
-      !processed.has(other.id) &&
-      areSimilarNames(s.name, other.name)
+    const matches = series.filter(
+      other => other.id !== s.id && !processed.has(other.id) && areSimilarNames(s.name, other.name)
     );
 
     if (matches.length > 0) {

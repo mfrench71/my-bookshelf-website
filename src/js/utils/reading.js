@@ -17,12 +17,12 @@ export function migrateBookReads(book) {
   if (book.startedAt || book.finishedAt) {
     reads.push({
       startedAt: book.startedAt || null,
-      finishedAt: book.finishedAt || null
+      finishedAt: book.finishedAt || null,
     });
   }
 
   // Return book with reads array (don't modify original)
-  const { startedAt, finishedAt, status, ...rest } = book;
+  const { startedAt: _startedAt, finishedAt: _finishedAt, status: _status, ...rest } = book;
   return { ...rest, reads };
 }
 

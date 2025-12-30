@@ -38,18 +38,17 @@ const STATIC_ASSETS = [
   '/js/vendor/zod.js',
   '/manifest.json',
   '/vendor/lucide.min.js',
-  '/vendor/quagga.min.js'
+  '/vendor/quagga.min.js',
 ];
 
 // Cache durations
 const API_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes for API responses
-const IMAGE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days for images
 const IMAGE_CACHE_MAX_ITEMS = 200; // Limit cached images
 
 // Install - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
+    caches.open(STATIC_CACHE).then(cache => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -57,22 +56,18 @@ self.addEventListener('install', (event) => {
 });
 
 // Activate - clean old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   const currentCaches = [STATIC_CACHE, IMAGE_CACHE, API_CACHE];
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => !currentCaches.includes(name))
-          .map((name) => caches.delete(name))
-      );
+    caches.keys().then(cacheNames => {
+      return Promise.all(cacheNames.filter(name => !currentCaches.includes(name)).map(name => caches.delete(name)));
     })
   );
   self.clients.claim();
 });
 
 // Fetch handler with different strategies per resource type
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
@@ -102,10 +97,7 @@ self.addEventListener('fetch', (event) => {
 
 // Check if URL is a cover image
 function isCoverImage(url) {
-  return (
-    url.hostname.includes('books.google.com') ||
-    url.hostname.includes('covers.openlibrary.org')
-  );
+  return url.hostname.includes('books.google.com') || url.hostname.includes('covers.openlibrary.org');
 }
 
 // Check if URL is a book API
@@ -119,9 +111,7 @@ function isBookApi(url) {
 // Check if URL is Firebase-related
 function isFirebaseRequest(url) {
   return (
-    url.hostname.includes('firebase') ||
-    url.hostname.includes('firestore') ||
-    url.hostname.includes('gstatic.com')
+    url.hostname.includes('firebase') || url.hostname.includes('firestore') || url.hostname.includes('gstatic.com')
   );
 }
 
@@ -145,7 +135,7 @@ async function handleImageRequest(request) {
       trimImageCache(cache);
     }
     return response;
-  } catch (error) {
+  } catch {
     // Return placeholder or transparent pixel
     return new Response('', { status: 404 });
   }
@@ -158,7 +148,7 @@ async function refreshImage(request, cache) {
     if (response.ok) {
       cache.put(request, response);
     }
-  } catch (e) {
+  } catch {
     // Ignore refresh errors
   }
 }
@@ -189,12 +179,12 @@ async function handleApiRequest(request) {
       const cachedResponse = new Response(body, {
         status: responseWithTime.status,
         statusText: responseWithTime.statusText,
-        headers
+        headers,
       });
       cache.put(request, cachedResponse);
     }
     return response;
-  } catch (error) {
+  } catch (err) {
     // Check cache with TTL
     const cached = await cache.match(request);
     if (cached) {
@@ -205,7 +195,7 @@ async function handleApiRequest(request) {
         return cached;
       }
     }
-    throw error;
+    throw err;
   }
 }
 
@@ -218,7 +208,7 @@ async function handleStaticRequest(request) {
       cache.put(request, response.clone());
     }
     return response;
-  } catch (error) {
+  } catch {
     const cached = await caches.match(request);
     if (cached) {
       return cached;

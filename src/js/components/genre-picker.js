@@ -1,7 +1,7 @@
 // Genre Picker Component
 // A reusable multi-select component for picking genres
 
-import { loadUserGenres, createGenre, GENRE_COLORS } from '../genres.js';
+import { loadUserGenres, createGenre } from '../genres.js';
 import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from '../utils.js';
 
 /**
@@ -20,9 +20,9 @@ export class GenrePicker {
     this.onChange = onChange;
 
     // State
-    this.genres = [];           // All available genres
-    this.selected = [];         // Selected genre IDs
-    this.suggestions = [];      // API-suggested genre names
+    this.genres = []; // All available genres
+    this.selected = []; // Selected genre IDs
+    this.suggestions = []; // API-suggested genre names
     this.searchQuery = '';
     this.isOpen = false;
     this.isLoading = false;
@@ -116,7 +116,9 @@ export class GenrePicker {
 
         <!-- Selected genres -->
         <div class="genre-picker-selected flex flex-wrap gap-2 mb-2">
-          ${selectedGenres.map(genre => `
+          ${selectedGenres
+            .map(
+              genre => `
             <span class="genre-badge py-1 px-2.5" style="background-color: ${genre.color}; color: ${getContrastColor(genre.color)}">
               ${escapeHtml(genre.name)}
               <button type="button" class="ml-1.5 -mr-1 hover:opacity-75" data-remove-genre="${genre.id}" aria-label="Remove ${escapeHtml(genre.name)}">
@@ -125,7 +127,9 @@ export class GenrePicker {
                 </svg>
               </button>
             </span>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
 
         <!-- Input -->
@@ -142,7 +146,9 @@ export class GenrePicker {
           >
 
           <!-- Dropdown -->
-          ${this.isOpen ? `
+          ${
+            this.isOpen
+              ? `
             <div class="genre-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto" role="listbox" aria-label="Genre options">
               <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">Select genres</span>
@@ -154,7 +160,9 @@ export class GenrePicker {
               </div>
               ${this._renderDropdownContent(filteredGenres, filteredSuggestions, showCreateOption)}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     `;
@@ -211,11 +219,15 @@ export class GenrePicker {
           <button type="button" role="option" aria-selected="${isSelected}" class="genre-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-genre-id="${genre.id}" data-index="${index}">
             <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${safeColor}"></span>
             <span class="flex-1">${escapeHtml(genre.name)}</span>
-            ${isSelected ? `
+            ${
+              isSelected
+                ? `
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-            ` : ''}
+            `
+                : ''
+            }
           </button>
         `);
         index++;
@@ -240,7 +252,9 @@ export class GenrePicker {
 
     // Always show hint to create at the bottom if no search query
     if (!this.searchQuery) {
-      items.push(`<div class="px-3 py-2 text-xs text-gray-400 border-t border-gray-100">Type a name to create a new genre</div>`);
+      items.push(
+        `<div class="px-3 py-2 text-xs text-gray-400 border-t border-gray-100">Type a name to create a new genre</div>`
+      );
     }
 
     if (items.length === 0 && !showCreateOption) {
@@ -257,9 +271,7 @@ export class GenrePicker {
     if (!this.searchQuery) return this.genres;
 
     const query = normalizeGenreName(this.searchQuery);
-    return this.genres.filter(g =>
-      g.normalizedName.includes(query)
-    );
+    return this.genres.filter(g => g.normalizedName.includes(query));
   }
 
   /**
@@ -315,7 +327,7 @@ export class GenrePicker {
   _attachEventListeners() {
     const input = this.container.querySelector('.genre-picker-input');
     if (input) {
-      input.addEventListener('input', (e) => {
+      input.addEventListener('input', e => {
         this.searchQuery = e.target.value;
         this.isOpen = true;
         this.focusedIndex = -1;
@@ -335,7 +347,7 @@ export class GenrePicker {
 
     // Remove genre buttons
     this.container.querySelectorAll('[data-remove-genre]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         const genreId = btn.dataset.removeGenre;
@@ -345,7 +357,7 @@ export class GenrePicker {
 
     // Genre selection
     this.container.querySelectorAll('[data-genre-id]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.preventDefault();
         const genreId = btn.dataset.genreId;
         this._toggleGenre(genreId);
@@ -354,7 +366,7 @@ export class GenrePicker {
 
     // Suggestion selection
     this.container.querySelectorAll('[data-suggestion]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', async e => {
         e.preventDefault();
         const name = btn.dataset.suggestion;
         await this._addSuggestion(name);
@@ -363,7 +375,7 @@ export class GenrePicker {
 
     // Create new genre
     this.container.querySelectorAll('[data-create]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', async e => {
         e.preventDefault();
         const name = btn.dataset.create;
         await this._createAndSelect(name);
@@ -373,7 +385,7 @@ export class GenrePicker {
     // Close button
     const closeBtn = this.container.querySelector('.genre-picker-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+      closeBtn.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         this.isOpen = false;
@@ -515,7 +527,7 @@ export class GenrePicker {
               </svg>
             </button>
           `;
-          badge.querySelector('[data-remove-genre]').addEventListener('click', (e) => {
+          badge.querySelector('[data-remove-genre]').addEventListener('click', e => {
             e.preventDefault();
             e.stopPropagation();
             this._removeGenre(genreId);
@@ -563,9 +575,7 @@ export class GenrePicker {
       this.selected.push(genre.id);
 
       // Remove from suggestions
-      const index = this.suggestions.findIndex(s =>
-        normalizeGenreName(s) === normalizeGenreName(name)
-      );
+      const index = this.suggestions.findIndex(s => normalizeGenreName(s) === normalizeGenreName(name));
       if (index !== -1) {
         this.suggestions.splice(index, 1);
       }

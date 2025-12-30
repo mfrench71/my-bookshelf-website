@@ -3,6 +3,7 @@ layout: base.njk
 title: Maintenance
 scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
 ---
+
 <!-- Sub-navigation -->
 <div class="bg-white border-b border-gray-200 sticky top-14 z-30">
   <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between min-h-[52px]">
@@ -24,8 +25,7 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
   </div>
 </div>
 
-{% set activePage = 'maintenance' %}
-{% include "settings-nav.njk" %}
+{% set activePage = 'maintenance' %} {% include "settings-nav.njk" %}
 
 <div class="max-w-2xl mx-auto px-4 py-6 page-content">
   <h1 class="text-2xl font-bold text-gray-900 mb-6">Maintenance</h1>
@@ -58,9 +58,7 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
 
       <!-- Stats Row -->
       <div class="flex flex-wrap gap-4 mb-4 text-sm">
-        <div class="text-gray-600">
-          <span class="font-medium" id="health-total-books">0</span> books
-        </div>
+        <div class="text-gray-600"><span class="font-medium" id="health-total-books">0</span> books</div>
         <div class="text-gray-600">
           <span class="font-medium" id="health-issues-count">0</span> books with missing information
         </div>
@@ -80,7 +78,10 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
 
       <!-- Action Buttons -->
       <div id="health-actions" class="flex flex-wrap gap-2">
-        <button id="health-refresh-btn" class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors min-h-[44px]">
+        <button
+          id="health-refresh-btn"
+          class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors min-h-[44px]"
+        >
           <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
@@ -91,11 +92,16 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
   <!-- Recalculate Genre Counts -->
   <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
     <h3 class="font-medium text-gray-900 mb-2">Recalculate Genre Counts</h3>
-    <p class="text-gray-600 text-sm mb-4">If genre book counts appear incorrect, this will scan all books and recalculate the count for each genre.</p>
+    <p class="text-gray-600 text-sm mb-4">
+      If genre book counts appear incorrect, this will scan all books and recalculate the count for each genre.
+    </p>
     <div id="recount-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
       <p id="recount-results-text" class="text-sm text-gray-700"></p>
     </div>
-    <button id="recount-genres-btn" class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]">
+    <button
+      id="recount-genres-btn"
+      class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]"
+    >
       <i data-lucide="calculator" class="w-4 h-4" aria-hidden="true"></i>
       <span>Recalculate Counts</span>
     </button>
@@ -104,7 +110,10 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
   <!-- Orphaned Images -->
   <div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
     <h3 class="font-medium text-gray-900 mb-2">Orphaned Images</h3>
-    <p class="text-gray-600 text-sm mb-4">Find and delete images in storage that are not linked to any book. This can happen if you upload images but don't save the book.</p>
+    <p class="text-gray-600 text-sm mb-4">
+      Find and delete images in storage that are not linked to any book. This can happen if you upload images but don't
+      save the book.
+    </p>
 
     <!-- Scan Results -->
     <div id="orphan-results" class="hidden mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -118,22 +127,32 @@ scripts: '<script type="module" src="/js/settings/maintenance.js"></script>'
           <span class="font-medium"><span id="orphan-count">0</span> orphaned images found</span>
         </div>
         <p class="text-sm text-gray-600 mb-3">Total size: <span id="orphan-size">0 KB</span></p>
-        <button id="delete-orphans-btn" class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors min-h-[44px]">
+        <button
+          id="delete-orphans-btn"
+          class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors min-h-[44px]"
+        >
           <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
           <span>Delete Orphaned Images</span>
         </button>
       </div>
       <p id="orphan-none" class="hidden text-sm text-gray-700">No orphaned images found.</p>
-      <p id="orphan-deleted" class="hidden text-sm text-gray-700"><span id="orphan-deleted-count">0</span> orphaned images deleted.</p>
+      <p id="orphan-deleted" class="hidden text-sm text-gray-700">
+        <span id="orphan-deleted-count">0</span> orphaned images deleted.
+      </p>
     </div>
 
-    <button id="scan-orphans-btn" class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]">
+    <button
+      id="scan-orphans-btn"
+      class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors min-h-[44px]"
+    >
       <i data-lucide="search" class="w-4 h-4" aria-hidden="true"></i>
       <span>Scan for Orphaned Images</span>
     </button>
   </div>
-
 </div>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

@@ -11,7 +11,7 @@ let activeToasts = [];
 const TOAST_ICONS = {
   success: 'check-circle',
   error: 'x-circle',
-  info: 'info'
+  info: 'info',
 };
 
 /**
@@ -23,7 +23,8 @@ function getToastContainer() {
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
-    container.className = 'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 flex flex-col-reverse gap-2 pointer-events-none';
+    container.className =
+      'fixed bottom-6 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 flex flex-col-reverse gap-2 pointer-events-none';
     container.setAttribute('aria-live', 'polite');
     container.setAttribute('aria-label', 'Notifications');
     document.body.appendChild(container);
@@ -39,13 +40,14 @@ function getToastContainer() {
  */
 function createToastElement(message, type) {
   const toast = document.createElement('div');
-  toast.className = 'toast-item px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 cursor-pointer pointer-events-auto opacity-0';
+  toast.className =
+    'toast-item px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 cursor-pointer pointer-events-auto opacity-0';
 
   // Type-specific colours
   const typeClasses = {
     success: 'bg-green-600 text-white',
     error: 'bg-red-600 text-white',
-    info: 'bg-gray-800 text-white'
+    info: 'bg-gray-800 text-white',
   };
 
   toast.classList.add(...(typeClasses[type] || typeClasses.info).split(' '));
@@ -73,9 +75,7 @@ function createToastElement(message, type) {
  * @param {string} options.type - 'success', 'error', or 'info' (default: 'info')
  */
 export function showToast(message, options = {}) {
-  const { duration = 3000, type = 'info' } = typeof options === 'number'
-    ? { duration: options }
-    : options;
+  const { duration = 3000, type = 'info' } = typeof options === 'number' ? { duration: options } : options;
 
   const toastData = { message, duration, type };
 
@@ -100,7 +100,7 @@ function displayToast(toastData) {
   const toastState = {
     element: toast,
     timeout: null,
-    isPaused: false
+    isPaused: false,
   };
   activeToasts.push(toastState);
 
@@ -117,7 +117,7 @@ function displayToast(toastData) {
   const dismiss = () => dismissToast(toastState);
 
   // Click to dismiss (only if not swiping)
-  toast.addEventListener('click', (e) => {
+  toast.addEventListener('click', _e => {
     if (!toastState.isSwiping) dismiss();
   });
 
@@ -186,47 +186,59 @@ function setupSwipeToDismiss(toast, toastState, duration) {
   let currentX = 0;
   const SWIPE_THRESHOLD = 80; // pixels to trigger dismiss
 
-  toast.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-    currentX = startX;
-    toastState.isSwiping = false;
-    toast.style.transition = 'none';
-    pauseToast(toastState);
-  }, { passive: true });
-
-  toast.addEventListener('touchmove', (e) => {
-    currentX = e.touches[0].clientX;
-    const diffX = currentX - startX;
-
-    // Only allow swiping right (positive direction)
-    if (diffX > 10) {
-      toastState.isSwiping = true;
-      toast.style.transform = `translateX(${diffX}px)`;
-      toast.style.opacity = Math.max(0.3, 1 - diffX / 150);
-    }
-  }, { passive: true });
-
-  toast.addEventListener('touchend', () => {
-    const diffX = currentX - startX;
-    toast.style.transition = '';
-
-    if (diffX > SWIPE_THRESHOLD) {
-      // Swipe complete - dismiss with slide out animation
-      toast.style.transform = `translateX(100%)`;
-      toast.style.opacity = '0';
-      setTimeout(() => dismissToast(toastState), 150);
-    } else {
-      // Reset position
-      toast.style.transform = '';
-      toast.style.opacity = '';
-      resumeToast(toastState, duration);
-    }
-
-    // Reset swiping state after a short delay (to prevent click firing)
-    setTimeout(() => {
+  toast.addEventListener(
+    'touchstart',
+    e => {
+      startX = e.touches[0].clientX;
+      currentX = startX;
       toastState.isSwiping = false;
-    }, 50);
-  }, { passive: true });
+      toast.style.transition = 'none';
+      pauseToast(toastState);
+    },
+    { passive: true }
+  );
+
+  toast.addEventListener(
+    'touchmove',
+    e => {
+      currentX = e.touches[0].clientX;
+      const diffX = currentX - startX;
+
+      // Only allow swiping right (positive direction)
+      if (diffX > 10) {
+        toastState.isSwiping = true;
+        toast.style.transform = `translateX(${diffX}px)`;
+        toast.style.opacity = Math.max(0.3, 1 - diffX / 150);
+      }
+    },
+    { passive: true }
+  );
+
+  toast.addEventListener(
+    'touchend',
+    () => {
+      const diffX = currentX - startX;
+      toast.style.transition = '';
+
+      if (diffX > SWIPE_THRESHOLD) {
+        // Swipe complete - dismiss with slide out animation
+        toast.style.transform = `translateX(100%)`;
+        toast.style.opacity = '0';
+        setTimeout(() => dismissToast(toastState), 150);
+      } else {
+        // Reset position
+        toast.style.transform = '';
+        toast.style.opacity = '';
+        resumeToast(toastState, duration);
+      }
+
+      // Reset swiping state after a short delay (to prevent click firing)
+      setTimeout(() => {
+        toastState.isSwiping = false;
+      }, 50);
+    },
+    { passive: true }
+  );
 }
 
 /**

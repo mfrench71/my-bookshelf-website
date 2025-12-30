@@ -6,5 +6,5 @@ const pkg = require('../../package.json');
 
 module.exports = {
   ...pkg,
-  year: new Date().getFullYear()
+  year: new Date().getFullYear(),
 };

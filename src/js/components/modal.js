@@ -1,5 +1,5 @@
 // Reusable Modal and BottomSheet Components
-import { lockBodyScroll, unlockBodyScroll, initIcons, isMobile } from '../utils.js';
+import { lockBodyScroll, unlockBodyScroll, initIcons } from '../utils.js';
 
 /**
  * Modal - Reusable modal dialog component
@@ -39,7 +39,7 @@ export class Modal {
   bindEvents() {
     // Click on backdrop to close
     if (this.closeOnBackdrop) {
-      this.container.addEventListener('click', (e) => {
+      this.container.addEventListener('click', e => {
         if (e.target === this.container) {
           this.close();
         }
@@ -48,7 +48,7 @@ export class Modal {
 
     // Escape key to close
     if (this.closeOnEscape) {
-      this.escapeHandler = (e) => {
+      this.escapeHandler = e => {
         if (e.key === 'Escape' && this.isOpen) {
           this.close();
         }
@@ -107,7 +107,7 @@ export class Modal {
     };
 
     // Wait for animation to complete before hiding
-    const handleAnimationEnd = (e) => {
+    const handleAnimationEnd = e => {
       // Only handle animation on the backdrop itself, not children
       if (e.target === this.container) {
         this.container.removeEventListener('animationend', handleAnimationEnd);
@@ -232,7 +232,7 @@ export class ConfirmModal extends Modal {
       title: this.container.querySelector('.confirm-title'),
       message: this.container.querySelector('.confirm-message'),
       cancelBtn: this.container.querySelector('.cancel-btn'),
-      confirmBtn: this.container.querySelector('.confirm-btn')
+      confirmBtn: this.container.querySelector('.confirm-btn'),
     };
   }
 
@@ -301,7 +301,7 @@ export class ConfirmModal extends Modal {
    * @returns {Promise<boolean>} Resolves to true if confirmed, false if cancelled
    */
   static show(options) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let resolved = false;
       const modal = new ConfirmModal({
         ...options,
@@ -323,7 +323,7 @@ export class ConfirmModal extends Modal {
             resolved = true;
             resolve(false);
           }
-        }
+        },
       });
       modal.show();
     });
@@ -420,7 +420,7 @@ export class BottomSheet extends Modal {
       this.container.classList.remove('modal-exit', 'bottom-sheet-backdrop');
     };
 
-    const handleAnimationEnd = (e) => {
+    const handleAnimationEnd = e => {
       if (e.target === this.container || e.target === this.contentEl) {
         this.container.removeEventListener('animationend', handleAnimationEnd);
         cleanup();
@@ -445,61 +445,76 @@ export class BottomSheet extends Modal {
     // Only enable on touch devices
     if (!('ontouchstart' in window)) return;
 
-    this.container.addEventListener('touchstart', (e) => {
-      if (!this.isOpen) return;
+    this.container.addEventListener(
+      'touchstart',
+      e => {
+        if (!this.isOpen) return;
 
-      this.contentEl = this.container.querySelector('.bottom-sheet-content');
-      if (!this.contentEl) return;
+        this.contentEl = this.container.querySelector('.bottom-sheet-content');
+        if (!this.contentEl) return;
 
-      // Only start drag from the handle area or top of content
-      const handle = this.container.querySelector('.bottom-sheet-handle');
-      const target = e.target;
+        // Only start drag from the handle area or top of content
+        const handle = this.container.querySelector('.bottom-sheet-handle');
+        const target = e.target;
 
-      // Check if touch target is inside a nested scrollable element
-      // If so, don't start swipe-to-dismiss (let the inner scroll work)
-      const nestedScrollable = this._findScrollableAncestor(target, this.contentEl);
-      if (nestedScrollable && nestedScrollable.scrollTop < nestedScrollable.scrollHeight - nestedScrollable.clientHeight) {
-        // Inner scrollable can still scroll down, don't start dismiss
-        return;
-      }
+        // Check if touch target is inside a nested scrollable element
+        // If so, don't start swipe-to-dismiss (let the inner scroll work)
+        const nestedScrollable = this._findScrollableAncestor(target, this.contentEl);
+        if (
+          nestedScrollable &&
+          nestedScrollable.scrollTop < nestedScrollable.scrollHeight - nestedScrollable.clientHeight
+        ) {
+          // Inner scrollable can still scroll down, don't start dismiss
+          return;
+        }
 
-      // Allow drag from handle or if content is scrolled to top
-      const isHandle = handle && handle.contains(target);
-      const isScrolledToTop = this.contentEl.scrollTop === 0;
+        // Allow drag from handle or if content is scrolled to top
+        const isHandle = handle && handle.contains(target);
+        const isScrolledToTop = this.contentEl.scrollTop === 0;
 
-      if (isHandle || isScrolledToTop) {
-        this.isDragging = true;
-        this.startY = e.touches[0].clientY;
-        this.currentY = 0;
-        this.contentEl.style.transition = 'none';
-      }
-    }, { passive: true });
+        if (isHandle || isScrolledToTop) {
+          this.isDragging = true;
+          this.startY = e.touches[0].clientY;
+          this.currentY = 0;
+          this.contentEl.style.transition = 'none';
+        }
+      },
+      { passive: true }
+    );
 
-    this.container.addEventListener('touchmove', (e) => {
-      if (!this.isDragging || !this.contentEl) return;
+    this.container.addEventListener(
+      'touchmove',
+      e => {
+        if (!this.isDragging || !this.contentEl) return;
 
-      const deltaY = e.touches[0].clientY - this.startY;
+        const deltaY = e.touches[0].clientY - this.startY;
 
-      // Only allow dragging down (positive deltaY)
-      if (deltaY > 0) {
-        this.currentY = deltaY;
-        this.contentEl.style.transform = `translateY(${deltaY}px)`;
-      }
-    }, { passive: true });
+        // Only allow dragging down (positive deltaY)
+        if (deltaY > 0) {
+          this.currentY = deltaY;
+          this.contentEl.style.transform = `translateY(${deltaY}px)`;
+        }
+      },
+      { passive: true }
+    );
 
-    this.container.addEventListener('touchend', () => {
-      if (!this.isDragging || !this.contentEl) return;
+    this.container.addEventListener(
+      'touchend',
+      () => {
+        if (!this.isDragging || !this.contentEl) return;
 
-      this.isDragging = false;
-      this.contentEl.style.transition = '';
+        this.isDragging = false;
+        this.contentEl.style.transition = '';
 
-      // If dragged past threshold, close; otherwise snap back
-      if (this.currentY > this.swipeThreshold) {
-        this.close();
-      } else {
-        this.contentEl.style.transform = '';
-      }
-    }, { passive: true });
+        // If dragged past threshold, close; otherwise snap back
+        if (this.currentY > this.swipeThreshold) {
+          this.close();
+        } else {
+          this.contentEl.style.transform = '';
+        }
+      },
+      { passive: true }
+    );
   }
 
   /**
@@ -513,8 +528,7 @@ export class BottomSheet extends Modal {
     while (el && el !== stopAt) {
       const style = window.getComputedStyle(el);
       const overflowY = style.overflowY;
-      const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') &&
-                           el.scrollHeight > el.clientHeight;
+      const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
       if (isScrollable) {
         return el;
       }
@@ -600,7 +614,7 @@ export class ConfirmSheet extends BottomSheet {
       title: this.container.querySelector('.confirm-title'),
       message: this.container.querySelector('.confirm-message'),
       cancelBtn: this.container.querySelector('.cancel-btn'),
-      confirmBtn: this.container.querySelector('.confirm-btn')
+      confirmBtn: this.container.querySelector('.confirm-btn'),
     };
   }
 
@@ -669,7 +683,7 @@ export class ConfirmSheet extends BottomSheet {
    * @returns {Promise<boolean>} Resolves to true if confirmed, false if cancelled
    */
   static show(options) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let resolved = false;
       const sheet = new ConfirmSheet({
         ...options,
@@ -691,7 +705,7 @@ export class ConfirmSheet extends BottomSheet {
             resolved = true;
             resolve(false);
           }
-        }
+        },
       });
       sheet.show();
     });

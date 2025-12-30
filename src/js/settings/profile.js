@@ -6,7 +6,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   deleteUser,
-  sendEmailVerification
+  sendEmailVerification,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -15,10 +15,17 @@ import {
   getDoc,
   setDoc,
   deleteDoc,
-  writeBatch
+  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, isMobile } from '../utils.js';
-import { validateForm, showFormErrors, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
+import {
+  showToast,
+  initIcons,
+  getCachedUserProfile,
+  clearUserProfileCache,
+  checkPasswordStrength,
+  isMobile,
+} from '../utils.js';
+import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
 import { ChangePasswordSchema, DeleteAccountSchema } from '../schemas/auth.js';
 import { getGravatarUrl } from '../md5.js';
 import { BottomSheet } from '../components/modal.js';
@@ -78,7 +85,7 @@ const newStrengthBars = [
   document.getElementById('new-strength-bar-1'),
   document.getElementById('new-strength-bar-2'),
   document.getElementById('new-strength-bar-3'),
-  document.getElementById('new-strength-bar-4')
+  document.getElementById('new-strength-bar-4'),
 ];
 const newStrengthText = document.getElementById('new-strength-text');
 const newReqLength = document.getElementById('new-req-length');
@@ -103,7 +110,7 @@ const passwordSheet = passwordModal ? new BottomSheet({ container: passwordModal
 const deleteAccountSheet = deleteAccountModal ? new BottomSheet({ container: deleteAccountModal }) : null;
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     await loadProfileInfo();
@@ -126,7 +133,7 @@ async function loadProfileInfo() {
     profileCreated.textContent = date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   } else {
     profileCreated.textContent = 'Unknown';
@@ -134,14 +141,11 @@ async function loadProfileInfo() {
 
   // Load user profile data from Firestore (with caching)
   try {
-    userProfileData = await getCachedUserProfile(
-      async () => {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        return userDoc.exists() ? userDoc.data() : {};
-      },
-      currentUser.uid
-    );
-  } catch (e) {
+    userProfileData = await getCachedUserProfile(async () => {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      return userDoc.exists() ? userDoc.data() : {};
+    }, currentUser.uid);
+  } catch (_e) {
     userProfileData = {};
   }
 
@@ -230,7 +234,7 @@ async function updateAvatarDisplay() {
       } else {
         throw new Error('No Gravatar');
       }
-    } catch (e) {
+    } catch (_e) {
       // Fall back to initial
       profileAvatar.innerHTML = '';
       profileAvatar.textContent = initial;
@@ -283,7 +287,7 @@ function updatePhotoPreview() {
 
 editAvatarBtn?.addEventListener('click', openPhotoModal);
 closePhotoModalBtn?.addEventListener('click', closePhotoModal);
-photoModal?.addEventListener('click', (e) => {
+photoModal?.addEventListener('click', e => {
   if (e.target === photoModal) closePhotoModal();
 });
 
@@ -292,7 +296,7 @@ uploadPhotoBtn?.addEventListener('click', () => {
   photoInput?.click();
 });
 
-photoInput?.addEventListener('change', async (e) => {
+photoInput?.addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -311,16 +315,21 @@ photoInput?.addEventListener('change', async (e) => {
   }
 
   uploadPhotoBtn.disabled = true;
-  uploadPhotoBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>';
+  uploadPhotoBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>';
 
   try {
     // Convert to base64
     const base64 = await fileToBase64(file);
 
     // Save to Firestore
-    await setDoc(doc(db, 'users', currentUser.uid), {
-      photoUrl: base64
-    }, { merge: true });
+    await setDoc(
+      doc(db, 'users', currentUser.uid),
+      {
+        photoUrl: base64,
+      },
+      { merge: true }
+    );
 
     userProfileData = { ...userProfileData, photoUrl: base64 };
     clearUserProfileCache();
@@ -342,12 +351,17 @@ photoInput?.addEventListener('change', async (e) => {
 
 removePhotoBtn?.addEventListener('click', async () => {
   removePhotoBtn.disabled = true;
-  removePhotoBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></span>';
+  removePhotoBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></span>';
 
   try {
-    await setDoc(doc(db, 'users', currentUser.uid), {
-      photoUrl: null
-    }, { merge: true });
+    await setDoc(
+      doc(db, 'users', currentUser.uid),
+      {
+        photoUrl: null,
+      },
+      { merge: true }
+    );
 
     userProfileData = { ...userProfileData, photoUrl: null };
     clearUserProfileCache();
@@ -466,18 +480,18 @@ function updateRequirement(element, met) {
   }
 }
 
-newPasswordInput?.addEventListener('input', (e) => {
+newPasswordInput?.addEventListener('input', e => {
   updateNewPasswordUI(e.target.value);
 });
 
-passwordForm?.addEventListener('submit', async (e) => {
+passwordForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   clearFormErrors(passwordForm);
   const formData = {
     currentPassword: currentPasswordInput.value,
     newPassword: newPasswordInput.value,
-    confirmPassword: confirmPasswordInput.value
+    confirmPassword: confirmPasswordInput.value,
   };
 
   const result = validateForm(ChangePasswordSchema, formData);
@@ -550,13 +564,13 @@ cancelDeleteAccountBtn?.addEventListener('click', () => {
 deleteConfirmPasswordInput?.addEventListener('input', updateDeleteButtonState);
 deleteConfirmTextInput?.addEventListener('input', updateDeleteButtonState);
 
-deleteAccountForm?.addEventListener('submit', async (e) => {
+deleteAccountForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   clearFormErrors(deleteAccountForm);
   const formData = {
     password: deleteConfirmPasswordInput.value,
-    confirmText: deleteConfirmTextInput.value
+    confirmText: deleteConfirmTextInput.value,
   };
 
   const result = validateForm(DeleteAccountSchema, formData);
@@ -630,7 +644,7 @@ deleteAccountForm?.addEventListener('submit', async (e) => {
     // Delete the user document if it exists
     try {
       await deleteDoc(doc(db, 'users', userId));
-    } catch (e) {
+    } catch (_e) {
       // User document may not exist, ignore error
     }
 

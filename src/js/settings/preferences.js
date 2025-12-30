@@ -37,7 +37,7 @@ const widgetSettingsList = document.getElementById('widget-settings-list');
 const clearCacheBtn = document.getElementById('clear-cache-btn');
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     loadSyncSettingsUI();
@@ -138,14 +138,15 @@ function renderWidgetSettings() {
 
   const sortedWidgets = [...widgetSettings.widgets].sort((a, b) => a.order - b.order);
 
-  widgetSettingsList.innerHTML = sortedWidgets.map((widget, index) => {
-    const info = widgetInfoMap.get(widget.id);
-    if (!info) return '';
+  widgetSettingsList.innerHTML = sortedWidgets
+    .map((widget, index) => {
+      const info = widgetInfoMap.get(widget.id);
+      if (!info) return '';
 
-    const isFirst = index === 0;
-    const isLast = index === sortedWidgets.length - 1;
+      const isFirst = index === 0;
+      const isLast = index === sortedWidgets.length - 1;
 
-    return `
+      return `
       <div class="bg-white rounded-xl border border-gray-200 p-4" data-widget-id="${widget.id}">
         <div class="flex items-center gap-3">
           <!-- Reorder Buttons -->
@@ -185,15 +186,18 @@ function renderWidgetSettings() {
           <div class="flex items-center gap-2">
             <label for="widget-size-${widget.id}" class="text-sm text-gray-600">Size:</label>
             <select id="widget-size-${widget.id}" class="widget-size px-2 py-1 border border-gray-300 rounded text-sm" data-id="${widget.id}">
-              ${WIDGET_SIZES.map(size => `
+              ${WIDGET_SIZES.map(
+                size => `
                 <option value="${size.value}" ${widget.size === size.value ? 'selected' : ''}>${size.label}</option>
-              `).join('')}
+              `
+              ).join('')}
             </select>
           </div>
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
   widgetsLoading?.classList.add('hidden');
   widgetSettingsList.classList.remove('hidden');
@@ -205,7 +209,7 @@ function renderWidgetSettings() {
 function attachWidgetSettingsListeners() {
   // Toggle listeners
   widgetSettingsList.querySelectorAll('.widget-toggle').forEach(toggle => {
-    toggle.addEventListener('change', async (e) => {
+    toggle.addEventListener('change', async e => {
       const widgetId = e.target.dataset.id;
       const enabled = e.target.checked;
       await updateWidgetSetting(widgetId, { enabled });
@@ -214,7 +218,7 @@ function attachWidgetSettingsListeners() {
 
   // Count select listeners
   widgetSettingsList.querySelectorAll('.widget-count').forEach(select => {
-    select.addEventListener('change', async (e) => {
+    select.addEventListener('change', async e => {
       const widgetId = e.target.dataset.id;
       const count = parseInt(e.target.value, 10);
       await updateWidgetSetting(widgetId, { settings: { count } });
@@ -223,7 +227,7 @@ function attachWidgetSettingsListeners() {
 
   // Size select listeners
   widgetSettingsList.querySelectorAll('.widget-size').forEach(select => {
-    select.addEventListener('change', async (e) => {
+    select.addEventListener('change', async e => {
       const widgetId = e.target.dataset.id;
       const size = parseInt(e.target.value, 10);
       await updateWidgetSetting(widgetId, { size });
@@ -258,8 +262,8 @@ async function updateWidgetSetting(widgetId, updates) {
     ...updates,
     settings: {
       ...widgetSettings.widgets[widgetIndex].settings,
-      ...updates.settings
-    }
+      ...updates.settings,
+    },
   };
 
   try {
@@ -313,7 +317,14 @@ document.getElementById('confirm-clear-cache')?.addEventListener('click', () => 
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('mybookshelf_') || key.startsWith('homeSettings') || key.startsWith('syncSettings') || key.startsWith('widgetSettings') || key.startsWith('gravatar_'))) {
+      if (
+        key &&
+        (key.startsWith('mybookshelf_') ||
+          key.startsWith('homeSettings') ||
+          key.startsWith('syncSettings') ||
+          key.startsWith('widgetSettings') ||
+          key.startsWith('gravatar_'))
+      ) {
         keysToRemove.push(key);
       }
     }

@@ -13,7 +13,7 @@ export {
   normalizeAuthor,
   normalizePublisher,
   normalizePublishedDate,
-  renderStars
+  renderStars,
 } from './utils/format.js';
 
 // DOM utilities
@@ -26,7 +26,7 @@ export {
   updateRatingStars,
   isMobile,
   getContrastColor,
-  interceptNavigation
+  interceptNavigation,
 } from './utils/dom.js';
 
 // Helper utilities
@@ -36,7 +36,7 @@ export {
   checkPasswordStrength,
   isOnline,
   isValidImageUrl,
-  isValidHexColor
+  isValidHexColor,
 } from './utils/helpers.js';
 
 // Cache utilities
@@ -48,37 +48,20 @@ export {
   getHomeSettings,
   saveHomeSettings,
   getCachedUserProfile,
-  clearUserProfileCache
+  clearUserProfileCache,
 } from './utils/cache.js';
 
 // API utilities
-export {
-  fetchWithTimeout,
-  lookupISBN,
-  searchBooks
-} from './utils/api.js';
+export { fetchWithTimeout, lookupISBN, searchBooks } from './utils/api.js';
 
 // Reading utilities
-export {
-  migrateBookReads,
-  getCurrentRead,
-  getBookStatus
-} from './utils/reading.js';
+export { migrateBookReads, getCurrentRead, getBookStatus } from './utils/reading.js';
 
 // Toast (re-exported from stores for backwards compatibility)
 export { showToast } from './stores/toast.js';
 
 // Sync settings
-export {
-  getSyncSettings,
-  saveSyncSettings,
-  resetSyncSettings,
-  getDefaultSyncSettings
-} from './utils/sync-settings.js';
+export { getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings } from './utils/sync-settings.js';
 
 // Visibility-based refresh
-export {
-  setupVisibilityRefresh,
-  getLastRefreshTime,
-  setLastRefreshTime
-} from './utils/visibility-refresh.js';
+export { setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime } from './utils/visibility-refresh.js';

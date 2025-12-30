@@ -4,7 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendEmailVerification,
-  onAuthStateChanged
+  onAuthStateChanged,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons, checkPasswordStrength } from './utils.js';
 import { LoginSchema, RegisterSchema } from './schemas/auth.js';
@@ -14,7 +14,7 @@ import { validateForm, showFieldError, clearFormErrors } from './utils/validatio
 initIcons();
 
 // Check auth state - redirect if already logged in
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, user => {
   if (user) {
     window.location.href = '/';
   }
@@ -36,7 +36,7 @@ const strengthBars = [
   document.getElementById('strength-bar-1'),
   document.getElementById('strength-bar-2'),
   document.getElementById('strength-bar-3'),
-  document.getElementById('strength-bar-4')
+  document.getElementById('strength-bar-4'),
 ];
 const strengthText = document.getElementById('strength-text');
 const reqLength = document.getElementById('req-length');
@@ -127,12 +127,12 @@ function updateRequirement(element, met) {
   }
 }
 
-registerPassword?.addEventListener('input', (e) => {
+registerPassword?.addEventListener('input', e => {
   updatePasswordUI(e.target.value);
 });
 
 // Login
-loginForm?.addEventListener('submit', async (e) => {
+loginForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   const email = document.getElementById('login-email').value;
@@ -170,7 +170,7 @@ loginForm?.addEventListener('submit', async (e) => {
 });
 
 // Register
-registerForm?.addEventListener('submit', async (e) => {
+registerForm?.addEventListener('submit', async e => {
   e.preventDefault();
 
   const email = document.getElementById('register-email').value;
@@ -231,7 +231,7 @@ function getErrorMessage(code) {
     'auth/email-already-in-use': 'An account with this email already exists',
     'auth/weak-password': 'Password should be at least 6 characters',
     'auth/invalid-credential': 'Invalid email or password',
-    'auth/too-many-requests': 'Too many failed attempts. Please try again later.'
+    'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
   };
   return messages[code] || 'An error occurred. Please try again.';
 }

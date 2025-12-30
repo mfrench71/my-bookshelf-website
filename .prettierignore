@@ -1,0 +1,21 @@
+# Build output
+_site/
+dist/
+
+# Dependencies
+node_modules/
+
+# Vendor files (third-party)
+src/js/vendor/
+
+# Generated files
+coverage/
+playwright-report/
+test-results/
+
+# Package files
+package-lock.json
+
+# Other
+*.min.js
+*.min.css

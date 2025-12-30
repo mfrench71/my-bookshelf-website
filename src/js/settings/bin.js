@@ -10,7 +10,7 @@ import {
   restoreBook,
   permanentlyDeleteBook,
   emptyBin,
-  purgeExpiredBooks
+  purgeExpiredBooks,
 } from '../bin.js';
 import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
 
@@ -41,7 +41,7 @@ const deleteSheet = deleteModal ? new BottomSheet({ container: deleteModal }) : 
 const emptyBinSheet = emptyBinModal ? new BottomSheet({ container: emptyBinModal }) : null;
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     await loadBinnedBooks();
@@ -59,7 +59,7 @@ async function loadBinnedBooks() {
       id: doc.id,
       ...doc.data(),
       createdAt: serializeTimestamp(doc.data().createdAt),
-      updatedAt: serializeTimestamp(doc.data().updatedAt)
+      updatedAt: serializeTimestamp(doc.data().updatedAt),
     }));
 
     // Filter to binned books only
@@ -118,7 +118,7 @@ function renderBinnedBooks() {
 
   // Attach event listeners to buttons
   bookList.querySelectorAll('[data-action="restore"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.preventDefault();
       selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId);
       restoreSheet?.open();
@@ -126,7 +126,7 @@ function renderBinnedBooks() {
   });
 
   bookList.querySelectorAll('[data-action="delete"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.preventDefault();
       selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId);
       deleteSheet?.open();
@@ -139,11 +139,12 @@ function renderBinBookCard(book) {
   const daysRemaining = getDaysRemaining(book.deletedAt);
   const isUrgent = daysRemaining <= 7;
 
-  const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
-    ? `<div class="w-16 h-24 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+  const cover =
+    book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
+      ? `<div class="w-16 h-24 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
         <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-300\\'><i data-lucide=\\'book\\' class=\\'w-6 h-6\\'></i></div>'">
       </div>`
-    : `<div class="w-16 h-24 flex-shrink-0 bg-gray-100 rounded flex items-center justify-center text-gray-300">
+      : `<div class="w-16 h-24 flex-shrink-0 bg-gray-100 rounded flex items-center justify-center text-gray-300">
         <i data-lucide="book" class="w-6 h-6" aria-hidden="true"></i>
       </div>`;
 

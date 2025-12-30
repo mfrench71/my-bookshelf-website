@@ -28,7 +28,7 @@ export class WelcomeWidget extends BaseWidget {
   /**
    * Override renderWidget to create a custom layout without the standard header
    */
-  static renderWidget(books, config, genreLookup) {
+  static renderWidget(books, _config, _genreLookup) {
     const totalBooks = books.length;
     const thisYear = new Date().getFullYear();
     const booksThisYear = books.filter(b => {

@@ -39,7 +39,7 @@ export function checkPasswordStrength(password) {
     uppercase: /[A-Z]/.test(password),
     number: /[0-9]/.test(password),
     lowercase: /[a-z]/.test(password),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
 
   let score = 0;

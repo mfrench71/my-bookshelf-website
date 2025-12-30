@@ -1,13 +1,7 @@
 // Wishlist Page
 import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  loadWishlistItems,
-  updateWishlistItem,
-  deleteWishlistItem,
-  moveToLibrary,
-  clearWishlistCache
-} from '../wishlist.js';
+import { loadWishlistItems, updateWishlistItem, deleteWishlistItem, moveToLibrary } from '../wishlist.js';
 import { clearBooksCache } from '../utils/cache.js';
 import { showToast, initIcons, escapeHtml, isValidImageUrl } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
@@ -16,11 +10,11 @@ import { z } from '/js/vendor/zod.js';
 
 // Simple schema for edit form (priority + notes only)
 const WishlistEditSchema = z.object({
-  priority: z.enum(['high', 'medium', 'low', ''])
-    .transform(s => s || null),
-  notes: z.string()
+  priority: z.enum(['high', 'medium', 'low', '']).transform(s => s || null),
+  notes: z
+    .string()
     .max(2000, 'Notes must be 2000 characters or less')
-    .transform(s => s?.trim() || null)
+    .transform(s => s?.trim() || null),
 });
 
 // DOM Elements
@@ -69,26 +63,27 @@ let deleteSheet = null;
 const PRIORITY_COLORS = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-amber-100 text-amber-700',
-  low: 'bg-blue-100 text-blue-700'
+  low: 'bg-blue-100 text-blue-700',
 };
 
 const PRIORITY_LABELS = {
   high: 'High',
   medium: 'Medium',
-  low: 'Low'
+  low: 'Low',
 };
 
 /**
  * Render a wishlist item card
  */
 function renderWishlistCard(item) {
-  const cover = item.coverImageUrl && isValidImageUrl(item.coverImageUrl)
-    ? `<div class="w-[48px] h-[72px] flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+  const cover =
+    item.coverImageUrl && isValidImageUrl(item.coverImageUrl)
+      ? `<div class="w-[48px] h-[72px] flex-shrink-0 bg-gray-100 rounded overflow-hidden">
         <img src="${escapeHtml(item.coverImageUrl)}" alt=""
           class="w-full h-full object-cover" loading="lazy"
           onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-300\\'><i data-lucide=\\'book\\' class=\\'w-5 h-5\\'></i></div>'">
       </div>`
-    : `<div class="w-[48px] h-[72px] flex-shrink-0 bg-gray-100 rounded flex items-center justify-center text-gray-300">
+      : `<div class="w-[48px] h-[72px] flex-shrink-0 bg-gray-100 rounded flex items-center justify-center text-gray-300">
         <i data-lucide="book" class="w-5 h-5"></i>
       </div>`;
 
@@ -158,7 +153,7 @@ function sortItems(items, sortKey) {
         return aTime - bTime;
       });
       break;
-    case 'priority-high':
+    case 'priority-high': {
       const priorityOrder = { high: 0, medium: 1, low: 2, null: 3 };
       sorted.sort((a, b) => {
         const aOrder = priorityOrder[a.priority] ?? 3;
@@ -170,6 +165,7 @@ function sortItems(items, sortKey) {
         return bTime - aTime;
       });
       break;
+    }
     case 'title-asc':
       sorted.sort((a, b) => (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase()));
       break;
@@ -231,7 +227,7 @@ function renderWishlistItems() {
         // Store original values for change tracking
         originalEditValues = {
           priority: selectedItem.priority || '',
-          notes: selectedItem.notes || ''
+          notes: selectedItem.notes || '',
         };
         // Initialize button state (disabled until changes made)
         updateEditSaveButtonState();
@@ -320,7 +316,7 @@ async function handleEditSave(e) {
 
   const formData = {
     priority: editPrioritySelect.value,
-    notes: editNotesTextarea.value
+    notes: editNotesTextarea.value,
   };
 
   const validation = validateForm(WishlistEditSchema, formData);
@@ -335,7 +331,7 @@ async function handleEditSave(e) {
   try {
     await updateWishlistItem(currentUser.uid, selectedItem.id, {
       priority: validation.data.priority,
-      notes: validation.data.notes
+      notes: validation.data.notes,
     });
     editSheet?.close();
     showToast('Wishlist item updated', { type: 'success' });
@@ -404,7 +400,7 @@ cancelDeleteBtn?.addEventListener('click', () => deleteSheet?.close());
 confirmDeleteBtn?.addEventListener('click', handleDelete);
 
 // Auth state listener
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     await loadWishlist();

@@ -14,13 +14,11 @@ export class TopRatedWidget extends BaseWidget {
 
   static settingsSchema = [
     { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] },
-    { key: 'minRating', label: 'Minimum rating', type: 'select', options: [1, 2, 3, 4, 5] }
+    { key: 'minRating', label: 'Minimum rating', type: 'select', options: [1, 2, 3, 4, 5] },
   ];
 
   static filterAndSort(books) {
-    return [...books]
-      .filter(b => b.rating && b.rating >= 4)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    return [...books].filter(b => b.rating && b.rating >= 4).sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
   static getEmptyMessage() {
@@ -35,7 +33,7 @@ export class TopRatedWidget extends BaseWidget {
     return { sort: 'rating-desc', rating: '4' };
   }
 
-  static render(books, config, genreLookup) {
+  static render(books, config, _genreLookup) {
     const minRating = config.settings?.minRating || 4;
     const filteredBooks = books.filter(b => b.rating >= minRating);
 
@@ -47,12 +45,13 @@ export class TopRatedWidget extends BaseWidget {
   }
 
   static renderBookCard(book) {
-    const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
-      ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
+    const cover =
+      book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
+        ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
           <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
         </div>`
-      : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
+        : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
         </div>`;
 

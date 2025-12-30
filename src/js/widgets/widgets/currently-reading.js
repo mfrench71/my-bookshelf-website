@@ -12,9 +12,7 @@ export class CurrentlyReadingWidget extends BaseWidget {
   static defaultSize = 6;
   static defaultSettings = { count: 6 };
 
-  static settingsSchema = [
-    { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] }
-  ];
+  static settingsSchema = [{ key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] }];
 
   static filterAndSort(books) {
     return books.filter(b => getBookStatus(b) === 'reading');
@@ -32,7 +30,7 @@ export class CurrentlyReadingWidget extends BaseWidget {
     return { status: 'reading' };
   }
 
-  static render(books, config, genreLookup) {
+  static render(books, _config, _genreLookup) {
     return `
       <div class="widget-scroll-container">
         ${books.map(book => this.renderBookCard(book)).join('')}
@@ -41,12 +39,13 @@ export class CurrentlyReadingWidget extends BaseWidget {
   }
 
   static renderBookCard(book) {
-    const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
-      ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
+    const cover =
+      book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
+        ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
           <img src="${escapeHtml(book.coverImageUrl)}" alt="" class="w-full h-full object-cover absolute inset-0" loading="lazy" onerror="this.style.display='none'">
         </div>`
-      : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
+        : `<div class="w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center flex-shrink-0">
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
         </div>`;
 

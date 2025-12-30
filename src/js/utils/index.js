@@ -11,7 +11,7 @@ export {
   normalizeAuthor,
   normalizePublisher,
   normalizePublishedDate,
-  renderStars
+  renderStars,
 } from './format.js';
 
 // DOM utilities
@@ -23,17 +23,11 @@ export {
   initIcons,
   updateRatingStars,
   isMobile,
-  getContrastColor
+  getContrastColor,
 } from './dom.js';
 
 // Helper utilities
-export {
-  debounce,
-  throttle,
-  checkPasswordStrength,
-  isOnline,
-  isValidImageUrl
-} from './helpers.js';
+export { debounce, throttle, checkPasswordStrength, isOnline, isValidImageUrl } from './helpers.js';
 
 // Cache utilities
 export {
@@ -46,22 +40,14 @@ export {
   getCachedUserProfile,
   clearUserProfileCache,
   getISBNCache,
-  setISBNCache
+  setISBNCache,
 } from './cache.js';
 
 // API utilities
-export {
-  fetchWithTimeout,
-  lookupISBN,
-  searchBooks
-} from './api.js';
+export { fetchWithTimeout, lookupISBN, searchBooks } from './api.js';
 
 // Reading utilities
-export {
-  migrateBookReads,
-  getCurrentRead,
-  getBookStatus
-} from './reading.js';
+export { migrateBookReads, getCurrentRead, getBookStatus } from './reading.js';
 
 // Validation utilities
 export {
@@ -71,5 +57,5 @@ export {
   clearFormErrors,
   showFormErrors,
   getFormData,
-  setupFieldValidation
+  setupFieldValidation,
 } from './validation.js';

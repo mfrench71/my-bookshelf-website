@@ -6,11 +6,15 @@ permalink: /
 scripts: '<script type="module" src="/js/index.js"></script>'
 bodyClass: bg-gray-100
 ---
+
 <div class="max-w-6xl mx-auto px-4 py-6 pb-24">
   <h1 class="sr-only">MyBookShelf Dashboard</h1>
 
   <!-- Email Verification Banner -->
-  <div id="verify-email-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+  <div
+    id="verify-email-banner"
+    class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3"
+  >
     <i data-lucide="mail" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
     <div class="flex-1 min-w-0">
       <p class="text-sm text-amber-800">
@@ -52,11 +56,16 @@ bodyClass: bg-gray-100
 </div>
 
 <!-- FAB - Add Book -->
-<a href="/books/add/"
+<a
+  href="/books/add/"
   class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30 fab-press"
-  aria-label="Add new book">
+  aria-label="Add new book"
+>
   <i data-lucide="plus" class="w-6 h-6" aria-hidden="true"></i>
 </a>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div
+  id="toast"
+  class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+></div>

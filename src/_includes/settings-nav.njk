@@ -1,46 +1,64 @@
-{# Settings Navigation Component #}
-{# Usage: {% include "settings-nav.njk" %} #}
-{# Expects: activePage variable set to 'profile', 'library', 'preferences', 'maintenance', 'bin', or 'about' #}
+{# Settings Navigation Component #} {# Usage: {% include "settings-nav.njk" %} #} {# Expects: activePage variable set to
+'profile', 'library', 'preferences', 'maintenance', 'bin', or 'about' #}
 
 <!-- Settings Tab Navigation -->
 <nav class="bg-white border-b border-gray-200" aria-label="Settings navigation">
   <div class="max-w-6xl mx-auto px-4">
     <div class="flex items-center gap-1 overflow-x-auto no-scrollbar -mb-px">
-      <a href="/settings/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'profile' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'profile' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="user" class="w-4 h-4" aria-hidden="true"></i>
         <span>Profile</span>
       </a>
-      <a href="/settings/library/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'library' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/library/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'library' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="library" class="w-4 h-4" aria-hidden="true"></i>
         <span>Library</span>
       </a>
-      <a href="/settings/preferences/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'preferences' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/preferences/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'preferences' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="settings-2" class="w-4 h-4" aria-hidden="true"></i>
         <span>Preferences</span>
       </a>
-      <a href="/settings/maintenance/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'maintenance' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/maintenance/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'maintenance' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="wrench" class="w-4 h-4" aria-hidden="true"></i>
         <span>Maintenance</span>
-        <span id="maintenance-indicator" class="hidden w-2 h-2 bg-amber-500 rounded-full" aria-label="Issues found"></span>
+        <span
+          id="maintenance-indicator"
+          class="hidden w-2 h-2 bg-amber-500 rounded-full"
+          aria-label="Issues found"
+        ></span>
       </a>
-      <a href="/settings/bin/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'bin' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/bin/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'bin' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
         <span>Bin</span>
-        <span id="bin-count-badge" class="hidden min-w-[1.25rem] h-5 px-1.5 bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center"></span>
+        <span
+          id="bin-count-badge"
+          class="hidden min-w-[1.25rem] h-5 px-1.5 bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center"
+        ></span>
       </a>
-      <a href="/settings/about/"
-         class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
-                {{ 'border-primary text-primary font-medium' if activePage == 'about' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+      <a
+        href="/settings/about/"
+        class="settings-tab flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap transition-colors
+                {{ 'border-primary text-primary font-medium' if activePage == 'about' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+      >
         <i data-lucide="info" class="w-4 h-4" aria-hidden="true"></i>
         <span>About</span>
       </a>

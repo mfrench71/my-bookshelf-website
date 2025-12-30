@@ -1,28 +1,12 @@
 // Maintenance Settings Page Logic
 import { auth, db, storage } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  collection,
-  query,
-  orderBy,
-  getDocs
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import {
-  ref,
-  listAll,
-  deleteObject,
-  getMetadata
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-import {
-  clearGenresCache,
-  recalculateGenreBookCounts
-} from '../genres.js';
+import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { ref, listAll, deleteObject, getMetadata } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+import { clearGenresCache, recalculateGenreBookCounts } from '../genres.js';
 import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
-import {
-  analyzeLibraryHealth,
-  getCompletenessRating
-} from '../utils/library-health.js';
-import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
+import { analyzeLibraryHealth, getCompletenessRating } from '../utils/library-health.js';
+import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 // Initialize icons on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initIcons);
@@ -52,7 +36,7 @@ const healthRefreshBtn = document.getElementById('health-refresh-btn');
 const healthActions = document.getElementById('health-actions');
 
 // Auth Check
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     await updateLibraryHealth();
@@ -70,9 +54,7 @@ async function loadAllBooks() {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(book => !book.deletedAt); // Exclude soft-deleted books
+    books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(book => !book.deletedAt); // Exclude soft-deleted books
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books:', error);
@@ -84,7 +66,8 @@ async function loadAllBooks() {
 
 async function runRecountGenres() {
   recountGenresBtn.disabled = true;
-  recountGenresBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Counting...';
+  recountGenresBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Counting...';
   recountResults?.classList.add('hidden');
 
   try {
@@ -97,7 +80,9 @@ async function runRecountGenres() {
       showToast('Counts verified!', { type: 'success' });
       setTimeout(() => recountResults?.classList.add('hidden'), 5000);
     } else {
-      if (recountResultsText) recountResultsText.textContent = `Updated ${results.genresUpdated} genre${results.genresUpdated !== 1 ? 's' : ''} after scanning ${results.totalBooks} books.`;
+      if (recountResultsText) {
+        recountResultsText.textContent = `Updated ${results.genresUpdated} genre${results.genresUpdated !== 1 ? 's' : ''} after scanning ${results.totalBooks} books.`;
+      }
       showToast('Counts updated!', { type: 'success' });
 
       clearGenresCache();
@@ -128,7 +113,7 @@ const ISSUE_CONFIG = {
   missingFormat: { icon: 'book-open', label: 'Format' },
   missingPublisher: { icon: 'building', label: 'Publisher' },
   missingPublishedDate: { icon: 'calendar', label: 'Date' },
-  missingIsbn: { icon: 'barcode', label: 'ISBN' }
+  missingIsbn: { icon: 'barcode', label: 'ISBN' },
 };
 
 /**
@@ -186,7 +171,6 @@ async function updateLibraryHealth() {
       healthIssues?.classList.remove('hidden');
       healthActions?.classList.remove('hidden');
     }
-
   } catch (error) {
     console.error('Error analysing library health:', error);
     showToast('Failed to analyse library', { type: 'error' });
@@ -213,7 +197,7 @@ function renderIssueRows() {
       }
       booksWithIssues.get(book.id).missing.push({
         label: config.label,
-        icon: config.icon
+        icon: config.icon,
       });
     }
   }
@@ -228,25 +212,32 @@ function renderIssueRows() {
 
   healthIssues.innerHTML = `
     <div class="space-y-2 max-h-96 overflow-y-auto">
-      ${sorted.map(({ book, missing }) => {
-        const cover = book.coverImageUrl || '';
-        const title = escapeHtml(book.title || 'Untitled');
-        const author = escapeHtml(book.author || 'Unknown');
+      ${sorted
+        .map(({ book, missing }) => {
+          const cover = book.coverImageUrl || '';
+          const title = escapeHtml(book.title || 'Untitled');
+          const author = escapeHtml(book.author || 'Unknown');
 
-        // Compact badges for missing fields
-        const badges = missing.map(m =>
-          `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+          // Compact badges for missing fields
+          const badges = missing
+            .map(
+              m =>
+                `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
             <i data-lucide="${m.icon}" class="w-3 h-3" aria-hidden="true"></i>${m.label}
           </span>`
-        ).join('');
+            )
+            .join('');
 
-        return `
+          return `
           <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
             <div class="w-8 h-12 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
-              ${cover ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover" loading="lazy">` :
-              `<div class="w-full h-full flex items-center justify-center text-gray-400">
+              ${
+                cover
+                  ? `<img src="${escapeHtml(cover)}" alt="" class="w-full h-full object-cover" loading="lazy">`
+                  : `<div class="w-full h-full flex items-center justify-center text-gray-400">
                 <i data-lucide="book" class="w-4 h-4" aria-hidden="true"></i>
-              </div>`}
+              </div>`
+              }
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-gray-900 truncate">${title}</div>
@@ -256,7 +247,8 @@ function renderIssueRows() {
             <a href="/books/edit/?id=${book.id}" class="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Edit book"><i data-lucide="pencil" class="w-4 h-4" aria-hidden="true"></i></a>
           </div>
         `;
-      }).join('')}
+        })
+        .join('')}
     </div>
   `;
 
@@ -349,7 +341,8 @@ async function scanForOrphanedImages() {
   orphanNone?.classList.add('hidden');
   orphanDeleted?.classList.add('hidden');
   scanOrphansBtn.disabled = true;
-  scanOrphansBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Scanning...';
+  scanOrphansBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Scanning...';
 
   try {
     // Force reload books to get fresh data (don't use cache)
@@ -391,7 +384,6 @@ async function scanForOrphanedImages() {
       showToast('No orphaned images found', { type: 'success' });
       setTimeout(() => orphanResults?.classList.add('hidden'), 5000);
     }
-
   } catch (error) {
     console.error('Error scanning for orphaned images:', error);
     orphanLoading?.classList.add('hidden');
@@ -410,7 +402,8 @@ async function deleteOrphanedImages() {
   if (!orphanedImages.length) return;
 
   deleteOrphansBtn.disabled = true;
-  deleteOrphansBtn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Deleting...';
+  deleteOrphansBtn.innerHTML =
+    '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Deleting...';
 
   let deletedCount = 0;
 
@@ -434,7 +427,6 @@ async function deleteOrphanedImages() {
 
     // Clear the list
     orphanedImages = [];
-
   } catch (error) {
     console.error('Error deleting orphaned images:', error);
     showToast('Failed to delete some images', { type: 'error' });
