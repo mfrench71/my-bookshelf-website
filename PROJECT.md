@@ -400,7 +400,6 @@ Current toasts are functional but basic.
 **Transitions & Animations:**
 - [x] Add type icons (checkmark for success, X for error, info circle for info)
 - [x] Smooth slide-in from bottom (mobile) / right (desktop)
-- [ ] Progress bar showing time remaining
 - [x] Fade out animation on dismiss
 
 **Mobile Gestures:**
@@ -415,12 +414,10 @@ Current toasts are functional but basic.
 **Visual Polish:**
 - [x] Icon indicators per type (Lucide: `check-circle`, `x-circle`, `info`)
 - [x] Subtle shadow for depth (shadow-lg in toast classes)
-- [ ] Optional action button ("Undo", "View")
 
 **Accessibility:**
 - [x] `aria-live="polite"` on toast container
 - [x] Role="alert" for error toasts
-- [ ] Focus management for action buttons
 
 ### Book Cards & List UX Polish
 Book cards have basic hover states but could feel more premium.
