@@ -1,5 +1,5 @@
 // Service Worker for MyBookShelf PWA
-const CACHE_VERSION = 'v19';
+const CACHE_VERSION = 'v20';
 const STATIC_CACHE = `mybookshelf-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mybookshelf-images-${CACHE_VERSION}`;
 const API_CACHE = `mybookshelf-api-${CACHE_VERSION}`;
@@ -7,14 +7,17 @@ const API_CACHE = `mybookshelf-api-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/login/',
+  '/privacy/',
   '/books/',
   '/books/add/',
   '/books/view/',
   '/books/edit/',
+  '/wishlist/',
   '/settings/',
   '/settings/library/',
   '/settings/preferences/',
   '/settings/maintenance/',
+  '/settings/bin/',
   '/settings/about/',
   '/css/styles.css',
   '/js/firebase-config.js',
@@ -25,10 +28,12 @@ const STATIC_ASSETS = [
   '/js/books/add.js',
   '/js/books/view.js',
   '/js/books/edit.js',
+  '/js/wishlist/index.js',
   '/js/settings/profile.js',
   '/js/settings/library.js',
   '/js/settings/preferences.js',
   '/js/settings/maintenance.js',
+  '/js/settings/bin.js',
   '/js/settings/about.js',
   '/js/vendor/zod.js',
   '/manifest.json',
