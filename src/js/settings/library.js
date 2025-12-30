@@ -334,9 +334,11 @@ function openEditGenreModal(genreId) {
   // Initialize button state (disabled until changes made)
   updateGenreSaveButtonState();
   genreSheet?.open();
-  // Scroll colour picker to top after modal opens
+  // Scroll colour picker to top after modal opens (double RAF for layout stability)
   requestAnimationFrame(() => {
-    colorPicker?.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      colorPicker?.scrollTo(0, 0);
+    });
   });
   if (!isMobile()) genreNameInput.focus();
 }
