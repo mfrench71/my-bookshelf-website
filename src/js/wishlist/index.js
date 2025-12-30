@@ -55,6 +55,7 @@ let currentUser = null;
 let wishlistItems = [];
 let selectedItem = null;
 let currentSort = 'createdAt-desc';
+let hasTriggeredInitialFade = false;
 
 // Original values for change tracking
 let originalEditValues = { priority: '', notes: '' };
@@ -200,6 +201,13 @@ function renderWishlistItems() {
 
   const sortedItems = sortItems(wishlistItems, currentSort);
   wishlistItemsContainer.innerHTML = sortedItems.map(item => renderWishlistCard(item)).join('');
+
+  // Trigger fade-in animation on first content render
+  if (!hasTriggeredInitialFade) {
+    wishlistItemsContainer.classList.add('content-fade-in');
+    hasTriggeredInitialFade = true;
+  }
+
   initIcons();
 
   // Attach event listeners using event delegation

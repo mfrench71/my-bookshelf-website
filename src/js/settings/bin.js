@@ -21,6 +21,7 @@ initIcons();
 let currentUser = null;
 let binnedBooks = [];
 let selectedBook = null;
+let hasTriggeredInitialFade = false;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -106,6 +107,13 @@ function renderBinnedBooks() {
 
   // Render book cards
   bookList.innerHTML = binnedBooks.map(book => renderBinBookCard(book)).join('');
+
+  // Trigger fade-in animation on first content render
+  if (!hasTriggeredInitialFade) {
+    bookList.classList.add('content-fade-in');
+    hasTriggeredInitialFade = true;
+  }
+
   initIcons();
 
   // Attach event listeners to buttons
