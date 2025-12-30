@@ -117,7 +117,7 @@ function showRecentSearches() {
   } else {
     // Show empty state prompt
     searchResults.innerHTML = `
-      <div class="py-8 text-center">
+      <div class="py-8 text-center empty-state-animate">
         <i data-lucide="search" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">Search your library</p>
         <p class="text-gray-400 text-sm mt-1">Find books by title, author, ISBN, series, notes or publisher</p>
@@ -172,6 +172,7 @@ const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
 const searchResultCount = document.getElementById('search-result-count');
+const searchHeader = document.getElementById('search-header');
 const offlineBanner = document.getElementById('offline-banner');
 // Wishlist count badges
 const wishlistCountMobile = document.getElementById('wishlist-count-mobile');
@@ -578,8 +579,15 @@ function performSearch(queryText) {
   }
 
   let html = results.length
-    ? results.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup, highlightQuery: queryText })).join('')
-    : `<div class="py-8 text-center">
+    ? results.map((book, index) => bookCard(book, {
+        showDate: true,
+        genreLookup,
+        seriesLookup,
+        highlightQuery: queryText,
+        className: 'card-animate',
+        animationDelay: Math.min(index * 50, 250) // Stagger animation, max 250ms
+      })).join('')
+    : `<div class="py-8 text-center empty-state-animate">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">No books found</p>
         <p class="text-gray-400 text-sm mt-1">Try a different search term</p>
@@ -643,6 +651,13 @@ async function openSearch() {
   searchOverlay.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
   searchOverlay.classList.add('opacity-100', 'visible', 'pointer-events-auto');
   document.body.style.overflow = 'hidden'; // Prevent body scroll
+
+  // Animate search header sliding down
+  if (searchHeader) {
+    searchHeader.classList.remove('search-header-exit');
+    searchHeader.classList.add('search-header-enter');
+  }
+
   if (!isMobile()) searchInput.focus();
   initIcons();
 
