@@ -150,6 +150,8 @@ const scanBtn = document.getElementById('scan-btn');
 const scannerModal = document.getElementById('scanner-modal');
 const closeScannerBtn = document.getElementById('close-scanner');
 const scannerContainer = document.getElementById('scanner-container');
+const scannerLoading = document.getElementById('scanner-loading');
+const scannerViewfinder = document.getElementById('scanner-viewfinder');
 
 /**
  * Show the search section and hide form with animation
@@ -976,6 +978,29 @@ async function openScanner() {
   }
 }
 
+/**
+ * Play a short beep for scan feedback (iOS doesn't support vibration)
+ */
+function playBeep() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 1000; // 1kHz tone
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.3; // Not too loud
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.1); // 100ms beep
+  } catch (e) {
+    // Ignore audio errors
+  }
+}
+
 function startQuagga() {
   return new Promise((resolve, reject) => {
     Quagga.init({
@@ -999,6 +1024,9 @@ function startQuagga() {
       }
       Quagga.start();
       scannerRunning = true;
+      // Hide loading, show viewfinder
+      scannerLoading.classList.add('hidden');
+      scannerViewfinder.classList.remove('hidden');
       resolve();
     });
 
@@ -1020,7 +1048,12 @@ function startQuagga() {
         return;
       }
 
-      if (navigator.vibrate) navigator.vibrate(100);
+      // Feedback: vibrate on Android, beep on iOS
+      if (navigator.vibrate) {
+        navigator.vibrate(100);
+      } else {
+        playBeep();
+      }
 
       closeScanner();
       showToast('Scanned: ' + code, { type: 'success' });
@@ -1057,6 +1090,10 @@ function closeScanner() {
   }
 
   scannerContainer.innerHTML = '';
+
+  // Reset loading/viewfinder states for next open
+  scannerLoading.classList.remove('hidden');
+  scannerViewfinder.classList.add('hidden');
 }
 
 /**
@@ -1296,6 +1333,8 @@ interceptNavigation({
     confirmClass: 'bg-red-600 hover:bg-red-700'
   }),
   onBeforeNavigate: () => {
+    // Clear dirty flag to prevent beforeunload from also triggering
+    formDirty = false;
     if (imageGallery?.hasUnsavedUploads()) {
       imageGallery.cleanupUnsavedUploads();
     }

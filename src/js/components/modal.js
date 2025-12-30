@@ -662,4 +662,38 @@ export class ConfirmSheet extends BottomSheet {
       this.elements.confirmBtn.textContent = this.confirmText;
     }
   }
+
+  /**
+   * Static method to show a confirm sheet and await the result
+   * @param {Object} options - Same options as constructor (title, message, confirmText, etc.)
+   * @returns {Promise<boolean>} Resolves to true if confirmed, false if cancelled
+   */
+  static show(options) {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const sheet = new ConfirmSheet({
+        ...options,
+        onConfirm: () => {
+          if (!resolved) {
+            resolved = true;
+            resolve(true);
+          }
+        },
+        onCancel: () => {
+          if (!resolved) {
+            resolved = true;
+            resolve(false);
+          }
+        },
+        onClose: () => {
+          // Handle backdrop click or escape key - treat as cancel
+          if (!resolved) {
+            resolved = true;
+            resolve(false);
+          }
+        }
+      });
+      sheet.show();
+    });
+  }
 }

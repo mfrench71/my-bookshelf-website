@@ -648,6 +648,8 @@ interceptNavigation({
     confirmClass: 'bg-red-600 hover:bg-red-700'
   }),
   onBeforeNavigate: () => {
+    // Clear dirty flag to prevent beforeunload from also triggering
+    formDirty = false;
     if (imageGallery?.hasUnsavedUploads()) {
       imageGallery.cleanupUnsavedUploads();
     }

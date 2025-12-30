@@ -329,8 +329,8 @@ if (isDuplicate) {
 - [x] Settings tab indicators: Maintenance (attention dot if issues), Bin (count badge if items)
 - [x] Bin for deleted books (soft-delete with 30-day restore) - unique feature, no competitors offer this
 - [ ] Book change history (activity log showing edits) - no competitors offer this, could be differentiator
-- [ ] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
-- [ ] Barcode scanner: Add audio beep fallback for iOS (Web Vibration API not supported on any iOS browser - all use WebKit)
+- [x] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
+- [x] Barcode scanner: Add audio beep fallback for iOS (Web Vibration API not supported on any iOS browser - all use WebKit)
 - [ ] Camera photo upload: Allow users to take a photo directly from device camera to add as book image (counts towards image limit)
 
 ### Image Lightbox UX Polish

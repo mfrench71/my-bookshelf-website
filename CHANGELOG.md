@@ -6,10 +6,18 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- Barcode scanner UX improvements:
+  - Add viewfinder frame with corner accents to guide barcode positioning
+  - Add loading spinner ("Starting camera...") while camera initialises
+  - Add audio beep on successful scan for iOS (vibration not supported)
+  - Fix camera not releasing after closing (force-stop video streams)
+  - Add escape key to close scanner modal
 - Add Book page polish:
   - Smooth crossfade transitions between search and form sections
-  - Fix barcode scanner not releasing camera after closing (force-stop video streams)
-  - Add escape key to close barcode scanner modal
+- Form navigation protection:
+  - In-app links (header, breadcrumbs) now show ConfirmSheet when form has unsaved changes
+  - Prevents accidental data loss with app-like confirmation dialog
+- Add `ConfirmSheet.show()` static method for Promise-based confirmations
 - Book view page improvements:
   - Author link now clickable (blue with arrow, filters book list by author)
   - Genre badges now clickable (filters book list by genre)
