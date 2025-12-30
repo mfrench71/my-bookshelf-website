@@ -30,7 +30,6 @@ const USED_ICONS = [
   'external-link',
   'file-text',
   'git-merge',
-  'github',
   'history',
   'home',
   'image',
