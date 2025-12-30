@@ -456,7 +456,7 @@ Filter panel is functional but transitions feel instant.
 - [x] Secondary filters: smooth height transition (max-height 0→auto)
 - [x] Chevron rotation animation (already done via class)
 - [ ] Dropdown options fade-in on open
-- [ ] Active filter chips: scale animation on add/remove
+- [x] Active filter chips: scale animation on add/remove
 
 **Mobile Gestures:**
 - [ ] Pull-to-refresh on book list triggers filter reset option
@@ -475,8 +475,8 @@ Search works but appears/disappears instantly.
 
 **Transitions & Animations:**
 - [x] Overlay fade in (opacity 0→1, 200ms)
-- [ ] Search input slide down from top
-- [ ] Results stagger animation (like book cards)
+- [x] Search input slide down from top
+- [x] Results stagger animation (like book cards)
 - [x] Close animation (fade out, 200ms)
 
 **Visual Polish:**
@@ -537,7 +537,7 @@ Widgets have skeleton loaders but swap is instant.
 **Transitions & Animations:**
 - [x] Skeleton fades out, content fades in (crossfade)
 - [x] Widget scroll snap with momentum (already done)
-- [ ] Empty state fade-in animation
+- [x] Empty state fade-in animation
 
 **Performance & Loading:**
 - [ ] Preload widget data during idle time

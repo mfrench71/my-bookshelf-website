@@ -4,6 +4,29 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-30
+
+- Accessibility testing and fixes:
+  - Add E2E accessibility tests for authenticated pages (using JS disabled mode)
+  - Fix duplicate h1 on books list page (sr-only h1 + aria-hidden visual headings)
+  - Expand accessibility test coverage to all pages (46 tests total)
+  - Standardise empty state styling across all pages (consistent icon, text, spacing)
+- UX polish animations:
+  - Search overlay: header slides down from top when opening
+  - Search results: stagger animation on book cards
+  - Filter chips: scale animation when appearing
+  - Empty states: fade-in animation across all pages
+- Document empty state styling standard in CLAUDE.md:
+  - Icon: `w-12 h-12 text-gray-300 mx-auto` (plain Lucide icon)
+  - Title: `text-gray-500 mt-3`
+  - Description: `text-gray-400 text-sm mt-1`
+  - Padding: `py-12` (page-level) or `py-8` (inline sections)
+- Enhance book card component:
+  - Add `className` option for custom CSS classes
+  - Add `animationDelay` option for stagger effects
+
+---
+
 ## 2025-12-29
 
 - Search UX improvements:

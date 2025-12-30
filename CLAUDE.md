@@ -224,7 +224,24 @@ Follow the colour scheme documented in PROJECT.md. Key rules:
 - **No native dialogs**: Never use `alert()`, `confirm()`, or `prompt()`. Always use BottomSheet for confirmations and custom UI for user input. Native dialogs break the app-like experience and can't be styled.
 - **Toasts**: Use `showToast(message, { type: 'success' | 'error' | 'info' })`
 - **Icons**: Use Lucide icons and call `initIcons()` after dynamic insertion
-- **Empty states**: Show helpful message with icon and action button where appropriate
+- **Empty states**: Consistent styling throughout the app:
+  ```html
+  <!-- Standard empty state pattern -->
+  <div class="text-center py-12">  <!-- py-8 for compact/inline sections -->
+    <i data-lucide="icon-name" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
+    <p class="text-gray-500 mt-3">Primary message</p>
+    <p class="text-gray-400 text-sm mt-1">Secondary explanation text.</p>
+    <!-- Optional action button -->
+    <a href="/action/" class="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
+      <i data-lucide="action-icon" class="w-4 h-4" aria-hidden="true"></i>
+      <span>Action Text</span>
+    </a>
+  </div>
+  ```
+  - **Icon**: Plain Lucide icon, `w-12 h-12 text-gray-300 mx-auto` (no colored circles)
+  - **Title**: `text-gray-500 mt-3`
+  - **Description**: `text-gray-400 text-sm mt-1`
+  - **Padding**: `py-12` for page-level, `py-8` for inline/compact sections
 - **Error states**: Red border, error message below input, clear on valid input
 
 ### App-Like UI Patterns
