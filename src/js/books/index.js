@@ -18,7 +18,6 @@ import {
   serializeTimestamp,
   clearBooksCache,
   throttle,
-  getBookStatus,
   setupVisibilityRefresh,
   setLastRefreshTime,
   lockBodyScroll,
@@ -31,6 +30,15 @@ import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
 import { filterActivebooks } from '../bin.js';
 import { FilterPanel } from '../components/filter-panel.js';
+import {
+  filterByRating,
+  filterByGenres,
+  filterByStatuses,
+  filterBySeriesIds,
+  filterByAuthor,
+} from '../utils/book-filters.js';
+import { sortBooks } from '../utils/book-sorters.js';
+import { getBookStatus } from '../utils/reading.js';
 
 // Initialize icons once on load
 initIcons();
@@ -507,62 +515,6 @@ function setupScrollObserver() {
 setupScrollObserver();
 
 /**
- * Extract surname (last word) for author sorting
- * @param {string} author - Full author name
- * @returns {string} Lowercase surname
- */
-function getAuthorSurname(author) {
-  if (!author) return '';
-  const parts = author.trim().split(/\s+/);
-  return parts[parts.length - 1].toLowerCase();
-}
-
-/**
- * Sort books array by specified key
- * @param {Array} booksArray - Array of book objects
- * @param {string} sortKey - Sort key in format 'field-direction' (e.g., 'title-asc')
- * @returns {Array} New sorted array (does not mutate original)
- */
-function sortBooks(booksArray, sortKey) {
-  // Special case: series order (sort by position, nulls at end)
-  if (sortKey === 'seriesPosition-asc') {
-    return [...booksArray].sort((a, b) => {
-      const aPos = a.seriesPosition;
-      const bPos = b.seriesPosition;
-      if (aPos === null && bPos === null) return 0;
-      if (aPos === null) return 1;
-      if (bPos === null) return -1;
-      return aPos - bPos;
-    });
-  }
-
-  const [field, direction] = sortKey.split('-');
-  return [...booksArray].sort((a, b) => {
-    let aVal, bVal;
-    switch (field) {
-      case 'title':
-        aVal = (a.title || '').toLowerCase();
-        bVal = (b.title || '').toLowerCase();
-        break;
-      case 'author':
-        // Sort by surname (last word of author name)
-        aVal = getAuthorSurname(a.author);
-        bVal = getAuthorSurname(b.author);
-        break;
-      case 'rating':
-        aVal = a.rating || 0;
-        bVal = b.rating || 0;
-        break;
-      default: // createdAt
-        aVal = a.createdAt || 0;
-        bVal = b.createdAt || 0;
-    }
-    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-    return direction === 'asc' ? comparison : -comparison;
-  });
-}
-
-/**
  * Show or hide the Series Order sort option in dropdowns
  * @param {boolean} showOption - Whether to show the option
  */
@@ -607,65 +559,6 @@ function restorePreviousSort() {
     previousSort = null;
     invalidateFilteredCache();
   }
-}
-
-/**
- * Filter books by rating (minimum threshold or unrated)
- * @param {Array} booksArray - Array of books to filter
- * @param {number|string} ratingValue - Minimum rating (1-5), 0 for all, or 'unrated'
- * @returns {Array} Filtered books array
- */
-function filterByRating(booksArray, ratingValue) {
-  if (ratingValue === 0) return booksArray;
-  if (ratingValue === 'unrated') {
-    return booksArray.filter(b => !b.rating || b.rating === 0);
-  }
-  return booksArray.filter(b => (b.rating || 0) >= ratingValue);
-}
-
-/**
- * Filter books by genre IDs (OR logic - any selected genre matches)
- * @param {Array} booksArray - Array of books to filter
- * @param {Array<string>} genreIds - Array of genre IDs to filter by
- * @returns {Array} Filtered books array
- */
-function filterByGenres(booksArray, genreIds) {
-  if (!genreIds || genreIds.length === 0) return booksArray;
-  return booksArray.filter(b => b.genres && b.genres.some(gId => genreIds.includes(gId)));
-}
-
-/**
- * Filter books by reading status (OR logic - any selected status matches)
- * @param {Array} booksArray - Array of books to filter
- * @param {Array<string>} statuses - Array of statuses ('reading', 'finished')
- * @returns {Array} Filtered books array
- */
-function filterByStatuses(booksArray, statuses) {
-  if (!statuses || statuses.length === 0) return booksArray;
-  return booksArray.filter(b => statuses.includes(getBookStatus(b)));
-}
-
-/**
- * Filter books by series IDs (OR logic - any selected series matches)
- * @param {Array} booksArray - Array of books to filter
- * @param {Array<string>} seriesIds - Array of series IDs to filter by
- * @returns {Array} Filtered books array
- */
-function filterBySeriesIds(booksArray, seriesIds) {
-  if (!seriesIds || seriesIds.length === 0) return booksArray;
-  return booksArray.filter(b => b.seriesId && seriesIds.includes(b.seriesId));
-}
-
-/**
- * Filter books by author name (case-insensitive exact match)
- * @param {Array} booksArray - Array of books to filter
- * @param {string} author - Author name to filter by
- * @returns {Array} Filtered books array
- */
-function filterByAuthor(booksArray, author) {
-  if (!author) return booksArray;
-  const authorLower = author.toLowerCase();
-  return booksArray.filter(b => b.author?.toLowerCase() === authorLower);
 }
 
 /**

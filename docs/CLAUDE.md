@@ -502,6 +502,9 @@ Common utilities are consolidated in shared modules:
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
 - `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
 - `utils/library-health.js` - analyzeLibraryHealth, calculateLibraryCompleteness, getCompletenessRating, fixBookFromAPI, fixBooksFromAPI, HEALTH_FIELDS
+- `utils/book-filters.js` - filterByRating, filterByGenres, filterByStatuses, filterBySeriesIds, filterByAuthor, applyFilters
+- `utils/book-sorters.js` - sortBooks, getAuthorSurname, SORT_OPTIONS, DEFAULT_SORT
+- `utils/reading.js` - getBookStatus (reading status calculation)
 
 Reusable UI components in `src/js/components/`:
 - `author-picker.js` - AuthorPicker class for single-select author input with library suggestions and book counts
