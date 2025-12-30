@@ -570,7 +570,8 @@ export class ConfirmSheet extends BottomSheet {
    */
   static createContainer() {
     const container = document.createElement('div');
-    container.className = 'hidden fixed inset-0 bg-black/50 z-50 p-4 lg:p-4';
+    // Mobile: bottom-aligned (items-end), Tablet+: centered (md:items-center md:justify-center)
+    container.className = 'hidden fixed inset-0 bg-black/50 z-50 flex items-end md:items-center md:justify-center p-4';
     document.body.appendChild(container);
     return container;
   }

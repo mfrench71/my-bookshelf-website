@@ -32,14 +32,26 @@ initIcons();
 const DUPLICATE_CHECK_LIMIT = 200;
 
 /**
- * Check if a string looks like an ISBN (10 or 13 digits, with optional dashes)
+ * Check if a string looks like an ISBN (10 or 13 digits, with optional dashes/spaces)
+ * Also handles common formats like "ISBN: 978-0-123456-78-9" or "ISBN-13: 9780123456789"
  * @param {string} input - The input to check
  * @returns {boolean} True if input matches ISBN pattern
  */
 function isISBN(input) {
   if (!input) return false;
-  const cleaned = input.replace(/[-\s]/g, '');
+  // Remove ISBN prefix, dashes, spaces, and colons
+  const cleaned = input.replace(/^isbn[-:\s]*(10|13)?[-:\s]*/i, '').replace(/[-\s]/g, '');
   return /^\d{10}$/.test(cleaned) || /^\d{13}$/.test(cleaned);
+}
+
+/**
+ * Clean an ISBN string by removing prefix, dashes, spaces
+ * @param {string} input - The ISBN input
+ * @returns {string} Clean ISBN digits only
+ */
+function cleanISBN(input) {
+  if (!input) return '';
+  return input.replace(/^isbn[-:\s]*(10|13)?[-:\s]*/i, '').replace(/[-\s]/g, '');
 }
 
 /**
@@ -160,6 +172,9 @@ function showFormSection(source = 'manual') {
   // Update data source display
   if (source === 'manual') {
     dataSourceEl.classList.add('hidden');
+    // Reset dirty flag for manual entry - user hasn't made changes yet
+    // (API lookups set formDirty = true when populating form data)
+    formDirty = false;
   } else {
     dataSourceEl.classList.remove('hidden');
     const sourceLabels = {
@@ -419,13 +434,13 @@ async function handleSearch() {
  * Handle ISBN lookup (from search input or barcode scan)
  */
 async function handleISBNLookup(isbn, fromScan = false) {
-  const cleanISBN = isbn.replace(/[-\s]/g, '');
+  const cleanedISBN = cleanISBN(isbn);
   showSearchStatus('Looking up ISBN...', 'info');
 
   try {
-    const bookData = await fetchBookByISBN(cleanISBN);
+    const bookData = await fetchBookByISBN(cleanedISBN);
     if (bookData) {
-      currentISBN = cleanISBN;
+      currentISBN = cleanedISBN;
 
       // Populate form
       titleInput.value = bookData.title || '';
