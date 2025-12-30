@@ -37,6 +37,7 @@ let isLoading = false;
 let forceServerFetch = false;
 let cachedFilteredBooks = null; // Cache for filtered/sorted results
 let isInitialLoad = true; // Flag to skip rendering during initial load (prevents double render)
+let hasTriggeredInitialFade = false; // Flag to trigger content fade-in only once
 let genres = []; // All user genres
 let genreLookup = null; // Map of genreId -> genre object
 let genreFilters = []; // Array of selected genre IDs for filtering (multi-select)
@@ -45,6 +46,7 @@ let seriesFilters = []; // Array of selected series IDs for filtering (multi-sel
 let authorFilter = ''; // Currently selected author for filtering (URL param only)
 let series = []; // All user series
 let seriesLookup = null; // Map of seriesId -> series object
+let lastFilterCount = null; // Track previous filter count for pulse animation
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -885,6 +887,12 @@ function renderBooks() {
 
   bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
 
+  // Trigger fade-in animation on first content render
+  if (!hasTriggeredInitialFade) {
+    bookList.classList.add('content-fade-in');
+    hasTriggeredInitialFade = true;
+  }
+
   if (hasMoreToDisplay) {
     bookList.innerHTML += `
       <div id="scroll-sentinel" class="py-6 flex justify-center">
@@ -1202,7 +1210,7 @@ function hasActiveFilters() {
 
 /**
  * Update filter count badge on mobile trigger button
- * Shows total number of active filter selections
+ * Shows total number of active filter selections with pulse animation on change
  */
 function updateFilterCountBadge() {
   if (!filterCountBadge) return;
@@ -1214,8 +1222,19 @@ function updateFilterCountBadge() {
                 seriesFilters.length +
                 (authorFilter !== '' ? 1 : 0);
 
+  const countChanged = lastFilterCount !== null && lastFilterCount !== count;
+
   filterCountBadge.textContent = count.toString();
   filterCountBadge.classList.toggle('hidden', count === 0);
+
+  // Pulse animation when count changes (not on initial load)
+  if (countChanged && count > 0) {
+    filterCountBadge.classList.remove('badge-pulse');
+    void filterCountBadge.offsetWidth; // Force reflow to restart animation
+    filterCountBadge.classList.add('badge-pulse');
+  }
+
+  lastFilterCount = count;
 }
 
 /**

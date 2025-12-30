@@ -216,19 +216,29 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // Update wishlist count badge in menu
+let lastWishlistCount = null;
 async function updateWishlistBadge(userId) {
   try {
     const count = await getWishlistCount(userId);
     const badges = [wishlistCountMobile, wishlistCountDesktop].filter(Boolean);
+    const countChanged = lastWishlistCount !== null && lastWishlistCount !== count;
 
     badges.forEach(badge => {
       if (count > 0) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.classList.remove('hidden');
+        // Pulse animation when count changes
+        if (countChanged) {
+          badge.classList.remove('badge-pulse');
+          void badge.offsetWidth; // Force reflow to restart animation
+          badge.classList.add('badge-pulse');
+        }
       } else {
         badge.classList.add('hidden');
       }
     });
+
+    lastWishlistCount = count;
   } catch (e) {
     console.warn('Failed to load wishlist count:', e.message);
   }
@@ -565,9 +575,15 @@ function performSearch(queryText) {
     return;
   }
 
-  // Hide skeleton, show results
+  // Hide skeleton, show results with fade-in animation
   if (searchLoading) searchLoading.classList.add('hidden');
-  if (searchResults) searchResults.classList.remove('hidden');
+  if (searchResults) {
+    searchResults.classList.remove('hidden');
+    // Trigger fade-in animation
+    searchResults.classList.remove('content-fade-in');
+    void searchResults.offsetWidth; // Force reflow to restart animation
+    searchResults.classList.add('content-fade-in');
+  }
 
   // Search across multiple fields (title, author, ISBN, series, notes, publisher)
   const results = books.filter(b => {
