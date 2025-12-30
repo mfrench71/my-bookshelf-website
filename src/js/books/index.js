@@ -31,6 +31,7 @@ import {
 } from '../utils/book-filters.js';
 import { sortBooks } from '../utils/book-sorters.js';
 import { getBookStatus } from '../utils/reading.js';
+import { parseUrlFilters, updateUrlWithFilters as updateUrl, clearUrlFilters } from '../utils/url-state.js';
 
 // Initialize icons once on load
 initIcons();
@@ -97,78 +98,36 @@ let mobilePanel = null;
  * Supports sort, rating, status, genres, series, and author filters
  */
 function applyUrlFilters() {
-  const params = new URLSearchParams(window.location.search);
+  const urlState = parseUrlFilters(window.location.search);
 
-  // Status filter (comma-separated for multi-select)
-  const status = params.get('status');
-  if (status) {
-    statusFilters = status.split(',').filter(Boolean);
+  // Apply URL values to module state
+  if (urlState.statuses) statusFilters = urlState.statuses;
+  if (urlState.rating !== undefined) ratingFilter = urlState.rating;
+  if (urlState.sort) {
+    currentSort = urlState.sort;
+    if (sortSelectMobile) sortSelectMobile.value = urlState.sort;
   }
-
-  // Rating filter (supports 'unrated')
-  const rating = params.get('rating');
-  if (rating) {
-    ratingFilter = rating === 'unrated' ? 'unrated' : parseInt(rating, 10) || 0;
-  }
-
-  // Sort order
-  const sort = params.get('sort');
-  if (sort) {
-    currentSort = sort;
-    if (sortSelectMobile) sortSelectMobile.value = sort;
-  }
-
-  // Genre filter (comma-separated for multi-select)
-  const genres = params.get('genres');
-  if (genres) {
-    genreFilters = genres.split(',').filter(Boolean);
-  }
-
-  // Series filter (comma-separated for multi-select)
-  const seriesParam = params.get('series');
-  if (seriesParam) {
-    seriesFilters = seriesParam.split(',').filter(Boolean);
-  }
-
-  // Author filter (URL param only)
-  const author = params.get('author');
-  if (author) {
-    authorFilter = author;
-  }
+  if (urlState.genres) genreFilters = urlState.genres;
+  if (urlState.series) seriesFilters = urlState.series;
+  if (urlState.author) authorFilter = urlState.author;
 
   // Update author filter badge visibility
   renderActiveFilterChips();
 }
 
 /**
- * Build URLSearchParams from current filter state
- * Only includes non-default values for clean URLs
- * @returns {URLSearchParams} URL parameters object
+ * Get current filter state as an object for URL serialization
+ * @returns {import('../utils/url-state.js').FilterState} Current filter state
  */
-function buildFilterParams() {
-  const params = new URLSearchParams();
-
-  // Only add non-default values to keep URLs clean
-  if (currentSort !== 'createdAt-desc') {
-    params.set('sort', currentSort);
-  }
-  if (ratingFilter && ratingFilter !== 0) {
-    params.set('rating', ratingFilter);
-  }
-  if (statusFilters.length > 0) {
-    params.set('status', statusFilters.join(','));
-  }
-  if (genreFilters.length > 0) {
-    params.set('genres', genreFilters.join(','));
-  }
-  if (seriesFilters.length > 0) {
-    params.set('series', seriesFilters.join(','));
-  }
-  if (authorFilter) {
-    params.set('author', authorFilter);
-  }
-
-  return params;
+function getCurrentFilterState() {
+  return {
+    sort: currentSort,
+    rating: ratingFilter,
+    statuses: statusFilters,
+    genres: genreFilters,
+    series: seriesFilters,
+    author: authorFilter,
+  };
 }
 
 /**
@@ -176,10 +135,7 @@ function buildFilterParams() {
  * Uses replaceState to avoid adding to history
  */
 function updateUrlWithFilters() {
-  const params = buildFilterParams();
-  const newUrl = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
-
-  window.history.replaceState({}, '', newUrl);
+  updateUrl(getCurrentFilterState());
 }
 
 // Apply URL filters on page load
@@ -1345,9 +1301,7 @@ async function resetAllFilters() {
   renderActiveFilterChips();
 
   // Clear URL params (including series)
-  if (window.location.search) {
-    window.history.replaceState({}, '', window.location.pathname);
-  }
+  clearUrlFilters();
 
   if (needsRefetch) {
     clearCache();
