@@ -14,6 +14,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.js'],
     include: ['tests/**/*.test.{js,ts}'],
+    exclude: ['tests/emulator/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
