@@ -118,21 +118,18 @@ let seriesPicker = null;
 let authorPicker = null;
 let imageGallery = null;
 let scannerRunning = false;
-let _formDirty = false;
 let beforeUnloadHandler = null;
 let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false;
 let wishlistLookup = null;
 let currentISBN = ''; // Track ISBN from lookup (since there's no input field now)
-let _dataSource = 'manual'; // 'manual' | 'google' | 'openlibrary' | 'scan'
 
 // DOM Elements - Search Section
 const searchSection = document.getElementById('search-section');
 const bookSearchInput = document.getElementById('book-search');
 const searchBtn = document.getElementById('book-search-btn');
 const clearSearchBtn = document.getElementById('clear-search');
-const _searchHint = document.getElementById('search-hint');
 const searchStatus = document.getElementById('search-status');
 const searchResultsDiv = document.getElementById('book-search-results');
 const resultsCount = document.getElementById('results-count');
@@ -226,8 +223,6 @@ function showSearchSection() {
  * @param {string} source - Data source: 'manual' | 'google' | 'openlibrary' | 'scan'
  */
 function showFormSection(source = 'manual') {
-  _dataSource = source;
-
   // Animate search out
   searchSection.classList.add('section-exit');
 
@@ -239,8 +234,6 @@ function showFormSection(source = 'manual') {
     if (source === 'manual') {
       dataSourceEl.classList.add('hidden');
       // Reset dirty flag for manual entry - user hasn't made changes yet
-      // (API lookups set _formDirty = true when populating form data)
-      _formDirty = false;
     } else {
       dataSourceEl.classList.remove('hidden');
       const sourceLabels = {
@@ -271,7 +264,6 @@ function doStartOver() {
   // Reset form
   bookForm.reset();
   currentISBN = '';
-  _dataSource = 'manual';
   duplicateCheckBypassed = false;
   apiGenreSuggestions = [];
 
@@ -286,7 +278,6 @@ function doStartOver() {
   if (imageGallery) imageGallery.cleanupUnsavedUploads();
 
   // Reset formDirty AFTER pickers (their onChange callbacks set it to true)
-  _formDirty = false;
 
   // Reset submit button state
   submitBtn.disabled = true;
@@ -356,9 +347,7 @@ function initRatingInput() {
   ratingInput = new RatingInput({
     container: ratingInputContainer,
     value: 0,
-    onChange: () => {
-      _formDirty = true;
-    },
+    onChange: () => {},
   });
 }
 
@@ -369,9 +358,7 @@ async function initGenrePicker() {
   genrePicker = new GenrePicker({
     container: genrePickerContainer,
     userId: currentUser.uid,
-    onChange: () => {
-      _formDirty = true;
-    },
+    onChange: () => {},
   });
 
   await genrePicker.init();
@@ -401,9 +388,7 @@ async function initSeriesPicker() {
   seriesPicker = new SeriesPicker({
     container: seriesPickerContainer,
     userId: currentUser.uid,
-    onChange: () => {
-      _formDirty = true;
-    },
+    onChange: () => {},
   });
 
   await seriesPicker.init();
@@ -417,7 +402,6 @@ async function initAuthorPicker() {
     container: authorPickerContainer,
     userId: currentUser.uid,
     onChange: () => {
-      _formDirty = true;
       updateSubmitButtonState();
     },
   });
@@ -433,7 +417,6 @@ function initCoverPicker() {
     container: coverPickerContainer,
     onSelect: url => {
       coverUrlInput.value = url;
-      _formDirty = true;
       // Show hint if multiple covers available
       const covers = coverPicker.getCovers();
       const hasMultiple = covers.googleBooks && covers.openLibrary;
@@ -460,9 +443,7 @@ function initImageGallery() {
         }
       }
     },
-    onChange: () => {
-      _formDirty = true;
-    },
+    onChange: () => {},
   });
 }
 
@@ -548,7 +529,6 @@ async function handleISBNLookup(isbn, fromScan = false) {
       pageCountInput.value = bookData.pageCount || '';
       setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
 
-      _formDirty = true;
       updateSubmitButtonState();
 
       // Show form with data source
@@ -871,7 +851,6 @@ async function selectSearchResult(el) {
   // Set covers in picker
   setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);
 
-  _formDirty = true;
   updateSubmitButtonState();
 
   // Show form
@@ -1195,7 +1174,6 @@ function updateSubmitButtonState() {
 
 // Update submit button state when title changes
 titleInput?.addEventListener('input', () => {
-  _formDirty = true;
   updateSubmitButtonState();
 });
 
@@ -1327,7 +1305,6 @@ bookForm.addEventListener('submit', async e => {
       await updateSeriesBookCounts(currentUser.uid, selectedSeries.seriesId, null);
     }
 
-    _formDirty = false;
     duplicateCheckBypassed = false;
 
     // Mark uploaded images as saved (prevents cleanup on navigation)
@@ -1365,7 +1342,6 @@ bookForm.addEventListener('submit', async e => {
 // Track unsaved changes and reset duplicate bypass when form changes
 document.querySelectorAll('#book-form input, #book-form textarea, #book-form select').forEach(el =>
   el.addEventListener('input', () => {
-    _formDirty = true;
     // Reset duplicate bypass if user changes title or author
     if (['title', 'author'].includes(el.id)) {
       if (duplicateCheckBypassed) {
@@ -1412,7 +1388,6 @@ interceptNavigation({
     }),
   onBeforeNavigate: () => {
     // Clear dirty flag to prevent beforeunload from also triggering
-    _formDirty = false;
     if (imageGallery?.hasUnsavedUploads()) {
       imageGallery.cleanupUnsavedUploads();
     }

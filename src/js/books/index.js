@@ -1049,17 +1049,7 @@ function initializeFilterPanels() {
 async function handleSidebarFilterChange(filters) {
   const sortChanged = filters.sort !== currentSort;
   const wasSeriesFiltered = seriesFilters.length > 0;
-  const _isSeriesFiltered = filters.seriesIds.length > 0;
   const hasSingleSeries = filters.seriesIds.length === 1;
-
-  // Detect if this is a reset (all filters at default values)
-  const _isReset =
-    filters.sort === 'createdAt-desc' &&
-    filters.rating === 0 &&
-    filters.genres.length === 0 &&
-    filters.statuses.length === 0 &&
-    filters.seriesIds.length === 0 &&
-    !filters.author;
 
   // Update global filter state (arrays for multi-select)
   currentSort = filters.sort;
@@ -1112,16 +1102,7 @@ async function applyMobileFilters(keepSheetOpen = false) {
 
   const filters = mobilePanel.getFilters();
   const wasSeriesFiltered = seriesFilters.length > 0;
-  const _isSeriesFiltered = filters.seriesIds.length > 0;
   const hasSingleSeries = filters.seriesIds.length === 1;
-
-  // Detect if this is a reset (all filters at default values)
-  const _isReset =
-    filters.rating === 0 &&
-    filters.genres.length === 0 &&
-    filters.statuses.length === 0 &&
-    filters.seriesIds.length === 0 &&
-    !filters.author;
 
   // Update global filter state (sort comes from mobile header, not panel)
   ratingFilter = filters.rating;
