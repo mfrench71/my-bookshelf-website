@@ -31,6 +31,17 @@ initIcons();
 const DUPLICATE_CHECK_LIMIT = 200;
 
 /**
+ * Check if a string looks like an ISBN (10 or 13 digits, with optional dashes)
+ * @param {string} input - The input to check
+ * @returns {boolean} True if input matches ISBN pattern
+ */
+function isISBN(input) {
+  if (!input) return false;
+  const cleaned = input.replace(/[-\s]/g, '');
+  return /^\d{10}$/.test(cleaned) || /^\d{13}$/.test(cleaned);
+}
+
+/**
  * Check if a book with the same ISBN or title/author already exists
  * @param {string} userId - The user's ID
  * @param {string} isbn - ISBN to check (optional)
@@ -82,39 +93,28 @@ let formDirty = false;
 let beforeUnloadHandler = null;
 let genrePicker = null;
 let apiGenreSuggestions = [];
-let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
-let wishlistLookup = null; // Map of ISBN -> wishlist item
+let duplicateCheckBypassed = false;
+let wishlistLookup = null;
+let currentISBN = ''; // Track ISBN from lookup (since there's no input field now)
+let dataSource = 'manual'; // 'manual' | 'google' | 'openlibrary' | 'scan'
 
-/**
- * Check if book form has minimum required data (title and author)
- */
-function isFormValid() {
-  if (!titleInput?.value?.trim()) return false;
-  if (!authorInput?.value?.trim()) return false;
-  return true;
-}
-
-/**
- * Update submit button state based on form validity
- */
-function updateSubmitButtonState() {
-  const isValid = isFormValid();
-  submitBtn.disabled = !isValid;
-  submitBtn.classList.toggle('opacity-50', !isValid);
-  submitBtn.classList.toggle('cursor-not-allowed', !isValid);
-}
-
-// DOM Elements
-const scanBtn = document.getElementById('scan-btn');
-const scannerModal = document.getElementById('scanner-modal');
-const closeScannerBtn = document.getElementById('close-scanner');
-const scannerContainer = document.getElementById('scanner-container');
-const isbnInput = document.getElementById('isbn-input');
-const lookupBtn = document.getElementById('lookup-btn');
-const lookupStatus = document.getElementById('lookup-status');
+// DOM Elements - Search Section
+const searchSection = document.getElementById('search-section');
 const bookSearchInput = document.getElementById('book-search');
-const searchResultsDiv = document.getElementById('book-search-results');
+const searchBtn = document.getElementById('search-btn');
 const clearSearchBtn = document.getElementById('clear-search');
+const searchHint = document.getElementById('search-hint');
+const searchStatus = document.getElementById('search-status');
+const searchResultsDiv = document.getElementById('book-search-results');
+const resultsCount = document.getElementById('results-count');
+const resultsList = document.getElementById('results-list');
+const addManuallyBtn = document.getElementById('add-manually-btn');
+
+// DOM Elements - Form Section
+const formSection = document.getElementById('form-section');
+const dataSourceEl = document.getElementById('data-source');
+const dataSourceText = document.getElementById('data-source-text');
+const startOverBtn = document.getElementById('start-over-btn');
 const bookForm = document.getElementById('book-form');
 const titleInput = document.getElementById('title');
 const authorInput = document.getElementById('author');
@@ -131,6 +131,90 @@ const submitBtn = document.getElementById('submit-btn');
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 const seriesPickerContainer = document.getElementById('series-picker-container');
+
+// Scanner DOM Elements
+const scanBtn = document.getElementById('scan-btn');
+const scannerModal = document.getElementById('scanner-modal');
+const closeScannerBtn = document.getElementById('close-scanner');
+const scannerContainer = document.getElementById('scanner-container');
+
+/**
+ * Show the search section and hide form
+ */
+function showSearchSection() {
+  searchSection.classList.remove('hidden');
+  formSection.classList.add('hidden');
+  bookSearchInput.focus();
+}
+
+/**
+ * Show the form section and hide search
+ * @param {string} source - Data source: 'manual' | 'google' | 'openlibrary' | 'scan'
+ */
+function showFormSection(source = 'manual') {
+  dataSource = source;
+  searchSection.classList.add('hidden');
+  formSection.classList.remove('hidden');
+
+  // Update data source display
+  if (source === 'manual') {
+    dataSourceEl.classList.add('hidden');
+  } else {
+    dataSourceEl.classList.remove('hidden');
+    const sourceLabels = {
+      google: 'Found via Google Books',
+      openlibrary: 'Found via Open Library',
+      scan: 'Found via barcode scan'
+    };
+    dataSourceText.textContent = sourceLabels[source] || 'Book data loaded';
+  }
+
+  initIcons();
+  titleInput.focus();
+}
+
+/**
+ * Reset form and return to search
+ */
+function startOver() {
+  // Confirm if form has data
+  if (formDirty) {
+    if (!confirm('Discard current book data and start over?')) {
+      return;
+    }
+  }
+
+  // Reset form
+  bookForm.reset();
+  currentISBN = '';
+  dataSource = 'manual';
+  formDirty = false;
+  duplicateCheckBypassed = false;
+  apiGenreSuggestions = [];
+
+  // Reset pickers
+  if (ratingInput) ratingInput.setValue(0);
+  if (coverPicker) coverPicker.setCovers(null);
+  if (genrePicker) genrePicker.clear();
+  if (seriesPicker) seriesPicker.clear();
+  if (imageGallery) imageGallery.cleanupUnsavedUploads();
+
+  // Reset submit button state
+  submitBtn.disabled = true;
+  submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  submitBtn.textContent = 'Add Book';
+  submitBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+  submitBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
+
+  // Clear search
+  bookSearchInput.value = '';
+  searchResultsDiv.classList.add('hidden');
+  resultsList.innerHTML = '';
+  clearSearchBtn.classList.add('hidden');
+  searchStatus.classList.add('hidden');
+
+  showSearchSection();
+}
 
 // Auth Check - header.js handles redirect, just capture user
 onAuthStateChanged(auth, async (user) => {
@@ -275,54 +359,77 @@ function setSeriesSuggestion(seriesName, seriesPosition) {
   }
 }
 
-// ISBN Lookup
-lookupBtn.addEventListener('click', handleISBNLookup);
-isbnInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    handleISBNLookup();
-  }
-});
+/**
+ * Show search status message
+ */
+function showSearchStatus(message, type = 'info') {
+  searchStatus.textContent = message;
+  searchStatus.classList.remove('hidden', 'text-gray-500', 'text-green-600', 'text-red-600');
+  searchStatus.classList.add(
+    type === 'success' ? 'text-green-600' :
+    type === 'error' ? 'text-red-600' : 'text-gray-500'
+  );
+}
 
-async function handleISBNLookup() {
-  const isbn = isbnInput.value.trim().replace(/-/g, '');
-  if (!isbn) {
-    showStatus('Please enter an ISBN', 'error');
+function hideSearchStatus() {
+  searchStatus.classList.add('hidden');
+}
+
+/**
+ * Handle unified search - detects ISBN vs title/author
+ */
+async function handleSearch() {
+  const input = bookSearchInput.value.trim();
+  if (!input) {
+    searchResultsDiv.classList.add('hidden');
+    hideSearchStatus();
     return;
   }
 
-  lookupBtn.disabled = true;
-  lookupBtn.textContent = 'Looking up...';
-  showStatus('Searching...', 'info');
+  if (isISBN(input)) {
+    // ISBN detected - do direct lookup
+    await handleISBNLookup(input);
+  } else if (input.length >= 2) {
+    // Text search
+    await searchBooks(input);
+  }
+}
+
+/**
+ * Handle ISBN lookup (from search input or barcode scan)
+ */
+async function handleISBNLookup(isbn, fromScan = false) {
+  const cleanISBN = isbn.replace(/[-\s]/g, '');
+  showSearchStatus('Looking up ISBN...', 'info');
 
   try {
-    const bookData = await fetchBookByISBN(isbn);
+    const bookData = await fetchBookByISBN(cleanISBN);
     if (bookData) {
+      currentISBN = cleanISBN;
+
+      // Populate form
       titleInput.value = bookData.title || '';
       authorInput.value = bookData.author || '';
-      // Set covers in picker
       setCoverPickerCovers(bookData.covers);
-      // Populate additional fields
       publisherInput.value = bookData.publisher || '';
       publishedDateInput.value = bookData.publishedDate || '';
       physicalFormatInput.value = bookData.physicalFormat || '';
       pageCountInput.value = bookData.pageCount || '';
-      // Show series if detected
       setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
-      showStatus('Book found!', 'success');
+
       formDirty = true;
       updateSubmitButtonState();
+
+      // Show form with data source
+      const source = fromScan ? 'scan' : (bookData.source || 'google');
+      showFormSection(source);
+      showToast('Book found!', { type: 'success' });
     } else {
-      showStatus('Book not found. Try entering details manually.', 'error');
-      setCoverPickerCovers(null); // Clear picker
-      setSeriesSuggestion(null, null); // Clear series
+      showSearchStatus('Book not found. Try searching by title or add manually.', 'error');
     }
   } catch (error) {
-    console.error('Lookup error:', error);
-    showStatus('Error looking up ISBN', 'error');
-  } finally {
-    lookupBtn.disabled = false;
-    lookupBtn.textContent = 'Lookup';
+    console.error('ISBN lookup error:', error);
+    showSearchStatus('Error looking up ISBN. Please try again.', 'error');
   }
 }
 
@@ -332,15 +439,6 @@ async function fetchBookByISBN(isbn) {
     updateGenreSuggestions(result.genres);
   }
   return result;
-}
-
-function showStatus(message, type) {
-  lookupStatus.textContent = message;
-  lookupStatus.classList.remove('hidden', 'text-gray-500', 'text-green-600', 'text-red-600');
-  lookupStatus.classList.add(
-    type === 'success' ? 'text-green-600' :
-    type === 'error' ? 'text-red-600' : 'text-gray-500'
-  );
 }
 
 // Book Search State
@@ -368,7 +466,7 @@ function setupSearchScrollObserver() {
         console.error('Error loading more results:', e);
       }
     }
-  }, { root: searchResultsDiv, rootMargin: '50px' });
+  }, { root: resultsList, rootMargin: '50px' });
 }
 
 setupSearchScrollObserver();
@@ -377,9 +475,11 @@ setupSearchScrollObserver();
 async function searchBooks(query) {
   if (!query || query.length < 2) {
     searchResultsDiv.classList.add('hidden');
-    searchResultsDiv.innerHTML = '';
+    resultsList.innerHTML = '';
     return;
   }
+
+  hideSearchStatus();
 
   // Reset search state for new query
   searchState = {
@@ -395,8 +495,8 @@ async function searchBooks(query) {
   apiGenreSuggestions = [];
 
   // Show skeleton loaders
-  searchResultsDiv.innerHTML = Array(3).fill(`
-    <div class="flex gap-3 p-2 border border-gray-100 rounded-lg">
+  resultsList.innerHTML = Array(3).fill(`
+    <div class="flex gap-3 p-3 border-b border-gray-100">
       <div class="skeleton w-12 h-18 rounded flex-shrink-0"></div>
       <div class="flex-1 space-y-2">
         <div class="skeleton h-4 w-3/4 rounded"></div>
@@ -410,7 +510,8 @@ async function searchBooks(query) {
   const result = await fetchSearchResults();
 
   if (!result.books.length) {
-    searchResultsDiv.innerHTML = `
+    resultsCount.textContent = 'No results';
+    resultsList.innerHTML = `
       <div class="py-8 text-center">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto"></i>
         <p class="text-gray-500 mt-3">No books found</p>
@@ -421,6 +522,7 @@ async function searchBooks(query) {
     return;
   }
 
+  resultsCount.textContent = `${result.books.length} result${result.books.length !== 1 ? 's' : ''}`;
   renderSearchResults(result.books, false);
   searchState.startIndex = SEARCH_PAGE_SIZE;
   searchState.hasMore = result.hasMore;
@@ -449,7 +551,7 @@ async function loadMoreSearchResults() {
   searchState.loading = true;
 
   // Add loading indicator
-  const sentinel = searchResultsDiv.querySelector('#search-sentinel');
+  const sentinel = resultsList.querySelector('#search-sentinel');
   if (sentinel) {
     sentinel.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>';
   }
@@ -459,6 +561,7 @@ async function loadMoreSearchResults() {
   if (result.books.length > 0) {
     renderSearchResults(result.books, true);
     searchState.startIndex += result.books.length;
+    resultsCount.textContent = `${searchState.startIndex} results`;
   }
 
   searchState.hasMore = result.hasMore;
@@ -470,7 +573,7 @@ function renderSearchResults(books, append = false) {
     const hasCover = book.cover && isValidImageUrl(book.cover);
     const isWishlisted = book.isbn && wishlistLookup?.has(book.isbn);
     return `
-    <div class="search-result flex gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100"
+    <div class="search-result flex gap-3 p-3 hover:bg-gray-50 cursor-pointer"
          data-title="${escapeAttr(book.title)}"
          data-author="${escapeAttr(book.author)}"
          data-cover="${hasCover ? escapeAttr(book.cover) : ''}"
@@ -501,17 +604,17 @@ function renderSearchResults(books, append = false) {
 
   // Remove old sentinel if appending
   if (append) {
-    const oldSentinel = searchResultsDiv.querySelector('#search-sentinel');
+    const oldSentinel = resultsList.querySelector('#search-sentinel');
     if (oldSentinel) oldSentinel.remove();
   }
 
   if (append) {
-    searchResultsDiv.insertAdjacentHTML('beforeend', html);
+    resultsList.insertAdjacentHTML('beforeend', html);
   } else {
-    searchResultsDiv.innerHTML = html;
+    resultsList.innerHTML = html;
 
     // Set up click delegation once
-    searchResultsDiv.onclick = (e) => {
+    resultsList.onclick = (e) => {
       // Handle wishlist button click
       const wishlistBtn = e.target.closest('.wishlist-btn');
       if (wishlistBtn) {
@@ -529,12 +632,12 @@ function renderSearchResults(books, append = false) {
 
   // Add sentinel for infinite scroll if there are more results
   if (searchState.hasMore) {
-    searchResultsDiv.insertAdjacentHTML('beforeend', `
+    resultsList.insertAdjacentHTML('beforeend', `
       <div id="search-sentinel" class="py-3 text-center text-xs text-gray-400">
         Scroll for more...
       </div>
     `);
-    const sentinel = searchResultsDiv.querySelector('#search-sentinel');
+    const sentinel = resultsList.querySelector('#search-sentinel');
     if (sentinel) searchScrollObserver.observe(sentinel);
   }
 
@@ -544,11 +647,9 @@ function renderSearchResults(books, append = false) {
 async function selectSearchResult(el) {
   const { title, author, cover, publisher, published, isbn, pagecount, categories } = el.dataset;
 
+  currentISBN = isbn || '';
   titleInput.value = title;
   authorInput.value = author;
-  if (isbn) {
-    isbnInput.value = isbn;
-  }
 
   // Extract and suggest genres from categories (parse through normalizer)
   if (categories) {
@@ -572,6 +673,8 @@ async function selectSearchResult(el) {
   // If we have an ISBN, use lookupISBN to get complete data from both APIs
   // This ensures we get covers from both Google Books and Open Library
   let covers = {};
+  let source = 'google';
+
   if (isbn) {
     try {
       const bookData = await lookupISBN(isbn);
@@ -596,6 +699,8 @@ async function selectSearchResult(el) {
         if (bookData.seriesName) {
           setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
         }
+
+        source = bookData.source || 'google';
       }
     } catch (e) {
       console.error('ISBN lookup error:', e);
@@ -614,13 +719,12 @@ async function selectSearchResult(el) {
   // Set covers in picker
   setCoverPickerCovers(Object.keys(covers).length > 0 ? covers : null);
 
-  bookSearchInput.value = '';
-  searchResultsDiv.classList.add('hidden');
-  searchResultsDiv.innerHTML = '';
-
-  showToast('Book selected!', { type: 'success' });
   formDirty = true;
   updateSubmitButtonState();
+
+  // Show form
+  showFormSection(source);
+  showToast('Book selected!', { type: 'success' });
 }
 
 /**
@@ -692,15 +796,34 @@ async function handleAddToWishlist(resultEl, btn) {
   }
 }
 
-// Debounced search with error handling
+// Search button click
+searchBtn.addEventListener('click', handleSearch);
+
+// Enter key in search input
+bookSearchInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleSearch();
+  }
+});
+
+// Debounced search on input (only for text, not ISBN)
 const debouncedSearch = debounce(async (query) => {
+  // Don't auto-search ISBNs - wait for explicit Go/Enter
+  if (isISBN(query)) {
+    hideSearchStatus();
+    searchResultsDiv.classList.add('hidden');
+    return;
+  }
+
   try {
     await searchBooks(query);
   } catch (error) {
     console.error('Search error:', error);
-    searchResultsDiv.innerHTML = '<p class="text-sm text-red-500">Search failed. Please try again.</p>';
+    resultsList.innerHTML = '<p class="p-3 text-sm text-red-500">Search failed. Please try again.</p>';
   }
 }, 300);
+
 bookSearchInput.addEventListener('input', () => {
   const query = bookSearchInput.value.trim();
   debouncedSearch(query);
@@ -712,8 +835,9 @@ bookSearchInput.addEventListener('input', () => {
 clearSearchBtn.addEventListener('click', () => {
   bookSearchInput.value = '';
   searchResultsDiv.classList.add('hidden');
-  searchResultsDiv.innerHTML = '';
+  resultsList.innerHTML = '';
   clearSearchBtn.classList.add('hidden');
+  hideSearchStatus();
   // Reset search state
   searchState = {
     query: '',
@@ -725,6 +849,14 @@ clearSearchBtn.addEventListener('click', () => {
   };
   bookSearchInput.focus();
 });
+
+// Add manually button
+addManuallyBtn.addEventListener('click', () => {
+  showFormSection('manual');
+});
+
+// Start over button
+startOverBtn.addEventListener('click', startOver);
 
 // Barcode Scanner using Quagga2 - optimized for iOS
 scanBtn.addEventListener('click', openScanner);
@@ -811,9 +943,8 @@ function startQuagga() {
       if (navigator.vibrate) navigator.vibrate(100);
 
       closeScanner();
-      isbnInput.value = code;
       showToast('Scanned: ' + code, { type: 'success' });
-      handleISBNLookup();
+      handleISBNLookup(code, true);
     });
   });
 }
@@ -833,6 +964,25 @@ function closeScanner() {
   }
 
   scannerContainer.innerHTML = '';
+}
+
+/**
+ * Check if book form has minimum required data (title and author)
+ */
+function isFormValid() {
+  if (!titleInput?.value?.trim()) return false;
+  if (!authorInput?.value?.trim()) return false;
+  return true;
+}
+
+/**
+ * Update submit button state based on form validity
+ */
+function updateSubmitButtonState() {
+  const isValid = isFormValid();
+  submitBtn.disabled = !isValid;
+  submitBtn.classList.toggle('opacity-50', !isValid);
+  submitBtn.classList.toggle('cursor-not-allowed', !isValid);
 }
 
 // Update submit button state when title or author changes
@@ -868,7 +1018,7 @@ bookForm.addEventListener('submit', async (e) => {
 
   const title = titleInput.value.trim();
   const author = authorInput.value.trim();
-  const isbn = isbnInput.value.trim().replace(/-/g, '');
+  const isbn = currentISBN;
 
   // Validate form data
   const formData = {
@@ -889,7 +1039,6 @@ bookForm.addEventListener('submit', async (e) => {
     // Show field-level errors
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
     if (validation.errors.author) showFieldError(authorInput, validation.errors.author);
-    if (validation.errors.isbn) showFieldError(isbnInput, validation.errors.isbn);
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
@@ -1011,8 +1160,8 @@ bookForm.addEventListener('submit', async (e) => {
 document.querySelectorAll('#book-form input, #book-form textarea, #book-form select')
   .forEach(el => el.addEventListener('input', () => {
     formDirty = true;
-    // Reset duplicate bypass if user changes title, author, or ISBN
-    if (['title', 'author', 'isbn-input'].includes(el.id)) {
+    // Reset duplicate bypass if user changes title or author
+    if (['title', 'author'].includes(el.id)) {
       if (duplicateCheckBypassed) {
         duplicateCheckBypassed = false;
         submitBtn.textContent = 'Add Book';
@@ -1035,13 +1184,9 @@ beforeUnloadHandler = (e) => {
 };
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
-// Cleanup unsaved image uploads when leaving page (best effort)
-// Note: This may not complete if page unloads quickly - Cloud Function handles orphans
+// Cleanup on page hide (best-effort)
 window.addEventListener('pagehide', () => {
-  if (imageGallery?.hasUnsavedUploads()) {
-    // Fire and forget - can't await during page unload
-    imageGallery.cleanupUnsavedUploads().catch(err => {
-      console.error('Failed to cleanup unsaved uploads:', err);
-    });
+  if (imageGallery && formDirty) {
+    imageGallery.cleanupUnsavedUploads();
   }
 });

@@ -22,128 +22,149 @@ scripts: '<script type="module" src="/js/books/add.js"></script>'
 </div>
 
 <div class="max-w-2xl mx-auto px-4 py-6">
-  <!-- Scan Button -->
-  <button id="scan-btn"
-    class="w-full flex items-center justify-center gap-3 py-4 px-4 bg-primary text-white rounded-xl mb-6 hover:bg-primary-dark transition-colors">
-    <i data-lucide="scan-line" class="w-6 h-6"></i>
-    <span class="font-medium">Scan ISBN Barcode</span>
-  </button>
+  <!-- Search Section -->
+  <div id="search-section">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Find Your Book</h2>
 
-  <!-- ISBN Lookup -->
-  <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-    <label for="isbn-input" class="block font-semibold text-gray-700 mb-2">Lookup by ISBN</label>
-    <div class="flex gap-2">
-      <input type="text" id="isbn-input" placeholder="Enter ISBN..." inputmode="numeric"
-        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      <button id="lookup-btn"
-        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
-        Lookup
+    <!-- Unified Search Input -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+      <div class="flex gap-2">
+        <button id="scan-btn" type="button"
+          class="flex-shrink-0 p-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+          aria-label="Scan barcode">
+          <i data-lucide="scan-line" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <div class="relative flex-1">
+          <input type="text" id="book-search"
+            placeholder="Search by ISBN, title, or author..."
+            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none min-h-[48px]"
+            autocomplete="off">
+          <button type="button" id="clear-search"
+            class="hidden absolute right-1 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Clear search">
+            <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
+          </button>
+        </div>
+        <button id="search-btn" type="button"
+          class="flex-shrink-0 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors min-h-[48px]">
+          Go
+        </button>
+      </div>
+      <p id="search-hint" class="text-xs text-gray-400 mt-2">Enter an ISBN for direct lookup, or search by title/author</p>
+      <p id="search-status" class="text-sm text-gray-500 mt-2 hidden"></p>
+    </div>
+
+    <!-- Search Results -->
+    <div id="book-search-results" class="bg-white rounded-xl border border-gray-200 mb-4 hidden">
+      <div class="p-3 border-b border-gray-100 flex items-center justify-between">
+        <span id="results-count" class="text-sm text-gray-500"></span>
+      </div>
+      <div id="results-list" class="divide-y divide-gray-100 max-h-80 overflow-y-auto"></div>
+    </div>
+
+    <!-- Add Manually Link -->
+    <div class="text-center">
+      <button type="button" id="add-manually-btn" class="text-sm text-primary hover:underline inline-flex items-center gap-1">
+        <i data-lucide="edit-3" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Can't find it? Add manually</span>
       </button>
     </div>
-    <p id="lookup-status" class="text-sm text-gray-500 mt-2 hidden"></p>
   </div>
 
-  <!-- Book Search -->
-  <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-    <label for="book-search" class="block font-semibold text-gray-700 mb-2">Search by Title or Author</label>
-    <div class="relative">
-      <input type="text" id="book-search" placeholder="Start typing to search..."
-        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      <button type="button" id="clear-search" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Clear search">
-        <i data-lucide="x" class="w-4 h-4" aria-hidden="true"></i>
+  <!-- Book Form Section (hidden initially) -->
+  <div id="form-section" class="hidden">
+    <!-- Data Source Header -->
+    <div class="flex items-center justify-between mb-4">
+      <div id="data-source" class="flex items-center gap-2 text-sm">
+        <i data-lucide="check-circle" class="w-4 h-4 text-green-500" aria-hidden="true"></i>
+        <span id="data-source-text" class="text-gray-600">Found via Google Books</span>
+      </div>
+      <button type="button" id="start-over-btn" class="text-sm text-primary hover:underline inline-flex items-center gap-1">
+        <i data-lucide="arrow-left" class="w-4 h-4" aria-hidden="true"></i>
+        <span>Start over</span>
       </button>
     </div>
-    <div id="book-search-results" class="mt-3 space-y-2 max-h-64 overflow-y-auto hidden"></div>
+
+    <!-- Book Form -->
+    <form id="book-form" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4" novalidate>
+      <div>
+        <label for="title" class="block font-semibold text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
+        <input type="text" id="title" name="title"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      </div>
+
+      <div>
+        <label for="author" class="block font-semibold text-gray-700 mb-1">Author <span class="text-red-500">*</span></label>
+        <input type="text" id="author" name="author"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+      </div>
+
+      <div id="genre-picker-container"></div>
+
+      <div id="series-picker-container"></div>
+
+      <div>
+        <label class="block font-semibold text-gray-700 mb-1">Cover Image</label>
+        <input type="hidden" id="cover-url">
+        <div id="cover-picker-container"></div>
+        <p id="cover-picker-hint" class="text-xs text-gray-400 mt-2 hidden">Click to select a different cover</p>
+      </div>
+
+      <div id="image-gallery-container"></div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="publisher" class="block font-semibold text-gray-700 mb-1">Publisher</label>
+          <input type="text" id="publisher"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        </div>
+        <div>
+          <label for="published-date" class="block font-semibold text-gray-700 mb-1">Published Date</label>
+          <input type="text" id="published-date"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="physical-format" class="block font-semibold text-gray-700 mb-1">Format</label>
+          <select id="physical-format"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+            <option value="">Select format...</option>
+            <option value="Paperback">Paperback</option>
+            <option value="Hardcover">Hardcover</option>
+            <option value="Mass Market Paperback">Mass Market Paperback</option>
+            <option value="Trade Paperback">Trade Paperback</option>
+            <option value="Library Binding">Library Binding</option>
+            <option value="Spiral-bound">Spiral-bound</option>
+            <option value="Audio CD">Audio CD</option>
+            <option value="Ebook">Ebook</option>
+          </select>
+        </div>
+        <div>
+          <label for="page-count" class="block font-semibold text-gray-700 mb-1">Pages</label>
+          <input type="number" id="page-count" placeholder="e.g., 320" inputmode="numeric"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-gray-700 mb-2">Rating</label>
+        <div id="rating-input"></div>
+      </div>
+
+      <div>
+        <label for="notes" class="block font-semibold text-gray-700 mb-1">Notes</label>
+        <textarea id="notes" rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"></textarea>
+      </div>
+
+      <button type="submit" id="submit-btn"
+        class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors">
+        Add Book
+      </button>
+    </form>
   </div>
-
-  <div class="relative mb-6">
-    <div class="absolute inset-0 flex items-center">
-      <div class="w-full border-t border-gray-200"></div>
-    </div>
-    <div class="relative flex justify-center">
-      <span class="bg-gray-50 px-3 text-sm text-gray-400">or enter manually</span>
-    </div>
-  </div>
-
-  <!-- Book Form -->
-  <form id="book-form" class="bg-white rounded-xl border border-gray-200 p-4 space-y-4" novalidate>
-    <div>
-      <label for="title" class="block font-semibold text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
-      <input type="text" id="title" name="title"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-    </div>
-
-    <div>
-      <label for="author" class="block font-semibold text-gray-700 mb-1">Author <span class="text-red-500">*</span></label>
-      <input type="text" id="author" name="author"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-    </div>
-
-    <div id="genre-picker-container"></div>
-
-    <div id="series-picker-container"></div>
-
-    <div>
-      <label class="block font-semibold text-gray-700 mb-1">Cover Image</label>
-      <input type="hidden" id="cover-url">
-      <div id="cover-picker-container"></div>
-      <p id="cover-picker-hint" class="text-xs text-gray-400 mt-2 hidden">Click to select a different cover</p>
-    </div>
-
-    <div id="image-gallery-container"></div>
-
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label for="publisher" class="block font-semibold text-gray-700 mb-1">Publisher</label>
-        <input type="text" id="publisher"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      </div>
-      <div>
-        <label for="published-date" class="block font-semibold text-gray-700 mb-1">Published Date</label>
-        <input type="text" id="published-date"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label for="physical-format" class="block font-semibold text-gray-700 mb-1">Format</label>
-        <select id="physical-format"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
-          <option value="">Select format...</option>
-          <option value="Paperback">Paperback</option>
-          <option value="Hardcover">Hardcover</option>
-          <option value="Mass Market Paperback">Mass Market Paperback</option>
-          <option value="Trade Paperback">Trade Paperback</option>
-          <option value="Library Binding">Library Binding</option>
-          <option value="Spiral-bound">Spiral-bound</option>
-          <option value="Audio CD">Audio CD</option>
-          <option value="Ebook">Ebook</option>
-        </select>
-      </div>
-      <div>
-        <label for="page-count" class="block font-semibold text-gray-700 mb-1">Pages</label>
-        <input type="number" id="page-count" placeholder="e.g., 320" inputmode="numeric"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      </div>
-    </div>
-
-    <div>
-      <label class="block font-semibold text-gray-700 mb-2">Rating</label>
-      <div id="rating-input"></div>
-    </div>
-
-    <div>
-      <label for="notes" class="block font-semibold text-gray-700 mb-1">Notes</label>
-      <textarea id="notes" rows="3"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"></textarea>
-    </div>
-
-    <button type="submit" id="submit-btn"
-      class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors">
-      Add Book
-    </button>
-  </form>
 </div>
 
 <!-- Scanner Modal -->

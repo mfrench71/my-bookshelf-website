@@ -568,11 +568,11 @@ Current add book page shows all lookup methods and full form at once. Proposed p
 ```
 
 **Implementation Tasks:**
-- [ ] Consolidate scan/ISBN/search into single search input
-- [ ] Smart detection: ISBN pattern → direct lookup, else → search
-- [ ] Hide form initially, show on book select or "add manually"
-- [ ] Add "Start over" to reset and return to search
-- [ ] Show data source badge ("Found via Google Books")
+- [x] Consolidate scan/ISBN/search into single search input ✅
+- [x] Smart detection: ISBN pattern → direct lookup, else → search ✅
+- [x] Hide form initially, show on book select or "add manually" ✅
+- [x] Add "Start over" to reset and return to search ✅
+- [x] Show data source badge ("Found via Google Books") ✅
 - [ ] Smooth slide transition when form appears
 - [ ] Preserve search state if user goes back
 
