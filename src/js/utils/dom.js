@@ -34,10 +34,12 @@ export function unlockBodyScroll() {
 
 /**
  * Initialize Lucide icons (call sparingly)
+ * @param {HTMLElement} [container] - Optional container to scope icon initialization
  */
-export function initIcons() {
+export function initIcons(container) {
   if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
+    const options = container ? { root: container } : undefined;
+    lucide.createIcons(options);
   }
 }
 
