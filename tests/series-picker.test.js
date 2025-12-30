@@ -3,6 +3,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock Firebase before importing SeriesPicker
+vi.mock('../src/js/firebase-config.js', () => ({
+  db: {}
+}));
+
+vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  getDocs: vi.fn().mockResolvedValue({ docs: [] })
+}));
+
 import { SeriesPicker } from '../src/js/components/series-picker.js';
 
 // Mock series.js

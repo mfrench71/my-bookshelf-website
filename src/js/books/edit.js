@@ -149,6 +149,7 @@ async function initSeriesPicker() {
   seriesPicker = new SeriesPicker({
     container: seriesPickerContainer,
     userId: currentUser.uid,
+    currentBookId: bookId, // Exclude current book from position conflict check
     onChange: () => {
       updateSaveButtonState();
     }

@@ -1,6 +1,8 @@
 // Series Picker Component
 // A reusable single-select component for picking a series with position
 
+import { db } from '/js/firebase-config.js';
+import { collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { loadUserSeries, createSeries, clearSeriesCache } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 import { escapeHtml, debounce, showToast, initIcons } from '../utils.js';
@@ -13,11 +15,13 @@ export class SeriesPicker {
    * @param {Object} options
    * @param {HTMLElement} options.container - Container element to render into
    * @param {string} options.userId - Current user's ID
+   * @param {string} [options.currentBookId] - Current book ID (for edit mode, to exclude from conflict check)
    * @param {Function} options.onChange - Callback when selection changes ({ seriesId, seriesName, position })
    */
-  constructor({ container, userId, onChange = () => {} }) {
+  constructor({ container, userId, currentBookId = null, onChange = () => {} }) {
     this.container = container;
     this.userId = userId;
+    this.currentBookId = currentBookId;
     this.onChange = onChange;
 
     // State
@@ -32,12 +36,14 @@ export class SeriesPicker {
     this.isLoading = false;
     this.focusedIndex = -1;
     this._restoringFocus = false;
+    this.positionConflict = null; // Book title with conflicting position
 
     // Bind methods
     this.handleInputChange = debounce(this._handleInputChange.bind(this), 300);
     this.handleKeyDown = this._handleKeyDown.bind(this);
     this.handleClickOutside = this._handleClickOutside.bind(this);
     this.handlePickerOpened = this._handlePickerOpened.bind(this);
+    this._checkPositionConflictDebounced = debounce(this._checkPositionConflict.bind(this), 150);
   }
 
   /**
@@ -135,6 +141,7 @@ export class SeriesPicker {
     this.suggestedName = '';
     this.suggestedPosition = null;
     this.searchQuery = '';
+    this.positionConflict = null;
     this.render();
     this.onChange(this.getSelected());
   }
@@ -207,7 +214,21 @@ export class SeriesPicker {
           min="1"
           value="${this.position || ''}"
         >
+        ${this._renderPositionWarning()}
       </div>
+    `;
+  }
+
+  /**
+   * Render position conflict warning (if any)
+   */
+  _renderPositionWarning() {
+    if (!this.positionConflict) return '';
+    return `
+      <p class="series-position-warning text-amber-600 text-xs mt-1 flex items-center gap-1">
+        <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+        <span>Position #${this.position} is already used by "${escapeHtml(this.positionConflict)}"</span>
+      </p>
     `;
   }
 
@@ -419,6 +440,10 @@ export class SeriesPicker {
       positionInput.addEventListener('input', (e) => {
         const val = e.target.value;
         this.position = val ? parseInt(val, 10) : null;
+
+        // Check for position conflict (debounced)
+        this._checkPositionConflictDebounced();
+
         this.onChange(this.getSelected());
       });
     }
@@ -537,6 +562,7 @@ export class SeriesPicker {
 
     this.selectedId = seriesId;
     this.selectedName = s.name;
+    this.positionConflict = null; // Clear conflict for new series
 
     // Use suggested position if available and selecting suggested series
     if (this.suggestedName && normalizeSeriesName(this.suggestedName) === s.normalizedName) {
@@ -548,6 +574,11 @@ export class SeriesPicker {
     this.focusedIndex = -1;
     this.render();
     this.onChange(this.getSelected());
+
+    // Check for conflict with new series/position
+    if (this.position) {
+      this._checkPositionConflictDebounced();
+    }
   }
 
   /**
@@ -604,6 +635,76 @@ export class SeriesPicker {
     } catch (error) {
       console.error('Error creating series:', error);
       showToast('Failed to create series. Please try again.', { type: 'error' });
+    }
+  }
+
+  /**
+   * Check if the current position conflicts with another book in the series
+   * Updates positionConflict state and re-renders warning
+   */
+  async _checkPositionConflict() {
+    // Clear conflict if no series or position
+    if (!this.selectedId || !this.position) {
+      if (this.positionConflict) {
+        this.positionConflict = null;
+        this._updatePositionWarning();
+      }
+      return;
+    }
+
+    try {
+      // Query books in this series with the same position
+      const booksRef = collection(db, 'users', this.userId, 'books');
+      const q = query(
+        booksRef,
+        where('seriesId', '==', this.selectedId),
+        where('seriesPosition', '==', this.position)
+      );
+      const snapshot = await getDocs(q);
+
+      // Find conflicting book (excluding current book and deleted books)
+      const conflict = snapshot.docs.find(doc => {
+        const data = doc.data();
+        return doc.id !== this.currentBookId && !data.deletedAt;
+      });
+
+      const newConflict = conflict ? conflict.data().title : null;
+
+      // Only update if changed
+      if (newConflict !== this.positionConflict) {
+        this.positionConflict = newConflict;
+        this._updatePositionWarning();
+      }
+    } catch (error) {
+      console.error('Error checking position conflict:', error);
+      // Silently fail - don't block the user
+    }
+  }
+
+  /**
+   * Update the position warning display without full re-render
+   */
+  _updatePositionWarning() {
+    const warningContainer = this.container.querySelector('.series-position-warning');
+    const positionInputContainer = this.container.querySelector('.series-position-input')?.parentElement;
+
+    if (this.positionConflict) {
+      const warningHtml = `
+        <p class="series-position-warning text-amber-600 text-xs mt-1 flex items-center gap-1">
+          <i data-lucide="alert-triangle" class="w-3 h-3 flex-shrink-0"></i>
+          <span>Position #${this.position} is already used by "${escapeHtml(this.positionConflict)}"</span>
+        </p>
+      `;
+
+      if (warningContainer) {
+        warningContainer.outerHTML = warningHtml;
+      } else if (positionInputContainer) {
+        const positionInput = positionInputContainer.querySelector('.series-position-input');
+        positionInput.insertAdjacentHTML('afterend', warningHtml);
+      }
+      initIcons(this.container);
+    } else if (warningContainer) {
+      warningContainer.remove();
     }
   }
 }
