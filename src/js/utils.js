@@ -25,7 +25,8 @@ export {
   initIcons,
   updateRatingStars,
   isMobile,
-  getContrastColor
+  getContrastColor,
+  interceptNavigation
 } from './utils/dom.js';
 
 // Helper utilities

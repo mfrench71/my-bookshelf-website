@@ -227,6 +227,7 @@ Follow the colour scheme documented in PROJECT.md. Key rules:
 ### Component Patterns
 - **Bottom Sheets (not modals)**: Use `BottomSheet` class for confirmations, quick forms, pickers. Mobile (<768px): slides up from bottom with swipe-to-dismiss handle. Tablet+ (768px+): centered modal with full border-radius. Use `md:hidden` to hide handle on larger screens.
 - **No native dialogs**: Never use `alert()`, `confirm()`, or `prompt()`. Always use BottomSheet for confirmations and custom UI for user input. Native dialogs break the app-like experience and can't be styled.
+- **Form navigation protection**: Use `interceptNavigation()` to show ConfirmSheet when user clicks in-app links (header, breadcrumbs) with unsaved form changes. Keep `beforeunload` as fallback for browser navigation (back, refresh, close) which can't be customised. See `add.js` and `edit.js` for examples.
 - **Toasts**: Use `showToast(message, { type: 'success' | 'error' | 'info' })`
 - **Icons**: Use Lucide icons and call `initIcons()` after dynamic insertion
 - **Empty states**: Consistent styling throughout the app:
@@ -496,7 +497,7 @@ This project uses Tailwind v4 which has different syntax:
 ## Shared Modules
 
 Common utilities are consolidated in shared modules:
-- `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN, getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings, setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime
+- `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN, getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings, setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime, interceptNavigation
 - `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
 - `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
 - `utils/library-health.js` - analyzeLibraryHealth, calculateLibraryCompleteness, getCompletenessRating, fixBookFromAPI, fixBooksFromAPI, HEALTH_FIELDS

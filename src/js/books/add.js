@@ -10,7 +10,7 @@ import {
   limit,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl } from '../utils.js';
+import { escapeHtml, escapeAttr, debounce, showToast, initIcons, clearBooksCache, normalizeText, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, isOnline, lockBodyScroll, unlockBodyScroll, lookupISBN, searchBooks as searchBooksAPI, isValidImageUrl, interceptNavigation } from '../utils.js';
 import { parseHierarchicalGenres } from '../utils/genre-parser.js';
 import { formatSeriesDisplay, parseSeriesFromAPI } from '../utils/series-parser.js';
 import { GenrePicker } from '../components/genre-picker.js';
@@ -1281,5 +1281,23 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 window.addEventListener('pagehide', () => {
   if (imageGallery && formDirty) {
     imageGallery.cleanupUnsavedUploads();
+  }
+});
+
+// Intercept in-app navigation (header/breadcrumb links) when form is dirty
+// Shows custom ConfirmSheet instead of allowing immediate navigation
+interceptNavigation({
+  isDirty: () => formDirty,
+  showConfirmation: () => ConfirmSheet.show({
+    title: 'Discard Changes?',
+    message: 'You have unsaved book data. Are you sure you want to leave?',
+    confirmText: 'Discard',
+    cancelText: 'Keep Editing',
+    confirmClass: 'bg-red-600 hover:bg-red-700'
+  }),
+  onBeforeNavigate: () => {
+    if (imageGallery?.hasUnsavedUploads()) {
+      imageGallery.cleanupUnsavedUploads();
+    }
   }
 });

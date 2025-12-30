@@ -117,3 +117,30 @@ export function getContrastColor(hex) {
   // Return white for dark backgrounds, black for light
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
+
+/**
+ * Intercept in-app navigation links when form has unsaved changes.
+ * Shows a confirmation dialog instead of allowing immediate navigation.
+ * Note: This only works for in-app links. Browser back/refresh/close
+ * still requires beforeunload (browser limitation).
+ * @param {Object} options
+ * @param {Function} options.isDirty - Function that returns true if form has unsaved changes
+ * @param {Function} options.showConfirmation - Async function that shows confirmation, returns true if confirmed
+ * @param {Function} [options.onBeforeNavigate] - Optional cleanup before navigation
+ */
+export function interceptNavigation({ isDirty, showConfirmation, onBeforeNavigate }) {
+  // Intercept header nav links and breadcrumbs
+  document.querySelectorAll('header a[href], nav a[href]').forEach(link => {
+    link.addEventListener('click', async (e) => {
+      if (!isDirty()) return; // No unsaved changes, allow navigation
+
+      e.preventDefault();
+      const confirmed = await showConfirmation();
+
+      if (confirmed) {
+        if (onBeforeNavigate) await onBeforeNavigate();
+        window.location.href = link.href;
+      }
+    });
+  });
+}
