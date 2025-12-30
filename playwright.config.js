@@ -8,6 +8,20 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
 
+  // Visual regression settings
+  expect: {
+    toHaveScreenshot: {
+      // Allow 2% pixel difference for font rendering variations
+      maxDiffPixelRatio: 0.02,
+      // Threshold for individual pixel color difference
+      threshold: 0.2,
+    },
+  },
+
+  // Snapshot directory structure
+  snapshotDir: './e2e/snapshots',
+  snapshotPathTemplate: '{snapshotDir}/{testFilePath}/{arg}{ext}',
+
   use: {
     baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
