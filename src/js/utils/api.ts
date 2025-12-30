@@ -11,14 +11,133 @@ import { getISBNCache, setISBNCache } from './cache.js';
 import { parseHierarchicalGenres } from './genre-parser.js';
 import { parseSeriesFromAPI } from './series-parser.js';
 
+/** Cover image sources */
+interface CoverSources {
+  googleBooks?: string;
+  openLibrary?: string;
+}
+
+/** ISBN lookup result */
+export interface ISBNLookupResult {
+  title: string;
+  author: string;
+  coverImageUrl: string;
+  publisher: string;
+  publishedDate: string;
+  physicalFormat: string;
+  pageCount: number | null;
+  genres: string[];
+  covers?: CoverSources;
+  seriesName?: string;
+  seriesPosition?: number | null;
+}
+
+/** ISBN lookup options */
+interface LookupOptions {
+  skipCache?: boolean;
+}
+
+/** Search result book */
+interface SearchResultBook {
+  title: string;
+  author: string;
+  cover: string;
+  publisher: string;
+  publishedDate: string;
+  pageCount: number | string;
+  isbn: string;
+  categories: string[];
+}
+
+/** Search options */
+interface SearchOptions {
+  startIndex?: number;
+  maxResults?: number;
+  useOpenLibrary?: boolean;
+}
+
+/** Search result */
+interface SearchResult {
+  books: SearchResultBook[];
+  hasMore: boolean;
+  totalItems: number;
+  useOpenLibrary: boolean;
+}
+
+/** Google Books API volume info */
+interface GoogleBooksVolumeInfo {
+  title?: string;
+  authors?: string[];
+  publisher?: string;
+  publishedDate?: string;
+  pageCount?: number;
+  categories?: string[];
+  imageLinks?: {
+    large?: string;
+    medium?: string;
+    small?: string;
+    thumbnail?: string;
+  };
+  industryIdentifiers?: Array<{ identifier: string }>;
+}
+
+/** Google Books API response */
+interface GoogleBooksResponse {
+  items?: Array<{ volumeInfo: GoogleBooksVolumeInfo }>;
+  totalItems?: number;
+}
+
+/** Open Library jscmd=data book response */
+interface OpenLibraryDataBook {
+  title?: string;
+  authors?: Array<{ name: string }>;
+  publishers?: Array<{ name: string }>;
+  publish_date?: string;
+  number_of_pages?: number;
+  subjects?: Array<{ name?: string } | string>;
+  cover?: {
+    large?: string;
+    medium?: string;
+  };
+}
+
+/** Open Library edition response */
+interface OpenLibraryEdition {
+  physical_format?: string;
+  number_of_pages?: number;
+  series?: string | string[];
+}
+
+/** Open Library search doc */
+interface OpenLibrarySearchDoc {
+  title?: string;
+  author_name?: string[];
+  publisher?: string[];
+  first_publish_year?: number;
+  number_of_pages_median?: number;
+  isbn?: string[];
+  subject?: string[];
+  cover_i?: number;
+}
+
+/** Open Library search response */
+interface OpenLibrarySearchResponse {
+  docs?: OpenLibrarySearchDoc[];
+  numFound?: number;
+}
+
 /**
  * Fetch with timeout
- * @param {string} url - URL to fetch
- * @param {Object} options - Fetch options
- * @param {number} timeout - Timeout in milliseconds (default: 10000)
- * @returns {Promise<Response>}
+ * @param url - URL to fetch
+ * @param options - Fetch options
+ * @param timeout - Timeout in milliseconds (default: 10000)
+ * @returns Promise resolving to Response
  */
-export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout: number = 10000
+): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
 
@@ -29,9 +148,10 @@ export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
     });
     clearTimeout(id);
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     clearTimeout(id);
-    if (error.name === 'AbortError') {
+    const err = error as Error;
+    if (err.name === 'AbortError') {
       throw new Error('Request timed out');
     }
     throw error;
@@ -41,19 +161,21 @@ export async function fetchWithTimeout(url, options = {}, timeout = 10000) {
 /**
  * Look up book data by ISBN from Google Books and Open Library APIs
  * Results are cached for 24 hours to reduce API calls
- * @param {string} isbn - ISBN to look up
- * @param {Object} options - Options
- * @param {boolean} options.skipCache - If true, skip cache and fetch fresh data
- * @returns {Promise<Object|null>} Book data or null if not found
+ * @param isbn - ISBN to look up
+ * @param options - Options
+ * @returns Book data or null if not found
  */
-export async function lookupISBN(isbn, options = {}) {
+export async function lookupISBN(
+  isbn: string | null | undefined,
+  options: LookupOptions = {}
+): Promise<ISBNLookupResult | null> {
   if (!isbn) return null;
 
   const { skipCache = false } = options;
 
   // Check cache first (unless skipCache is true)
   if (!skipCache) {
-    const cached = getISBNCache(isbn);
+    const cached = getISBNCache(isbn) as ISBNLookupResult | null;
     if (cached !== null) {
       // If cached result is missing physicalFormat or covers, refetch to get complete data
       if (cached && (!cached.physicalFormat || !cached.covers)) {
@@ -65,16 +187,16 @@ export async function lookupISBN(isbn, options = {}) {
     }
   }
 
-  let result = null;
+  let result: ISBNLookupResult | null = null;
   let googleBooksCover = '';
   let openLibraryCover = '';
 
   // Try Google Books first
   try {
     const response = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-    const data = await response.json();
+    const data = (await response.json()) as GoogleBooksResponse;
 
-    if (data.items?.length > 0) {
+    if (data.items?.length) {
       const book = data.items[0].volumeInfo;
       // Prefer larger cover images: large > medium > small > thumbnail
       const imageLinks = book.imageLinks || {};
@@ -105,12 +227,13 @@ export async function lookupISBN(isbn, options = {}) {
     const response = await fetchWithTimeout(
       `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`
     );
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, OpenLibraryDataBook>;
     const book = data[`ISBN:${isbn}`];
 
     if (book) {
       // Parse all Open Library subjects (no limit)
-      const olGenres = parseHierarchicalGenres(book.subjects?.map(s => s.name || s) || []);
+      const subjectStrings = (book.subjects || []).map(s => (typeof s === 'string' ? s : s.name || ''));
+      const olGenres = parseHierarchicalGenres(subjectStrings);
       // Prefer large cover, fall back to medium
       openLibraryCover = book.cover?.large || book.cover?.medium || '';
 
@@ -125,7 +248,7 @@ export async function lookupISBN(isbn, options = {}) {
           const existingNormalized = new Set(result.genres.map(g => normalizeGenreName(g)));
           olGenres.forEach(g => {
             if (!existingNormalized.has(normalizeGenreName(g))) {
-              result.genres.push(g);
+              result!.genres.push(g);
             }
           });
         }
@@ -146,7 +269,7 @@ export async function lookupISBN(isbn, options = {}) {
   } catch (err) {
     // Open Library is supplementary - only warn if we have no result at all
     if (!result) {
-      console.warn('Open Library API unavailable:', err.message);
+      console.warn('Open Library API unavailable:', (err as Error).message);
     }
     // Otherwise silently continue - Google Books data is sufficient
   }
@@ -164,7 +287,7 @@ export async function lookupISBN(isbn, options = {}) {
       const editionResponse = await fetchWithTimeout(`https://openlibrary.org/isbn/${isbn}.json`);
       // Only parse if response is OK (ISBN exists in Open Library)
       if (editionResponse.ok) {
-        const edition = await editionResponse.json();
+        const edition = (await editionResponse.json()) as OpenLibraryEdition;
         if (!result.physicalFormat && edition.physical_format) {
           // Normalize to title case to match select options (e.g., "paperback" -> "Paperback")
           result.physicalFormat = edition.physical_format
@@ -198,16 +321,13 @@ export async function lookupISBN(isbn, options = {}) {
 
 /**
  * Search for books by title/author from Google Books and Open Library APIs
- * @param {string} query - Search query (title and/or author)
- * @param {Object} options - Search options
- * @param {number} options.startIndex - Starting index for pagination (default: 0)
- * @param {number} options.maxResults - Max results to return (default: 10)
- * @param {boolean} options.useOpenLibrary - Force use of Open Library (default: false)
- * @returns {Promise<{books: Array, hasMore: boolean, totalItems: number, useOpenLibrary: boolean}>}
+ * @param query - Search query (title and/or author)
+ * @param options - Search options
+ * @returns Search results
  */
-export async function searchBooks(query, options = {}) {
+export async function searchBooks(query: string, options: SearchOptions = {}): Promise<SearchResult> {
   const { startIndex = 0, maxResults = 10, useOpenLibrary = false } = options;
-  let books = [];
+  let books: SearchResultBook[] = [];
   let hasMore = false;
   let totalItems = 0;
   let shouldUseOpenLibrary = useOpenLibrary;
@@ -219,9 +339,9 @@ export async function searchBooks(query, options = {}) {
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${startIndex}&maxResults=${maxResults}`
       );
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as GoogleBooksResponse;
         totalItems = data.totalItems || 0;
-        if (data.items?.length > 0) {
+        if (data.items?.length) {
           books = data.items.map(item => {
             const book = item.volumeInfo;
             return {
@@ -247,7 +367,7 @@ export async function searchBooks(query, options = {}) {
         shouldUseOpenLibrary = true;
       }
     } catch (error) {
-      console.warn('Google Books API failed:', error.message);
+      console.warn('Google Books API failed:', (error as Error).message);
       shouldUseOpenLibrary = true;
     }
   }
@@ -259,9 +379,9 @@ export async function searchBooks(query, options = {}) {
         `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&offset=${startIndex}&limit=${maxResults}`
       );
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as OpenLibrarySearchResponse;
         totalItems = data.numFound || 0;
-        if (data.docs?.length > 0) {
+        if (data.docs?.length) {
           books = data.docs.map(doc => ({
             title: normalizeTitle(doc.title) || 'Unknown Title',
             author: normalizeAuthor(doc.author_name?.join(', ') || '') || 'Unknown Author',
@@ -276,7 +396,7 @@ export async function searchBooks(query, options = {}) {
         }
       }
     } catch (error) {
-      console.error('Open Library API failed:', error.message);
+      console.error('Open Library API failed:', (error as Error).message);
     }
   }
 

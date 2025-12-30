@@ -4,21 +4,41 @@
 import { db } from '/js/firebase-config.js';
 import { collection, getDocs, query, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
+/** Indicator data structure */
+interface IndicatorData {
+  binCount: number;
+  hasIssues: boolean;
+}
+
+/** Cached indicator data with timestamp */
+interface CachedIndicatorData {
+  data: IndicatorData;
+  timestamp: number;
+}
+
+/** Book data for checking issues */
+interface BookData {
+  deletedAt?: unknown;
+  coverImageUrl?: string;
+  genres?: string[];
+  [key: string]: unknown;
+}
+
 const CACHE_KEY = 'mybookshelf_settings_indicators';
 const CACHE_TTL = 60 * 1000; // 1 minute
 
 /**
  * Update the settings tab indicators (Maintenance dot, Bin count)
- * @param {string} userId - The user's Firebase UID
+ * @param userId - The user's Firebase UID
  */
-export async function updateSettingsIndicators(userId) {
+export async function updateSettingsIndicators(userId: string): Promise<void> {
   if (!userId) return;
 
   // Check cache first
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
+      const { data, timestamp } = JSON.parse(cached) as CachedIndicatorData;
       if (Date.now() - timestamp < CACHE_TTL) {
         applyIndicators(data);
         return;
@@ -32,7 +52,7 @@ export async function updateSettingsIndicators(userId) {
   try {
     const [binCount, hasIssues] = await Promise.all([getBinCount(userId), hasMaintenanceIssues(userId)]);
 
-    const data = { binCount, hasIssues };
+    const data: IndicatorData = { binCount, hasIssues };
     applyIndicators(data);
 
     // Cache the result
@@ -57,17 +77,17 @@ export async function updateSettingsIndicators(userId) {
  * Note: Fetches all books and filters client-side because Firestore
  * '!= null' queries require composite indexes
  */
-async function getBinCount(userId) {
+async function getBinCount(userId: string): Promise<number> {
   const booksRef = collection(db, 'users', userId, 'books');
   const snapshot = await getDocs(query(booksRef, limit(500)));
-  return snapshot.docs.filter(doc => doc.data().deletedAt).length;
+  return snapshot.docs.filter(doc => (doc.data() as BookData).deletedAt).length;
 }
 
 /**
  * Check if there are any library health issues
  * Quick check: fetch a sample of books and check for missing covers/genres
  */
-async function hasMaintenanceIssues(userId) {
+async function hasMaintenanceIssues(userId: string): Promise<boolean> {
   const booksRef = collection(db, 'users', userId, 'books');
 
   // Fetch a sample of books (limit to reduce reads)
@@ -77,7 +97,7 @@ async function hasMaintenanceIssues(userId) {
     const snapshot = await getDocs(sampleQuery);
 
     for (const doc of snapshot.docs) {
-      const book = doc.data();
+      const book = doc.data() as BookData;
 
       // Skip deleted books
       if (book.deletedAt) continue;
@@ -97,7 +117,7 @@ async function hasMaintenanceIssues(userId) {
 /**
  * Apply the indicator values to the DOM
  */
-function applyIndicators({ binCount, hasIssues }) {
+function applyIndicators({ binCount, hasIssues }: IndicatorData): void {
   // Update bin badge
   const binBadge = document.getElementById('bin-count-badge');
   if (binBadge) {
@@ -123,7 +143,7 @@ function applyIndicators({ binCount, hasIssues }) {
 /**
  * Clear the indicators cache (call after bin or maintenance operations)
  */
-export function clearIndicatorsCache() {
+export function clearIndicatorsCache(): void {
   try {
     localStorage.removeItem(CACHE_KEY);
   } catch (_e) {

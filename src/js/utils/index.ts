@@ -45,6 +45,7 @@ export {
 
 // API utilities
 export { fetchWithTimeout, lookupISBN, searchBooks } from './api.js';
+export type { ISBNLookupResult } from './api.js';
 
 // Reading utilities
 export { migrateBookReads, getCurrentRead, getBookStatus } from './reading.js';

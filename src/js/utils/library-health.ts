@@ -7,6 +7,142 @@ import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebas
 import { db } from '/js/firebase-config.js';
 import { lookupISBN } from './api.js';
 
+/** Book data structure for health analysis */
+interface Book {
+  id: string;
+  isbn?: string;
+  title?: string;
+  author?: string;
+  coverImageUrl?: string;
+  genres?: string[];
+  pageCount?: number;
+  physicalFormat?: string;
+  publisher?: string;
+  publishedDate?: string;
+  deletedAt?: unknown;
+  covers?: CoverSources;
+  [key: string]: unknown;
+}
+
+/** Cover image sources */
+interface CoverSources {
+  googleBooks?: string;
+  openLibrary?: string;
+  [key: string]: string | undefined;
+}
+
+/** Health field configuration */
+interface HealthFieldConfig {
+  weight: number;
+  label: string;
+  apiFixable: boolean;
+}
+
+/** Health fields configuration map */
+type HealthFieldsMap = Record<string, HealthFieldConfig>;
+
+/** Library health issues */
+interface HealthIssues {
+  missingCover: Book[];
+  missingGenres: Book[];
+  missingPageCount: Book[];
+  missingFormat: Book[];
+  missingPublisher: Book[];
+  missingPublishedDate: Book[];
+  missingIsbn: Book[];
+}
+
+/** Library health report */
+interface HealthReport {
+  totalBooks: number;
+  completenessScore: number;
+  totalIssues: number;
+  fixableBooks: number;
+  issues: HealthIssues;
+}
+
+/** Completeness rating */
+interface CompletenessRating {
+  label: string;
+  colour: string;
+}
+
+/** API data from lookupISBN */
+interface APIData {
+  coverImageUrl?: string;
+  genres?: string[];
+  pageCount?: number;
+  physicalFormat?: string;
+  publisher?: string;
+  publishedDate?: string;
+  covers?: CoverSources;
+}
+
+/** Change preview for a single field */
+interface FieldChange {
+  field: string;
+  label: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+/** Preview result for a single book */
+interface PreviewResult {
+  hasChanges: boolean;
+  changes: FieldChange[];
+  error?: string;
+  apiData?: APIData;
+}
+
+/** Book with changes and API data */
+interface BookWithChanges {
+  book: Book;
+  changes: FieldChange[];
+  apiData: APIData;
+}
+
+/** Book without changes */
+interface BookNoChanges {
+  book: Book;
+}
+
+/** Book with error */
+interface BookError {
+  book: Book;
+  error: string;
+}
+
+/** Preview batch result */
+interface PreviewBatchResult {
+  booksWithChanges: BookWithChanges[];
+  booksNoChanges: BookNoChanges[];
+  errors: BookError[];
+}
+
+/** Progress callback type */
+type ProgressCallback = (current: number, total: number, book?: Book) => void;
+
+/** Apply changes result */
+interface ApplyChangesResult {
+  saved: Array<{ book: Book; fieldsUpdated: string[] }>;
+  errors: Array<{ book: Book; error: string }>;
+}
+
+/** Fix book result */
+interface FixBookResult {
+  success: boolean;
+  fieldsFixed: string[];
+  error?: string;
+}
+
+/** Fix batch result */
+interface FixBatchResult {
+  fixed: Array<{ book: Book; fieldsFixed: string[] }>;
+  skipped: Array<{ book: Book; reason: string }>;
+  errors: Array<{ book: Book; error: string }>;
+  fieldsFixedCount: Record<string, number>;
+}
+
 /**
  * Fields to check for completeness, with weights for scoring
  * Higher weight = more important for completeness score
@@ -19,7 +155,7 @@ import { lookupISBN } from './api.js';
  * - publisher: Good availability from both APIs
  * - publishedDate: Good availability from both APIs
  */
-export const HEALTH_FIELDS = {
+export const HEALTH_FIELDS: HealthFieldsMap = {
   coverImageUrl: { weight: 2, label: 'Cover Image', apiFixable: true },
   genres: { weight: 2, label: 'Genres', apiFixable: true },
   pageCount: { weight: 1, label: 'Page Count', apiFixable: false }, // Poor API coverage
@@ -31,11 +167,11 @@ export const HEALTH_FIELDS = {
 
 /**
  * Check if a book field has a value
- * @param {Object} book - Book object
- * @param {string} field - Field name
- * @returns {boolean} True if field has a value
+ * @param book - Book object
+ * @param field - Field name
+ * @returns True if field has a value
  */
-export function hasFieldValue(book, field) {
+export function hasFieldValue(book: Book, field: string): boolean {
   if (field === 'genres') {
     return Array.isArray(book.genres) && book.genres.length > 0;
   }
@@ -44,11 +180,11 @@ export function hasFieldValue(book, field) {
 
 /**
  * Analyze a single book for missing fields
- * @param {Object} book - Book object
- * @returns {Array<string>} List of missing field names
+ * @param book - Book object
+ * @returns List of missing field names
  */
-export function getMissingFields(book) {
-  const missing = [];
+export function getMissingFields(book: Book): string[] {
+  const missing: string[] = [];
   for (const field of Object.keys(HEALTH_FIELDS)) {
     if (!hasFieldValue(book, field)) {
       missing.push(field);
@@ -59,10 +195,10 @@ export function getMissingFields(book) {
 
 /**
  * Calculate completeness score for a single book (0-100%)
- * @param {Object} book - Book object
- * @returns {number} Completeness percentage
+ * @param book - Book object
+ * @returns Completeness percentage
  */
-export function calculateBookCompleteness(book) {
+export function calculateBookCompleteness(book: Book): number {
   let score = 0;
   let totalWeight = 0;
 
@@ -81,10 +217,10 @@ export function calculateBookCompleteness(book) {
 
 /**
  * Calculate overall library completeness (0-100%)
- * @param {Array<Object>} books - Array of book objects
- * @returns {number} Library completeness percentage
+ * @param books - Array of book objects
+ * @returns Library completeness percentage
  */
-export function calculateLibraryCompleteness(books) {
+export function calculateLibraryCompleteness(books: Book[]): number {
   if (!books || books.length === 0) return 100;
 
   let totalScore = 0;
@@ -110,13 +246,13 @@ export function calculateLibraryCompleteness(books) {
 
 /**
  * Analyze library for missing data
- * @param {Array<Object>} books - All user books (excluding binned)
- * @returns {Object} Health report with issues and completeness score
+ * @param books - All user books (excluding binned)
+ * @returns Health report with issues and completeness score
  */
-export function analyzeLibraryHealth(books) {
+export function analyzeLibraryHealth(books: Book[]): HealthReport {
   const activeBooks = books.filter(b => !b.deletedAt);
 
-  const issues = {
+  const issues: HealthIssues = {
     missingCover: [],
     missingGenres: [],
     missingPageCount: [],
@@ -161,10 +297,10 @@ export function analyzeLibraryHealth(books) {
 
 /**
  * Get completeness rating label
- * @param {number} score - Completeness score (0-100)
- * @returns {Object} { label, colour }
+ * @param score - Completeness score (0-100)
+ * @returns Rating label and colour
  */
-export function getCompletenessRating(score) {
+export function getCompletenessRating(score: number): CompletenessRating {
   if (score >= 90) return { label: 'Excellent', colour: 'green' };
   if (score >= 70) return { label: 'Good', colour: 'green' };
   if (score >= 50) return { label: 'Fair', colour: 'amber' };
@@ -173,15 +309,15 @@ export function getCompletenessRating(score) {
 
 /**
  * Preview what changes would be made from API data (does not save)
- * @param {Object} book - Book object with id and isbn
- * @returns {Promise<Object>} { hasChanges, changes[], error? }
+ * @param book - Book object with id and isbn
+ * @returns Preview result
  */
-export async function previewBookFix(book) {
+export async function previewBookFix(book: Book): Promise<PreviewResult> {
   if (!book.isbn) {
     return { hasChanges: false, changes: [], error: 'No ISBN' };
   }
 
-  let apiData;
+  let apiData: APIData | null;
   try {
     apiData = await lookupISBN(book.isbn, { skipCache: true });
   } catch (_e) {
@@ -192,26 +328,56 @@ export async function previewBookFix(book) {
     return { hasChanges: false, changes: [], error: 'No API data' };
   }
 
-  const changes = [];
+  const changes: FieldChange[] = [];
 
   // Check each field for potential updates
   if (!book.coverImageUrl && apiData.coverImageUrl) {
-    changes.push({ field: 'coverImageUrl', label: 'Cover', oldValue: null, newValue: apiData.coverImageUrl });
+    changes.push({
+      field: 'coverImageUrl',
+      label: 'Cover',
+      oldValue: null,
+      newValue: apiData.coverImageUrl,
+    });
   }
-  if ((!book.genres || book.genres.length === 0) && apiData.genres?.length > 0) {
-    changes.push({ field: 'genres', label: 'Genres', oldValue: null, newValue: apiData.genres.join(', ') });
+  if ((!book.genres || book.genres.length === 0) && apiData.genres?.length) {
+    changes.push({
+      field: 'genres',
+      label: 'Genres',
+      oldValue: null,
+      newValue: apiData.genres.join(', '),
+    });
   }
   if (!book.pageCount && apiData.pageCount) {
-    changes.push({ field: 'pageCount', label: 'Page Count', oldValue: null, newValue: apiData.pageCount });
+    changes.push({
+      field: 'pageCount',
+      label: 'Page Count',
+      oldValue: null,
+      newValue: apiData.pageCount,
+    });
   }
   if (!book.physicalFormat && apiData.physicalFormat) {
-    changes.push({ field: 'physicalFormat', label: 'Format', oldValue: null, newValue: apiData.physicalFormat });
+    changes.push({
+      field: 'physicalFormat',
+      label: 'Format',
+      oldValue: null,
+      newValue: apiData.physicalFormat,
+    });
   }
   if (!book.publisher && apiData.publisher) {
-    changes.push({ field: 'publisher', label: 'Publisher', oldValue: null, newValue: apiData.publisher });
+    changes.push({
+      field: 'publisher',
+      label: 'Publisher',
+      oldValue: null,
+      newValue: apiData.publisher,
+    });
   }
   if (!book.publishedDate && apiData.publishedDate) {
-    changes.push({ field: 'publishedDate', label: 'Published', oldValue: null, newValue: apiData.publishedDate });
+    changes.push({
+      field: 'publishedDate',
+      label: 'Published',
+      oldValue: null,
+      newValue: apiData.publishedDate,
+    });
   }
 
   return {
@@ -223,13 +389,17 @@ export async function previewBookFix(book) {
 
 /**
  * Preview fixes for multiple books
- * @param {Array<Object>} books - Books to check
- * @param {Function} onProgress - Progress callback (current, total, book)
- * @param {number} delayMs - Delay between API calls
- * @returns {Promise<Object>} { booksWithChanges[], booksNoChanges[], errors[] }
+ * @param books - Books to check
+ * @param onProgress - Progress callback (current, total, book)
+ * @param delayMs - Delay between API calls
+ * @returns Preview batch result
  */
-export async function previewBooksFromAPI(books, onProgress, delayMs = 500) {
-  const results = {
+export async function previewBooksFromAPI(
+  books: Book[],
+  onProgress?: ProgressCallback,
+  delayMs: number = 500
+): Promise<PreviewBatchResult> {
+  const results: PreviewBatchResult = {
     booksWithChanges: [],
     booksNoChanges: [],
     errors: [],
@@ -251,7 +421,7 @@ export async function previewBooksFromAPI(books, onProgress, delayMs = 500) {
 
     if (preview.error && preview.error !== 'No API data') {
       results.errors.push({ book, error: preview.error });
-    } else if (preview.hasChanges) {
+    } else if (preview.hasChanges && preview.apiData) {
       results.booksWithChanges.push({ book, changes: preview.changes, apiData: preview.apiData });
     } else {
       results.booksNoChanges.push({ book });
@@ -268,13 +438,17 @@ export async function previewBooksFromAPI(books, onProgress, delayMs = 500) {
 
 /**
  * Apply previewed changes to books
- * @param {string} userId - User ID
- * @param {Array<Object>} booksWithChanges - From previewBooksFromAPI results
- * @param {Function} onProgress - Progress callback (current, total)
- * @returns {Promise<Object>} { saved, errors }
+ * @param userId - User ID
+ * @param booksWithChanges - From previewBooksFromAPI results
+ * @param onProgress - Progress callback (current, total)
+ * @returns Apply changes result
  */
-export async function applyPreviewedChanges(userId, booksWithChanges, onProgress) {
-  const results = { saved: [], errors: [] };
+export async function applyPreviewedChanges(
+  userId: string,
+  booksWithChanges: BookWithChanges[],
+  onProgress?: (current: number, total: number) => void
+): Promise<ApplyChangesResult> {
+  const results: ApplyChangesResult = { saved: [], errors: [] };
 
   for (let i = 0; i < booksWithChanges.length; i++) {
     const { book, apiData } = booksWithChanges[i];
@@ -283,13 +457,13 @@ export async function applyPreviewedChanges(userId, booksWithChanges, onProgress
       onProgress(i + 1, booksWithChanges.length);
     }
 
-    const updates = {};
+    const updates: Record<string, unknown> = {};
 
     // Build updates from API data
     if (!book.coverImageUrl && apiData.coverImageUrl) {
       updates.coverImageUrl = apiData.coverImageUrl;
     }
-    if ((!book.genres || book.genres.length === 0) && apiData.genres?.length > 0) {
+    if ((!book.genres || book.genres.length === 0) && apiData.genres?.length) {
       updates.genres = apiData.genres;
     }
     if (!book.pageCount && apiData.pageCount) {
@@ -308,7 +482,7 @@ export async function applyPreviewedChanges(userId, booksWithChanges, onProgress
     // Update covers object
     if (apiData.covers) {
       const existingCovers = book.covers || {};
-      const newCovers = { ...existingCovers };
+      const newCovers: CoverSources = { ...existingCovers };
       if (apiData.covers.googleBooks && !existingCovers.googleBooks) {
         newCovers.googleBooks = apiData.covers.googleBooks;
       }
@@ -332,7 +506,8 @@ export async function applyPreviewedChanges(userId, booksWithChanges, onProgress
         fieldsUpdated: Object.keys(updates).filter(k => k !== 'updatedAt' && k !== 'covers'),
       });
     } catch (err) {
-      results.errors.push({ book, error: err.message });
+      const error = err as Error;
+      results.errors.push({ book, error: error.message });
     }
   }
 
@@ -342,16 +517,16 @@ export async function applyPreviewedChanges(userId, booksWithChanges, onProgress
 /**
  * Attempt to fix a book from API data (legacy - still used for single book fixes)
  * Only fills empty fields - never overwrites existing user data
- * @param {string} userId - User ID
- * @param {Object} book - Book object with id and isbn
- * @returns {Promise<Object>} { success, fieldsFixed[], error? }
+ * @param userId - User ID
+ * @param book - Book object with id and isbn
+ * @returns Fix result
  */
-export async function fixBookFromAPI(userId, book) {
+export async function fixBookFromAPI(userId: string, book: Book): Promise<FixBookResult> {
   if (!book.isbn) {
     return { success: false, fieldsFixed: [], error: 'No ISBN - cannot lookup' };
   }
 
-  let apiData;
+  let apiData: APIData | null;
   try {
     apiData = await lookupISBN(book.isbn, { skipCache: true });
   } catch (_e) {
@@ -362,15 +537,15 @@ export async function fixBookFromAPI(userId, book) {
     return { success: false, fieldsFixed: [], error: 'No data available from APIs' };
   }
 
-  const updates = {};
-  const fieldsFixed = [];
+  const updates: Record<string, unknown> = {};
+  const fieldsFixed: string[] = [];
 
   // Only fill empty fields (never overwrite user data)
   if (!book.coverImageUrl && apiData.coverImageUrl) {
     updates.coverImageUrl = apiData.coverImageUrl;
     fieldsFixed.push('coverImageUrl');
   }
-  if ((!book.genres || book.genres.length === 0) && apiData.genres?.length > 0) {
+  if ((!book.genres || book.genres.length === 0) && apiData.genres?.length) {
     updates.genres = apiData.genres;
     fieldsFixed.push('genres');
   }
@@ -394,7 +569,7 @@ export async function fixBookFromAPI(userId, book) {
   // Also update covers object if available
   if (apiData.covers) {
     const existingCovers = book.covers || {};
-    const newCovers = { ...existingCovers };
+    const newCovers: CoverSources = { ...existingCovers };
     if (apiData.covers.googleBooks && !existingCovers.googleBooks) {
       newCovers.googleBooks = apiData.covers.googleBooks;
     }
@@ -416,20 +591,26 @@ export async function fixBookFromAPI(userId, book) {
     await updateDoc(doc(db, 'users', userId, 'books', book.id), updates);
     return { success: true, fieldsFixed };
   } catch (err) {
-    return { success: false, fieldsFixed: [], error: `Save failed: ${err.message}` };
+    const error = err as Error;
+    return { success: false, fieldsFixed: [], error: `Save failed: ${error.message}` };
   }
 }
 
 /**
  * Fix multiple books from API data with progress callback
- * @param {string} userId - User ID
- * @param {Array<Object>} books - Books to fix
- * @param {Function} onProgress - Progress callback (current, total, book)
- * @param {number} delayMs - Delay between API calls (default: 500ms)
- * @returns {Promise<Object>} { fixed, skipped, errors, fieldsFixedCount }
+ * @param userId - User ID
+ * @param books - Books to fix
+ * @param onProgress - Progress callback (current, total, book)
+ * @param delayMs - Delay between API calls (default: 500ms)
+ * @returns Fix batch result
  */
-export async function fixBooksFromAPI(userId, books, onProgress, delayMs = 500) {
-  const results = {
+export async function fixBooksFromAPI(
+  userId: string,
+  books: Book[],
+  onProgress?: ProgressCallback,
+  delayMs: number = 500
+): Promise<FixBatchResult> {
+  const results: FixBatchResult = {
     fixed: [],
     skipped: [],
     errors: [],
@@ -454,7 +635,7 @@ export async function fixBooksFromAPI(userId, books, onProgress, delayMs = 500) 
     } else if (result.error === 'No ISBN - cannot lookup') {
       results.skipped.push({ book, reason: 'No ISBN' });
     } else {
-      results.errors.push({ book, error: result.error });
+      results.errors.push({ book, error: result.error || 'Unknown error' });
     }
 
     // Delay between API calls to avoid rate limiting
@@ -468,21 +649,21 @@ export async function fixBooksFromAPI(userId, books, onProgress, delayMs = 500) 
 
 /**
  * Get books that need a specific field fixed
- * @param {Object} healthReport - Result from analyzeLibraryHealth
- * @param {string} issueType - One of: missingCover, missingGenres, missingPageCount, etc.
- * @returns {Array<Object>} Books with that issue
+ * @param healthReport - Result from analyzeLibraryHealth
+ * @param issueType - One of: missingCover, missingGenres, missingPageCount, etc.
+ * @returns Books with that issue
  */
-export function getBooksWithIssue(healthReport, issueType) {
+export function getBooksWithIssue(healthReport: HealthReport, issueType: keyof HealthIssues): Book[] {
   return healthReport.issues[issueType] || [];
 }
 
 /**
  * Get fixable books for a specific issue (books with ISBN)
- * @param {Object} healthReport - Result from analyzeLibraryHealth
- * @param {string} issueType - One of: missingCover, missingGenres, missingPageCount, etc.
- * @returns {Array<Object>} Fixable books with that issue
+ * @param healthReport - Result from analyzeLibraryHealth
+ * @param issueType - One of: missingCover, missingGenres, missingPageCount, etc.
+ * @returns Fixable books with that issue
  */
-export function getFixableBooksWithIssue(healthReport, issueType) {
+export function getFixableBooksWithIssue(healthReport: HealthReport, issueType: keyof HealthIssues): Book[] {
   const books = getBooksWithIssue(healthReport, issueType);
   return books.filter(b => b.isbn);
 }

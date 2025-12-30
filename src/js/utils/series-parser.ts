@@ -1,11 +1,20 @@
 // Series Parser Utility
 // Extracts series name and position from Open Library series data
 
+/** Parsed series result */
+interface ParsedSeries {
+  name: string;
+  position: number | null;
+}
+
+/** Word to number mapping */
+type WordToNumber = Record<string, number>;
+
 /**
  * Common patterns for series position in strings
  * Ordered by specificity (more specific patterns first)
  */
-const POSITION_PATTERNS = [
+const POSITION_PATTERNS: RegExp[] = [
   // "#1", "# 1"
   /^(.+?)\s*#\s*(\d+(?:\.\d+)?)\s*$/,
   // "Book 1", "Book One"
@@ -23,7 +32,7 @@ const POSITION_PATTERNS = [
 /**
  * Word numbers to digits mapping
  */
-const WORD_TO_NUMBER = {
+const WORD_TO_NUMBER: WordToNumber = {
   one: 1,
   two: 2,
   three: 3,
@@ -38,10 +47,10 @@ const WORD_TO_NUMBER = {
 
 /**
  * Parse a position string (number or word) to a number
- * @param {string} positionStr - Position as string
- * @returns {number|null} Position as number or null
+ * @param positionStr - Position as string
+ * @returns Position as number or null
  */
-function parsePosition(positionStr) {
+function parsePosition(positionStr: string | undefined): number | null {
   if (!positionStr) return null;
 
   const lower = positionStr.toLowerCase().trim();
@@ -58,10 +67,10 @@ function parsePosition(positionStr) {
 
 /**
  * Parse a single series string to extract name and position
- * @param {string} seriesStr - Series string like "Harry Potter #4"
- * @returns {{ name: string, position: number|null }} Parsed series info
+ * @param seriesStr - Series string like "Harry Potter #4"
+ * @returns Parsed series info
  */
-export function parseSeriesString(seriesStr) {
+export function parseSeriesString(seriesStr: string | null | undefined): ParsedSeries {
   if (!seriesStr || typeof seriesStr !== 'string') {
     return { name: '', position: null };
   }
@@ -90,10 +99,10 @@ export function parseSeriesString(seriesStr) {
 /**
  * Parse series data from Open Library API response
  * Open Library returns series as an array of strings
- * @param {string|string[]|undefined} seriesData - Series data from API
- * @returns {{ name: string, position: number|null }|null} Primary series info or null
+ * @param seriesData - Series data from API
+ * @returns Primary series info or null
  */
-export function parseSeriesFromAPI(seriesData) {
+export function parseSeriesFromAPI(seriesData: string | string[] | undefined | null): ParsedSeries | null {
   if (!seriesData) return null;
 
   // Handle string (single series)
@@ -127,10 +136,10 @@ export function parseSeriesFromAPI(seriesData) {
 /**
  * Normalize a series name for comparison/grouping
  * Handles variations like "HP" vs "Harry Potter"
- * @param {string} name - Series name
- * @returns {string} Normalized name (lowercase, trimmed)
+ * @param name - Series name
+ * @returns Normalized name (lowercase, trimmed)
  */
-export function normalizeSeriesName(name) {
+export function normalizeSeriesName(name: string | null | undefined): string {
   if (!name) return '';
   return name
     .toLowerCase()
@@ -141,11 +150,11 @@ export function normalizeSeriesName(name) {
 
 /**
  * Check if two series names likely refer to the same series
- * @param {string} name1 - First series name
- * @param {string} name2 - Second series name
- * @returns {boolean} True if names match
+ * @param name1 - First series name
+ * @param name2 - Second series name
+ * @returns True if names match
  */
-export function seriesNamesMatch(name1, name2) {
+export function seriesNamesMatch(name1: string | null | undefined, name2: string | null | undefined): boolean {
   const n1 = normalizeSeriesName(name1);
   const n2 = normalizeSeriesName(name2);
 
@@ -162,11 +171,11 @@ export function seriesNamesMatch(name1, name2) {
 
 /**
  * Format series info for display
- * @param {string} name - Series name
- * @param {number|null} position - Position in series
- * @returns {string} Formatted string like "Harry Potter #4"
+ * @param name - Series name
+ * @param position - Position in series
+ * @returns Formatted string like "Harry Potter #4"
  */
-export function formatSeriesDisplay(name, position) {
+export function formatSeriesDisplay(name: string | null | undefined, position: number | null | undefined): string {
   if (!name) return '';
   if (position === null || position === undefined) return name;
 

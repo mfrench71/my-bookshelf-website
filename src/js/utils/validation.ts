@@ -1,13 +1,44 @@
 // Validation Utilities - Helpers for form validation with Zod
 
+import type { z } from '/js/vendor/zod.js';
+
+/** Validation result for successful validation */
+interface ValidationSuccess<T> {
+  success: true;
+  data: T;
+  errors?: never;
+}
+
+/** Validation result for failed validation */
+interface ValidationFailure {
+  success: false;
+  data?: never;
+  errors: Record<string, string>;
+}
+
+/** Combined validation result type */
+type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;
+
+/** Scroll to error options */
+interface ScrollToErrorOptions {
+  focus?: boolean;
+  behavior?: ScrollBehavior;
+  block?: ScrollLogicalPosition;
+}
+
+/** Setup validation options */
+interface SetupValidationOptions {
+  validateOnInput?: boolean;
+}
+
 /**
  * Validate a single field against a schema
- * @param {Object} schema - Zod schema object
- * @param {string} field - Field name to validate
- * @param {any} value - Value to validate
- * @returns {string|null} Error message or null if valid
+ * @param schema - Zod schema object
+ * @param field - Field name to validate
+ * @param value - Value to validate
+ * @returns Error message or null if valid
  */
-export function validateField(schema, field, value) {
+export function validateField(schema: z.ZodObject<z.ZodRawShape>, field: string, value: unknown): string | null {
   // Extract the field schema
   const fieldSchema = schema.shape?.[field];
   if (!fieldSchema) {
@@ -26,11 +57,11 @@ export function validateField(schema, field, value) {
 
 /**
  * Validate entire form data against a schema
- * @param {Object} schema - Zod schema object
- * @param {Object} data - Form data to validate
- * @returns {{ success: boolean, data?: Object, errors?: Object }}
+ * @param schema - Zod schema object
+ * @param data - Form data to validate
+ * @returns Validation result with success, data, or errors
  */
-export function validateForm(schema, data) {
+export function validateForm<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T> {
   const result = schema.safeParse(data);
 
   if (result.success) {
@@ -38,7 +69,7 @@ export function validateForm(schema, data) {
   }
 
   // Convert Zod errors to field-keyed object
-  const errors = {};
+  const errors: Record<string, string> = {};
   for (const issue of result.error.issues) {
     const path = issue.path.join('.') || '_form';
     if (!errors[path]) {
@@ -51,12 +82,12 @@ export function validateForm(schema, data) {
 
 /**
  * Show error message on a form field
- * @param {HTMLElement} input - Input element
- * @param {string|null} error - Error message or null to clear
+ * @param input - Input element
+ * @param error - Error message or null to clear
  */
-export function showFieldError(input, error) {
+export function showFieldError(input: HTMLElement, error: string | null): void {
   // Find or create error container
-  let errorEl = input.parentElement.querySelector('.field-error');
+  let errorEl = input.parentElement?.querySelector('.field-error');
 
   if (error) {
     // Add error styling to input
@@ -64,12 +95,14 @@ export function showFieldError(input, error) {
     input.classList.remove('border-gray-300', 'focus:ring-primary', 'focus:border-primary');
 
     // Create error element if needed
-    if (!errorEl) {
+    if (!errorEl && input.parentElement) {
       errorEl = document.createElement('p');
       errorEl.className = 'field-error text-sm text-red-600 mt-1';
       input.parentElement.appendChild(errorEl);
     }
-    errorEl.textContent = error;
+    if (errorEl) {
+      errorEl.textContent = error;
+    }
   } else {
     // Clear error styling
     input.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
@@ -84,9 +117,9 @@ export function showFieldError(input, error) {
 
 /**
  * Clear all field errors in a form
- * @param {HTMLFormElement} form - Form element
+ * @param form - Form element
  */
-export function clearFormErrors(form) {
+export function clearFormErrors(form: HTMLFormElement): void {
   // Remove error styling from all inputs
   form.querySelectorAll('.border-red-500').forEach(input => {
     input.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
@@ -99,10 +132,10 @@ export function clearFormErrors(form) {
 
 /**
  * Show all form errors at once
- * @param {HTMLFormElement} form - Form element
- * @param {Object} errors - Object mapping field names to error messages
+ * @param form - Form element
+ * @param errors - Object mapping field names to error messages
  */
-export function showFormErrors(form, errors) {
+export function showFormErrors(form: HTMLFormElement, errors: Record<string, string>): void {
   clearFormErrors(form);
 
   for (const [field, message] of Object.entries(errors)) {
@@ -120,7 +153,7 @@ export function showFormErrors(form, errors) {
     }
 
     // Field-level error
-    const input = form.querySelector(`[name="${field}"], #${field}`);
+    const input = form.querySelector(`[name="${field}"], #${field}`) as HTMLElement | null;
     if (input) {
       showFieldError(input, message);
     }
@@ -129,28 +162,24 @@ export function showFormErrors(form, errors) {
 
 /**
  * Check if device is mobile (matches isMobile() in utils.js)
- * @returns {boolean}
  */
-function isMobileDevice() {
+function isMobileDevice(): boolean {
   return window.innerWidth < 768;
 }
 
 /**
  * Scroll to the first invalid field in a form
  * Call after showFormErrors() to bring the first error into view
- * @param {HTMLFormElement} form - Form element
- * @param {Object} options - Optional settings
- * @param {boolean} options.focus - Whether to focus the first invalid field (default: false on mobile to avoid keyboard popup, true on desktop)
- * @param {string} options.behavior - Scroll behavior: 'smooth' or 'instant' (default: 'smooth')
- * @param {string} options.block - Scroll block position: 'center', 'start', 'end', 'nearest' (default: 'center')
+ * @param form - Form element
+ * @param options - Optional settings
  */
-export function scrollToFirstError(form, options = {}) {
+export function scrollToFirstError(form: HTMLFormElement, options: ScrollToErrorOptions = {}): void {
   // Default: don't focus on mobile (avoids virtual keyboard popup), focus on desktop
   const defaultFocus = !isMobileDevice();
   const { focus = defaultFocus, behavior = 'smooth', block = 'center' } = options;
 
   // Find first element with error styling
-  const firstError = form.querySelector('.border-red-500');
+  const firstError = form.querySelector('.border-red-500') as HTMLElement | null;
 
   if (firstError) {
     // Scroll into view (CSS scroll-margin-top handles sticky header offset)
@@ -168,22 +197,23 @@ export function scrollToFirstError(form, options = {}) {
 
 /**
  * Get form data as an object
- * @param {HTMLFormElement} form - Form element
- * @returns {Object} Form data
+ * @param form - Form element
+ * @returns Form data
  */
-export function getFormData(form) {
+export function getFormData(form: HTMLFormElement): Record<string, string | string[]> {
   const formData = new FormData(form);
-  const data = {};
+  const data: Record<string, string | string[]> = {};
 
   for (const [key, value] of formData.entries()) {
+    const stringValue = value as string;
     // Handle multiple values (e.g., checkboxes with same name)
     if (data[key] !== undefined) {
       if (!Array.isArray(data[key])) {
-        data[key] = [data[key]];
+        data[key] = [data[key] as string];
       }
-      data[key].push(value);
+      (data[key] as string[]).push(stringValue);
     } else {
-      data[key] = value;
+      data[key] = stringValue;
     }
   }
 
@@ -192,15 +222,20 @@ export function getFormData(form) {
 
 /**
  * Set up real-time validation on blur
- * @param {HTMLFormElement} form - Form element
- * @param {Object} schema - Zod schema
- * @param {Object} options - Options
- * @param {boolean} options.validateOnInput - Also validate on input (default: false)
+ * @param form - Form element
+ * @param schema - Zod schema
+ * @param options - Options
  */
-export function setupFieldValidation(form, schema, options = {}) {
+export function setupFieldValidation(
+  form: HTMLFormElement,
+  schema: z.ZodObject<z.ZodRawShape>,
+  options: SetupValidationOptions = {}
+): void {
   const { validateOnInput = false } = options;
 
-  const inputs = form.querySelectorAll('input, textarea, select');
+  const inputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+    'input, textarea, select'
+  );
 
   inputs.forEach(input => {
     const fieldName = input.name || input.id;
@@ -225,7 +260,7 @@ export function setupFieldValidation(form, schema, options = {}) {
 
     // Clear error when user starts typing
     input.addEventListener('input', () => {
-      const errorEl = input.parentElement.querySelector('.field-error');
+      const errorEl = input.parentElement?.querySelector('.field-error');
       if (errorEl && input.classList.contains('border-red-500')) {
         // If there's an error, revalidate
         const error = validateField(schema, fieldName, input.value);

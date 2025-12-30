@@ -9,24 +9,54 @@ import { db } from '/js/firebase-config.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { widgetRegistry } from '../widgets/index.js';
 
+/** Widget settings for a single widget */
+interface WidgetSettings {
+  count?: number;
+  [key: string]: unknown;
+}
+
+/** Single widget configuration */
+interface WidgetConfig {
+  id: string;
+  enabled: boolean;
+  order: number;
+  size?: string;
+  settings: WidgetSettings;
+}
+
+/** Legacy home settings format */
+interface LegacyHomeSettings {
+  [key: string]: {
+    enabled?: boolean;
+    count?: number;
+  };
+}
+
+/** Widget settings document */
+interface WidgetSettingsDoc {
+  version: number;
+  widgets: WidgetConfig[];
+  updatedAt?: Date;
+}
+
 const WIDGET_SETTINGS_VERSION = 2;
 const LOCAL_CACHE_KEY = 'widgetSettings';
 const LEGACY_HOME_SETTINGS_KEY = 'homeSettings';
 
 /**
  * Get default widget configurations from registry
- * @returns {Array<Object>}
+ * @returns Default widget configurations
  */
-export function getDefaultWidgetConfigs() {
+export function getDefaultWidgetConfigs(): WidgetConfig[] {
   return widgetRegistry.getDefaultConfigs();
 }
 
 /**
  * Migrate legacy homeSettings to new widget format
- * @param {Object} homeSettings - Old format: { currentlyReading: { enabled, count }, ... }
- * @returns {Array<Object>} - New format: [{ id, enabled, order, size, settings }, ...]
+ * @param homeSettings - Old format: { currentlyReading: { enabled, count }, ... }
+ * @returns New format: [{ id, enabled, order, size, settings }, ...]
  */
-function migrateFromHomeSettings(homeSettings) {
+function migrateFromHomeSettings(homeSettings: LegacyHomeSettings): WidgetConfig[] {
   const defaultConfigs = getDefaultWidgetConfigs();
 
   return defaultConfigs.map((config, index) => {
@@ -48,17 +78,17 @@ function migrateFromHomeSettings(homeSettings) {
 
 /**
  * Load widget settings from Firestore with local cache fallback
- * @param {string} userId - Current user ID
- * @returns {Promise<Object>} - { version, widgets: [...] }
+ * @param userId - Current user ID
+ * @returns Widget settings document
  */
-export async function loadWidgetSettings(userId) {
+export async function loadWidgetSettings(userId: string): Promise<WidgetSettingsDoc> {
   try {
     // Try Firestore first
     const docRef = doc(db, 'users', userId, 'settings', 'widgets');
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      const data = docSnap.data();
+      const data = docSnap.data() as WidgetSettingsDoc;
 
       // Merge in any new widgets that don't exist in saved settings
       const defaultConfigs = getDefaultWidgetConfigs();
@@ -83,9 +113,9 @@ export async function loadWidgetSettings(userId) {
     const legacySettings = localStorage.getItem(LEGACY_HOME_SETTINGS_KEY);
     if (legacySettings) {
       try {
-        const parsed = JSON.parse(legacySettings);
+        const parsed = JSON.parse(legacySettings) as LegacyHomeSettings;
         const migratedWidgets = migrateFromHomeSettings(parsed);
-        const newSettings = {
+        const newSettings: WidgetSettingsDoc = {
           version: WIDGET_SETTINGS_VERSION,
           widgets: migratedWidgets,
         };
@@ -114,7 +144,7 @@ export async function loadWidgetSettings(userId) {
     const cached = localStorage.getItem(LOCAL_CACHE_KEY);
     if (cached) {
       try {
-        return JSON.parse(cached);
+        return JSON.parse(cached) as WidgetSettingsDoc;
       } catch {
         // Invalid cache
       }
@@ -130,10 +160,10 @@ export async function loadWidgetSettings(userId) {
 
 /**
  * Save widget settings to Firestore and local cache
- * @param {string} userId - Current user ID
- * @param {Object} settings - { version, widgets: [...] }
+ * @param userId - Current user ID
+ * @param settings - Widget settings to save
  */
-export async function saveWidgetSettings(userId, settings) {
+export async function saveWidgetSettings(userId: string, settings: WidgetSettingsDoc): Promise<void> {
   try {
     // Ensure version is set
     const toSave = {
@@ -156,11 +186,16 @@ export async function saveWidgetSettings(userId, settings) {
 
 /**
  * Update a single widget's configuration
- * @param {string} userId - Current user ID
- * @param {string} widgetId - Widget ID to update
- * @param {Object} updates - Partial widget config { enabled?, size?, settings? }
+ * @param userId - Current user ID
+ * @param widgetId - Widget ID to update
+ * @param updates - Partial widget config { enabled?, size?, settings? }
+ * @returns Updated settings
  */
-export async function updateWidgetConfig(userId, widgetId, updates) {
+export async function updateWidgetConfig(
+  userId: string,
+  widgetId: string,
+  updates: Partial<WidgetConfig>
+): Promise<WidgetSettingsDoc> {
   const settings = await loadWidgetSettings(userId);
   const widgetIndex = settings.widgets.findIndex(w => w.id === widgetId);
 
@@ -183,10 +218,11 @@ export async function updateWidgetConfig(userId, widgetId, updates) {
 
 /**
  * Reorder widgets
- * @param {string} userId - Current user ID
- * @param {Array<string>} orderedIds - Widget IDs in desired order
+ * @param userId - Current user ID
+ * @param orderedIds - Widget IDs in desired order
+ * @returns Updated settings
  */
-export async function reorderWidgets(userId, orderedIds) {
+export async function reorderWidgets(userId: string, orderedIds: string[]): Promise<WidgetSettingsDoc> {
   const settings = await loadWidgetSettings(userId);
 
   // Create a map for quick lookup
@@ -207,10 +243,11 @@ export async function reorderWidgets(userId, orderedIds) {
 
 /**
  * Reset widget settings to defaults
- * @param {string} userId - Current user ID
+ * @param userId - Current user ID
+ * @returns Reset settings
  */
-export async function resetWidgetSettings(userId) {
-  const settings = {
+export async function resetWidgetSettings(userId: string): Promise<WidgetSettingsDoc> {
+  const settings: WidgetSettingsDoc = {
     version: WIDGET_SETTINGS_VERSION,
     widgets: getDefaultWidgetConfigs(),
   };
@@ -221,9 +258,9 @@ export async function resetWidgetSettings(userId) {
 
 /**
  * Get enabled widgets in order
- * @param {Object} settings - Widget settings object
- * @returns {Array<Object>} - Enabled widgets sorted by order
+ * @param settings - Widget settings object
+ * @returns Enabled widgets sorted by order
  */
-export function getEnabledWidgets(settings) {
+export function getEnabledWidgets(settings: WidgetSettingsDoc): WidgetConfig[] {
   return settings.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order);
 }

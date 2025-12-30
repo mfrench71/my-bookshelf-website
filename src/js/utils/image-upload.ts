@@ -9,6 +9,49 @@ import {
   deleteObject,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
+/** Image validation result */
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/** Image dimensions */
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
+/** Compression result */
+interface CompressionResult {
+  blob: Blob;
+  mimeType: string;
+  extension: string;
+}
+
+/** Compression options */
+interface CompressionOptions {
+  maxWidth?: number;
+  quality?: number;
+}
+
+/** Upload result */
+interface UploadResult {
+  id: string;
+  url: string;
+  storagePath: string;
+  sizeBytes: number;
+  width: number;
+  height: number;
+}
+
+/** Progress callback type */
+type ProgressCallback = (progress: number) => void;
+
+/** Image with storage path */
+interface ImageWithStoragePath {
+  storagePath: string;
+}
+
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -16,7 +59,7 @@ const DEFAULT_MAX_WIDTH = 1200; // Good for lightbox viewing
 const DEFAULT_QUALITY = 0.75; // Balance between quality and size
 
 // Check WebP support (better compression than JPEG)
-const supportsWebP = (() => {
+const supportsWebP = ((): boolean => {
   const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
@@ -25,18 +68,18 @@ const supportsWebP = (() => {
 
 /**
  * Generate a unique ID for image storage
- * @returns {string} UUID-like string
+ * @returns UUID-like string
  */
-function generateImageId() {
+function generateImageId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
  * Validate image file before upload
- * @param {File} file - File to validate
- * @returns {{valid: boolean, error?: string}}
+ * @param file - File to validate
+ * @returns Validation result
  */
-export function validateImage(file) {
+export function validateImage(file: File | null | undefined): ValidationResult {
   if (!file) {
     return { valid: false, error: 'No file provided' };
   }
@@ -55,10 +98,10 @@ export function validateImage(file) {
 
 /**
  * Get image dimensions from file
- * @param {File|Blob} file - Image file
- * @returns {Promise<{width: number, height: number}>}
+ * @param file - Image file
+ * @returns Promise resolving to dimensions
  */
-export function getImageDimensions(file) {
+export function getImageDimensions(file: File | Blob): Promise<ImageDimensions> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -80,13 +123,11 @@ export function getImageDimensions(file) {
 /**
  * Compress and resize image before upload
  * Uses WebP for better compression when supported, falls back to JPEG
- * @param {File} file - Original image file
- * @param {Object} options - Compression options
- * @param {number} [options.maxWidth=1200] - Maximum width in pixels
- * @param {number} [options.quality=0.75] - Quality (0-1)
- * @returns {Promise<{blob: Blob, mimeType: string, extension: string}>} Compressed image with metadata
+ * @param file - Original image file
+ * @param options - Compression options
+ * @returns Promise resolving to compressed image with metadata
  */
-export async function compressImage(file, options = {}) {
+export async function compressImage(file: File, options: CompressionOptions = {}): Promise<CompressionResult> {
   const { maxWidth = DEFAULT_MAX_WIDTH, quality = DEFAULT_QUALITY } = options;
 
   // Skip compression for GIFs (animated)
@@ -115,6 +156,10 @@ export async function compressImage(file, options = {}) {
       canvas.height = height;
 
       const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
       ctx.drawImage(img, 0, 0, width, height);
 
       // Use WebP for better compression, fallback to JPEG
@@ -146,13 +191,18 @@ export async function compressImage(file, options = {}) {
 
 /**
  * Upload image to Firebase Storage
- * @param {File} file - Image file to upload
- * @param {string} userId - User ID for storage path
- * @param {string} bookId - Book ID for storage path
- * @param {Function} [onProgress] - Progress callback (0-100)
- * @returns {Promise<{id: string, url: string, storagePath: string, sizeBytes: number, width: number, height: number}>}
+ * @param file - Image file to upload
+ * @param userId - User ID for storage path
+ * @param bookId - Book ID for storage path
+ * @param onProgress - Progress callback (0-100)
+ * @returns Promise resolving to upload result
  */
-export async function uploadImage(file, userId, bookId, onProgress = () => {}) {
+export async function uploadImage(
+  file: File,
+  userId: string,
+  bookId: string,
+  onProgress: ProgressCallback = () => {}
+): Promise<UploadResult> {
   // Validate
   const validation = validateImage(file);
   if (!validation.valid) {
@@ -208,10 +258,9 @@ export async function uploadImage(file, userId, bookId, onProgress = () => {}) {
 
 /**
  * Delete image from Firebase Storage
- * @param {string} storagePath - Full storage path to delete
- * @returns {Promise<void>}
+ * @param storagePath - Full storage path to delete
  */
-export async function deleteImage(storagePath) {
+export async function deleteImage(storagePath: string): Promise<void> {
   if (!storagePath) {
     throw new Error('No storage path provided');
   }
@@ -219,9 +268,10 @@ export async function deleteImage(storagePath) {
   try {
     const storageRef = ref(storage, storagePath);
     await deleteObject(storageRef);
-  } catch (error) {
+  } catch (error: unknown) {
     // Ignore "object not found" errors (already deleted)
-    if (error.code !== 'storage/object-not-found') {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code !== 'storage/object-not-found') {
       console.error('Error deleting image:', error);
       throw new Error('Failed to delete image. Please try again.');
     }
@@ -230,10 +280,9 @@ export async function deleteImage(storagePath) {
 
 /**
  * Delete multiple images from Firebase Storage
- * @param {Array<{storagePath: string}>} images - Array of image objects with storagePath
- * @returns {Promise<void>}
+ * @param images - Array of image objects with storagePath
  */
-export async function deleteImages(images) {
+export async function deleteImages(images: ImageWithStoragePath[] | null | undefined): Promise<void> {
   if (!images || images.length === 0) return;
 
   const deletePromises = images.map(img => deleteImage(img.storagePath));

@@ -1,12 +1,15 @@
 // Genre Parser Utilities - Parse and normalize genre names from APIs
 
+/** Genre variation mapping type */
+type GenreVariations = Record<string, string>;
+
 /**
  * Common genre variation mappings
  * Maps informal/abbreviated forms to standard forms
  * NOTE: Only maps synonyms/abbreviations, NOT subgenres to parent genres
  * (to preserve specificity - "Space Opera" stays as "Space Opera", not "Science Fiction")
  */
-const GENRE_VARIATIONS = {
+const GENRE_VARIATIONS: GenreVariations = {
   // Abbreviations
   'sci-fi': 'Science Fiction',
   scifi: 'Science Fiction',
@@ -117,10 +120,10 @@ const GENRE_VARIATIONS = {
 /**
  * Normalize a genre name using variation mapping
  * Returns the canonical form if found, otherwise original (trimmed)
- * @param {string} name - Genre name to normalize
- * @returns {string} Normalized genre name
+ * @param name - Genre name to normalize
+ * @returns Normalized genre name
  */
-export function normalizeGenreVariation(name) {
+export function normalizeGenreVariation(name: string | null | undefined): string {
   if (!name) return '';
   const lower = name.toLowerCase().trim();
   // Use 'in' check instead of || to allow empty string mappings (for filtering)
@@ -142,21 +145,21 @@ export function normalizeGenreVariation(name) {
  * - "Thriller" → ["Thriller"] (no change)
  * - "Sci-Fi" → ["Science Fiction"] (no space around hyphen, so not split)
  *
- * @param {Array<string>} categories - Array of category strings from API
- * @returns {Array<string>} Flattened array of individual genres
+ * @param categories - Array of category strings from API
+ * @returns Flattened array of individual genres
  */
-export function parseHierarchicalGenres(categories) {
+export function parseHierarchicalGenres(categories: string[] | null | undefined): string[] {
   if (!categories || !Array.isArray(categories)) return [];
 
   // Regex to split on common hierarchical separators
   // Matches: " / ", " - ", " -- ", " > ", " — " (em dash), " – " (en dash), ", " (comma-space)
   // Note: Requires at least one space on each side for slashes/dashes to avoid splitting "Sci-Fi"
   const separators = /\s+[/\-—–>]\s+|\s+--\s+|,\s+/;
-  const parsed = new Set();
+  const parsed = new Set<string>();
 
   // Patterns to filter out (clearly NOT genres - just metadata)
   // Keep borderline items for user to manage via genre management UI
-  const filterPatterns = [
+  const filterPatterns: RegExp[] = [
     /^series:/i, // series:Harry_Potter
     /^nyt:/i, // nyt:advice-how-to-and-miscellaneous=2016-10-02
     /^collectionid:/i, // collectionid:nyt2020s
@@ -175,10 +178,8 @@ export function parseHierarchicalGenres(categories) {
 
   /**
    * Convert string to Title Case for consistent genre display
-   * @param {string} str
-   * @returns {string}
    */
-  function toTitleCase(str) {
+  function toTitleCase(str: string): string {
     if (!str || str.length <= 1) return str;
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
@@ -216,8 +217,8 @@ export function parseHierarchicalGenres(categories) {
 
 /**
  * Get the variation mappings (for testing)
- * @returns {Object} Copy of GENRE_VARIATIONS
+ * @returns Copy of GENRE_VARIATIONS
  */
-export function getGenreVariations() {
+export function getGenreVariations(): GenreVariations {
   return { ...GENRE_VARIATIONS };
 }
