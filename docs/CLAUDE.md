@@ -467,13 +467,16 @@ src/
 │   │   ├── preferences.js  # Sync settings, widgets
 │   │   ├── maintenance.js  # Data cleanup, cover fetch
 │   │   └── about.js        # Changelog accordion
-│   ├── components/         # Reusable UI components
-│   │   ├── author-picker.js # Single-select author input with library suggestions
-│   │   ├── book-card.js    # Book card for list display
-│   │   ├── cover-picker.js # Cover image source picker
-│   │   ├── genre-picker.js # Multi-select genre input
-│   │   ├── modal.js        # Modal and ConfirmModal components
-│   │   └── rating-input.js # Star rating input
+│   ├── components/         # Reusable UI components (TypeScript)
+│   │   ├── author-picker.ts  # Single-select author input with library suggestions
+│   │   ├── book-card.ts      # Book card for list display
+│   │   ├── breadcrumb.ts     # Breadcrumb navigation
+│   │   ├── cover-picker.ts   # Cover image source picker
+│   │   ├── filter-panel.ts   # Sort/filter sidebar and bottom sheet
+│   │   ├── genre-picker.ts   # Multi-select genre input
+│   │   ├── modal.ts          # Modal and ConfirmModal components
+│   │   ├── rating-input.ts   # Star rating input
+│   │   └── series-picker.ts  # Series selection with position input
 │   ├── repositories/       # Data access layer (TypeScript)
 │   │   ├── base-repository.ts  # Common CRUD operations
 │   │   ├── book-repository.ts  # Book-specific queries
@@ -489,8 +492,8 @@ src/
 │   │   ├── sync-settings.ts # Sync preferences
 │   │   ├── visibility-refresh.ts # Auto-refresh on tab focus
 │   │   └── event-bus.ts     # Pub/sub event bus
-│   ├── genres.js           # Genre CRUD operations and utilities
-│   ├── series.js           # Series CRUD operations and utilities
+│   ├── genres.ts           # Genre CRUD operations and utilities
+│   ├── series.ts           # Series CRUD operations and utilities
 │   └── widgets/            # Dashboard widget system
 ├── css/tailwind.css      # Tailwind v4 with custom theme
 └── sw.js                 # Service worker for PWA
@@ -524,8 +527,8 @@ This project uses Tailwind v4 which has different syntax:
 
 Common utilities are consolidated in shared modules:
 - `utils.js` - escapeHtml, escapeAttr, normalizeText, normalizeGenreName, normalizeTitle, normalizeAuthor, normalizePublisher, normalizePublishedDate, debounce, throttle, parseTimestamp, formatDate, renderStars, showToast, initIcons, getContrastColor, isOnline, isMobile, isValidImageUrl, fetchWithTimeout, checkPasswordStrength, getCachedUserProfile, clearUserProfileCache, lockBodyScroll, unlockBodyScroll, getHomeSettings, saveHomeSettings, getCachedISBNData, setCachedISBNData, lookupISBN, getSyncSettings, saveSyncSettings, resetSyncSettings, getDefaultSyncSettings, setupVisibilityRefresh, getLastRefreshTime, setLastRefreshTime, interceptNavigation
-- `genres.js` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
-- `series.js` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
+- `genres.ts` - loadUserGenres, createGenre, updateGenre, deleteGenre, createGenreLookup, GENRE_COLORS, getUsedColors, getAvailableColors
+- `series.ts` - loadUserSeries, createSeries, updateSeries, deleteSeries, createSeriesLookup, updateSeriesBookCounts, clearSeriesCache
 - `utils/library-health.js` - analyzeLibraryHealth, calculateLibraryCompleteness, getCompletenessRating, fixBookFromAPI, fixBooksFromAPI, HEALTH_FIELDS
 - `utils/book-filters.js` - filterByRating, filterByGenres, filterByStatuses, filterBySeriesIds, filterByAuthor, applyFilters
 - `utils/book-sorters.js` - sortBooks, getAuthorSurname, SORT_OPTIONS, DEFAULT_SORT
@@ -533,22 +536,22 @@ Common utilities are consolidated in shared modules:
 - `utils/duplicate-checker.js` - isISBN, cleanISBN, checkForDuplicate, DUPLICATE_CHECK_LIMIT
 - `utils/event-bus.ts` - EventBus class, eventBus singleton, Events constants (pub/sub for decoupled component communication)
 
-Data access layer in `src/js/repositories/`:
-- `base-repository.js` - BaseRepository class with common CRUD operations (getAll, getById, create, update, delete, queryByField, getWithOptions)
-- `book-repository.js` - BookRepository extending base with getByIsbn, getBySeriesId, isSeriesPositionTaken, getActive, getDeleted, getByGenreId, getRecent, softDelete, restore
-- `genre-repository.js` - GenreRepository extending base with getByNormalizedName, getAllSorted, nameExists, getByIds, incrementBookCount
-- `series-repository.js` - SeriesRepository extending base with findByName, getAllSorted, getActive, getDeleted, nameExists, softDelete, restore, incrementBookCount, getByIds
+Data access layer in `src/js/repositories/` (TypeScript):
+- `base-repository.ts` - BaseRepository class with common CRUD operations (getAll, getById, create, update, delete, queryByField, getWithOptions)
+- `book-repository.ts` - BookRepository extending base with getByIsbn, getBySeriesId, isSeriesPositionTaken, getActive, getDeleted, getByGenreId, getRecent, softDelete, restore
+- `genre-repository.ts` - GenreRepository extending base with getByNormalizedName, getAllSorted, nameExists, getByIds, incrementBookCount
+- `series-repository.ts` - SeriesRepository extending base with findByName, getAllSorted, getActive, getDeleted, nameExists, softDelete, restore, incrementBookCount, getByIds
 
-Reusable UI components in `src/js/components/`:
-- `author-picker.js` - AuthorPicker class for single-select author input with library suggestions and book counts
-- `book-card.js` - BookCard component for rendering book list items with genre/series badges
-- `breadcrumb.js` - Breadcrumb navigation with presets for each page type
-- `cover-picker.js` - CoverPicker for selecting from Google Books or Open Library covers
-- `filter-panel.js` - FilterPanel for sort/rating/genre/status/series filters (sidebar + bottom sheet)
-- `genre-picker.js` - GenrePicker class for multi-select genre input with typeahead
-- `modal.js` - Modal and ConfirmModal components with escape/backdrop handling
-- `rating-input.js` - RatingInput for star rating selection
-- `series-picker.js` - SeriesPicker class for single-select series input with position
+Reusable UI components in `src/js/components/` (TypeScript):
+- `author-picker.ts` - AuthorPicker class for single-select author input with library suggestions and book counts
+- `book-card.ts` - BookCard component for rendering book list items with genre/series badges
+- `breadcrumb.ts` - Breadcrumb navigation with presets for each page type
+- `cover-picker.ts` - CoverPicker for selecting from Google Books or Open Library covers
+- `filter-panel.ts` - FilterPanel for sort/rating/genre/status/series filters (sidebar + bottom sheet)
+- `genre-picker.ts` - GenrePicker class for multi-select genre input with typeahead
+- `modal.ts` - Modal and ConfirmModal components with escape/backdrop handling
+- `rating-input.ts` - RatingInput for star rating selection
+- `series-picker.ts` - SeriesPicker class for single-select series input with position
 
 Toast notifications support types: `showToast('message', { type: 'success' | 'error' | 'info' })`
 

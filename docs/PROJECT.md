@@ -853,7 +853,7 @@ As users accumulate many genres/series, the Settings > Library page lists will n
 - [ ] Virtualised list for 500+ books
 - [x] Event listener cleanup - Added guards to prevent duplicate listeners (header.js online/offline, books/index.js touch), fixed beforeunload stacking (add.js, edit.js), added destroy() methods to CoverPicker and RatingInput
 - [x] Repository pattern - Base, book, genre, series repositories abstract Firestore access
-- [x] TypeScript migration - Utilities and repositories converted to TypeScript with type definitions
+- [x] TypeScript migration - Utilities, repositories, components (all 9), and domain modules (genres.ts, series.ts) converted to TypeScript with type definitions
 - [x] Event bus - Pub/sub pattern for decoupled component communication (utils/event-bus.ts)
 - [ ] Split large files (see File Size Review below)
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
