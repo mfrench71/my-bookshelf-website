@@ -63,15 +63,15 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
   <div class="space-y-4">
     <!-- Email Verification Status -->
     <div id="email-verification-section" class="hidden bg-white rounded-xl border border-gray-200 p-6">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
           <i id="verification-icon" data-lucide="mail-check" class="w-5 h-5 text-green-600" aria-hidden="true"></i>
           <div>
             <h3 class="font-medium text-gray-900">Email Verification</h3>
             <p id="verification-status" class="text-gray-500 text-sm mt-0.5">Verified</p>
           </div>
         </div>
-        <button id="resend-verification-btn" class="hidden flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
+        <button id="resend-verification-btn" class="hidden flex-shrink-0 flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors min-h-[44px]">
           <i data-lucide="send" class="w-4 h-4" aria-hidden="true"></i>
           <span>Resend</span>
         </button>
@@ -80,12 +80,12 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
 
     <!-- Change Password -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0">
           <h3 class="font-medium text-gray-900">Change Password</h3>
           <p class="text-gray-500 text-sm mt-1">Update your account password</p>
         </div>
-        <button id="change-password-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
+        <button id="change-password-btn" class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm rounded-lg transition-colors min-h-[44px]">
           <i data-lucide="key" class="w-4 h-4" aria-hidden="true"></i>
           <span>Change</span>
         </button>
@@ -126,12 +126,12 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
 
     <!-- Delete Account -->
     <div class="bg-red-50 rounded-xl border border-red-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0">
           <h3 class="font-medium text-red-900">Delete Account</h3>
           <p class="text-red-700 text-sm mt-1">Permanently delete your account and all data</p>
         </div>
-        <button id="delete-account-btn" class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors min-h-[44px]">
+        <button id="delete-account-btn" class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors min-h-[44px]">
           <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
           <span>Delete</span>
         </button>
