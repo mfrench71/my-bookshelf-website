@@ -130,6 +130,11 @@ select {
   z-index: 1;
 }
 
+/* Cover shadow utility - applies to any size cover */
+.cover-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 .book-cover {
   width: 60px;
   height: 90px;
@@ -137,6 +142,7 @@ select {
   object-fit: cover;
   background-color: #f3f4f6;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover-placeholder {
@@ -148,6 +154,7 @@ select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover-placeholder svg {
@@ -455,6 +462,17 @@ select {
 
 .search-header-exit {
   animation: searchHeaderSlideOut 0.15s ease-in forwards;
+}
+
+/* Badge Pulse Animation (for count updates) */
+@keyframes badgePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.badge-pulse {
+  animation: badgePulse 0.3s ease-out;
 }
 
 /* Filter Chip Scale Animation */
@@ -1177,16 +1195,6 @@ button, a {
 
 .widget-grid.fade-in {
   animation: widgetFadeIn 0.2s ease-out forwards;
-}
-
-/* Skeleton fade-out when hidden */
-.skeleton-fade {
-  transition: opacity 0.15s ease-out;
-}
-
-.skeleton-fade.hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Content fade-in after skeleton */
