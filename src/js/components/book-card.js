@@ -126,10 +126,12 @@ function renderGenreBadges(genreDetails) {
  * @param {Map} options.genreLookup - Map of genreId -> genre object for enriching genres
  * @param {Map} options.seriesLookup - Map of seriesId -> series object for enriching series
  * @param {string} options.highlightQuery - Normalized search query to highlight in title/author
+ * @param {string} options.className - Additional CSS class(es) to add to the card
+ * @param {number} options.animationDelay - Animation delay in ms for stagger effect
  * @returns {string} HTML string for the book card
  */
 export function bookCard(book, options = {}) {
-  const { showDate = false, genreLookup = null, seriesLookup = null, highlightQuery = '' } = options;
+  const { showDate = false, genreLookup = null, seriesLookup = null, highlightQuery = '', className = '', animationDelay = 0 } = options;
 
   const cover = book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
     ? `<div class="book-cover-wrapper">
@@ -181,8 +183,14 @@ export function bookCard(book, options = {}) {
     ? highlightMatch(book.author || 'Unknown author', highlightQuery)
     : escapeHtml(book.author || 'Unknown author');
 
+  // Build class list
+  const classes = ['book-card', className].filter(Boolean).join(' ');
+
+  // Build style for animation delay
+  const style = animationDelay > 0 ? ` style="animation-delay: ${animationDelay}ms"` : '';
+
   return `
-    <a href="/books/view/?id=${book.id}" class="book-card card-animate">
+    <a href="/books/view/?id=${book.id}" class="${classes}"${style}>
       ${cover}
       <div class="flex-1 min-w-0">
         <h3 class="font-medium text-gray-900 truncate">${titleHtml}</h3>

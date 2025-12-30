@@ -23,7 +23,7 @@ describe('bookCard', () => {
       expect(html).toContain('The Great Gatsby');
       expect(html).toContain('F. Scott Fitzgerald');
       expect(html).toContain('https://example.com/gatsby.jpg');
-      expect(html).toContain('class="book-card card-animate"');
+      expect(html).toContain('class="book-card"');
     });
 
     it('should render book without cover image', () => {
@@ -148,11 +148,25 @@ describe('bookCard', () => {
   });
 
   describe('CSS classes', () => {
-    it('should include book-card and card-animate classes', () => {
+    it('should include book-card class by default', () => {
       const book = createMockBook();
       const html = bookCard(book);
 
+      expect(html).toContain('class="book-card"');
+    });
+
+    it('should include custom className when provided', () => {
+      const book = createMockBook();
+      const html = bookCard(book, { className: 'card-animate' });
+
       expect(html).toContain('class="book-card card-animate"');
+    });
+
+    it('should include animation delay style when provided', () => {
+      const book = createMockBook();
+      const html = bookCard(book, { className: 'card-animate', animationDelay: 100 });
+
+      expect(html).toContain('style="animation-delay: 100ms"');
     });
 
     it('should include book-cover class for images', () => {

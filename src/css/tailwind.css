@@ -426,6 +426,100 @@ select {
   animation: pageIn 0.25s ease-out;
 }
 
+/* Search Overlay Animations */
+@keyframes searchHeaderSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes searchHeaderSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+.search-header-enter {
+  animation: searchHeaderSlideIn 0.25s ease-out forwards;
+}
+
+.search-header-exit {
+  animation: searchHeaderSlideOut 0.15s ease-in forwards;
+}
+
+/* Filter Chip Scale Animation */
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chipOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.chip-enter {
+  animation: chipIn 0.15s ease-out forwards;
+}
+
+.chip-exit {
+  animation: chipOut 0.1s ease-in forwards;
+}
+
+/* Empty State Fade In */
+@keyframes emptyStateIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.empty-state-animate {
+  animation: emptyStateIn 0.3s ease-out forwards;
+}
+
+/* Dropdown fade-in animation */
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-animate {
+  animation: dropdownIn 0.15s ease-out forwards;
+}
+
 /* Skeleton Loading Animation */
 @keyframes shimmer {
   0% {
