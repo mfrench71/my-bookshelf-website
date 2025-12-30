@@ -187,9 +187,9 @@ test.describe('Accessibility - Authenticated Pages (JS Disabled)', () => {
 
   test('books list page has correct heading hierarchy', async ({ page }) => {
     await page.goto('/books/');
-    // Check h1 exists (note: page has 2 h1s for mobile/desktop - ideally should be 1)
+    // Check exactly one h1 exists (sr-only for accessibility)
     const h1Count = await page.locator('h1').count();
-    expect(h1Count).toBeGreaterThanOrEqual(1);
+    expect(h1Count).toBe(1);
     // Check main content exists
     await expect(page.locator('main#main-content')).toBeAttached();
   });

@@ -67,11 +67,13 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
 
 <!-- Main Content -->
 <div class="max-w-6xl mx-auto px-4 pt-6 pb-24">
+  <!-- Page title - sr-only, actual visual headings below use aria-hidden -->
+  <h1 class="sr-only">My Books</h1>
+  <!-- Mobile header -->
   <div class="flex items-center justify-between mb-4 md:hidden">
-    <h1 class="text-xl font-bold text-gray-900">My Books</h1>
+    <span class="text-xl font-bold text-gray-900" aria-hidden="true">My Books</span>
     <p id="book-count-mobile" class="hidden text-sm text-gray-500" aria-live="polite"></p>
   </div>
-  <h1 class="sr-only md:not-sr-only hidden">My Books</h1>
   <div class="flex gap-4 md:gap-6">
     <!-- Desktop: Filter Sidebar -->
     <aside class="hidden md:block w-72 flex-shrink-0">
@@ -109,7 +111,7 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
     <div class="flex-1 min-w-0">
       <!-- Desktop Header with count -->
       <div class="hidden md:flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">My Books</h2>
+        <span class="text-xl font-bold text-gray-900" aria-hidden="true">My Books</span>
         <p id="book-count-desktop" class="hidden text-sm text-gray-500" aria-live="polite"></p>
       </div>
       <!-- Active Filter Chips (desktop) - above book list, hidden on mobile -->
