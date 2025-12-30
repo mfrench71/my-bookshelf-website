@@ -463,12 +463,12 @@ Filter panel is functional but transitions feel instant.
 
 **Performance & Loading:**
 - [ ] Skeleton loader for filter counts
-- [ ] Debounced filter application (150ms, already done)
+- [x] Debounced filter application (150ms)
 
 **Visual Polish:**
 - [ ] Filter count badges pulse when count changes
 - [ ] Clear all filters button appears with animation
-- [ ] Bottom sheet handle affordance (already present)
+- [x] Bottom sheet handle affordance
 
 ### Search Overlay UX Polish
 Search works but appears/disappears instantly.
