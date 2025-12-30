@@ -455,6 +455,14 @@ export class BottomSheet extends Modal {
       const handle = this.container.querySelector('.bottom-sheet-handle');
       const target = e.target;
 
+      // Check if touch target is inside a nested scrollable element
+      // If so, don't start swipe-to-dismiss (let the inner scroll work)
+      const nestedScrollable = this._findScrollableAncestor(target, this.contentEl);
+      if (nestedScrollable && nestedScrollable.scrollTop < nestedScrollable.scrollHeight - nestedScrollable.clientHeight) {
+        // Inner scrollable can still scroll down, don't start dismiss
+        return;
+      }
+
       // Allow drag from handle or if content is scrolled to top
       const isHandle = handle && handle.contains(target);
       const isScrolledToTop = this.contentEl.scrollTop === 0;
@@ -492,6 +500,27 @@ export class BottomSheet extends Modal {
         this.contentEl.style.transform = '';
       }
     }, { passive: true });
+  }
+
+  /**
+   * Find a scrollable ancestor element between target and stopAt (exclusive)
+   * @param {HTMLElement} target - Starting element
+   * @param {HTMLElement} stopAt - Stop searching at this element (don't include it)
+   * @returns {HTMLElement|null} Scrollable ancestor or null
+   */
+  _findScrollableAncestor(target, stopAt) {
+    let el = target;
+    while (el && el !== stopAt) {
+      const style = window.getComputedStyle(el);
+      const overflowY = style.overflowY;
+      const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') &&
+                           el.scrollHeight > el.clientHeight;
+      if (isScrollable) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
   }
 }
 
