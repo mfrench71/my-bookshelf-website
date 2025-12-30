@@ -505,6 +505,7 @@ Common utilities are consolidated in shared modules:
 - `utils/book-filters.js` - filterByRating, filterByGenres, filterByStatuses, filterBySeriesIds, filterByAuthor, applyFilters
 - `utils/book-sorters.js` - sortBooks, getAuthorSurname, SORT_OPTIONS, DEFAULT_SORT
 - `utils/reading.js` - getBookStatus (reading status calculation)
+- `utils/duplicate-checker.js` - isISBN, cleanISBN, checkForDuplicate, DUPLICATE_CHECK_LIMIT
 
 Reusable UI components in `src/js/components/`:
 - `author-picker.js` - AuthorPicker class for single-select author input with library suggestions and book counts
