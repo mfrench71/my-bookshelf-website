@@ -52,6 +52,7 @@ const coverLoading = document.getElementById('cover-loading');
 // Detail elements
 const bookTitleEl = document.getElementById('book-title');
 const bookAuthorEl = document.getElementById('book-author');
+const bookAuthorName = document.getElementById('book-author-name');
 const ratingSection = document.getElementById('rating-section');
 const ratingStars = document.getElementById('rating-stars');
 const statusSection = document.getElementById('status-section');
@@ -181,12 +182,13 @@ function renderBook() {
   // Title & Author
   bookTitleEl.textContent = book.title;
   const authorName = book.author || 'Unknown author';
-  bookAuthorEl.textContent = authorName;
+  bookAuthorName.textContent = authorName;
   if (book.author) {
     bookAuthorEl.href = `/books/?author=${encodeURIComponent(book.author)}`;
+    bookAuthorEl.classList.remove('pointer-events-none');
   } else {
     bookAuthorEl.removeAttribute('href');
-    bookAuthorEl.style.cursor = 'default';
+    bookAuthorEl.classList.add('pointer-events-none');
   }
 
   // Rating
@@ -209,7 +211,7 @@ function renderBook() {
     statusSection.classList.remove('hidden');
   }
 
-  // Genres
+  // Genres (clickable links to filter book list)
   if (book.genres && book.genres.length > 0 && genreLookup) {
     const html = book.genres
       .map(gId => genreLookup.get(gId))
@@ -218,7 +220,8 @@ function renderBook() {
       .map(g => {
         const safeColor = isValidHexColor(g.color) ? g.color : '#6b7280';
         const textColor = getContrastColor(safeColor);
-        return `<span class="genre-badge" style="background-color: ${safeColor}; color: ${textColor}">${escapeHtml(g.name)}</span>`;
+        const href = `/books/?genres=${encodeURIComponent(g.id)}`;
+        return `<a href="${href}" class="genre-badge genre-badge-link" style="background-color: ${safeColor}; color: ${textColor}">${escapeHtml(g.name)}</a>`;
       })
       .join('');
     genreBadges.innerHTML = html;

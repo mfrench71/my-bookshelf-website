@@ -894,6 +894,21 @@ button, a {
   white-space: nowrap;
 }
 
+/* Clickable genre badge (used on book view page) */
+.genre-badge-link {
+  text-decoration: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.genre-badge-link:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.genre-badge-link:active {
+  transform: scale(0.98);
+}
+
 .genre-badge-sm {
   padding: 0.0625rem 0.375rem;
   font-size: 0.625rem;
