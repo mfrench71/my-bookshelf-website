@@ -455,7 +455,7 @@ Filter panel is functional but transitions feel instant.
 **Transitions & Animations:**
 - [x] Secondary filters: smooth height transition (max-height 0→auto)
 - [x] Chevron rotation animation (already done via class)
-- [ ] Dropdown options fade-in on open
+- [ ] Dropdown options fade-in on open (deferred - requires custom dropdown component)
 - [x] Active filter chips: scale animation on add/remove
 
 **Mobile Gestures:**
@@ -486,7 +486,7 @@ Search works but appears/disappears instantly.
 - [x] "No results" state with icon (standardised empty state pattern)
 
 **Performance & Loading:**
-- [ ] Search skeleton while loading
+- [x] Search skeleton while loading
 - [x] Highlight matching text in results
 
 **Accessibility:**
@@ -507,8 +507,8 @@ Mobile menu shows/hides without animation.
 - [ ] Swipe left to close menu
 
 **Visual Polish:**
-- [ ] Active page indicator animation
-- [ ] Menu item hover/active states with transitions
+- [x] Active page indicator (highlights current page in menu)
+- [x] Menu item hover/active states with transitions
 
 ### Page Transitions UX Polish
 Currently no page entry/exit animations.

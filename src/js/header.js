@@ -171,6 +171,7 @@ const closeSearchBtn = document.getElementById('close-search');
 const searchInput = document.getElementById('search-input');
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
+const searchLoading = document.getElementById('search-loading');
 const searchResultCount = document.getElementById('search-result-count');
 const searchHeader = document.getElementById('search-header');
 const offlineBanner = document.getElementById('offline-banner');
@@ -403,6 +404,10 @@ async function loadAllBooksForSearch() {
     console.error('Error loading books for search:', error);
   } finally {
     isLoadingBooks = false;
+    // Re-run search if user typed while loading
+    if (currentSearchQuery) {
+      performSearch(currentSearchQuery);
+    }
   }
 }
 
@@ -541,6 +546,8 @@ function performSearch(queryText) {
 
   if (!queryText) {
     // Show recent searches when query is cleared (never show loading here)
+    if (searchLoading) searchLoading.classList.add('hidden');
+    if (searchResults) searchResults.classList.remove('hidden');
     showRecentSearches();
     // Hide result count when no query
     if (searchResultCount) {
@@ -549,6 +556,18 @@ function performSearch(queryText) {
     }
     return;
   }
+
+  // Show skeleton while books are still loading
+  if (isLoadingBooks && books.length === 0) {
+    if (searchLoading) searchLoading.classList.remove('hidden');
+    if (searchResults) searchResults.classList.add('hidden');
+    if (searchResultCount) searchResultCount.classList.add('hidden');
+    return;
+  }
+
+  // Hide skeleton, show results
+  if (searchLoading) searchLoading.classList.add('hidden');
+  if (searchResults) searchResults.classList.remove('hidden');
 
   // Search across multiple fields (title, author, ISBN, series, notes, publisher)
   const results = books.filter(b => {
