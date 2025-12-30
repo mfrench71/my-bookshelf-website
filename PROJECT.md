@@ -443,7 +443,7 @@ Book cards have basic hover states but could feel more premium.
 **Visual Polish:**
 - [ ] Cover image shadow/depth effect
 - [ ] Status badge micro-animations
-- [ ] Empty state illustration (not just icon)
+- [x] Empty state with icon (standardised pattern - icons preferred over illustrations)
 
 **Accessibility:**
 - [x] Announce list updates to screen readers (aria-live on count elements)
@@ -483,7 +483,7 @@ Search works but appears/disappears instantly.
 - [x] Backdrop blur on overlay (`backdrop-filter: blur(4px)`)
 - [x] Result count badge in header ("12 results")
 - [x] Recent searches section (stored in localStorage)
-- [ ] "No results" state with illustration
+- [x] "No results" state with icon (standardised empty state pattern)
 
 **Performance & Loading:**
 - [ ] Search skeleton while loading

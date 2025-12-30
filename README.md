@@ -26,6 +26,10 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - Pull-to-refresh on mobile devices
 - Works offline with cached books and offline indicator
 - Firestore offline persistence for reduced API calls
+- **Wishlist** for books you want to read/buy
+- **Series tracking** with reading order
+- Soft delete with 30-day bin recovery
+- Accessibility tested (WCAG 2.1 AA compliant)
 
 ## Tech Stack
 
@@ -35,7 +39,7 @@ A mobile-friendly book tracking PWA with barcode scanning.
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (1842 tests)
+- **Testing**: Vitest with jsdom (2192 tests), Playwright E2E (46 tests)
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
@@ -74,7 +78,7 @@ This builds the site to `_site/`.
 ### Testing
 
 ```bash
-# Run all tests
+# Run unit tests
 npm test
 
 # Watch mode for development
@@ -82,6 +86,9 @@ npm run test:watch
 
 # Run with coverage
 npm run test:coverage
+
+# Run E2E accessibility tests
+npm run test:e2e
 ```
 
 ## Project Structure
@@ -97,19 +104,26 @@ src/
 │   ├── add.njk       # Add book (/books/add/)
 │   ├── view.njk      # View book (/books/view/?id=X)
 │   └── edit.njk      # Edit book (/books/edit/?id=X)
-├── settings.njk      # Settings page (/settings/)
+├── wishlist/         # Wishlist pages
+│   └── index.njk     # Wishlist (/wishlist/)
+├── settings/         # Settings pages
+│   ├── index.njk     # Profile settings (/settings/)
+│   ├── library.njk   # Genres & Series (/settings/library/)
+│   ├── preferences.njk # Content preferences (/settings/preferences/)
+│   ├── maintenance.njk # Export/Import (/settings/maintenance/)
+│   ├── bin.njk       # Deleted books (/settings/bin/)
+│   └── about.njk     # About page (/settings/about/)
 ├── js/
 │   ├── index.js      # Home page logic
 │   ├── login.js      # Login/register logic
 │   ├── header.js     # Common header logic
 │   ├── books/        # Book-related page logic
-│   │   ├── index.js  # Book list
-│   │   ├── add.js    # Add book form
-│   │   ├── view.js   # View book
-│   │   └── edit.js   # Edit book
+│   ├── wishlist/     # Wishlist page logic
+│   ├── settings/     # Settings page logic
 │   ├── components/   # Reusable UI components
-│   ├── genres.js     # Genre CRUD and utilities
-│   └── settings.js   # Settings page logic
+│   ├── stores/       # State management (toast, genres, series)
+│   ├── widgets/      # Home dashboard widgets
+│   └── schemas/      # Zod validation schemas
 └── css/              # Tailwind CSS source
 ```
 
