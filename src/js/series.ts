@@ -12,31 +12,60 @@ import {
 import { normalizeSeriesName } from './utils/series-parser.js';
 import { seriesRepository } from './repositories/series-repository.js';
 import { bookRepository } from './repositories/book-repository.js';
+import type { Series } from './types/index.d.ts';
+
+/** Expected book info */
+export interface ExpectedBook {
+  title: string;
+  isbn?: string | null;
+  position?: number | null;
+  source?: string;
+}
+
+/** Series update fields */
+export interface SeriesUpdates {
+  name?: string;
+  description?: string | null;
+  totalBooks?: number | null;
+  expectedBooks?: ExpectedBook[];
+}
+
+/** Merge result */
+export interface MergeSeriesResult {
+  booksUpdated: number;
+  expectedBooksMerged: number;
+}
+
+/** Recalculation result */
+export interface RecalculateSeriesResult {
+  seriesUpdated: number;
+  totalBooks: number;
+}
 
 // In-memory cache for series (with TTL)
-let seriesCache = null;
-let seriesCacheUserId = null;
+let seriesCache: Series[] | null = null;
+let seriesCacheUserId: string | null = null;
 let seriesCacheTime = 0;
 const SERIES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get all series for a user (excludes soft-deleted series)
- * @param {string} userId - The user's ID
- * @param {boolean} forceRefresh - Force reload from Firestore
- * @returns {Promise<Array>} Array of series objects
+ * @param userId - The user's ID
+ * @param forceRefresh - Force reload from Firestore
+ * @returns Array of series objects
  */
-export async function loadUserSeries(userId, forceRefresh = false) {
+export async function loadUserSeries(userId: string, forceRefresh = false): Promise<Series[]> {
   const now = Date.now();
   const cacheValid = seriesCache && seriesCacheUserId === userId && now - seriesCacheTime < SERIES_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
-    return seriesCache;
+    return seriesCache!;
   }
 
   try {
     const allSeries = await seriesRepository.getAllSorted(userId);
     // Filter out soft-deleted series
-    seriesCache = allSeries.filter(s => !s.deletedAt);
+    seriesCache = allSeries.filter((s: Series) => !s.deletedAt);
     seriesCacheUserId = userId;
     seriesCacheTime = Date.now();
 
@@ -49,15 +78,15 @@ export async function loadUserSeries(userId, forceRefresh = false) {
 
 /**
  * Find a series by name (normalised matching)
- * @param {string} userId - The user's ID
- * @param {string} name - Series name to search for
- * @returns {Promise<Object|null>} Matching series or null
+ * @param userId - The user's ID
+ * @param name - Series name to search for
+ * @returns Matching series or null
  */
-export async function findSeriesByName(userId, name) {
+export async function findSeriesByName(userId: string, name: string): Promise<Series | null> {
   try {
     const series = await loadUserSeries(userId);
     const normalizedName = normalizeSeriesName(name);
-    return series.find(s => s.normalizedName === normalizedName) || null;
+    return series.find((s: Series) => s.normalizedName === normalizedName) || null;
   } catch (error) {
     console.error('Error finding series by name:', error);
     throw error;
@@ -66,19 +95,24 @@ export async function findSeriesByName(userId, name) {
 
 /**
  * Create a new series
- * @param {string} userId - The user's ID
- * @param {string} name - Series name
- * @param {string} description - Optional description
- * @param {number} totalBooks - Optional total books in series
- * @returns {Promise<Object>} Created series object with ID
- * @throws {Error} If series with same name already exists
+ * @param userId - The user's ID
+ * @param name - Series name
+ * @param description - Optional description
+ * @param totalBooks - Optional total books in series
+ * @returns Created series object with ID
+ * @throws Error If series with same name already exists
  */
-export async function createSeries(userId, name, description = null, totalBooks = null) {
+export async function createSeries(
+  userId: string,
+  name: string,
+  description: string | null = null,
+  totalBooks: number | null = null
+): Promise<Series> {
   const normalizedName = normalizeSeriesName(name);
 
   // Check for duplicate name
   const series = await loadUserSeries(userId);
-  const existing = series.find(s => s.normalizedName === normalizedName);
+  const existing = series.find((s: Series) => s.normalizedName === normalizedName);
 
   if (existing) {
     throw new Error(`Series "${existing.name}" already exists`);
@@ -99,7 +133,7 @@ export async function createSeries(userId, name, description = null, totalBooks 
     // Invalidate cache
     seriesCache = null;
 
-    return result;
+    return result as Series;
   } catch (error) {
     console.error('Error creating series:', error);
     throw error;
@@ -108,21 +142,25 @@ export async function createSeries(userId, name, description = null, totalBooks 
 
 /**
  * Update an existing series
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID
- * @param {Object} updates - Fields to update (name, description, totalBooks, expectedBooks)
- * @returns {Promise<Object>} Updated series object
- * @throws {Error} If renaming to an existing series name
+ * @param userId - The user's ID
+ * @param seriesId - The series ID
+ * @param updates - Fields to update (name, description, totalBooks, expectedBooks)
+ * @returns Updated series object
+ * @throws Error If renaming to an existing series name
  */
-export async function updateSeries(userId, seriesId, updates) {
-  const updateData = {};
+export async function updateSeries(
+  userId: string,
+  seriesId: string,
+  updates: SeriesUpdates
+): Promise<Partial<Series> & { id: string }> {
+  const updateData: Partial<Series> = {};
   const series = await loadUserSeries(userId);
 
   if (updates.name !== undefined) {
     const normalizedName = normalizeSeriesName(updates.name);
 
     // Check for duplicate name (excluding self)
-    const existing = series.find(s => s.normalizedName === normalizedName && s.id !== seriesId);
+    const existing = series.find((s: Series) => s.normalizedName === normalizedName && s.id !== seriesId);
 
     if (existing) {
       throw new Error(`Series "${existing.name}" already exists`);
@@ -160,11 +198,11 @@ export async function updateSeries(userId, seriesId, updates) {
 /**
  * Delete a series and unlink it from all books (hard delete)
  * Used for intentional deletion from Settings
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID to delete
- * @returns {Promise<number>} Number of books updated
+ * @param userId - The user's ID
+ * @param seriesId - The series ID to delete
+ * @returns Number of books updated
  */
-export async function deleteSeries(userId, seriesId) {
+export async function deleteSeries(userId: string, seriesId: string): Promise<number> {
   try {
     const batch = writeBatch(db);
 
@@ -199,11 +237,10 @@ export async function deleteSeries(userId, seriesId) {
 /**
  * Soft delete a series (move to bin)
  * Used when deleting the last book in a series - allows restore with book
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID to soft delete
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param seriesId - The series ID to soft delete
  */
-export async function softDeleteSeries(userId, seriesId) {
+export async function softDeleteSeries(userId: string, seriesId: string): Promise<void> {
   try {
     await seriesRepository.softDelete(userId, seriesId);
 
@@ -217,11 +254,10 @@ export async function softDeleteSeries(userId, seriesId) {
 
 /**
  * Restore a soft-deleted series
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID to restore
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param seriesId - The series ID to restore
  */
-export async function restoreSeries(userId, seriesId) {
+export async function restoreSeries(userId: string, seriesId: string): Promise<void> {
   try {
     await seriesRepository.restore(userId, seriesId);
 
@@ -236,11 +272,11 @@ export async function restoreSeries(userId, seriesId) {
 /**
  * Get a series by ID (including soft-deleted)
  * Used for restore operations
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID
- * @returns {Promise<Object|null>} Series object or null if not found
+ * @param userId - The user's ID
+ * @param seriesId - The series ID
+ * @returns Series object or null if not found
  */
-export async function getSeriesById(userId, seriesId) {
+export async function getSeriesById(userId: string, seriesId: string): Promise<Series | null> {
   try {
     return await seriesRepository.getById(userId, seriesId);
   } catch (error) {
@@ -251,19 +287,23 @@ export async function getSeriesById(userId, seriesId) {
 
 /**
  * Merge one series into another
- * @param {string} userId - The user's ID
- * @param {string} sourceSeriesId - Series to merge from (will be deleted)
- * @param {string} targetSeriesId - Series to merge into (will be kept)
- * @returns {Promise<Object>} Results { booksUpdated, expectedBooksMerged }
+ * @param userId - The user's ID
+ * @param sourceSeriesId - Series to merge from (will be deleted)
+ * @param targetSeriesId - Series to merge into (will be kept)
+ * @returns Results { booksUpdated, expectedBooksMerged }
  */
-export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
+export async function mergeSeries(
+  userId: string,
+  sourceSeriesId: string,
+  targetSeriesId: string
+): Promise<MergeSeriesResult> {
   if (sourceSeriesId === targetSeriesId) {
     throw new Error('Cannot merge a series into itself');
   }
 
   const series = await loadUserSeries(userId, true);
-  const sourceSeries = series.find(s => s.id === sourceSeriesId);
-  const targetSeries = series.find(s => s.id === targetSeriesId);
+  const sourceSeries = series.find((s: Series) => s.id === sourceSeriesId);
+  const targetSeries = series.find((s: Series) => s.id === targetSeriesId);
 
   if (!sourceSeries) throw new Error('Source series not found');
   if (!targetSeries) throw new Error('Target series not found');
@@ -286,11 +326,11 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
     });
 
     // Merge expectedBooks arrays (avoiding duplicates by ISBN or title)
-    const mergedExpectedBooks = [...(targetSeries.expectedBooks || [])];
-    const existingIsbns = new Set(mergedExpectedBooks.map(b => b.isbn).filter(Boolean));
+    const mergedExpectedBooks: ExpectedBook[] = [...(targetSeries.expectedBooks || [])];
+    const existingIsbns = new Set(mergedExpectedBooks.map(b => b.isbn).filter((isbn): isbn is string => Boolean(isbn)));
     const existingTitles = new Set(mergedExpectedBooks.map(b => b.title.toLowerCase()));
 
-    for (const book of sourceSeries.expectedBooks || []) {
+    for (const book of (sourceSeries.expectedBooks || []) as ExpectedBook[]) {
       const isDuplicate = (book.isbn && existingIsbns.has(book.isbn)) || existingTitles.has(book.title.toLowerCase());
       if (!isDuplicate) {
         mergedExpectedBooks.push(book);
@@ -336,16 +376,20 @@ export async function mergeSeries(userId, sourceSeriesId, targetSeriesId) {
 
 /**
  * Update bookCount for a series
- * @param {string} userId - The user's ID
- * @param {string} addedSeriesId - Series ID to increment (or null)
- * @param {string} removedSeriesId - Series ID to decrement (or null)
+ * @param userId - The user's ID
+ * @param addedSeriesId - Series ID to increment (or null)
+ * @param removedSeriesId - Series ID to decrement (or null)
  */
-export async function updateSeriesBookCounts(userId, addedSeriesId = null, removedSeriesId = null) {
+export async function updateSeriesBookCounts(
+  userId: string,
+  addedSeriesId: string | null = null,
+  removedSeriesId: string | null = null
+): Promise<void> {
   if (!addedSeriesId && !removedSeriesId) return;
 
   try {
     const series = await loadUserSeries(userId, true);
-    const seriesMap = new Map(series.map(s => [s.id, s]));
+    const seriesMap = new Map(series.map((s: Series) => [s.id, s]));
     const batch = writeBatch(db);
     let hasUpdates = false;
 
@@ -388,10 +432,10 @@ export async function updateSeriesBookCounts(userId, addedSeriesId = null, remov
 
 /**
  * Recalculate book counts for all series
- * @param {string} userId - The user's ID
- * @returns {Promise<Object>} Results { seriesUpdated, totalBooks }
+ * @param userId - The user's ID
+ * @returns Results { seriesUpdated, totalBooks }
  */
-export async function recalculateSeriesBookCounts(userId) {
+export async function recalculateSeriesBookCounts(userId: string): Promise<RecalculateSeriesResult> {
   try {
     // Load all books
     const booksRef = collection(db, 'users', userId, 'books');
@@ -401,7 +445,7 @@ export async function recalculateSeriesBookCounts(userId) {
     const series = await loadUserSeries(userId, true);
 
     // Count books per series
-    const seriesCounts = new Map();
+    const seriesCounts = new Map<string, number>();
     for (const s of series) {
       seriesCounts.set(s.id, 0);
     }
@@ -411,10 +455,10 @@ export async function recalculateSeriesBookCounts(userId) {
       // Skip soft-deleted books
       if (bookData.deletedAt) continue;
 
-      const seriesId = bookData.seriesId;
+      const seriesId = bookData.seriesId as string | null;
 
       if (seriesId && seriesCounts.has(seriesId)) {
-        seriesCounts.set(seriesId, seriesCounts.get(seriesId) + 1);
+        seriesCounts.set(seriesId, (seriesCounts.get(seriesId) || 0) + 1);
       }
     }
 
@@ -456,7 +500,7 @@ export async function recalculateSeriesBookCounts(userId) {
 /**
  * Clear the series cache
  */
-export function clearSeriesCache() {
+export function clearSeriesCache(): void {
   seriesCache = null;
   seriesCacheUserId = null;
   seriesCacheTime = 0;
@@ -464,27 +508,26 @@ export function clearSeriesCache() {
 
 /**
  * Create a lookup map from series IDs to series objects
- * @param {Array} series - Array of series objects
- * @returns {Map} Map of seriesId -> series object
+ * @param series - Array of series objects
+ * @returns Map of seriesId -> series object
  */
-export function createSeriesLookup(series) {
+export function createSeriesLookup(series: Series[]): Map<string, Series> {
   return new Map(series.map(s => [s.id, s]));
 }
 
 /**
  * Add an expected book to a series
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID
- * @param {Object} book - Book info { title, isbn, position, source }
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param seriesId - The series ID
+ * @param book - Book info { title, isbn, position, source }
  */
-export async function addExpectedBook(userId, seriesId, book) {
+export async function addExpectedBook(userId: string, seriesId: string, book: ExpectedBook): Promise<void> {
   const series = await loadUserSeries(userId);
-  const targetSeries = series.find(s => s.id === seriesId);
+  const targetSeries = series.find((s: Series) => s.id === seriesId);
 
   if (!targetSeries) throw new Error('Series not found');
 
-  const expectedBooks = [...(targetSeries.expectedBooks || [])];
+  const expectedBooks: ExpectedBook[] = [...(targetSeries.expectedBooks || [])];
 
   // Check for duplicates
   const isDuplicate = expectedBooks.some(
@@ -520,18 +563,17 @@ export async function addExpectedBook(userId, seriesId, book) {
 
 /**
  * Remove an expected book from a series
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID
- * @param {number} index - Index of book to remove
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param seriesId - The series ID
+ * @param index - Index of book to remove
  */
-export async function removeExpectedBook(userId, seriesId, index) {
+export async function removeExpectedBook(userId: string, seriesId: string, index: number): Promise<void> {
   const series = await loadUserSeries(userId);
-  const targetSeries = series.find(s => s.id === seriesId);
+  const targetSeries = series.find((s: Series) => s.id === seriesId);
 
   if (!targetSeries) throw new Error('Series not found');
 
-  const expectedBooks = [...(targetSeries.expectedBooks || [])];
+  const expectedBooks: ExpectedBook[] = [...(targetSeries.expectedBooks || [])];
 
   if (index < 0 || index >= expectedBooks.length) {
     throw new Error('Invalid book index');
@@ -549,12 +591,12 @@ export async function removeExpectedBook(userId, seriesId, index) {
 
 /**
  * Get series with potential duplicates (for merge suggestions)
- * @param {Array} series - Array of series objects
- * @returns {Array<Array>} Array of potential duplicate groups
+ * @param series - Array of series objects
+ * @returns Array of potential duplicate groups
  */
-export function findPotentialDuplicates(series) {
-  const groups = [];
-  const processed = new Set();
+export function findPotentialDuplicates(series: Series[]): Series[][] {
+  const groups: Series[][] = [];
+  const processed = new Set<string>();
 
   for (const s of series) {
     if (processed.has(s.id)) continue;
@@ -575,11 +617,11 @@ export function findPotentialDuplicates(series) {
 
 /**
  * Check if two series names are similar enough to suggest merging
- * @param {string} name1 - First name
- * @param {string} name2 - Second name
- * @returns {boolean} True if names are similar
+ * @param name1 - First name
+ * @param name2 - Second name
+ * @returns True if names are similar
  */
-function areSimilarNames(name1, name2) {
+function areSimilarNames(name1: string, name2: string): boolean {
   const n1 = normalizeSeriesName(name1);
   const n2 = normalizeSeriesName(name2);
 

@@ -12,10 +12,11 @@ import {
 import { normalizeGenreName } from './utils.js';
 import { genreRepository } from './repositories/genre-repository.js';
 import { bookRepository } from './repositories/book-repository.js';
+import type { Genre } from './types/index.d.ts';
 
 // Predefined colour palette for genres (~150 colours) - rainbow order
 // Expanded with Tailwind 200-800 shades for extensive genre lists
-export const GENRE_COLORS = [
+export const GENRE_COLORS: readonly string[] = [
   // Reds (7 shades)
   '#fecaca', // red-200
   '#fca5a5', // red-300
@@ -160,24 +161,41 @@ export const GENRE_COLORS = [
   '#475569', // slate-600
 ];
 
+/** Genre update fields */
+export interface GenreUpdates {
+  name?: string;
+  color?: string;
+}
+
+/** Recalculation results */
+export interface RecalculateResult {
+  genresUpdated: number;
+  totalBooks: number;
+}
+
+/** Merge result */
+export interface MergeResult {
+  booksUpdated: number;
+}
+
 // In-memory cache for genres (with TTL)
-let genresCache = null;
-let genresCacheUserId = null;
+let genresCache: Genre[] | null = null;
+let genresCacheUserId: string | null = null;
 let genresCacheTime = 0;
 const GENRES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get all genres for a user
- * @param {string} userId - The user's ID
- * @param {boolean} forceRefresh - Force reload from Firestore
- * @returns {Promise<Array>} Array of genre objects
+ * @param userId - The user's ID
+ * @param forceRefresh - Force reload from Firestore
+ * @returns Array of genre objects
  */
-export async function loadUserGenres(userId, forceRefresh = false) {
+export async function loadUserGenres(userId: string, forceRefresh = false): Promise<Genre[]> {
   const now = Date.now();
   const cacheValid = genresCache && genresCacheUserId === userId && now - genresCacheTime < GENRES_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
-    return genresCache;
+    return genresCache!;
   }
 
   try {
@@ -194,34 +212,34 @@ export async function loadUserGenres(userId, forceRefresh = false) {
 
 /**
  * Get colors that are already used by genres
- * @param {Array} genres - Array of genre objects
- * @param {string} excludeGenreId - Optional genre ID to exclude (for editing)
- * @returns {Set<string>} Set of used color hex values
+ * @param genres - Array of genre objects
+ * @param excludeGenreId - Optional genre ID to exclude (for editing)
+ * @returns Set of used color hex values
  */
-export function getUsedColors(genres, excludeGenreId = null) {
+export function getUsedColors(genres: Genre[], excludeGenreId: string | null = null): Set<string | undefined> {
   return new Set(genres.filter(g => g.id !== excludeGenreId).map(g => g.color?.toLowerCase()));
 }
 
 /**
  * Get available colors (not yet used by any genre)
- * @param {Array} genres - Array of genre objects
- * @param {string} excludeGenreId - Optional genre ID to exclude (for editing)
- * @returns {Array<string>} Array of available color hex values
+ * @param genres - Array of genre objects
+ * @param excludeGenreId - Optional genre ID to exclude (for editing)
+ * @returns Array of available color hex values
  */
-export function getAvailableColors(genres, excludeGenreId = null) {
+export function getAvailableColors(genres: Genre[], excludeGenreId: string | null = null): string[] {
   const usedColors = getUsedColors(genres, excludeGenreId);
   return GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
 }
 
 /**
  * Create a new genre
- * @param {string} userId - The user's ID
- * @param {string} name - Genre name
- * @param {string} color - Hex color (optional, auto-assigned if not provided)
- * @returns {Promise<Object>} Created genre object with ID
- * @throws {Error} If genre with same name or color already exists
+ * @param userId - The user's ID
+ * @param name - Genre name
+ * @param color - Hex color (optional, auto-assigned if not provided)
+ * @returns Created genre object with ID
+ * @throws Error If genre with same name or color already exists
  */
-export async function createGenre(userId, name, color = null) {
+export async function createGenre(userId: string, name: string, color: string | null = null): Promise<Genre> {
   try {
     const normalizedName = normalizeGenreName(name);
 
@@ -236,15 +254,16 @@ export async function createGenre(userId, name, color = null) {
     const usedColors = getUsedColors(genres);
 
     // Validate or auto-assign colour
-    if (color) {
+    let finalColor = color;
+    if (finalColor) {
       // Check if colour is already used
-      if (usedColors.has(color.toLowerCase())) {
+      if (usedColors.has(finalColor.toLowerCase())) {
         throw new Error('This colour is already used by another genre');
       }
     } else {
       // Auto-assign random available colour for visual variety
       const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
-      color =
+      finalColor =
         availableColors.length > 0
           ? availableColors[Math.floor(Math.random() * availableColors.length)]
           : GENRE_COLORS[Math.floor(Math.random() * GENRE_COLORS.length)];
@@ -253,7 +272,7 @@ export async function createGenre(userId, name, color = null) {
     const genreData = {
       name: name.trim(),
       normalizedName,
-      color,
+      color: finalColor,
       bookCount: 0,
     };
 
@@ -262,11 +281,13 @@ export async function createGenre(userId, name, color = null) {
     // Invalidate cache
     genresCache = null;
 
-    return result;
+    return result as Genre;
   } catch (error) {
     // Re-throw validation errors as-is, log Firebase errors
-    if (!error.message.includes('already exists') && !error.message.includes('already used')) {
-      console.error('Error creating genre:', error);
+    if (error instanceof Error) {
+      if (!error.message.includes('already exists') && !error.message.includes('already used')) {
+        console.error('Error creating genre:', error);
+      }
     }
     throw error;
   }
@@ -274,15 +295,19 @@ export async function createGenre(userId, name, color = null) {
 
 /**
  * Update an existing genre
- * @param {string} userId - The user's ID
- * @param {string} genreId - The genre ID
- * @param {Object} updates - Fields to update (name, color)
- * @returns {Promise<Object>} Updated genre object
- * @throws {Error} If renaming to an existing genre name or using a duplicate color
+ * @param userId - The user's ID
+ * @param genreId - The genre ID
+ * @param updates - Fields to update (name, color)
+ * @returns Updated genre object
+ * @throws Error If renaming to an existing genre name or using a duplicate color
  */
-export async function updateGenre(userId, genreId, updates) {
+export async function updateGenre(
+  userId: string,
+  genreId: string,
+  updates: GenreUpdates
+): Promise<Partial<Genre> & { id: string }> {
   try {
-    const updateData = {};
+    const updateData: Partial<Genre> = {};
     const genres = await loadUserGenres(userId);
 
     if (updates.name !== undefined) {
@@ -315,8 +340,10 @@ export async function updateGenre(userId, genreId, updates) {
 
     return { id: genreId, ...updateData };
   } catch (error) {
-    if (!error.message.includes('already exists') && !error.message.includes('already used')) {
-      console.error('Error updating genre:', error);
+    if (error instanceof Error) {
+      if (!error.message.includes('already exists') && !error.message.includes('already used')) {
+        console.error('Error updating genre:', error);
+      }
     }
     throw error;
   }
@@ -324,11 +351,11 @@ export async function updateGenre(userId, genreId, updates) {
 
 /**
  * Delete a genre and remove it from all books
- * @param {string} userId - The user's ID
- * @param {string} genreId - The genre ID to delete
- * @returns {Promise<number>} Number of books updated
+ * @param userId - The user's ID
+ * @param genreId - The genre ID to delete
+ * @returns Number of books updated
  */
-export async function deleteGenre(userId, genreId) {
+export async function deleteGenre(userId: string, genreId: string): Promise<number> {
   try {
     const batch = writeBatch(db);
 
@@ -342,7 +369,7 @@ export async function deleteGenre(userId, genreId) {
       const bookRef = doc(db, 'users', userId, 'books', book.id);
       const currentGenres = book.genres || [];
       batch.update(bookRef, {
-        genres: currentGenres.filter(g => g !== genreId),
+        genres: currentGenres.filter((g: string) => g !== genreId),
       });
     });
 
@@ -364,11 +391,15 @@ export async function deleteGenre(userId, genreId) {
 
 /**
  * Update bookCounts for multiple genres in a batch
- * @param {string} userId - The user's ID
- * @param {Array<string>} addedGenreIds - Genre IDs to increment
- * @param {Array<string>} removedGenreIds - Genre IDs to decrement
+ * @param userId - The user's ID
+ * @param addedGenreIds - Genre IDs to increment
+ * @param removedGenreIds - Genre IDs to decrement
  */
-export async function updateGenreBookCounts(userId, addedGenreIds = [], removedGenreIds = []) {
+export async function updateGenreBookCounts(
+  userId: string,
+  addedGenreIds: string[] = [],
+  removedGenreIds: string[] = []
+): Promise<void> {
   if (addedGenreIds.length === 0 && removedGenreIds.length === 0) return;
 
   try {
@@ -413,7 +444,7 @@ export async function updateGenreBookCounts(userId, addedGenreIds = [], removedG
 /**
  * Clear the genres cache
  */
-export function clearGenresCache() {
+export function clearGenresCache(): void {
   genresCache = null;
   genresCacheUserId = null;
   genresCacheTime = 0;
@@ -422,10 +453,10 @@ export function clearGenresCache() {
 /**
  * Recalculate book counts for all genres
  * Scans all books and updates the bookCount field on each genre
- * @param {string} userId - The user's ID
- * @returns {Promise<Object>} Results { genresUpdated, totalBooks }
+ * @param userId - The user's ID
+ * @returns Results { genresUpdated, totalBooks }
  */
-export async function recalculateGenreBookCounts(userId) {
+export async function recalculateGenreBookCounts(userId: string): Promise<RecalculateResult> {
   try {
     // Load all books
     const booksRef = collection(db, 'users', userId, 'books');
@@ -435,7 +466,7 @@ export async function recalculateGenreBookCounts(userId) {
     const genres = await loadUserGenres(userId, true);
 
     // Count books per genre
-    const genreCounts = new Map();
+    const genreCounts = new Map<string, number>();
     for (const genre of genres) {
       genreCounts.set(genre.id, 0);
     }
@@ -445,11 +476,11 @@ export async function recalculateGenreBookCounts(userId) {
       // Skip soft-deleted books
       if (bookData.deletedAt) continue;
 
-      const bookGenres = bookData.genres || [];
+      const bookGenres = (bookData.genres || []) as string[];
 
       for (const genreId of bookGenres) {
         if (genreCounts.has(genreId)) {
-          genreCounts.set(genreId, genreCounts.get(genreId) + 1);
+          genreCounts.set(genreId, (genreCounts.get(genreId) || 0) + 1);
         }
       }
     }
@@ -491,10 +522,10 @@ export async function recalculateGenreBookCounts(userId) {
 
 /**
  * Create a lookup map from genre IDs to genre objects
- * @param {Array} genres - Array of genre objects
- * @returns {Map} Map of genreId -> genre object
+ * @param genres - Array of genre objects
+ * @returns Map of genreId -> genre object
  */
-export function createGenreLookup(genres) {
+export function createGenreLookup(genres: Genre[]): Map<string, Genre> {
   return new Map(genres.map(g => [g.id, g]));
 }
 
@@ -502,12 +533,12 @@ export function createGenreLookup(genres) {
  * Merge one genre into another
  * All books with source genre get target genre added (if not present)
  * Source genre is then deleted
- * @param {string} userId - The user's ID
- * @param {string} sourceGenreId - Genre to merge from (will be deleted)
- * @param {string} targetGenreId - Genre to merge into (will be kept)
- * @returns {Promise<Object>} Results { booksUpdated }
+ * @param userId - The user's ID
+ * @param sourceGenreId - Genre to merge from (will be deleted)
+ * @param targetGenreId - Genre to merge into (will be kept)
+ * @returns Results { booksUpdated }
  */
-export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
+export async function mergeGenres(userId: string, sourceGenreId: string, targetGenreId: string): Promise<MergeResult> {
   if (sourceGenreId === targetGenreId) {
     throw new Error('Cannot merge a genre into itself');
   }
@@ -534,7 +565,7 @@ export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
       const bookData = bookDoc.data();
       if (bookData.deletedAt) return; // Skip soft-deleted books
 
-      const currentGenres = bookData.genres || [];
+      const currentGenres = (bookData.genres || []) as string[];
       const hasTarget = currentGenres.includes(targetGenreId);
 
       // Build new genres array
@@ -555,7 +586,7 @@ export async function mergeGenres(userId, sourceGenreId, targetGenreId) {
     // Only add books that didn't already have the target genre
     const booksWithoutTarget = snapshot.docs.filter(d => {
       const data = d.data();
-      return !data.deletedAt && !(data.genres || []).includes(targetGenreId);
+      return !data.deletedAt && !((data.genres || []) as string[]).includes(targetGenreId);
     }).length;
 
     const targetGenreRef = doc(db, 'users', userId, 'genres', targetGenreId);
