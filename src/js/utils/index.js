@@ -59,3 +59,6 @@ export {
   getFormData,
   setupFieldValidation,
 } from './validation.js';
+
+// Event bus utilities
+export { EventBus, eventBus, Events } from './event-bus.js';

@@ -487,7 +487,8 @@ src/
 │   │   ├── dom.ts          # DOM utilities
 │   │   ├── cache.ts        # Local storage caching
 │   │   ├── sync-settings.ts # Sync preferences
-│   │   └── visibility-refresh.ts # Auto-refresh on tab focus
+│   │   ├── visibility-refresh.ts # Auto-refresh on tab focus
+│   │   └── event-bus.ts     # Pub/sub event bus
 │   ├── genres.js           # Genre CRUD operations and utilities
 │   ├── series.js           # Series CRUD operations and utilities
 │   └── widgets/            # Dashboard widget system
@@ -530,6 +531,7 @@ Common utilities are consolidated in shared modules:
 - `utils/book-sorters.js` - sortBooks, getAuthorSurname, SORT_OPTIONS, DEFAULT_SORT
 - `utils/reading.js` - getBookStatus (reading status calculation)
 - `utils/duplicate-checker.js` - isISBN, cleanISBN, checkForDuplicate, DUPLICATE_CHECK_LIMIT
+- `utils/event-bus.ts` - EventBus class, eventBus singleton, Events constants (pub/sub for decoupled component communication)
 
 Data access layer in `src/js/repositories/`:
 - `base-repository.js` - BaseRepository class with common CRUD operations (getAll, getById, create, update, delete, queryByField, getWithOptions)
@@ -578,6 +580,7 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `form-html-alignment.test.js` - Tests that HTML form elements match Zod schema field names
 - `base-repository.test.js` - Tests for BaseRepository CRUD operations
 - `book-repository.test.js` - Tests for BookRepository specific methods
+- `event-bus.test.js` - Tests for EventBus pub/sub pattern
 
 ### E2E Tests (Playwright)
 - `e2e/auth.spec.js` - Login/register form interactions

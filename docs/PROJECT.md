@@ -395,6 +395,72 @@ if (isDuplicate) {
 - [x] Barcode scanner: Add audio beep fallback for iOS (Web Vibration API not supported on any iOS browser - all use WebKit)
 - [ ] Camera photo upload: Allow users to take a photo directly from device camera to add as book image (counts towards image limit)
 
+### Image Loading UX Improvements
+Current image loading shows spinners indefinitely until the image loads or fails. This creates poor UX when images are slow to load or the server is unresponsive (e.g., Open Library 502 errors).
+
+**Current Behaviour:**
+- Spinner shows while image loads
+- Placeholder shown on error
+- No timeout - spinner can show indefinitely on slow/stalled requests
+
+**Proposed Improvements:**
+
+| Component | Current | Proposed |
+|-----------|---------|----------|
+| **Book cards** | Spinner → image/placeholder | Add 5s timeout, show placeholder if stalled |
+| **Book detail cover** | Spinner → image/placeholder | Add 10s timeout, progressive enhancement |
+| **Lightbox** | Spinner → image | Add 15s timeout, "Failed to load" message |
+| **Widgets** | Spinner → image/placeholder | Add 5s timeout, consistent with cards |
+
+**Implementation Tasks:**
+- [ ] Add configurable timeout to image loading (default 5-10s)
+- [ ] Show placeholder immediately, fade in image when loaded (no spinner)
+- [ ] Use blur placeholder technique (tiny base64 preview → full image)
+- [ ] Add "retry" button for failed images instead of just placeholder
+- [ ] Consider using `loading="lazy"` + `decoding="async"` consistently
+
+**Progressive Loading Pattern:**
+```javascript
+// Recommended pattern for image loading with timeout
+function loadImageWithTimeout(img, src, timeout = 5000) {
+  const timer = setTimeout(() => {
+    img.src = '/images/placeholder.svg';
+    img.classList.add('load-failed');
+  }, timeout);
+
+  img.onload = () => {
+    clearTimeout(timer);
+    img.classList.add('loaded');
+  };
+
+  img.onerror = () => {
+    clearTimeout(timer);
+    img.src = '/images/placeholder.svg';
+  };
+
+  img.src = src;
+}
+```
+
+**CSS Fade-In Pattern:**
+```css
+/* Show placeholder immediately, crossfade to loaded image */
+.book-cover {
+  background: url('/images/placeholder.svg') center/cover;
+}
+.book-cover img {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+.book-cover img.loaded {
+  opacity: 1;
+}
+```
+
+**Priority:** Medium - improves perceived performance and handles API failures gracefully.
+
+---
+
 ### Image Lightbox UX Polish
 Current lightbox is functional but needs polish for a premium feel.
 
@@ -786,6 +852,9 @@ As users accumulate many genres/series, the Settings > Library page lists will n
 - [ ] Server-side search (Algolia/Firestore)
 - [ ] Virtualised list for 500+ books
 - [x] Event listener cleanup - Added guards to prevent duplicate listeners (header.js online/offline, books/index.js touch), fixed beforeunload stacking (add.js, edit.js), added destroy() methods to CoverPicker and RatingInput
+- [x] Repository pattern - Base, book, genre, series repositories abstract Firestore access
+- [x] TypeScript migration - Utilities and repositories converted to TypeScript with type definitions
+- [x] Event bus - Pub/sub pattern for decoupled component communication (utils/event-bus.ts)
 - [ ] Split large files (see File Size Review below)
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
 - [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
