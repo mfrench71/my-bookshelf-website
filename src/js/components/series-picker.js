@@ -251,6 +251,14 @@ export class SeriesPicker {
 
         ${this.isOpen ? `
           <div class="series-picker-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div class="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+              <span class="text-xs text-gray-500">Select series</span>
+              <button type="button" class="series-picker-close p-2 hover:bg-gray-200 rounded min-w-[44px] min-h-[44px] flex items-center justify-center -m-1" aria-label="Close dropdown">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             ${this._renderDropdownContent(filteredSeries, showSuggestion, showCreateOption)}
           </div>
         ` : ''}
@@ -483,6 +491,19 @@ export class SeriesPicker {
         await this._createAndSelect(name);
       });
     });
+
+    // Close button
+    const closeBtn = this.container.querySelector('.series-picker-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.isOpen = false;
+        this.searchQuery = '';
+        this.focusedIndex = -1;
+        this.render();
+      });
+    }
   }
 
   /**
