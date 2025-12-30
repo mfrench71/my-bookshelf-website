@@ -6,6 +6,16 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- UX polish - visual enhancements:
+  - Add cover shadow/depth effect to book covers (list and view pages)
+  - Add badge pulse animation when wishlist/filter counts change
+  - Add content fade-in animation on page load (book list, wishlist, bin, search)
+  - Add `cover-shadow` utility class for any-size cover shadows
+- Menu improvements:
+  - Add hover transitions and active page highlighting
+  - Fix active state spacing (use text colour instead of background)
+- Search skeleton loader while books are loading
+- Add `npm run dev` command for full file watching (JS, CSS, templates)
 - Accessibility testing and fixes:
   - Add E2E accessibility tests for authenticated pages (using JS disabled mode)
   - Fix duplicate h1 on books list page (sr-only h1 + aria-hidden visual headings)

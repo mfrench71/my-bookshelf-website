@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **No orphaned data**: When deleting records, ensure all related data is also cleaned up (e.g., deleting a book must also delete its images from Storage, deleting a series should handle orphaned book references). Always consider: "What other data depends on this record?"
 - Always use British English for user-facing text (e.g., "colour" not "color", "favourite" not "favorite", "organised" not "organized").
 - Always show user-friendly error messages, never expose raw `error.message` to users. Log technical details to console for debugging, but display helpful messages like "Failed to save. Please try again." instead of technical errors.
+- **Always read before reusing**: Before applying an existing CSS class or reusing a component, read its implementation first to understand what it does. Classes may have fixed dimensions, colours, or behaviours that don't apply to your use case. Create new utility classes when needed rather than misusing existing ones.
 
 ## Code Documentation (MANDATORY)
 
