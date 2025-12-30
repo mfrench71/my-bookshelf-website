@@ -147,18 +147,18 @@ scripts: '<script type="module" src="/js/settings/profile.js"></script>'
     <h3 class="text-lg font-semibold mb-4">Profile Photo</h3>
     <div class="flex flex-col items-center">
       <div id="photo-preview" class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden mb-4">
-        <i data-lucide="user" class="w-10 h-10 text-gray-400"></i>
+        <i data-lucide="user" class="w-10 h-10 text-gray-400" aria-hidden="true"></i>
       </div>
       <p class="text-gray-500 text-sm text-center mb-1">JPG, PNG or WebP. Max 500KB.</p>
       <p class="text-gray-400 text-xs text-center mb-4">Falls back to Gravatar if no photo uploaded.</p>
       <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" class="hidden">
       <div class="flex items-center gap-2 w-full">
         <button id="upload-photo-btn" class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors min-h-[44px]">
-          <i data-lucide="upload" class="w-4 h-4"></i>
+          <i data-lucide="upload" class="w-4 h-4" aria-hidden="true"></i>
           <span>Upload Photo</span>
         </button>
         <button id="remove-photo-btn" class="hidden flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors min-h-[44px]">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <i data-lucide="trash-2" class="w-4 h-4" aria-hidden="true"></i>
           <span>Remove</span>
         </button>
       </div>
