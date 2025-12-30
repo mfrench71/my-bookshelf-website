@@ -18,18 +18,46 @@ export function escapeAttr(text) {
   return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Track scroll lock state
+let scrollLockCount = 0;
+let savedScrollY = 0;
+
 /**
- * Lock body scroll (for modals)
+ * Lock body scroll (for modals/bottom sheets)
+ * Uses position: fixed technique for iOS Safari compatibility
  */
 export function lockBodyScroll() {
-  document.body.style.overflow = 'hidden';
+  scrollLockCount++;
+
+  // Only apply styles on first lock
+  if (scrollLockCount === 1) {
+    savedScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedScrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+  }
 }
 
 /**
- * Unlock body scroll (when modal closes)
+ * Unlock body scroll (when modal/bottom sheet closes)
+ * Restores scroll position
  */
 export function unlockBodyScroll() {
-  document.body.style.overflow = '';
+  if (scrollLockCount > 0) {
+    scrollLockCount--;
+  }
+
+  // Only remove styles when all locks are released
+  if (scrollLockCount === 0) {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, savedScrollY);
+  }
 }
 
 /**
