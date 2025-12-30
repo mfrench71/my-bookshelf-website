@@ -478,10 +478,15 @@ All notable changes to MyBookShelf are documented here.
 
 | Version | Date | Milestone |
 |---------|------|-----------|
-| 0.7.0 | 2025-12-25 | Breadcrumb Navigation & Polish |
-| 0.6.0 | 2025-12-23 | Widget Dashboard & Series |
-| 0.5.0 | 2025-12-23 | Polish & Testing |
-| 0.4.0 | 2025-12-23 | Component Refactoring |
-| 0.3.0 | 2025-12-22 | Cover Picker & Read History |
-| 0.2.0 | 2025-12-21 | Home Dashboard & Settings |
+| 0.12.0 | 2025-12-30 | Book View & Toast Polish |
+| 0.11.0 | 2025-12-29 | Search UX & Form Tracking |
+| 0.10.0 | 2025-12-28 | Image Gallery & Genres |
+| 0.9.0 | 2025-12-27 | Wishlist Feature |
+| 0.8.0 | 2025-12-26 | Filter Redesign & Bin |
+| 0.7.0 | 2025-12-25 | Breadcrumb Navigation |
+| 0.6.0 | 2025-12-24 | Series Badges & Sorting |
+| 0.5.0 | 2025-12-23 | Widgets & Components |
+| 0.4.0 | 2025-12-22 | Cover Picker & Read History |
+| 0.3.0 | 2025-12-21 | Home Dashboard & Settings |
+| 0.2.0 | 2025-12-20 | Build System & Testing |
 | 0.1.0 | 2025-12-20 | Initial Release |

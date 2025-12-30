@@ -38,7 +38,7 @@ scripts: '<script type="module" src="/js/settings/about.js"></script>'
       </div>
       <div>
         <h2 class="font-semibold text-gray-900 text-lg">MyBookShelf</h2>
-        <p class="text-gray-500 text-sm">Version {{ package.version }}</p>
+        <p class="text-gray-500 text-sm">Version {{ changelog.version }}</p>
       </div>
     </div>
     <p class="text-gray-600 text-sm">A mobile-friendly book tracking PWA. Scan barcodes to add books, organise by genre and series, track your reading progress, and maintain a wishlist. Your library, always in sync.</p>
@@ -52,7 +52,7 @@ scripts: '<script type="module" src="/js/settings/about.js"></script>'
     </h3>
 
     <div class="space-y-2" id="changelog-accordions">
-    {% for entry in changelog %}
+    {% for entry in changelog.entries %}
     <div class="border border-gray-200 rounded-lg overflow-hidden">
       <button class="changelog-date-btn w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 text-left min-h-[44px]" data-date="{{ entry.date }}">
         <div class="flex items-center gap-2">

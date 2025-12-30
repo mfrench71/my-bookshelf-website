@@ -1,6 +1,16 @@
+/**
+ * Changelog Data Module
+ * Parses CHANGELOG.md to expose entries and version info to templates
+ * Usage: {{ changelog.version }}, {{ changelog.entries }}
+ */
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Format ISO date to human-readable British format
+ * @param {string} isoDate - Date in YYYY-MM-DD format
+ * @returns {string} Formatted date (e.g., "30 December 2025")
+ */
 function formatDate(isoDate) {
   const d = new Date(isoDate);
   return d.toLocaleDateString('en-GB', {
@@ -16,6 +26,7 @@ module.exports = function() {
     'utf8'
   );
 
+  // Parse dated changelog entries
   const entries = [];
   let currentEntry = null;
 
@@ -43,6 +54,13 @@ module.exports = function() {
 
   if (currentEntry) entries.push(currentEntry);
 
-  // Return all dated entries
-  return entries;
+  // Parse version history table (first row after header is latest version)
+  // Format: | 0.12.0 | 2025-12-30 | Book View & Toast Polish |
+  const versionMatch = content.match(/\| ([\d.]+) \| (\d{4}-\d{2}-\d{2}) \| ([^|]+) \|/);
+  const version = versionMatch ? versionMatch[1] : '0.0.0';
+
+  return {
+    entries,
+    version
+  };
 };

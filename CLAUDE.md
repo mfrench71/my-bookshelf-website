@@ -10,6 +10,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Remove redundant code. When refactoring or replacing functionality, delete the old code entirely. Don't leave commented-out code, unused imports, or dead functions.
 - Keep PROJECT.md up to date as features are added or changed. Update roadmap, architecture notes, and current sprint status.
 - Keep CHANGELOG.md up to date with notable changes, grouped by date. Include features, bug fixes, and breaking changes. The in-app changelog is auto-generated from this file at build time.
+- **Changelog rules**:
+  - Never reference CLAUDE.md or other internal documentation files in the changelog (it's user-facing)
+  - Version numbers are sourced from the Version History table at the bottom of CHANGELOG.md (not package.json)
+  - Use SemVer: bump minor version for each date section (feature sets), patch for bug fixes within a release
 - Keep README.md up to date with current features, tech stack, and setup instructions.
 - Keep `src/privacy.njk` up to date when data collection or storage practices change. Update the "Last updated" date and relevant sections (e.g., if adding analytics, new APIs, or changing data retention).
 - For all changes, think about how we can minimise Firebase DB usage (reads, writes, listeners).
