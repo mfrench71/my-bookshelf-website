@@ -1,9 +1,13 @@
 // DOM Utilities - DOM manipulation and UI helpers
 
+declare const lucide: {
+  createIcons: (options?: { root?: HTMLElement }) => void;
+};
+
 /**
  * Escape HTML entities to prevent XSS
  */
-export function escapeHtml(text) {
+export function escapeHtml(text: string | null | undefined): string {
   if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
@@ -13,7 +17,7 @@ export function escapeHtml(text) {
 /**
  * Escape attribute values for safe HTML insertion
  */
-export function escapeAttr(text) {
+export function escapeAttr(text: string | null | undefined): string {
   if (!text) return '';
   return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
@@ -26,7 +30,7 @@ let savedScrollY = 0;
  * Lock body scroll (for modals/bottom sheets)
  * Uses position: fixed technique for iOS Safari compatibility
  */
-export function lockBodyScroll() {
+export function lockBodyScroll(): void {
   scrollLockCount++;
 
   // Only apply styles on first lock
@@ -44,7 +48,7 @@ export function lockBodyScroll() {
  * Unlock body scroll (when modal/bottom sheet closes)
  * Restores scroll position
  */
-export function unlockBodyScroll() {
+export function unlockBodyScroll(): void {
   if (scrollLockCount > 0) {
     scrollLockCount--;
   }
@@ -62,9 +66,9 @@ export function unlockBodyScroll() {
 
 /**
  * Initialize Lucide icons (call sparingly)
- * @param {HTMLElement} [container] - Optional container to scope icon initialization
+ * @param container - Optional container to scope icon initialization
  */
-export function initIcons(container) {
+export function initIcons(container?: HTMLElement | unknown): void {
   if (typeof lucide !== 'undefined') {
     // Only use container if it's a valid HTMLElement (not an Event or other object)
     if (container instanceof HTMLElement) {
@@ -75,12 +79,19 @@ export function initIcons(container) {
   }
 }
 
+/** Star button element with data-rating attribute */
+interface StarButton extends HTMLElement {
+  dataset: {
+    rating: string;
+  };
+}
+
 /**
  * Update rating star buttons to reflect current rating
- * @param {NodeList|Array} starBtns - Star button elements with data-rating attribute
- * @param {number} currentRating - Current rating value (1-5)
+ * @param starBtns - Star button elements with data-rating attribute
+ * @param currentRating - Current rating value (1-5)
  */
-export function updateRatingStars(starBtns, currentRating) {
+export function updateRatingStars(starBtns: NodeListOf<StarButton> | StarButton[], currentRating: number): void {
   starBtns.forEach(btn => {
     const rating = parseInt(btn.dataset.rating);
     btn.classList.toggle('active', rating <= currentRating);
@@ -90,9 +101,9 @@ export function updateRatingStars(starBtns, currentRating) {
 
 /**
  * Check if viewport is mobile-sized (matches Tailwind's md breakpoint)
- * @returns {boolean} True if mobile
+ * @returns True if mobile
  */
-export function isMobile() {
+export function isMobile(): boolean {
   return window.innerWidth < 768;
 }
 
@@ -100,16 +111,16 @@ export function isMobile() {
  * Get contrasting text color (black or white) for a given background hex color
  * Uses relative luminance formula for accessibility
  */
-export function getContrastColor(hex) {
+export function getContrastColor(hex: string | null | undefined): string {
   if (!hex || typeof hex !== 'string') return '#000000';
 
   // Remove # if present
-  hex = hex.replace('#', '');
+  const cleanHex = hex.replace('#', '');
 
   // Parse RGB values
-  const r = parseInt(hex.substr(0, 2), 16) / 255;
-  const g = parseInt(hex.substr(2, 2), 16) / 255;
-  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  const r = parseInt(cleanHex.substr(0, 2), 16) / 255;
+  const g = parseInt(cleanHex.substr(2, 2), 16) / 255;
+  const b = parseInt(cleanHex.substr(4, 2), 16) / 255;
 
   // Calculate relative luminance using sRGB formula
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -118,20 +129,26 @@ export function getContrastColor(hex) {
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
+/** Options for interceptNavigation */
+export interface InterceptNavigationOptions {
+  /** Function that returns true if form has unsaved changes */
+  isDirty: () => boolean;
+  /** Async function that shows confirmation, returns true if confirmed */
+  showConfirmation: () => Promise<boolean>;
+  /** Optional cleanup before navigation */
+  onBeforeNavigate?: () => void | Promise<void>;
+}
+
 /**
  * Intercept in-app navigation links when form has unsaved changes.
  * Shows a confirmation dialog instead of allowing immediate navigation.
  * Note: This only works for in-app links. Browser back/refresh/close
  * still requires beforeunload (browser limitation).
- * @param {Object} options
- * @param {Function} options.isDirty - Function that returns true if form has unsaved changes
- * @param {Function} options.showConfirmation - Async function that shows confirmation, returns true if confirmed
- * @param {Function} [options.onBeforeNavigate] - Optional cleanup before navigation
  */
-export function interceptNavigation({ isDirty, showConfirmation, onBeforeNavigate }) {
+export function interceptNavigation({ isDirty, showConfirmation, onBeforeNavigate }: InterceptNavigationOptions): void {
   // Intercept header nav links and breadcrumbs
-  document.querySelectorAll('header a[href], nav a[href]').forEach(link => {
-    link.addEventListener('click', async e => {
+  document.querySelectorAll<HTMLAnchorElement>('header a[href], nav a[href]').forEach(link => {
+    link.addEventListener('click', async (e: Event) => {
       if (!isDirty()) return; // No unsaved changes, allow navigation
 
       e.preventDefault();

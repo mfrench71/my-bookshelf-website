@@ -8,7 +8,7 @@
     "build:css": "npx tailwindcss -i ./src/css/tailwind.css -o ./_site/css/styles.css --minify",
     "build:11ty": "npx eleventy",
     "build": "npm run build:11ty && npm run build:js && npm run build:css",
-    "watch:js": "chokidar \"src/js/**/*.js\" -c \"npm run build:js\" --initial",
+    "watch:js": "chokidar \"src/js/**/*.{js,ts}\" -c \"npm run build:js\" --initial",
     "watch:css": "npx tailwindcss -i ./src/css/tailwind.css -o ./_site/css/styles.css --watch",
     "watch:11ty": "npx eleventy --serve",
     "dev": "concurrently -n 11ty,css,js -c blue,magenta,yellow \"npm run watch:11ty\" \"npm run watch:css\" \"npm run build:js && npm run watch:js\"",
@@ -24,8 +24,10 @@
     "audit": "node scripts/lighthouse-audit.js",
     "lint": "eslint src/js",
     "lint:fix": "eslint src/js --fix",
-    "format": "prettier --write \"src/**/*.{js,njk,css,json}\"",
-    "format:check": "prettier --check \"src/**/*.{js,njk,css,json}\""
+    "format": "prettier --write \"src/**/*.{js,ts,njk,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,njk,css,json}\"",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
   },
   "repository": {
     "type": "git",
@@ -60,6 +62,7 @@
     "prettier": "^3.7.4",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },
   "dependencies": {
@@ -68,7 +71,7 @@
     "zod": "^4.2.1"
   },
   "lint-staged": {
-    "src/**/*.js": [
+    "src/**/*.{js,ts}": [
       "eslint --fix",
       "prettier --write"
     ],

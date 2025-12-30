@@ -71,10 +71,14 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js', () => ({
   updateProfile: vi.fn()
 }));
 
+// Mock Firebase Firestore (CDN URL for existing code)
 vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () => ({
   collection: vi.fn(),
   query: vi.fn(),
   orderBy: vi.fn(),
+  limit: vi.fn(),
+  startAfter: vi.fn(),
+  where: vi.fn(),
   onSnapshot: vi.fn((query, callback) => {
     callback({ docs: [] });
     return vi.fn(); // unsubscribe function
@@ -84,6 +88,30 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () =>
   deleteDoc: vi.fn(() => Promise.resolve()),
   doc: vi.fn(),
   getDoc: vi.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
+  getDocs: vi.fn(() => Promise.resolve({ docs: [], empty: true })),
+  getDocsFromServer: vi.fn(() => Promise.resolve({ docs: [], empty: true })),
+  serverTimestamp: vi.fn(() => ({ seconds: Date.now() / 1000 }))
+}));
+
+// Mock Firebase Firestore (package import for TypeScript files)
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  startAfter: vi.fn(),
+  where: vi.fn(),
+  onSnapshot: vi.fn((query, callback) => {
+    callback({ docs: [] });
+    return vi.fn(); // unsubscribe function
+  }),
+  addDoc: vi.fn(() => Promise.resolve({ id: 'new-book-id' })),
+  updateDoc: vi.fn(() => Promise.resolve()),
+  deleteDoc: vi.fn(() => Promise.resolve()),
+  doc: vi.fn(),
+  getDoc: vi.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
+  getDocs: vi.fn(() => Promise.resolve({ docs: [], empty: true })),
+  getDocsFromServer: vi.fn(() => Promise.resolve({ docs: [], empty: true })),
   serverTimestamp: vi.fn(() => ({ seconds: Date.now() / 1000 }))
 }));
 

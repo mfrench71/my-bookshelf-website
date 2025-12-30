@@ -6,17 +6,23 @@ import { getSyncSettings } from './sync-settings.js';
 // Track last refresh time across all pages (in-memory, resets on page load)
 let lastRefreshTime = 0;
 
+/** Cleanup function returned by setupVisibilityRefresh */
+export type CleanupFn = () => void;
+
+/** Refresh function signature */
+export type RefreshFn = () => Promise<void> | void;
+
 /**
  * Set up automatic refresh when tab becomes visible
  * Respects user's sync settings for threshold and cooldown
  *
- * @param {Function} refreshFn - Async function to call when refresh is needed
- * @returns {Function} Cleanup function to remove the listener
+ * @param refreshFn - Async function to call when refresh is needed
+ * @returns Cleanup function to remove the listener
  */
-export function setupVisibilityRefresh(refreshFn) {
-  let hiddenAt = null;
+export function setupVisibilityRefresh(refreshFn: RefreshFn): CleanupFn {
+  let hiddenAt: number | null = null;
 
-  const handleVisibilityChange = async () => {
+  const handleVisibilityChange = async (): Promise<void> => {
     const settings = getSyncSettings();
 
     // Skip if auto-refresh is disabled
@@ -59,16 +65,16 @@ export function setupVisibilityRefresh(refreshFn) {
 
 /**
  * Get the timestamp of the last auto-refresh
- * @returns {number} Timestamp in milliseconds, or 0 if never refreshed
+ * @returns Timestamp in milliseconds, or 0 if never refreshed
  */
-export function getLastRefreshTime() {
+export function getLastRefreshTime(): number {
   return lastRefreshTime;
 }
 
 /**
  * Manually set the last refresh time (useful after manual refresh)
- * @param {number} time - Timestamp in milliseconds (defaults to now)
+ * @param time - Timestamp in milliseconds (defaults to now)
  */
-export function setLastRefreshTime(time = Date.now()) {
+export function setLastRefreshTime(time: number = Date.now()): void {
   lastRefreshTime = time;
 }

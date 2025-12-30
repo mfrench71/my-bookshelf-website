@@ -5,17 +5,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '/js': path.resolve(__dirname, 'src/js')
-    }
+    },
+    // Resolve .js imports to .ts files when TypeScript version exists
+    extensions: ['.ts', '.js', '.json']
   },
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.js'],
-    include: ['tests/**/*.test.js'],
+    include: ['tests/**/*.test.{js,ts}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/js/**/*.js'],
+      include: ['src/js/**/*.{js,ts}'],
       exclude: [
         // Firebase config
         'src/js/firebase-config.js',

@@ -1,5 +1,7 @@
 // Cache Utilities - Local storage caching
 
+import type { ISBNLookupResult, UserProfile } from '../types/index.d.ts';
+
 // Books cache constants
 export const CACHE_VERSION = 7;
 export const CACHE_KEY = `mybookshelf_books_cache_v${CACHE_VERSION}`;
@@ -8,17 +10,31 @@ export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 /**
  * Clear the books cache for a user
  */
-export function clearBooksCache(userId) {
+export function clearBooksCache(userId: string): void {
   try {
     localStorage.removeItem(`${CACHE_KEY}_${userId}`);
-  } catch (_e) {
+  } catch {
     // Ignore cache clear errors
   }
 }
 
+/** Home section settings */
+export interface HomeSectionSettings {
+  enabled: boolean;
+  count: number;
+}
+
+/** Home page settings structure */
+export interface HomeSettings {
+  currentlyReading: HomeSectionSettings;
+  recentlyAdded: HomeSectionSettings;
+  topRated: HomeSectionSettings;
+  recentlyFinished: HomeSectionSettings;
+}
+
 // Home settings constants
 const HOME_SETTINGS_KEY = 'homeSettings';
-const DEFAULT_HOME_SETTINGS = {
+const DEFAULT_HOME_SETTINGS: HomeSettings = {
   currentlyReading: { enabled: true, count: 6 },
   recentlyAdded: { enabled: true, count: 6 },
   topRated: { enabled: true, count: 6 },
@@ -27,9 +43,9 @@ const DEFAULT_HOME_SETTINGS = {
 
 /**
  * Get home page settings from localStorage
- * @returns {Object} Home settings with defaults applied
+ * @returns Home settings with defaults applied
  */
-export function getHomeSettings() {
+export function getHomeSettings(): HomeSettings {
   try {
     const stored = localStorage.getItem(HOME_SETTINGS_KEY);
     if (stored) {
@@ -43,9 +59,9 @@ export function getHomeSettings() {
 
 /**
  * Save home page settings to localStorage
- * @param {Object} settings - Settings to save
+ * @param settings - Settings to save
  */
-export function saveHomeSettings(settings) {
+export function saveHomeSettings(settings: HomeSettings): void {
   try {
     localStorage.setItem(HOME_SETTINGS_KEY, JSON.stringify(settings));
   } catch (err) {
@@ -54,19 +70,23 @@ export function saveHomeSettings(settings) {
 }
 
 // User profile cache
-let userProfileCache = null;
-let userProfileCacheUserId = null;
+let userProfileCache: UserProfile | null = null;
+let userProfileCacheUserId: string | null = null;
 const USER_PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 let userProfileCacheTime = 0;
 
 /**
  * Get cached user profile or fetch from Firestore
- * @param {Function} fetchFn - Function to fetch profile from Firestore
- * @param {string} userId - User ID
- * @param {boolean} forceRefresh - Force refresh from Firestore
- * @returns {Promise<Object>} User profile data
+ * @param fetchFn - Function to fetch profile from Firestore
+ * @param userId - User ID
+ * @param forceRefresh - Force refresh from Firestore
+ * @returns User profile data
  */
-export async function getCachedUserProfile(fetchFn, userId, forceRefresh = false) {
+export async function getCachedUserProfile(
+  fetchFn: () => Promise<UserProfile | null>,
+  userId: string,
+  forceRefresh = false
+): Promise<UserProfile | null> {
   const now = Date.now();
   if (
     !forceRefresh &&
@@ -86,7 +106,7 @@ export async function getCachedUserProfile(fetchFn, userId, forceRefresh = false
 /**
  * Clear the user profile cache
  */
-export function clearUserProfileCache() {
+export function clearUserProfileCache(): void {
   userProfileCache = null;
   userProfileCacheUserId = null;
   userProfileCacheTime = 0;
@@ -96,43 +116,49 @@ export function clearUserProfileCache() {
 const ISBN_CACHE_KEY = 'mybookshelf_isbn_cache';
 const ISBN_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
+/** Cached ISBN data structure */
+interface ISBNCacheEntry {
+  data: ISBNLookupResult | null;
+  timestamp: number;
+}
+
 /**
  * Get cached ISBN lookup result
- * @param {string} isbn - ISBN to look up
- * @returns {Object|null} Cached result or null
+ * @param isbn - ISBN to look up
+ * @returns Cached result or null
  */
-export function getISBNCache(isbn) {
+export function getISBNCache(isbn: string): ISBNLookupResult | null {
   try {
     const cached = localStorage.getItem(`${ISBN_CACHE_KEY}_${isbn}`);
     if (!cached) return null;
 
-    const { data, timestamp } = JSON.parse(cached);
+    const { data, timestamp }: ISBNCacheEntry = JSON.parse(cached);
     if (Date.now() - timestamp < ISBN_CACHE_TTL) {
       return data;
     }
     // Expired, remove it
     localStorage.removeItem(`${ISBN_CACHE_KEY}_${isbn}`);
   } catch (err) {
-    console.warn('ISBN cache read error:', err.message);
+    console.warn('ISBN cache read error:', (err as Error).message);
   }
   return null;
 }
 
 /**
  * Cache ISBN lookup result
- * @param {string} isbn - ISBN
- * @param {Object|null} data - Result to cache
+ * @param isbn - ISBN
+ * @param data - Result to cache
  */
-export function setISBNCache(isbn, data) {
+export function setISBNCache(isbn: string, data: ISBNLookupResult | null): void {
   try {
     localStorage.setItem(
       `${ISBN_CACHE_KEY}_${isbn}`,
       JSON.stringify({
         data,
         timestamp: Date.now(),
-      })
+      } as ISBNCacheEntry)
     );
   } catch (err) {
-    console.warn('ISBN cache write error:', err.message);
+    console.warn('ISBN cache write error:', (err as Error).message);
   }
 }

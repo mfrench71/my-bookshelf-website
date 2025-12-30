@@ -3,39 +3,46 @@
 
 import { query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { BaseRepository } from './base-repository.js';
+import type { Genre } from '../types/index.d.ts';
+
+/** Extended Genre type with bookCount */
+interface GenreWithCount extends Genre {
+  normalizedName?: string;
+  bookCount?: number;
+}
 
 /**
  * Repository for genre data access
  * Provides genre-specific query methods beyond basic CRUD
  */
-class GenreRepository extends BaseRepository {
+class GenreRepository extends BaseRepository<GenreWithCount> {
   constructor() {
     super('genres');
   }
 
   /**
    * Get a genre by its normalized name
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} normalizedName - Normalized genre name to search for
-   * @returns {Promise<Object|null>} Genre if found, null otherwise
+   * @param userId - The user's Firebase UID
+   * @param normalizedName - Normalized genre name to search for
+   * @returns Genre if found, null otherwise
    */
-  async getByNormalizedName(userId, normalizedName) {
+  async getByNormalizedName(userId: string, normalizedName: string): Promise<GenreWithCount | null> {
     const collectionRef = this.getCollectionRef(userId);
     const q = query(collectionRef, where('normalizedName', '==', normalizedName));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
       return null;
     }
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
+    const docSnap = snapshot.docs[0];
+    return { id: docSnap.id, ...docSnap.data() } as GenreWithCount;
   }
 
   /**
    * Get all genres sorted by name
-   * @param {string} userId - The user's Firebase UID
-   * @returns {Promise<Array<Object>>} Array of genres sorted by name
+   * @param userId - The user's Firebase UID
+   * @returns Array of genres sorted by name
    */
-  async getAllSorted(userId) {
+  async getAllSorted(userId: string): Promise<GenreWithCount[]> {
     return this.getWithOptions(userId, {
       orderByField: 'name',
       orderDirection: 'asc',
@@ -44,12 +51,12 @@ class GenreRepository extends BaseRepository {
 
   /**
    * Check if a genre name exists (case-insensitive via normalized name)
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} normalizedName - Normalized name to check
-   * @param {string} [excludeId] - Genre ID to exclude (for updates)
-   * @returns {Promise<boolean>} True if name exists
+   * @param userId - The user's Firebase UID
+   * @param normalizedName - Normalized name to check
+   * @param excludeId - Genre ID to exclude (for updates)
+   * @returns True if name exists
    */
-  async nameExists(userId, normalizedName, excludeId = null) {
+  async nameExists(userId: string, normalizedName: string, excludeId: string | null = null): Promise<boolean> {
     const existing = await this.getByNormalizedName(userId, normalizedName);
     if (!existing) {
       return false;
@@ -62,11 +69,11 @@ class GenreRepository extends BaseRepository {
 
   /**
    * Get genres by IDs
-   * @param {string} userId - The user's Firebase UID
-   * @param {Array<string>} genreIds - Array of genre IDs
-   * @returns {Promise<Array<Object>>} Array of genres
+   * @param userId - The user's Firebase UID
+   * @param genreIds - Array of genre IDs
+   * @returns Array of genres
    */
-  async getByIds(userId, genreIds) {
+  async getByIds(userId: string, genreIds: string[]): Promise<GenreWithCount[]> {
     if (!genreIds || genreIds.length === 0) {
       return [];
     }
@@ -77,12 +84,11 @@ class GenreRepository extends BaseRepository {
 
   /**
    * Increment book count for a genre
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} genreId - Genre ID
-   * @param {number} [increment=1] - Amount to increment (can be negative)
-   * @returns {Promise<void>}
+   * @param userId - The user's Firebase UID
+   * @param genreId - Genre ID
+   * @param increment - Amount to increment (can be negative)
    */
-  async incrementBookCount(userId, genreId, increment = 1) {
+  async incrementBookCount(userId: string, genreId: string, increment = 1): Promise<void> {
     const genre = await this.getById(userId, genreId);
     if (genre) {
       const newCount = Math.max(0, (genre.bookCount || 0) + increment);

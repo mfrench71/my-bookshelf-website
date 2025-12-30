@@ -1,13 +1,31 @@
 // Format Utilities - Date and text formatting
 
+import type { FirestoreTimestamp } from '../types/index.d.ts';
+
+/**
+ * Raw Firestore timestamp types that we might receive
+ */
+type RawTimestamp =
+  | { toMillis: () => number }
+  | { seconds: number; nanoseconds?: number }
+  | number
+  | string
+  | Date
+  | null
+  | undefined;
+
 /**
  * Serialize a Firestore timestamp to milliseconds
  * Handles: toMillis(), seconds, number, ISO string
  */
-export function serializeTimestamp(raw) {
+export function serializeTimestamp(raw: RawTimestamp): number | null {
   if (!raw) return null;
-  if (typeof raw.toMillis === 'function') return raw.toMillis();
-  if (raw.seconds) return raw.seconds * 1000;
+  if (typeof raw === 'object' && 'toMillis' in raw && typeof raw.toMillis === 'function') {
+    return raw.toMillis();
+  }
+  if (typeof raw === 'object' && 'seconds' in raw && typeof raw.seconds === 'number') {
+    return raw.seconds * 1000;
+  }
   if (typeof raw === 'number') return raw;
   if (typeof raw === 'string') {
     const date = new Date(raw);
@@ -19,10 +37,14 @@ export function serializeTimestamp(raw) {
 /**
  * Parse Firestore timestamp or date string to Date object
  */
-export function parseTimestamp(timestamp) {
+export function parseTimestamp(timestamp: FirestoreTimestamp | RawTimestamp): Date | null {
   if (!timestamp) return null;
-  if (typeof timestamp.toDate === 'function') return timestamp.toDate();
-  if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
+  if (typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000);
+  }
   if (timestamp instanceof Date) return timestamp;
   if (typeof timestamp === 'number') return new Date(timestamp);
   if (typeof timestamp === 'string') {
@@ -35,7 +57,7 @@ export function parseTimestamp(timestamp) {
 /**
  * Format a timestamp for display
  */
-export function formatDate(timestamp) {
+export function formatDate(timestamp: FirestoreTimestamp | RawTimestamp): string | null {
   const date = parseTimestamp(timestamp);
   if (!date) return null;
   return date.toLocaleDateString(undefined, {
@@ -48,7 +70,7 @@ export function formatDate(timestamp) {
 /**
  * Normalize text for search (handles apostrophes and diacritics)
  */
-export function normalizeText(text) {
+export function normalizeText(text: string | null | undefined): string {
   return (text || '')
     .toLowerCase()
     .replace(/[''`]/g, "'")
@@ -60,14 +82,14 @@ export function normalizeText(text) {
  * Normalize genre name for duplicate checking
  * Lowercase, trim, collapse multiple spaces
  */
-export function normalizeGenreName(name) {
+export function normalizeGenreName(name: string | null | undefined): string {
   return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 /**
  * Check if a string is all uppercase (ignoring non-letters)
  */
-function isAllCaps(str) {
+function isAllCaps(str: string): boolean {
   const letters = str.replace(/[^a-zA-Z]/g, '');
   return letters.length > 0 && letters === letters.toUpperCase();
 }
@@ -75,16 +97,38 @@ function isAllCaps(str) {
 /**
  * Check if a string is all lowercase (ignoring non-letters)
  */
-function isAllLowercase(str) {
+function isAllLowercase(str: string): boolean {
   const letters = str.replace(/[^a-zA-Z]/g, '');
   return letters.length > 0 && letters === letters.toLowerCase();
 }
+
+/** Words that should remain lowercase in titles */
+const LOWERCASE_WORDS = [
+  'a',
+  'an',
+  'and',
+  'as',
+  'at',
+  'but',
+  'by',
+  'for',
+  'in',
+  'nor',
+  'of',
+  'on',
+  'or',
+  'so',
+  'the',
+  'to',
+  'up',
+  'yet',
+];
 
 /**
  * Check if a title/name needs Title Case normalization
  * Returns true if: ALL CAPS, all lowercase, or any significant word starts lowercase
  */
-function needsTitleCase(str) {
+function needsTitleCase(str: string): boolean {
   if (!str || str.length === 0) return false;
 
   // Check for ALL CAPS or all lowercase
@@ -94,26 +138,6 @@ function needsTitleCase(str) {
 
   // Check if any significant word starts with lowercase
   // (words that should be capitalized but aren't)
-  const lowercaseWords = [
-    'a',
-    'an',
-    'and',
-    'as',
-    'at',
-    'but',
-    'by',
-    'for',
-    'in',
-    'nor',
-    'of',
-    'on',
-    'or',
-    'so',
-    'the',
-    'to',
-    'up',
-    'yet',
-  ];
   const words = str.split(' ');
 
   for (let i = 0; i < words.length; i++) {
@@ -124,7 +148,7 @@ function needsTitleCase(str) {
     if (!firstLetter) continue;
 
     const startsLowercase = firstLetter[0] === firstLetter[0].toLowerCase();
-    const isSmallWord = lowercaseWords.includes(word.toLowerCase());
+    const isSmallWord = LOWERCASE_WORDS.includes(word.toLowerCase());
 
     // First word should always be capitalized
     // Other words should be capitalized unless they're small words
@@ -140,33 +164,12 @@ function needsTitleCase(str) {
  * Convert string to Title Case
  * Keeps small words lowercase unless they're the first word
  */
-function toTitleCase(str) {
-  const lowercaseWords = [
-    'a',
-    'an',
-    'and',
-    'as',
-    'at',
-    'but',
-    'by',
-    'for',
-    'in',
-    'nor',
-    'of',
-    'on',
-    'or',
-    'so',
-    'the',
-    'to',
-    'up',
-    'yet',
-  ];
-
+function toTitleCase(str: string): string {
   return str
     .toLowerCase()
     .split(' ')
     .map((word, index) => {
-      if (index === 0 || !lowercaseWords.includes(word)) {
+      if (index === 0 || !LOWERCASE_WORDS.includes(word)) {
         return word.charAt(0).toUpperCase() + word.slice(1);
       }
       return word;
@@ -180,7 +183,7 @@ function toTitleCase(str) {
  * - Removes trailing periods
  * - Converts to Title Case if improperly formatted
  */
-export function normalizeTitle(title) {
+export function normalizeTitle(title: string | null | undefined): string {
   if (!title) return '';
 
   let normalized = title.trim();
@@ -201,7 +204,7 @@ export function normalizeTitle(title) {
  * - Trims whitespace
  * - Converts to Title Case if improperly formatted
  */
-export function normalizeAuthor(author) {
+export function normalizeAuthor(author: string | null | undefined): string {
   if (!author) return '';
 
   let normalized = author.trim();
@@ -218,7 +221,7 @@ export function normalizeAuthor(author) {
  * - Trims whitespace
  * - Converts to Title Case if improperly formatted
  */
-export function normalizePublisher(publisher) {
+export function normalizePublisher(publisher: string | null | undefined): string {
   if (!publisher) return '';
 
   let normalized = publisher.trim();
@@ -234,7 +237,7 @@ export function normalizePublisher(publisher) {
  * Normalize a published date to year only
  * Extracts 4-digit year from various formats
  */
-export function normalizePublishedDate(date) {
+export function normalizePublishedDate(date: string | number | null | undefined): string {
   if (!date) return '';
 
   const str = String(date).trim();
@@ -248,11 +251,12 @@ export function normalizePublishedDate(date) {
 /**
  * Render star rating as SVG HTML
  */
-export function renderStars(rating) {
+export function renderStars(rating: number | null | undefined): string {
   const filledStar =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
   const emptyStar =
     '<svg class="empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
-  return Array.from({ length: 5 }, (_, i) => (i < rating ? filledStar : emptyStar)).join('');
+  const ratingValue = rating ?? 0;
+  return Array.from({ length: 5 }, (_, i) => (i < ratingValue ? filledStar : emptyStar)).join('');
 }

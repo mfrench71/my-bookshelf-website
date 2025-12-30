@@ -1,6 +1,7 @@
 /**
- * Build script to minify all JavaScript files.
+ * Build script to minify all JavaScript and TypeScript files.
  * Uses esbuild to bundle entry points, preserving ES module imports.
+ * TypeScript files are compiled automatically by esbuild.
  *
  * Run with: node scripts/build-js.js
  */
@@ -99,6 +100,8 @@ async function build() {
       format: 'esm',
       target: ['es2020'],
       platform: 'browser',
+      // Resolve .js imports to .ts files when TypeScript version exists
+      resolveExtensions: ['.ts', '.js'],
       // External packages that are loaded separately (use absolute paths)
       external: [
         '/js/firebase-config.js',

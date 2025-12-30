@@ -24,10 +24,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Documentation (MANDATORY)
 
-All JavaScript code must include proper documentation:
+All JavaScript and TypeScript code must include proper documentation:
 
 ### File Headers
-Every `.js` file should start with a brief comment explaining its purpose:
+Every `.js` or `.ts` file should start with a brief comment explaining its purpose:
 ```javascript
 // Genre Picker Component
 // A reusable multi-select component for picking genres
@@ -383,7 +383,7 @@ input, textarea, select {
 ## Build & Development Commands
 
 ```bash
-# Full build (11ty + Tailwind CSS)
+# Full build (11ty + JS/TS + Tailwind CSS)
 npm run build
 
 # Development with live reload (builds CSS first, then serves with 11ty)
@@ -391,12 +391,16 @@ npm run start
 
 # Individual build steps
 npm run build:11ty      # Build HTML from Nunjucks templates
-npm run build:js        # Bundle and minify JavaScript
+npm run build:js        # Bundle and minify JavaScript/TypeScript
 npm run build:css       # Compile and minify Tailwind CSS
 
 # Watch modes (for development)
 npm run watch:11ty      # 11ty with --serve
 npm run watch:css       # Tailwind with --watch
+
+# TypeScript
+npm run typecheck       # Run TypeScript type checking
+npm run typecheck:watch # Type check in watch mode
 
 # Local testing (after build)
 npx serve _site
@@ -406,6 +410,11 @@ npm test              # Run all tests once
 npm run test:watch    # Watch mode for development
 npm run test:coverage # Run with coverage report
 
+# Code quality
+npm run lint          # Run ESLint
+npm run lint:fix      # Run ESLint with auto-fix
+npm run format        # Format code with Prettier
+
 # Lighthouse audit (requires server running on port 8080)
 npm run audit         # Run Lighthouse on key pages, outputs to reports/
 ```
@@ -414,7 +423,8 @@ npm run audit         # Run Lighthouse on key pages, outputs to reports/
 
 ### Build System
 - **11ty (Eleventy)** generates HTML from Nunjucks templates in `src/` to `_site/`
-- **esbuild** bundles and minifies JavaScript entry points to `_site/js/`
+- **esbuild** bundles and minifies JavaScript/TypeScript entry points to `_site/js/`
+- **TypeScript** is used for utilities and repositories (gradual migration from JS)
 - **Tailwind CSS v4** compiles `src/css/tailwind.css` to `_site/css/styles.css`
 
 ### Directory Structure
@@ -464,6 +474,20 @@ src/
 │   │   ├── genre-picker.js # Multi-select genre input
 │   │   ├── modal.js        # Modal and ConfirmModal components
 │   │   └── rating-input.js # Star rating input
+│   ├── repositories/       # Data access layer (TypeScript)
+│   │   ├── base-repository.ts  # Common CRUD operations
+│   │   ├── book-repository.ts  # Book-specific queries
+│   │   ├── genre-repository.ts # Genre-specific queries
+│   │   └── series-repository.ts # Series-specific queries
+│   ├── types/              # TypeScript type definitions
+│   │   └── index.d.ts      # Shared types for the app
+│   ├── utils/              # Utility functions (JS and TS)
+│   │   ├── format.ts       # Date and text formatting
+│   │   ├── helpers.ts      # Misc helper functions
+│   │   ├── dom.ts          # DOM utilities
+│   │   ├── cache.ts        # Local storage caching
+│   │   ├── sync-settings.ts # Sync preferences
+│   │   └── visibility-refresh.ts # Auto-refresh on tab focus
 │   ├── genres.js           # Genre CRUD operations and utilities
 │   ├── series.js           # Series CRUD operations and utilities
 │   └── widgets/            # Dashboard widget system

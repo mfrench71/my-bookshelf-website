@@ -1,9 +1,18 @@
 // Sync Settings Storage
 // Manages user preferences for auto-refresh behaviour
 
+/** Sync settings structure */
+export interface SyncSettingsData {
+  autoRefreshEnabled: boolean;
+  /** Minimum hidden time before refresh (seconds) */
+  hiddenThreshold: number;
+  /** Minimum time between refreshes in seconds */
+  cooldownPeriod: number;
+}
+
 const SYNC_SETTINGS_KEY = 'mybookshelf_sync_settings';
 
-const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS: SyncSettingsData = {
   autoRefreshEnabled: true,
   hiddenThreshold: 30, // seconds - min hidden time before refresh
   cooldownPeriod: 300, // seconds - min time between refreshes (5 min)
@@ -11,9 +20,9 @@ const DEFAULT_SETTINGS = {
 
 /**
  * Get current sync settings from localStorage
- * @returns {Object} Current sync settings merged with defaults
+ * @returns Current sync settings merged with defaults
  */
-export function getSyncSettings() {
+export function getSyncSettings(): SyncSettingsData {
   try {
     const stored = localStorage.getItem(SYNC_SETTINGS_KEY);
     if (stored) {
@@ -27,9 +36,9 @@ export function getSyncSettings() {
 
 /**
  * Save sync settings to localStorage
- * @param {Object} settings - Settings to save (merged with existing)
+ * @param settings - Settings to save (merged with existing)
  */
-export function saveSyncSettings(settings) {
+export function saveSyncSettings(settings: Partial<SyncSettingsData>): void {
   try {
     const current = getSyncSettings();
     const updated = { ...current, ...settings };
@@ -42,7 +51,7 @@ export function saveSyncSettings(settings) {
 /**
  * Reset sync settings to defaults
  */
-export function resetSyncSettings() {
+export function resetSyncSettings(): void {
   try {
     localStorage.removeItem(SYNC_SETTINGS_KEY);
   } catch (e) {
@@ -52,8 +61,8 @@ export function resetSyncSettings() {
 
 /**
  * Get default sync settings
- * @returns {Object} Default settings object
+ * @returns Default settings object
  */
-export function getDefaultSyncSettings() {
+export function getDefaultSyncSettings(): SyncSettingsData {
   return { ...DEFAULT_SETTINGS };
 }

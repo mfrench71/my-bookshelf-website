@@ -3,23 +3,29 @@
 
 import { BaseRepository } from './base-repository.js';
 import { normalizeText } from '../utils/format.js';
+import type { Series } from '../types/index.d.ts';
+
+/** Extended Series type with bookCount */
+interface SeriesWithCount extends Series {
+  bookCount?: number;
+}
 
 /**
  * Repository for series data access
  * Provides series-specific query methods beyond basic CRUD
  */
-class SeriesRepository extends BaseRepository {
+class SeriesRepository extends BaseRepository<SeriesWithCount> {
   constructor() {
     super('series');
   }
 
   /**
    * Find a series by name (case-insensitive via normalized comparison)
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} name - Series name to search for
-   * @returns {Promise<Object|null>} Series if found, null otherwise
+   * @param userId - The user's Firebase UID
+   * @param name - Series name to search for
+   * @returns Series if found, null otherwise
    */
-  async findByName(userId, name) {
+  async findByName(userId: string, name: string): Promise<SeriesWithCount | null> {
     const normalizedSearch = normalizeText(name);
     const allSeries = await this.getAll(userId);
 
@@ -33,10 +39,10 @@ class SeriesRepository extends BaseRepository {
 
   /**
    * Get all series sorted by name
-   * @param {string} userId - The user's Firebase UID
-   * @returns {Promise<Array<Object>>} Array of series sorted by name
+   * @param userId - The user's Firebase UID
+   * @returns Array of series sorted by name
    */
-  async getAllSorted(userId) {
+  async getAllSorted(userId: string): Promise<SeriesWithCount[]> {
     return this.getWithOptions(userId, {
       orderByField: 'name',
       orderDirection: 'asc',
@@ -45,32 +51,32 @@ class SeriesRepository extends BaseRepository {
 
   /**
    * Get active series (not soft-deleted)
-   * @param {string} userId - The user's Firebase UID
-   * @returns {Promise<Array<Object>>} Array of active series
+   * @param userId - The user's Firebase UID
+   * @returns Array of active series
    */
-  async getActive(userId) {
+  async getActive(userId: string): Promise<SeriesWithCount[]> {
     const series = await this.getAll(userId);
     return series.filter(s => !s.deletedAt);
   }
 
   /**
    * Get soft-deleted series
-   * @param {string} userId - The user's Firebase UID
-   * @returns {Promise<Array<Object>>} Array of deleted series
+   * @param userId - The user's Firebase UID
+   * @returns Array of deleted series
    */
-  async getDeleted(userId) {
+  async getDeleted(userId: string): Promise<SeriesWithCount[]> {
     const series = await this.getAll(userId);
     return series.filter(s => s.deletedAt);
   }
 
   /**
    * Check if a series name exists
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} name - Name to check
-   * @param {string} [excludeId] - Series ID to exclude (for updates)
-   * @returns {Promise<boolean>} True if name exists
+   * @param userId - The user's Firebase UID
+   * @param name - Name to check
+   * @param excludeId - Series ID to exclude (for updates)
+   * @returns True if name exists
    */
-  async nameExists(userId, name, excludeId = null) {
+  async nameExists(userId: string, name: string, excludeId: string | null = null): Promise<boolean> {
     const existing = await this.findByName(userId, name);
     if (!existing) {
       return false;
@@ -83,23 +89,21 @@ class SeriesRepository extends BaseRepository {
 
   /**
    * Soft delete a series
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} seriesId - Series ID to soft delete
-   * @returns {Promise<void>}
+   * @param userId - The user's Firebase UID
+   * @param seriesId - Series ID to soft delete
    */
-  async softDelete(userId, seriesId) {
+  async softDelete(userId: string, seriesId: string): Promise<void> {
     await this.update(userId, seriesId, {
       deletedAt: new Date().toISOString(),
-    });
+    } as Partial<SeriesWithCount>);
   }
 
   /**
    * Restore a soft-deleted series
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} seriesId - Series ID to restore
-   * @returns {Promise<void>}
+   * @param userId - The user's Firebase UID
+   * @param seriesId - Series ID to restore
    */
-  async restore(userId, seriesId) {
+  async restore(userId: string, seriesId: string): Promise<void> {
     await this.update(userId, seriesId, {
       deletedAt: null,
     });
@@ -107,12 +111,11 @@ class SeriesRepository extends BaseRepository {
 
   /**
    * Increment book count for a series
-   * @param {string} userId - The user's Firebase UID
-   * @param {string} seriesId - Series ID
-   * @param {number} [increment=1] - Amount to increment (can be negative)
-   * @returns {Promise<void>}
+   * @param userId - The user's Firebase UID
+   * @param seriesId - Series ID
+   * @param increment - Amount to increment (can be negative)
    */
-  async incrementBookCount(userId, seriesId, increment = 1) {
+  async incrementBookCount(userId: string, seriesId: string, increment = 1): Promise<void> {
     const series = await this.getById(userId, seriesId);
     if (series) {
       const newCount = Math.max(0, (series.bookCount || 0) + increment);
@@ -122,11 +125,11 @@ class SeriesRepository extends BaseRepository {
 
   /**
    * Get series by IDs
-   * @param {string} userId - The user's Firebase UID
-   * @param {Array<string>} seriesIds - Array of series IDs
-   * @returns {Promise<Array<Object>>} Array of series
+   * @param userId - The user's Firebase UID
+   * @param seriesIds - Array of series IDs
+   * @returns Array of series
    */
-  async getByIds(userId, seriesIds) {
+  async getByIds(userId: string, seriesIds: string[]): Promise<SeriesWithCount[]> {
     if (!seriesIds || seriesIds.length === 0) {
       return [];
     }
