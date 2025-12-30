@@ -10,6 +10,22 @@ global.lucide = {
   createIcons: vi.fn()
 };
 
+// Mock HTMLCanvasElement.toDataURL for WebP support detection
+const originalCreateElement = document.createElement.bind(document);
+document.createElement = function(tagName, options) {
+  const element = originalCreateElement(tagName, options);
+  if (tagName === 'canvas') {
+    element.toDataURL = vi.fn((type) => {
+      // Return a proper data URL for the requested type
+      if (type === 'image/webp') {
+        return 'data:image/webp;base64,test';
+      }
+      return 'data:image/png;base64,test';
+    });
+  }
+  return element;
+};
+
 // Mock navigator.vibrate
 global.navigator.vibrate = vi.fn();
 

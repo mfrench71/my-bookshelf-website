@@ -1,16 +1,9 @@
 /**
  * Tests for ImageGallery component
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock dependencies
-vi.mock('../src/js/utils.js', () => ({
-  escapeHtml: (str) => str.replace(/[&<>"']/g, ''),
-  escapeAttr: (str) => str.replace(/[&<>"']/g, ''),
-  showToast: vi.fn(),
-  initIcons: vi.fn()
-}));
-
 vi.mock('../src/js/utils/image-upload.js', () => ({
   uploadImage: vi.fn(),
   deleteImage: vi.fn(),
@@ -18,606 +11,717 @@ vi.mock('../src/js/utils/image-upload.js', () => ({
 }));
 
 vi.mock('../src/js/schemas/image.js', () => ({
-  setPrimaryImage: (images, imageId) => images.map(img => ({
-    ...img,
-    isPrimary: img.id === imageId
-  })),
-  getPrimaryImage: (images) => {
-    if (!images || images.length === 0) return null;
+  setPrimaryImage: vi.fn((images, id) => {
+    return images.map(img => ({
+      ...img,
+      isPrimary: img.id === id
+    }));
+  }),
+  getPrimaryImage: vi.fn((images) => {
     return images.find(img => img.isPrimary) || null;
-  }
+  })
 }));
 
 vi.mock('../src/js/components/modal.js', () => ({
   ConfirmModal: {
-    show: vi.fn().mockResolvedValue(true)
+    show: vi.fn()
   }
 }));
 
-// Import after mocks
+vi.mock('../src/js/utils.js', () => ({
+  escapeHtml: vi.fn((str) => str),
+  escapeAttr: vi.fn((str) => str),
+  showToast: vi.fn(),
+  initIcons: vi.fn()
+}));
+
+import { ImageGallery } from '../src/js/components/image-gallery.js';
 import { uploadImage, deleteImage, validateImage } from '../src/js/utils/image-upload.js';
-import { showToast } from '../src/js/utils.js';
 import { ConfirmModal } from '../src/js/components/modal.js';
+import { showToast, initIcons } from '../src/js/utils.js';
+import { setPrimaryImage, getPrimaryImage } from '../src/js/schemas/image.js';
 
 describe('ImageGallery', () => {
   let container;
-  let mockOnChange;
-  let mockOnPrimaryChange;
-
-  const createGallery = (options = {}) => {
-    // Inline implementation of key gallery logic for testing
-    const gallery = {
-      container: options.container,
-      userId: options.userId || 'user123',
-      bookId: options.bookId || 'book456',
-      maxImages: options.maxImages || 10,
-      onPrimaryChange: options.onPrimaryChange || (() => {}),
-      onChange: options.onChange || (() => {}),
-      images: [],
-      uploading: new Map(),
-      draggedIndex: null,
-
-      setBookId(bookId) {
-        this.bookId = bookId;
-      },
-
-      setImages(images) {
-        this.images = images || [];
-        this.render();
-        this.notifyPrimaryChange();
-      },
-
-      getImages() {
-        return [...this.images];
-      },
-
-      getPrimaryImageUrl() {
-        const primary = this.images.find(img => img.isPrimary);
-        return primary ? primary.url : null;
-      },
-
-      hasImages() {
-        return this.images.length > 0;
-      },
-
-      handleSetPrimary(imageId) {
-        this.images = this.images.map(img => ({
-          ...img,
-          isPrimary: img.id === imageId
-        }));
-        this.render();
-        this.notifyChange();
-        this.notifyPrimaryChange();
-      },
-
-      async handleDelete(imageId) {
-        const image = this.images.find(img => img.id === imageId);
-        if (!image) return;
-
-        const wasPrimary = image.isPrimary;
-
-        // Remove from array
-        this.images = this.images.filter(img => img.id !== imageId);
-
-        // If deleted image was primary and there are still images, make first one primary
-        if (wasPrimary && this.images.length > 0) {
-          this.images[0].isPrimary = true;
-        }
-
-        this.render();
-        this.notifyChange();
-        this.notifyPrimaryChange();
-      },
-
-      handleDragStart(index) {
-        this.draggedIndex = index;
-      },
-
-      handleDragOver(index, event) {
-        event.preventDefault();
-        if (this.draggedIndex === null || this.draggedIndex === index) return;
-
-        const draggedImage = this.images[this.draggedIndex];
-        this.images.splice(this.draggedIndex, 1);
-        this.images.splice(index, 0, draggedImage);
-        this.draggedIndex = index;
-        this.render();
-      },
-
-      handleDragEnd() {
-        if (this.draggedIndex !== null) {
-          this.draggedIndex = null;
-          this.notifyChange();
-        }
-      },
-
-      notifyChange() {
-        this.onChange(this.getImages());
-      },
-
-      notifyPrimaryChange() {
-        const primaryUrl = this.getPrimaryImageUrl();
-        this.onPrimaryChange(primaryUrl);
-      },
-
-      render() {
-        const total = this.images.length + this.uploading.size;
-        const canAdd = total < this.maxImages;
-
-        this.container.innerHTML = `
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <label class="block font-semibold text-gray-700">
-                Book Images <span class="font-normal text-gray-500">(${this.images.length}/${this.maxImages})</span>
-              </label>
-            </div>
-            <div class="gallery-grid grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-              ${this.images.map((img, index) => `
-                <div class="image-tile relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 ${img.isPrimary ? 'border-primary' : 'border-transparent'}"
-                     draggable="true"
-                     data-index="${index}"
-                     data-image-id="${img.id}">
-                  <img src="${img.url}" alt="Book image ${index + 1}" class="w-full h-full object-cover">
-                  ${img.isPrimary ? '<div class="primary-badge absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded font-medium">Cover</div>' : ''}
-                  <div class="overlay absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2">
-                    ${!img.isPrimary ? `<button type="button" class="set-primary-btn p-2 bg-white rounded-full" data-image-id="${img.id}">★</button>` : ''}
-                    <button type="button" class="delete-btn p-2 bg-white rounded-full" data-image-id="${img.id}">×</button>
-                  </div>
-                </div>
-              `).join('')}
-              ${canAdd ? '<label class="add-image-slot aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 cursor-pointer"><input type="file" class="hidden"></label>' : ''}
-            </div>
-          </div>
-        `;
-      },
-
-      destroy() {
-        this.container.innerHTML = '';
-        this.images = [];
-        this.uploading.clear();
-      }
-    };
-
-    gallery.render();
-    return gallery;
-  };
+  let gallery;
+  let onPrimaryChange;
+  let onChange;
 
   beforeEach(() => {
     container = document.createElement('div');
-    container.id = 'image-gallery-container';
+    container.id = 'gallery-container';
     document.body.appendChild(container);
-    mockOnChange = vi.fn();
-    mockOnPrimaryChange = vi.fn();
+    
+    onPrimaryChange = vi.fn();
+    onChange = vi.fn();
+
+    // Setup global lucide mock
+    window.lucide = { createIcons: vi.fn() };
+
     vi.clearAllMocks();
   });
 
   afterEach(() => {
+    if (gallery) {
+      gallery.destroy();
+      gallery = null;
+    }
     document.body.innerHTML = '';
   });
 
   describe('constructor', () => {
-    it('should initialize with default options', () => {
-      const gallery = createGallery({ container });
+    it('should initialize with default values', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(gallery.container).toBe(container);
+      expect(gallery.userId).toBe('user123');
       expect(gallery.maxImages).toBe(10);
       expect(gallery.images).toEqual([]);
+      expect(gallery.bookId).toMatch(/^temp-\d+$/);
     });
 
-    it('should accept custom maxImages', () => {
-      const gallery = createGallery({ container, maxImages: 5 });
+    it('should initialize with custom values', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        bookId: 'book456',
+        maxImages: 5,
+        onPrimaryChange,
+        onChange
+      });
 
+      expect(gallery.bookId).toBe('book456');
       expect(gallery.maxImages).toBe(5);
     });
 
-    it('should accept callbacks', () => {
-      const gallery = createGallery({
+    it('should render initial UI', () => {
+      gallery = new ImageGallery({
         container,
-        onChange: mockOnChange,
-        onPrimaryChange: mockOnPrimaryChange
+        userId: 'user123'
       });
 
-      expect(gallery.onChange).toBe(mockOnChange);
-      expect(gallery.onPrimaryChange).toBe(mockOnPrimaryChange);
-    });
-
-    it('should render on initialization', () => {
-      const gallery = createGallery({ container });
-
-      // Empty gallery renders with gallery-grid (placeholder shown, not upload button)
-      expect(container.querySelector('.gallery-grid')).toBeTruthy();
+      expect(container.innerHTML).toContain('Book Images');
+      expect(container.innerHTML).toContain('(0/10)');
+      expect(initIcons).toHaveBeenCalled();
     });
   });
 
   describe('setBookId', () => {
-    it('should update bookId', () => {
-      const gallery = createGallery({ container, bookId: 'temp-123' });
+    it('should update book ID', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      gallery.setBookId('book-456');
-
-      expect(gallery.bookId).toBe('book-456');
+      gallery.setBookId('newBookId');
+      expect(gallery.bookId).toBe('newBookId');
     });
   });
 
   describe('setImages', () => {
     it('should set images and re-render', () => {
-      const gallery = createGallery({ container, onPrimaryChange: mockOnPrimaryChange });
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onPrimaryChange
+      });
+
       const images = [
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: true },
+        { id: 'img2', url: 'http://example.com/2.jpg', isPrimary: false }
       ];
 
       gallery.setImages(images);
 
-      expect(gallery.images).toHaveLength(1);
-      expect(container.querySelector('.image-tile')).toBeTruthy();
+      expect(gallery.images).toEqual(images);
+      expect(container.innerHTML).toContain('(2/10)');
     });
 
-    it('should notify of primary change', () => {
-      const gallery = createGallery({ container, onPrimaryChange: mockOnPrimaryChange });
-      const images = [
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ];
-
-      gallery.setImages(images);
-
-      expect(mockOnPrimaryChange).toHaveBeenCalledWith('https://example.com/1.jpg');
-    });
-
-    it('should handle empty array', () => {
-      const gallery = createGallery({ container });
+    it('should handle empty images array', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
       gallery.setImages([]);
-
-      expect(gallery.images).toHaveLength(0);
+      expect(gallery.images).toEqual([]);
     });
 
-    it('should handle null/undefined', () => {
-      const gallery = createGallery({ container });
+    it('should handle null images', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
       gallery.setImages(null);
-      expect(gallery.images).toHaveLength(0);
-
-      gallery.setImages(undefined);
-      expect(gallery.images).toHaveLength(0);
+      expect(gallery.images).toEqual([]);
     });
   });
 
   describe('getImages', () => {
-    it('should return copy of images array', () => {
-      const gallery = createGallery({ container });
-      const images = [
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ];
+    it('should return a copy of images array', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      const images = [{ id: 'img1', url: 'http://example.com/1.jpg' }];
       gallery.setImages(images);
 
       const result = gallery.getImages();
-      result.push({ id: 'new' });
-
-      expect(gallery.images).toHaveLength(1);
+      expect(result).toEqual(images);
+      expect(result).not.toBe(gallery.images);
     });
   });
 
   describe('getPrimaryImageUrl', () => {
-    it('should return primary image URL', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: false, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: true, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should return primary image URL when exists', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(gallery.getPrimaryImageUrl()).toBe('https://example.com/2.jpg');
+      const images = [
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: true }
+      ];
+      gallery.setImages(images);
+      getPrimaryImage.mockReturnValue(images[0]);
+
+      expect(gallery.getPrimaryImageUrl()).toBe('http://example.com/1.jpg');
     });
 
-    it('should return null if no primary', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: false, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should return null when no primary image', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(gallery.getPrimaryImageUrl()).toBeNull();
-    });
-
-    it('should return null for empty gallery', () => {
-      const gallery = createGallery({ container });
-
+      getPrimaryImage.mockReturnValue(null);
       expect(gallery.getPrimaryImageUrl()).toBeNull();
     });
   });
 
   describe('hasImages', () => {
     it('should return true when images exist', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
+      gallery.setImages([{ id: 'img1' }]);
       expect(gallery.hasImages()).toBe(true);
     });
 
     it('should return false when no images', () => {
-      const gallery = createGallery({ container });
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
       expect(gallery.hasImages()).toBe(false);
     });
   });
 
-  describe('handleSetPrimary', () => {
-    it('should set specified image as primary', () => {
-      const gallery = createGallery({ container, onChange: mockOnChange });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
-      mockOnChange.mockClear();
-
-      gallery.handleSetPrimary('img-2');
-
-      expect(gallery.images[0].isPrimary).toBe(false);
-      expect(gallery.images[1].isPrimary).toBe(true);
-    });
-
-    it('should notify of changes', () => {
-      const gallery = createGallery({
+  describe('handleFileSelect', () => {
+    it('should show error when too many files selected', async () => {
+      gallery = new ImageGallery({
         container,
-        onChange: mockOnChange,
-        onPrimaryChange: mockOnPrimaryChange
+        userId: 'user123',
+        maxImages: 2
       });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
-      mockOnChange.mockClear();
-      mockOnPrimaryChange.mockClear();
 
-      gallery.handleSetPrimary('img-2');
+      gallery.setImages([{ id: 'img1' }]);
 
-      expect(mockOnChange).toHaveBeenCalled();
-      expect(mockOnPrimaryChange).toHaveBeenCalledWith('https://example.com/2.jpg');
+      const files = [
+        new File(['test'], 'test1.jpg', { type: 'image/jpeg' }),
+        new File(['test'], 'test2.jpg', { type: 'image/jpeg' })
+      ];
+
+      await gallery.handleFileSelect(files);
+
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('Can only add 1 more image'),
+        { type: 'error' }
+      );
     });
 
-    it('should update primary badge in UI', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should show error for invalid file', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      gallery.handleSetPrimary('img-2');
+      validateImage.mockReturnValue({ valid: false, error: 'File too large' });
 
-      const tiles = container.querySelectorAll('.image-tile');
-      expect(tiles[0].classList.contains('border-primary')).toBe(false);
-      expect(tiles[1].classList.contains('border-primary')).toBe(true);
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      expect(showToast).toHaveBeenCalledWith('File too large', { type: 'error' });
+    });
+
+    it('should upload valid files', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onChange
+      });
+
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockResolvedValue({
+        id: 'newImg',
+        url: 'http://example.com/new.jpg',
+        storagePath: 'path/to/new.jpg',
+        sizeBytes: 1000,
+        width: 800,
+        height: 600
+      });
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      expect(uploadImage).toHaveBeenCalled();
+      expect(showToast).toHaveBeenCalledWith('Image uploaded', { type: 'success' });
+      expect(gallery.images).toHaveLength(1);
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    it('should handle upload error', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockRejectedValue(new Error('Network error'));
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      expect(showToast).toHaveBeenCalledWith(
+        'Failed to upload image. Please try again.',
+        { type: 'error' }
+      );
     });
   });
 
   describe('handleDelete', () => {
-    it('should remove image from array', async () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should not delete when image not found', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      await gallery.handleDelete('img-1');
-
-      expect(gallery.images).toHaveLength(1);
-      expect(gallery.images[0].id).toBe('img-2');
+      await gallery.handleDelete('nonexistent');
+      expect(ConfirmModal.show).not.toHaveBeenCalled();
     });
 
-    it('should promote first image to primary when primary is deleted', async () => {
-      const gallery = createGallery({ container });
+    it('should not delete when user cancels', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      gallery.setImages([{ id: 'img1', url: 'http://example.com/1.jpg', isPrimary: false }]);
+      ConfirmModal.show.mockResolvedValue(false);
+
+      await gallery.handleDelete('img1');
+
+      expect(gallery.images).toHaveLength(1);
+    });
+
+    it('should delete image when confirmed', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onChange,
+        onPrimaryChange
+      });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
+        { id: 'img1', url: 'http://example.com/1.jpg', storagePath: 'path/1.jpg', isPrimary: false }
       ]);
+      ConfirmModal.show.mockResolvedValue(true);
+      deleteImage.mockResolvedValue();
 
-      await gallery.handleDelete('img-1');
+      await gallery.handleDelete('img1');
 
+      expect(gallery.images).toHaveLength(0);
+      expect(deleteImage).toHaveBeenCalledWith('path/1.jpg');
+      expect(showToast).toHaveBeenCalledWith('Image deleted', { type: 'success' });
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    it('should show special message for primary image', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      gallery.setImages([
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: true }
+      ]);
+      ConfirmModal.show.mockResolvedValue(false);
+
+      await gallery.handleDelete('img1');
+
+      expect(ConfirmModal.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('cover image')
+        })
+      );
+    });
+
+    it('should make first remaining image primary when deleting primary', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      gallery.setImages([
+        { id: 'img1', url: 'http://example.com/1.jpg', storagePath: 'path/1.jpg', isPrimary: true },
+        { id: 'img2', url: 'http://example.com/2.jpg', storagePath: 'path/2.jpg', isPrimary: false }
+      ]);
+      ConfirmModal.show.mockResolvedValue(true);
+      deleteImage.mockResolvedValue();
+
+      await gallery.handleDelete('img1');
+
+      expect(gallery.images).toHaveLength(1);
+      expect(gallery.images[0].id).toBe('img2');
       expect(gallery.images[0].isPrimary).toBe(true);
     });
 
-    it('should notify of changes', async () => {
-      const gallery = createGallery({
+    it('should handle storage delete failure gracefully', async () => {
+      gallery = new ImageGallery({
         container,
-        onChange: mockOnChange,
-        onPrimaryChange: mockOnPrimaryChange
+        userId: 'user123'
       });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: false, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
+        { id: 'img1', url: 'http://example.com/1.jpg', storagePath: 'path/1.jpg', isPrimary: false }
       ]);
-      mockOnChange.mockClear();
-      mockOnPrimaryChange.mockClear();
+      ConfirmModal.show.mockResolvedValue(true);
+      deleteImage.mockRejectedValue(new Error('Storage error'));
 
-      await gallery.handleDelete('img-1');
+      await gallery.handleDelete('img1');
 
-      expect(mockOnChange).toHaveBeenCalled();
-      expect(mockOnPrimaryChange).toHaveBeenCalled();
+      expect(gallery.images).toHaveLength(0);
+      expect(showToast).toHaveBeenCalledWith('Image deleted', { type: 'success' });
     });
+  });
 
-    it('should handle non-existent imageId', async () => {
-      const gallery = createGallery({ container });
+  describe('handleSetPrimary', () => {
+    it('should set image as primary', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onChange,
+        onPrimaryChange
+      });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: false },
+        { id: 'img2', url: 'http://example.com/2.jpg', isPrimary: false }
       ]);
 
-      await gallery.handleDelete('non-existent');
+      vi.clearAllMocks();
 
-      expect(gallery.images).toHaveLength(1);
+      // Mock getPrimaryImage to return the newly set primary after setPrimaryImage is called
+      getPrimaryImage.mockReturnValue({ id: 'img2', url: 'http://example.com/2.jpg', isPrimary: true });
+
+      gallery.handleSetPrimary('img2');
+
+      expect(setPrimaryImage).toHaveBeenCalledWith(expect.any(Array), 'img2');
+      expect(onChange).toHaveBeenCalled();
+      // First arg is primary URL (or null), second arg is userInitiated flag
+      expect(onPrimaryChange).toHaveBeenCalledWith('http://example.com/2.jpg', true);
     });
   });
 
   describe('drag and drop', () => {
-    it('should track dragged index on drag start', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should track drag start', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      gallery.handleDragStart(0);
-
-      expect(gallery.draggedIndex).toBe(0);
+      gallery.handleDragStart(2);
+      expect(gallery.draggedIndex).toBe(2);
     });
 
-    it('should reorder images on drag over', () => {
-      const gallery = createGallery({ container });
+    it('should reorder on drag over', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() },
-        { id: 'img-3', url: 'https://example.com/3.jpg', isPrimary: false, storagePath: 'path/3.jpg', uploadedAt: Date.now() }
+        { id: 'img1' },
+        { id: 'img2' },
+        { id: 'img3' }
       ]);
+
       gallery.handleDragStart(0);
+      gallery.handleDragOver(2, { preventDefault: vi.fn() });
 
-      gallery.handleDragOver(2, { preventDefault: () => {} });
-
-      expect(gallery.images[0].id).toBe('img-2');
-      expect(gallery.images[1].id).toBe('img-3');
-      expect(gallery.images[2].id).toBe('img-1');
+      expect(gallery.images[2].id).toBe('img1');
+      expect(gallery.draggedIndex).toBe(2);
     });
 
-    it('should not reorder on drag over same index', () => {
-      const gallery = createGallery({ container });
+    it('should not reorder when dragging over same index', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
+        { id: 'img1' },
+        { id: 'img2' }
       ]);
+
       gallery.handleDragStart(0);
+      const mockEvent = { preventDefault: vi.fn() };
+      gallery.handleDragOver(0, mockEvent);
 
-      gallery.handleDragOver(0, { preventDefault: () => {} });
-
-      expect(gallery.images[0].id).toBe('img-1');
+      expect(gallery.images[0].id).toBe('img1');
     });
 
     it('should notify change on drag end', () => {
-      const gallery = createGallery({ container, onChange: mockOnChange });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
-      gallery.handleDragStart(0);
-      mockOnChange.mockClear();
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onChange
+      });
 
+      gallery.handleDragStart(0);
+      vi.clearAllMocks();
       gallery.handleDragEnd();
 
-      expect(mockOnChange).toHaveBeenCalled();
       expect(gallery.draggedIndex).toBeNull();
+      expect(onChange).toHaveBeenCalled();
     });
 
-    it('should not notify if no drag was active', () => {
-      const gallery = createGallery({ container, onChange: mockOnChange });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
-      mockOnChange.mockClear();
+    it('should not notify when no drag in progress', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        onChange
+      });
 
+      vi.clearAllMocks();
       gallery.handleDragEnd();
 
-      expect(mockOnChange).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
     });
   });
 
-  describe('render', () => {
-    it('should show upload button when has images and under max', () => {
-      const gallery = createGallery({ container, maxImages: 10 });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
+  describe('cleanup tracking', () => {
+    it('should track newly uploaded images', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      // Should show add-image-slot when can add more
-      expect(container.querySelector('.add-image-slot')).toBeTruthy();
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockResolvedValue({
+        id: 'newImg',
+        url: 'http://example.com/new.jpg',
+        storagePath: 'path/to/new.jpg'
+      });
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      expect(gallery.hasUnsavedUploads()).toBe(true);
+      expect(gallery.getNewlyUploadedImages()).toHaveLength(1);
     });
 
-    it('should show add-image-slot when empty', () => {
-      const gallery = createGallery({ container, maxImages: 10 });
+    it('should clear tracking on markAsSaved', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      // Empty gallery shows add-image-slot
-      expect(container.querySelector('.add-image-slot')).toBeTruthy();
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockResolvedValue({
+        id: 'newImg',
+        url: 'http://example.com/new.jpg',
+        storagePath: 'path/to/new.jpg'
+      });
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      gallery.markAsSaved();
+
+      expect(gallery.hasUnsavedUploads()).toBe(false);
+      expect(gallery.getNewlyUploadedImages()).toHaveLength(0);
     });
 
-    it('should hide add-image-slot when at max', () => {
-      const gallery = createGallery({ container, maxImages: 2 });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should cleanup unsaved uploads', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(container.querySelector('.add-image-slot')).toBeNull();
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockResolvedValue({
+        id: 'newImg',
+        url: 'http://example.com/new.jpg',
+        storagePath: 'path/to/new.jpg'
+      });
+      deleteImage.mockResolvedValue();
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      const deletedCount = await gallery.cleanupUnsavedUploads();
+
+      expect(deletedCount).toBe(1);
+      expect(deleteImage).toHaveBeenCalledWith('path/to/new.jpg');
+      expect(gallery.images).toHaveLength(0);
+      expect(gallery.hasUnsavedUploads()).toBe(false);
     });
 
-    it('should show image count', () => {
-      const gallery = createGallery({ container, maxImages: 10 });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() },
-        { id: 'img-3', url: 'https://example.com/3.jpg', isPrimary: false, storagePath: 'path/3.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should handle cleanup errors gracefully', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(container.textContent).toContain('3/10');
+      validateImage.mockReturnValue({ valid: true });
+      uploadImage.mockResolvedValue({
+        id: 'newImg',
+        url: 'http://example.com/new.jpg',
+        storagePath: 'path/to/new.jpg'
+      });
+      deleteImage.mockRejectedValue(new Error('Delete failed'));
+
+      const files = [new File(['test'], 'test.jpg', { type: 'image/jpeg' })];
+      await gallery.handleFileSelect(files);
+
+      const deletedCount = await gallery.cleanupUnsavedUploads();
+
+      expect(deletedCount).toBe(0);
     });
 
-    it('should show Cover badge on primary image', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should return 0 when no unsaved uploads', async () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      expect(container.querySelector('.primary-badge')).toBeTruthy();
-      expect(container.querySelector('.primary-badge').textContent).toBe('Cover');
-    });
-
-    it('should show star button only on non-primary images', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
-
-      const setPrimaryBtns = container.querySelectorAll('.set-primary-btn');
-      expect(setPrimaryBtns).toHaveLength(1);
-      expect(setPrimaryBtns[0].dataset.imageId).toBe('img-2');
-    });
-
-    it('should show delete button on all images', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() },
-        { id: 'img-2', url: 'https://example.com/2.jpg', isPrimary: false, storagePath: 'path/2.jpg', uploadedAt: Date.now() }
-      ]);
-
-      const deleteBtns = container.querySelectorAll('.delete-btn');
-      expect(deleteBtns).toHaveLength(2);
+      const deletedCount = await gallery.cleanupUnsavedUploads();
+      expect(deletedCount).toBe(0);
     });
   });
 
   describe('destroy', () => {
-    it('should clear container', () => {
-      const gallery = createGallery({ container });
-      gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
-      ]);
+    it('should clean up state and container', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
+      gallery.setImages([{ id: 'img1' }]);
       gallery.destroy();
 
       expect(container.innerHTML).toBe('');
+      expect(gallery.images).toEqual([]);
+    });
+  });
+
+  describe('render', () => {
+    it('should render empty slot when can add more images', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        maxImages: 5
+      });
+
+      expect(container.innerHTML).toContain('Add image');
     });
 
-    it('should clear images array', () => {
-      const gallery = createGallery({ container });
+    it('should not render empty slot when at max images', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123',
+        maxImages: 1
+      });
+
+      gallery.setImages([{ id: 'img1', url: 'http://example.com/1.jpg' }]);
+
+      expect(container.innerHTML).not.toContain('Add image');
+    });
+
+    it('should render image tiles with correct attributes', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
       gallery.setImages([
-        { id: 'img-1', url: 'https://example.com/1.jpg', isPrimary: true, storagePath: 'path/1.jpg', uploadedAt: Date.now() }
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: true }
       ]);
 
-      gallery.destroy();
-
-      expect(gallery.images).toHaveLength(0);
+      expect(container.innerHTML).toContain('data-image-id="img1"');
+      expect(container.innerHTML).toContain('Cover');
+      expect(container.innerHTML).toContain('border-primary');
     });
 
-    it('should clear uploading map', () => {
-      const gallery = createGallery({ container });
-      gallery.uploading.set('temp-1', 50);
+    it('should render set as cover button for non-primary images', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
 
-      gallery.destroy();
+      gallery.setImages([
+        { id: 'img1', url: 'http://example.com/1.jpg', isPrimary: false }
+      ]);
 
-      expect(gallery.uploading.size).toBe(0);
+      expect(container.innerHTML).toContain('Set as cover');
+    });
+
+    it('should show drag hint for multiple images', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      gallery.setImages([
+        { id: 'img1', url: 'http://example.com/1.jpg' },
+        { id: 'img2', url: 'http://example.com/2.jpg' }
+      ]);
+
+      expect(container.innerHTML).toContain('Drag to reorder');
+    });
+
+    it('should not show drag hint for single image', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      gallery.setImages([
+        { id: 'img1', url: 'http://example.com/1.jpg' }
+      ]);
+
+      expect(container.innerHTML).not.toContain('Drag to reorder');
+    });
+
+    it('should show uploading tile with progress', () => {
+      gallery = new ImageGallery({
+        container,
+        userId: 'user123'
+      });
+
+      // Simulate upload in progress
+      gallery.uploading.set('temp-123', 50);
+      gallery.render();
+
+      expect(container.innerHTML).toContain('50%');
     });
   });
 });
