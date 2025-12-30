@@ -38,8 +38,11 @@ export function unlockBodyScroll() {
  */
 export function initIcons(container) {
   if (typeof lucide !== 'undefined') {
-    const options = container ? { root: container } : undefined;
-    lucide.createIcons(options);
+    if (container) {
+      lucide.createIcons({ root: container });
+    } else {
+      lucide.createIcons();
+    }
   }
 }
 
