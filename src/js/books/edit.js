@@ -17,7 +17,7 @@ import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
-import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
+import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 
 // Initialize icons once on load
@@ -533,6 +533,8 @@ editForm.addEventListener('submit', async (e) => {
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
+    // Scroll to first error field
+    scrollToFirstError(editForm);
     return;
   }
 

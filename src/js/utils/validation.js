@@ -128,6 +128,45 @@ export function showFormErrors(form, errors) {
 }
 
 /**
+ * Check if device is mobile (matches isMobile() in utils.js)
+ * @returns {boolean}
+ */
+function isMobileDevice() {
+  return window.innerWidth < 768;
+}
+
+/**
+ * Scroll to the first invalid field in a form
+ * Call after showFormErrors() to bring the first error into view
+ * @param {HTMLFormElement} form - Form element
+ * @param {Object} options - Optional settings
+ * @param {boolean} options.focus - Whether to focus the first invalid field (default: false on mobile to avoid keyboard popup, true on desktop)
+ * @param {string} options.behavior - Scroll behavior: 'smooth' or 'instant' (default: 'smooth')
+ * @param {string} options.block - Scroll block position: 'center', 'start', 'end', 'nearest' (default: 'center')
+ */
+export function scrollToFirstError(form, options = {}) {
+  // Default: don't focus on mobile (avoids virtual keyboard popup), focus on desktop
+  const defaultFocus = !isMobileDevice();
+  const { focus = defaultFocus, behavior = 'smooth', block = 'center' } = options;
+
+  // Find first element with error styling
+  const firstError = form.querySelector('.border-red-500');
+
+  if (firstError) {
+    // Scroll into view (CSS scroll-margin-top handles sticky header offset)
+    firstError.scrollIntoView({ behavior, block });
+
+    // Optionally focus the field for immediate correction (disabled on mobile by default)
+    if (focus && typeof firstError.focus === 'function') {
+      // Delay focus slightly to let scroll complete
+      setTimeout(() => {
+        firstError.focus();
+      }, 100);
+    }
+  }
+}
+
+/**
  * Get form data as an object
  * @param {HTMLFormElement} form - Form element
  * @returns {Object} Form data

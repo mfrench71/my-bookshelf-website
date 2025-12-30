@@ -332,6 +332,31 @@ if (password.length < 8) {
 2. **Toast notifications**: For server errors, network failures, success messages (secondary)
 3. **Never**: Toast-only for validation errors
 
+**Scroll to first invalid field:**
+When validation fails, scroll the first invalid field into view so users can see what needs fixing. This is especially important for long forms or forms that extend below the viewport.
+
+```javascript
+// After showing form errors, scroll to first invalid field
+if (!result.success) {
+  showFormErrors(form, result.errors);
+  scrollToFirstError(form);  // Scroll first error into view
+  return;
+}
+```
+
+The `scrollToFirstError()` utility:
+- Finds the first field with `.border-red-500` class (error styling)
+- Scrolls it into view with `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Accounts for sticky headers using `scroll-margin-top` CSS on inputs
+- Focus behavior: disabled on mobile (avoids virtual keyboard popup), enabled on desktop
+
+```css
+/* Ensure inputs account for sticky header when scrolled into view */
+input, textarea, select {
+  scroll-margin-top: 80px; /* Height of sticky header + padding */
+}
+```
+
 ## Build & Development Commands
 
 ```bash
@@ -685,6 +710,8 @@ npm outdated                 # Check for outdated packages
 - [ ] Form switching clears errors AND resets form (`clearFormErrors()` + `form.reset()`)?
 - [ ] Dynamic UI (password strength, etc.) reset when switching forms?
 - [ ] Success feedback shown after submission?
+- [ ] Scroll to first invalid field on validation failure (`scrollToFirstError()`)?
+- [ ] Inputs have `scroll-margin-top` to account for sticky headers?
 
 ### Memory/Cleanup Audit
 - [ ] Event listeners removed when component unmounts?

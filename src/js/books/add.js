@@ -21,7 +21,7 @@ import { ImageGallery } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { BookFormSchema } from '../schemas/book.js';
-import { validateForm, showFieldError, clearFormErrors } from '../utils/validation.js';
+import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { addWishlistItem, checkWishlistDuplicate, loadWishlistItems, createWishlistLookup } from '../wishlist.js';
 
 // Initialize icons once on load
@@ -84,6 +84,25 @@ let genrePicker = null;
 let apiGenreSuggestions = [];
 let duplicateCheckBypassed = false; // Track if user confirmed adding duplicate
 let wishlistLookup = null; // Map of ISBN -> wishlist item
+
+/**
+ * Check if book form has minimum required data (title and author)
+ */
+function isFormValid() {
+  if (!titleInput?.value?.trim()) return false;
+  if (!authorInput?.value?.trim()) return false;
+  return true;
+}
+
+/**
+ * Update submit button state based on form validity
+ */
+function updateSubmitButtonState() {
+  const isValid = isFormValid();
+  submitBtn.disabled = !isValid;
+  submitBtn.classList.toggle('opacity-50', !isValid);
+  submitBtn.classList.toggle('cursor-not-allowed', !isValid);
+}
 
 // DOM Elements
 const scanBtn = document.getElementById('scan-btn');
@@ -292,6 +311,7 @@ async function handleISBNLookup() {
       setSeriesSuggestion(bookData.seriesName, bookData.seriesPosition);
       showStatus('Book found!', 'success');
       formDirty = true;
+      updateSubmitButtonState();
     } else {
       showStatus('Book not found. Try entering details manually.', 'error');
       setCoverPickerCovers(null); // Clear picker
@@ -600,6 +620,7 @@ async function selectSearchResult(el) {
 
   showToast('Book selected!', { type: 'success' });
   formDirty = true;
+  updateSubmitButtonState();
 }
 
 /**
@@ -814,6 +835,19 @@ function closeScanner() {
   scannerContainer.innerHTML = '';
 }
 
+// Update submit button state when title or author changes
+titleInput?.addEventListener('input', () => {
+  formDirty = true;
+  updateSubmitButtonState();
+});
+authorInput?.addEventListener('input', () => {
+  formDirty = true;
+  updateSubmitButtonState();
+});
+
+// Initialize submit button state (disabled until title entered)
+updateSubmitButtonState();
+
 // Form Submit
 bookForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -859,6 +893,8 @@ bookForm.addEventListener('submit', async (e) => {
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
     if (validation.errors.pageCount) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes) showFieldError(notesInput, validation.errors.notes);
+    // Scroll to first error field
+    scrollToFirstError(bookForm);
     return;
   }
 

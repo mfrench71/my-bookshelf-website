@@ -6,6 +6,28 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-29
 
+- Search UX improvements:
+  - Remove loading spinner from empty search state (no spinner before typing)
+  - Only save recent searches when user clicks a result (not on every keystroke)
+  - Expand search to include ISBN, series, notes, publisher fields
+  - Update search empty state text to list all searchable fields
+- Save button change tracking site-wide (disabled until form has changes):
+  - Genre modal: disabled until name entered (add) or fields changed (edit)
+  - Series modal: disabled until name entered (add) or fields changed (edit)
+  - Wishlist edit modal: disabled until priority or notes changed
+  - Password change modal: disabled until all three fields filled
+  - Delete account modal: disabled until password and "DELETE" confirmation filled
+  - Book add page: disabled until title AND author entered
+- Fix colour picker scroll position when modal opens (scroll to top)
+- Update privacy policy:
+  - Add wishlist data to "Data We Collect" section
+  - Add 30-day bin retention to "Data Retention" section
+  - Fix links to correct settings sub-pages (Library, Preferences, Bin)
+- Add scroll to first invalid field on form validation failure:
+  - New `scrollToFirstError()` utility in validation.js
+  - Applied to book add and edit forms
+  - CSS `scroll-margin-top` on inputs for sticky header offset
+  - Focus disabled on mobile to avoid virtual keyboard popup
 - Fix semantic HTML structure across all templates:
   - Remove duplicate `<main id="main-content">` elements that conflicted with base.njk
   - Fix blank book view/edit pages caused by duplicate IDs

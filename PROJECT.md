@@ -692,7 +692,8 @@ Current add book page shows all lookup methods and full form at once. Proposed p
 - [ ] Split large files (see File Size Review below)
 - [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
 - [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
-- [ ] Audit: Check disabled buttons remain disabled until required (site-wide)
+- [x] Audit: Check disabled buttons remain disabled until required (site-wide) - Implemented save button change tracking for genre modal, series modal, wishlist edit, password change, delete account, and book add page
+- [x] Scroll to first invalid field on validation failure - Added `scrollToFirstError()` to `validation.js`, applied to book add/edit forms. CSS `scroll-margin-top: 120px` on inputs. Focus disabled on mobile to avoid keyboard popup.
 
 ### File Size Review (Dec 2025)
 
