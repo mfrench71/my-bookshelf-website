@@ -5,25 +5,67 @@ import { db } from '/js/firebase-config.js';
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { escapeHtml, debounce, CACHE_KEY, CACHE_TTL } from '../utils.js';
 
+/** Options for AuthorPicker constructor */
+export interface AuthorPickerOptions {
+  /** Container element to render into */
+  container: HTMLElement;
+  /** Current user's ID */
+  userId: string;
+  /** Callback when value changes */
+  onChange?: (author: string) => void;
+}
+
+/** Author data with count */
+interface AuthorData {
+  name: string;
+  normalizedName: string;
+  count: number;
+}
+
+/** Custom event for picker coordination */
+interface PickerOpenedEvent extends CustomEvent {
+  detail: { picker: AuthorPicker };
+}
+
+/** Cached book data structure */
+interface CachedBookData {
+  books?: Array<{ author?: string; deletedAt?: unknown }>;
+  timestamp?: number;
+}
+
 /**
  * AuthorPicker - Single-select author picker with typeahead and library suggestions
  */
 export class AuthorPicker {
-  /**
-   * @param {Object} options
-   * @param {HTMLElement} options.container - Container element to render into
-   * @param {string} options.userId - Current user's ID
-   * @param {Function} options.onChange - Callback when value changes (author string)
-   */
-  constructor({ container, userId, onChange = () => {} }) {
-    this.container = container;
-    this.userId = userId;
-    this.onChange = onChange;
+  private container: HTMLElement;
+  private userId: string;
+  private onChange: (author: string) => void;
+
+  // State
+  private authors: AuthorData[];
+  private value: string;
+  private previousValue: string;
+  private searchQuery: string;
+  private isOpen: boolean;
+  private isLoading: boolean;
+  private focusedIndex: number;
+  private _restoringFocus: boolean;
+
+  // Bound methods
+  private handleInputChange: () => void;
+  private handleKeyDown: (e: KeyboardEvent) => void;
+  private handleClickOutside: (e: MouseEvent) => void;
+  private handlePickerOpened: (e: Event) => void;
+
+  constructor(options: AuthorPickerOptions) {
+    this.container = options.container;
+    this.userId = options.userId;
+    this.onChange = options.onChange ?? (() => {});
 
     // State
-    this.authors = []; // { name, normalizedName, count }[]
-    this.value = ''; // Current author value
-    this.previousValue = ''; // Track previous value for change detection
+    this.authors = [];
+    this.value = '';
+    this.previousValue = '';
     this.searchQuery = '';
     this.isOpen = false;
     this.isLoading = false;
@@ -40,7 +82,7 @@ export class AuthorPicker {
   /**
    * Initialize the picker
    */
-  async init() {
+  async init(): Promise<void> {
     this.isLoading = true;
     this.render();
 
@@ -55,31 +97,31 @@ export class AuthorPicker {
     this.render();
 
     // Add event listeners
-    document.addEventListener('click', this.handleClickOutside);
+    document.addEventListener('click', this.handleClickOutside as EventListener);
     document.addEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
    * Clean up event listeners
    */
-  destroy() {
-    document.removeEventListener('click', this.handleClickOutside);
+  destroy(): void {
+    document.removeEventListener('click', this.handleClickOutside as EventListener);
     document.removeEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
    * Get the current author value
-   * @returns {string}
+   * @returns Current author string
    */
-  getValue() {
+  getValue(): string {
     return this.value;
   }
 
   /**
    * Set the author value (e.g., from API lookup)
-   * @param {string} author
+   * @param author - Author name to set
    */
-  setValue(author) {
+  setValue(author: string | null): void {
     this.value = author || '';
     this.previousValue = author || ''; // Don't trigger dirty state for initial set
     this.searchQuery = author || '';
@@ -89,7 +131,7 @@ export class AuthorPicker {
   /**
    * Clear the value
    */
-  clear() {
+  clear(): void {
     const changed = this.value !== '';
     this.value = '';
     this.previousValue = '';
@@ -104,17 +146,17 @@ export class AuthorPicker {
 
   /**
    * Extract unique authors with counts from user's books
-   * @returns {Promise<Array<{name: string, normalizedName: string, count: number}>>}
+   * @returns Array of authors with counts
    */
-  async _getAuthorsFromBooks() {
+  private async _getAuthorsFromBooks(): Promise<AuthorData[]> {
     // Try cache first
     const cached = localStorage.getItem(CACHE_KEY);
-    let books = [];
+    let books: Array<{ author?: string; deletedAt?: unknown }> = [];
 
     if (cached) {
       try {
-        const parsed = JSON.parse(cached);
-        const cachedBooks = parsed.books || parsed || [];
+        const parsed = JSON.parse(cached) as CachedBookData;
+        const cachedBooks = parsed.books || (Array.isArray(parsed) ? parsed : []);
         const age = Date.now() - (parsed.timestamp || 0);
 
         if (cachedBooks.length > 0 && age < CACHE_TTL) {
@@ -129,11 +171,11 @@ export class AuthorPicker {
     if (books.length === 0) {
       const booksRef = collection(db, 'users', this.userId, 'books');
       const snapshot = await getDocs(booksRef);
-      books = snapshot.docs.map(doc => doc.data());
+      books = snapshot.docs.map(doc => doc.data() as { author?: string; deletedAt?: unknown });
     }
 
     // Extract unique authors with counts (exclude deleted books)
-    const authorCounts = {};
+    const authorCounts: Record<string, AuthorData> = {};
     books.forEach(book => {
       if (book.author && !book.deletedAt) {
         const normalized = this._normalizeAuthor(book.author);
@@ -153,10 +195,10 @@ export class AuthorPicker {
 
   /**
    * Normalize author name for comparison
-   * @param {string} name
-   * @returns {string}
+   * @param name - Author name to normalize
+   * @returns Normalized name
    */
-  _normalizeAuthor(name) {
+  private _normalizeAuthor(name: string): string {
     return name
       .toLowerCase()
       .replace(/[.,\-']/g, '') // Remove punctuation
@@ -167,11 +209,11 @@ export class AuthorPicker {
   /**
    * Render the component
    */
-  render() {
+  render(): void {
     // Save cursor position before re-render
-    const activeInput = this.container.querySelector('.author-picker-input');
+    const activeInput = this.container.querySelector('.author-picker-input') as HTMLInputElement | null;
     const hadFocus = activeInput && document.activeElement === activeInput;
-    const cursorPos = hadFocus ? activeInput.selectionStart : 0;
+    const cursorPos = hadFocus ? (activeInput.selectionStart ?? 0) : 0;
 
     const filteredAuthors = this._getFilteredAuthors();
     const showUseTyped = this._shouldShowUseTyped(filteredAuthors);
@@ -216,7 +258,7 @@ export class AuthorPicker {
 
     // Restore focus and cursor position
     if (hadFocus) {
-      const newInput = this.container.querySelector('.author-picker-input');
+      const newInput = this.container.querySelector('.author-picker-input') as HTMLInputElement | null;
       if (newInput) {
         this._restoringFocus = true;
         newInput.focus();
@@ -228,12 +270,12 @@ export class AuthorPicker {
 
   /**
    * Render dropdown content
-   * @param {Array} filteredAuthors
-   * @param {boolean} showUseTyped
-   * @returns {string}
+   * @param filteredAuthors - Filtered author list
+   * @param showUseTyped - Whether to show "use typed" option
+   * @returns HTML string
    */
-  _renderDropdownContent(filteredAuthors, showUseTyped) {
-    const items = [];
+  private _renderDropdownContent(filteredAuthors: AuthorData[], showUseTyped: boolean): string {
+    const items: string[] = [];
     let index = 0;
 
     // "Use typed value" option
@@ -286,38 +328,39 @@ export class AuthorPicker {
 
   /**
    * Get filtered authors based on search query
-   * @returns {Array}
+   * @returns Filtered author array
    */
-  _getFilteredAuthors() {
+  private _getFilteredAuthors(): AuthorData[] {
     if (!this.searchQuery) return this.authors.slice(0, 20); // Show top 20 when empty
 
-    const query = this._normalizeAuthor(this.searchQuery);
-    return this.authors.filter(a => a.normalizedName.includes(query)).slice(0, 20);
+    const queryNorm = this._normalizeAuthor(this.searchQuery);
+    return this.authors.filter(a => a.normalizedName.includes(queryNorm)).slice(0, 20);
   }
 
   /**
    * Check if we should show "Use typed value" option
-   * @param {Array} filteredAuthors
-   * @returns {boolean}
+   * @param _filteredAuthors - Filtered authors (unused but kept for API consistency)
+   * @returns Whether to show option
    */
-  _shouldShowUseTyped(_filteredAuthors) {
+  private _shouldShowUseTyped(_filteredAuthors: AuthorData[]): boolean {
     if (!this.searchQuery || this.searchQuery.trim().length < 1) return false;
 
     // Check if exact match exists
-    const query = this._normalizeAuthor(this.searchQuery);
-    const exactMatch = this.authors.some(a => a.normalizedName === query);
+    const queryNorm = this._normalizeAuthor(this.searchQuery);
+    const exactMatch = this.authors.some(a => a.normalizedName === queryNorm);
     return !exactMatch;
   }
 
   /**
    * Attach event listeners
    */
-  _attachEventListeners() {
-    const input = this.container.querySelector('.author-picker-input');
+  private _attachEventListeners(): void {
+    const input = this.container.querySelector('.author-picker-input') as HTMLInputElement | null;
     if (input) {
-      input.addEventListener('input', e => {
-        this.searchQuery = e.target.value;
-        this.value = e.target.value;
+      input.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        this.searchQuery = target.value;
+        this.value = target.value;
         this.isOpen = true;
         this.focusedIndex = -1;
         this.handleInputChange();
@@ -345,7 +388,7 @@ export class AuthorPicker {
     // Close button
     const closeBtn = this.container.querySelector('.author-picker-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', e => {
+      closeBtn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
         this.isOpen = false;
@@ -356,17 +399,19 @@ export class AuthorPicker {
 
     // Author selection
     this.container.querySelectorAll('[data-author]').forEach(btn => {
-      btn.addEventListener('click', e => {
+      btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
-        const author = btn.dataset.author;
-        this._selectAuthor(author);
+        const author = (btn as HTMLElement).dataset.author;
+        if (author) {
+          this._selectAuthor(author);
+        }
       });
     });
 
     // Use typed value
     const useTypedBtn = this.container.querySelector('[data-use-typed]');
     if (useTypedBtn) {
-      useTypedBtn.addEventListener('click', e => {
+      useTypedBtn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         this._selectAuthor(this.searchQuery);
       });
@@ -376,7 +421,7 @@ export class AuthorPicker {
   /**
    * Handle input changes (debounced)
    */
-  _handleInputChange() {
+  private _handleInputChange(): void {
     // Only trigger onChange if value changed
     if (this.value !== this.previousValue) {
       this.previousValue = this.value;
@@ -387,9 +432,9 @@ export class AuthorPicker {
 
   /**
    * Handle keyboard navigation
-   * @param {KeyboardEvent} e
+   * @param e - Keyboard event
    */
-  _handleKeyDown(e) {
+  private _handleKeyDown(e: KeyboardEvent): void {
     const items = this.container.querySelectorAll('.author-picker-item');
     const maxIndex = items.length - 1;
 
@@ -409,7 +454,7 @@ export class AuthorPicker {
       case 'Enter':
         e.preventDefault();
         if (this.focusedIndex >= 0 && items[this.focusedIndex]) {
-          items[this.focusedIndex].click();
+          (items[this.focusedIndex] as HTMLElement).click();
         } else if (this.searchQuery) {
           // Use typed value on Enter
           this._selectAuthor(this.searchQuery);
@@ -437,10 +482,10 @@ export class AuthorPicker {
 
   /**
    * Handle clicks outside the picker
-   * @param {MouseEvent} e
+   * @param e - Mouse event
    */
-  _handleClickOutside(e) {
-    if (!this.container.contains(e.target)) {
+  private _handleClickOutside(e: MouseEvent): void {
+    if (!this.container.contains(e.target as Node)) {
       this.isOpen = false;
       this.focusedIndex = -1;
       this.render();
@@ -449,10 +494,11 @@ export class AuthorPicker {
 
   /**
    * Handle another picker opening (close this one)
-   * @param {CustomEvent} e
+   * @param e - Custom event
    */
-  _handlePickerOpened(e) {
-    if (e.detail.picker !== this && this.isOpen) {
+  private _handlePickerOpened(e: Event): void {
+    const event = e as PickerOpenedEvent;
+    if (event.detail.picker !== this && this.isOpen) {
       this.isOpen = false;
       this.focusedIndex = -1;
       this.render();
@@ -461,9 +507,9 @@ export class AuthorPicker {
 
   /**
    * Select an author
-   * @param {string} author
+   * @param author - Author name to select
    */
-  _selectAuthor(author) {
+  private _selectAuthor(author: string): void {
     const changed = author !== this.previousValue;
     this.value = author;
     this.previousValue = author;

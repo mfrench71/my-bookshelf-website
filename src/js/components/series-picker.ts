@@ -6,37 +6,81 @@ import { collection, query, where, getDocs } from 'https://www.gstatic.com/fireb
 import { loadUserSeries, createSeries, clearSeriesCache } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 import { escapeHtml, debounce, showToast, initIcons } from '../utils.js';
+import type { Series } from '../types/index.d.ts';
+
+/** Options for SeriesPicker constructor */
+export interface SeriesPickerOptions {
+  /** Container element to render into */
+  container: HTMLElement;
+  /** Current user's ID */
+  userId: string;
+  /** Current book ID (for edit mode, to exclude from conflict check) */
+  currentBookId?: string | null;
+  /** Callback when selection changes */
+  onChange?: (selected: SeriesSelection) => void;
+}
+
+/** Selected series data */
+export interface SeriesSelection {
+  seriesId: string | null;
+  seriesName: string;
+  position: number | null;
+}
+
+/** Custom event for picker coordination */
+interface PickerOpenedEvent extends CustomEvent {
+  detail: { picker: SeriesPicker };
+}
 
 /**
  * SeriesPicker - Single-select series picker with typeahead, position input, and create option
  */
 export class SeriesPicker {
-  /**
-   * @param {Object} options
-   * @param {HTMLElement} options.container - Container element to render into
-   * @param {string} options.userId - Current user's ID
-   * @param {string} [options.currentBookId] - Current book ID (for edit mode, to exclude from conflict check)
-   * @param {Function} options.onChange - Callback when selection changes ({ seriesId, seriesName, position })
-   */
-  constructor({ container, userId, currentBookId = null, onChange = () => {} }) {
-    this.container = container;
-    this.userId = userId;
-    this.currentBookId = currentBookId;
-    this.onChange = onChange;
+  private container: HTMLElement;
+  private userId: string;
+  private currentBookId: string | null;
+  private onChange: (selected: SeriesSelection) => void;
+
+  // State
+  private series: Series[];
+  private selectedId: string | null;
+  private selectedName: string;
+  private position: number | null;
+  private suggestedName: string;
+  private suggestedPosition: number | null;
+  private searchQuery: string;
+  private isOpen: boolean;
+  private isLoading: boolean;
+  private focusedIndex: number;
+  private _restoringFocus: boolean;
+  private positionConflict: string | null;
+
+  // Bound methods
+  private handleInputChange: () => void;
+  private handleKeyDown: (e: KeyboardEvent) => void;
+  private handleClickOutside: (e: MouseEvent) => void;
+  private handlePickerOpened: (e: Event) => void;
+  private _checkPositionConflictDebounced: () => void;
+
+  constructor(options: SeriesPickerOptions) {
+    this.container = options.container;
+    this.userId = options.userId;
+    this.currentBookId = options.currentBookId ?? null;
+    this.onChange = options.onChange ?? (() => {});
 
     // State
-    this.series = []; // All available series
-    this.selectedId = null; // Selected series ID
-    this.selectedName = ''; // Selected series name (for display)
-    this.position = null; // Position in series
-    this.suggestedName = ''; // API-suggested series name
-    this.suggestedPosition = null; // API-suggested position
+    this.series = [];
+    this.selectedId = null;
+    this.selectedName = '';
+    this.position = null;
+    this.suggestedName = '';
+    this.suggestedPosition = null;
     this.searchQuery = '';
     this.isOpen = false;
     this.isLoading = false;
     this.focusedIndex = -1;
     this._restoringFocus = false;
-    this.positionConflict = null; // Book title with conflicting position
+    this.positionConflict = null;
 
     // Bind methods
     this.handleInputChange = debounce(this._handleInputChange.bind(this), 300);
@@ -49,7 +93,7 @@ export class SeriesPicker {
   /**
    * Initialize the picker
    */
-  async init() {
+  async init(): Promise<void> {
     this.isLoading = true;
     this.render();
 
@@ -64,24 +108,24 @@ export class SeriesPicker {
     this.render();
 
     // Add event listeners
-    document.addEventListener('click', this.handleClickOutside);
+    document.addEventListener('click', this.handleClickOutside as EventListener);
     document.addEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
    * Clean up event listeners
    */
-  destroy() {
-    document.removeEventListener('click', this.handleClickOutside);
+  destroy(): void {
+    document.removeEventListener('click', this.handleClickOutside as EventListener);
     document.removeEventListener('picker-opened', this.handlePickerOpened);
   }
 
   /**
    * Set the selected series
-   * @param {string} seriesId - Series ID
-   * @param {number|null} position - Position in series
+   * @param seriesId - Series ID
+   * @param position - Position in series
    */
-  setSelected(seriesId, position = null) {
+  setSelected(seriesId: string | null, position: number | null = null): void {
     this.selectedId = seriesId || null;
     this.position = position;
 
@@ -97,9 +141,9 @@ export class SeriesPicker {
 
   /**
    * Get the selected series
-   * @returns {{ seriesId: string|null, seriesName: string, position: number|null }}
+   * @returns Selected series data
    */
-  getSelected() {
+  getSelected(): SeriesSelection {
     return {
       seriesId: this.selectedId,
       seriesName: this.selectedName,
@@ -109,17 +153,17 @@ export class SeriesPicker {
 
   /**
    * Set API suggestion (series name and position from book lookup)
-   * @param {string} name - Series name from API
-   * @param {number|null} position - Position from API
+   * @param name - Series name from API
+   * @param position - Position from API
    */
-  setSuggestion(name, position = null) {
+  setSuggestion(name: string | null, position: number | null = null): void {
     this.suggestedName = name || '';
     this.suggestedPosition = position;
 
     // If no selection yet, auto-match to existing series
     if (!this.selectedId && this.suggestedName) {
       const normalized = normalizeSeriesName(this.suggestedName);
-      const match = this.series.find(s => s.normalizedName === normalized);
+      const match = this.series.find((s: Series) => s.normalizedName === normalized);
       if (match) {
         this.selectedId = match.id;
         this.selectedName = match.name;
@@ -134,7 +178,7 @@ export class SeriesPicker {
   /**
    * Clear the selection
    */
-  clear() {
+  clear(): void {
     this.selectedId = null;
     this.selectedName = '';
     this.position = null;
@@ -149,11 +193,11 @@ export class SeriesPicker {
   /**
    * Render the component
    */
-  render() {
+  render(): void {
     // Save cursor position before re-render
-    const activeInput = this.container.querySelector('.series-picker-input');
+    const activeInput = this.container.querySelector('.series-picker-input') as HTMLInputElement | null;
     const hadFocus = activeInput && document.activeElement === activeInput;
-    const cursorPos = hadFocus ? activeInput.selectionStart : 0;
+    const cursorPos = hadFocus ? (activeInput.selectionStart ?? 0) : 0;
 
     const filteredSeries = this._getFilteredSeries();
     const showSuggestion = this._shouldShowSuggestion();
@@ -174,7 +218,7 @@ export class SeriesPicker {
 
     // Restore focus and cursor position
     if (hadFocus && !this.selectedId) {
-      const newInput = this.container.querySelector('.series-picker-input');
+      const newInput = this.container.querySelector('.series-picker-input') as HTMLInputElement | null;
       if (newInput) {
         this._restoringFocus = true;
         newInput.focus();
@@ -187,7 +231,7 @@ export class SeriesPicker {
   /**
    * Render selected series display
    */
-  _renderSelected() {
+  private _renderSelected(): string {
     return `
       <div class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
         <i data-lucide="library" class="w-4 h-4 text-primary flex-shrink-0"></i>
@@ -202,7 +246,7 @@ export class SeriesPicker {
   /**
    * Render position input
    */
-  _renderPositionInput() {
+  private _renderPositionInput(): string {
     return `
       <div class="mt-2">
         <label for="series-position" class="block text-sm text-gray-500 mb-1">Position in series</label>
@@ -222,7 +266,7 @@ export class SeriesPicker {
   /**
    * Render position conflict warning (if any)
    */
-  _renderPositionWarning() {
+  private _renderPositionWarning(): string {
     if (!this.positionConflict) return '';
     return `
       <p class="series-position-warning text-amber-600 text-xs mt-1 flex items-center gap-1">
@@ -235,7 +279,7 @@ export class SeriesPicker {
   /**
    * Render input and dropdown
    */
-  _renderInput(filteredSeries, showSuggestion, showCreateOption) {
+  private _renderInput(filteredSeries: Series[], showSuggestion: boolean, showCreateOption: boolean): string {
     return `
       <div class="relative">
         <input
@@ -275,9 +319,9 @@ export class SeriesPicker {
   /**
    * Render suggestion hint when dropdown is closed
    */
-  _renderSuggestionHint() {
+  private _renderSuggestionHint(): string {
     const normalized = normalizeSeriesName(this.suggestedName);
-    const existingMatch = this.series.find(s => s.normalizedName === normalized);
+    const existingMatch = this.series.find((s: Series) => s.normalizedName === normalized);
 
     if (existingMatch) {
       return `
@@ -298,14 +342,14 @@ export class SeriesPicker {
   /**
    * Render dropdown content
    */
-  _renderDropdownContent(filteredSeries, showSuggestion, showCreateOption) {
-    const items = [];
+  private _renderDropdownContent(filteredSeries: Series[], showSuggestion: boolean, showCreateOption: boolean): string {
+    const items: string[] = [];
     let index = 0;
 
     // API Suggestion
     if (showSuggestion) {
       const normalized = normalizeSeriesName(this.suggestedName);
-      const existingMatch = this.series.find(s => s.normalizedName === normalized);
+      const existingMatch = this.series.find((s: Series) => s.normalizedName === normalized);
 
       if (!existingMatch) {
         items.push(`<div class="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50">Suggested from book</div>`);
@@ -369,25 +413,25 @@ export class SeriesPicker {
   /**
    * Get filtered series based on search query
    */
-  _getFilteredSeries() {
+  private _getFilteredSeries(): Series[] {
     if (!this.searchQuery) return this.series;
 
-    const query = normalizeSeriesName(this.searchQuery);
-    return this.series.filter(s => s.normalizedName.includes(query));
+    const queryNorm = normalizeSeriesName(this.searchQuery);
+    return this.series.filter((s: Series) => s.normalizedName.includes(queryNorm));
   }
 
   /**
    * Check if we should show suggestion
    */
-  _shouldShowSuggestion() {
+  private _shouldShowSuggestion(): boolean {
     if (!this.suggestedName) return false;
     if (this.selectedId) return false;
 
     // Show if matches search or no search
     if (this.searchQuery) {
-      const query = normalizeSeriesName(this.searchQuery);
+      const queryNorm = normalizeSeriesName(this.searchQuery);
       const suggestionNorm = normalizeSeriesName(this.suggestedName);
-      return suggestionNorm.includes(query);
+      return suggestionNorm.includes(queryNorm);
     }
     return true;
   }
@@ -395,19 +439,19 @@ export class SeriesPicker {
   /**
    * Check if we should show create option
    */
-  _shouldShowCreateOption() {
+  private _shouldShowCreateOption(): boolean {
     if (!this.searchQuery || this.searchQuery.trim().length < 1) return false;
 
-    const query = normalizeSeriesName(this.searchQuery);
+    const queryNorm = normalizeSeriesName(this.searchQuery);
 
     // Check if exact match exists
-    const exists = this.series.some(s => s.normalizedName === query);
+    const exists = this.series.some((s: Series) => s.normalizedName === queryNorm);
     if (exists) return false;
 
     // Check if it matches suggestion
     if (this.suggestedName) {
       const suggestionNorm = normalizeSeriesName(this.suggestedName);
-      if (suggestionNorm === query) return false;
+      if (suggestionNorm === queryNorm) return false;
     }
 
     return true;
@@ -416,11 +460,12 @@ export class SeriesPicker {
   /**
    * Attach event listeners
    */
-  _attachEventListeners() {
-    const input = this.container.querySelector('.series-picker-input');
+  private _attachEventListeners(): void {
+    const input = this.container.querySelector('.series-picker-input') as HTMLInputElement | null;
     if (input) {
-      input.addEventListener('input', e => {
-        this.searchQuery = e.target.value;
+      input.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        this.searchQuery = target.value;
         this.isOpen = true;
         this.focusedIndex = -1;
         this.handleInputChange();
@@ -440,17 +485,18 @@ export class SeriesPicker {
     // Clear button
     const clearBtn = this.container.querySelector('.series-picker-clear');
     if (clearBtn) {
-      clearBtn.addEventListener('click', e => {
+      clearBtn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         this.clear();
       });
     }
 
     // Position input
-    const positionInput = this.container.querySelector('.series-position-input');
+    const positionInput = this.container.querySelector('.series-position-input') as HTMLInputElement | null;
     if (positionInput) {
-      positionInput.addEventListener('input', e => {
-        const val = e.target.value;
+      positionInput.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const val = target.value;
         this.position = val ? parseInt(val, 10) : null;
 
         // Check for position conflict (debounced)
@@ -462,17 +508,19 @@ export class SeriesPicker {
 
     // Series selection
     this.container.querySelectorAll('[data-series-id]').forEach(btn => {
-      btn.addEventListener('click', e => {
+      btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
-        const seriesId = btn.dataset.seriesId;
-        this._selectSeries(seriesId);
+        const seriesId = (btn as HTMLElement).dataset.seriesId;
+        if (seriesId) {
+          this._selectSeries(seriesId);
+        }
       });
     });
 
     // Suggestion selection
     const suggestionBtn = this.container.querySelector('[data-suggestion]');
     if (suggestionBtn) {
-      suggestionBtn.addEventListener('click', async e => {
+      suggestionBtn.addEventListener('click', async (e: Event) => {
         e.preventDefault();
         await this._addSuggestion();
       });
@@ -481,7 +529,7 @@ export class SeriesPicker {
     // Use suggestion hint
     const useSuggestionBtn = this.container.querySelector('.series-picker-use-suggestion');
     if (useSuggestionBtn) {
-      useSuggestionBtn.addEventListener('click', async e => {
+      useSuggestionBtn.addEventListener('click', async (e: Event) => {
         e.preventDefault();
         await this._addSuggestion();
       });
@@ -489,17 +537,19 @@ export class SeriesPicker {
 
     // Create new series
     this.container.querySelectorAll('[data-create]').forEach(btn => {
-      btn.addEventListener('click', async e => {
+      btn.addEventListener('click', async (e: Event) => {
         e.preventDefault();
-        const name = btn.dataset.create;
-        await this._createAndSelect(name);
+        const name = (btn as HTMLElement).dataset.create;
+        if (name) {
+          await this._createAndSelect(name);
+        }
       });
     });
 
     // Close button
     const closeBtn = this.container.querySelector('.series-picker-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', e => {
+      closeBtn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
         this.isOpen = false;
@@ -513,14 +563,14 @@ export class SeriesPicker {
   /**
    * Handle input changes (debounced)
    */
-  _handleInputChange() {
+  private _handleInputChange(): void {
     this.render();
   }
 
   /**
    * Handle keyboard navigation
    */
-  _handleKeyDown(e) {
+  private _handleKeyDown(e: KeyboardEvent): void {
     const items = this.container.querySelectorAll('.series-picker-item');
     const maxIndex = items.length - 1;
 
@@ -540,7 +590,7 @@ export class SeriesPicker {
       case 'Enter':
         e.preventDefault();
         if (this.focusedIndex >= 0 && items[this.focusedIndex]) {
-          items[this.focusedIndex].click();
+          (items[this.focusedIndex] as HTMLElement).click();
         }
         break;
 
@@ -557,8 +607,8 @@ export class SeriesPicker {
   /**
    * Handle clicks outside the picker
    */
-  _handleClickOutside(e) {
-    if (!this.container.contains(e.target)) {
+  private _handleClickOutside(e: MouseEvent): void {
+    if (!this.container.contains(e.target as Node)) {
       this.isOpen = false;
       this.searchQuery = '';
       this.focusedIndex = -1;
@@ -569,8 +619,9 @@ export class SeriesPicker {
   /**
    * Handle another picker opening (close this one)
    */
-  _handlePickerOpened(e) {
-    if (e.detail.picker !== this && this.isOpen) {
+  private _handlePickerOpened(e: Event): void {
+    const event = e as PickerOpenedEvent;
+    if (event.detail.picker !== this && this.isOpen) {
       this.isOpen = false;
       this.searchQuery = '';
       this.focusedIndex = -1;
@@ -581,7 +632,7 @@ export class SeriesPicker {
   /**
    * Select a series
    */
-  _selectSeries(seriesId) {
+  private _selectSeries(seriesId: string): void {
     const s = this.series.find(x => x.id === seriesId);
     if (!s) return;
 
@@ -609,13 +660,13 @@ export class SeriesPicker {
   /**
    * Add suggestion (create series if needed, then select)
    */
-  async _addSuggestion() {
+  private async _addSuggestion(): Promise<void> {
     if (!this.suggestedName) return;
 
     try {
       // Check if it matches existing
       const normalized = normalizeSeriesName(this.suggestedName);
-      const existingMatch = this.series.find(s => s.normalizedName === normalized);
+      const existingMatch = this.series.find((s: Series) => s.normalizedName === normalized);
 
       if (existingMatch) {
         this._selectSeries(existingMatch.id);
@@ -644,7 +695,7 @@ export class SeriesPicker {
   /**
    * Create a new series and select it
    */
-  async _createAndSelect(name) {
+  private async _createAndSelect(name: string): Promise<void> {
     try {
       const newSeries = await createSeries(this.userId, name);
       clearSeriesCache();
@@ -667,7 +718,7 @@ export class SeriesPicker {
    * Check if the current position conflicts with another book in the series
    * Updates positionConflict state and re-renders warning
    */
-  async _checkPositionConflict() {
+  private async _checkPositionConflict(): Promise<void> {
     // Clear conflict if no series or position
     if (!this.selectedId || !this.position) {
       if (this.positionConflict) {
@@ -705,7 +756,7 @@ export class SeriesPicker {
   /**
    * Update the position warning display without full re-render
    */
-  _updatePositionWarning() {
+  private _updatePositionWarning(): void {
     const warningContainer = this.container.querySelector('.series-position-warning');
     const positionInputContainer = this.container.querySelector('.series-position-input')?.parentElement;
 
@@ -721,7 +772,7 @@ export class SeriesPicker {
         warningContainer.outerHTML = warningHtml;
       } else if (positionInputContainer) {
         const positionInput = positionInputContainer.querySelector('.series-position-input');
-        positionInput.insertAdjacentHTML('afterend', warningHtml);
+        positionInput?.insertAdjacentHTML('afterend', warningHtml);
       }
       initIcons(this.container);
     } else if (warningContainer) {
