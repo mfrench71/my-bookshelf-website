@@ -3,16 +3,15 @@ import { db } from '/js/firebase-config.js';
 import {
   collection,
   doc,
-  getDocs,
-  addDoc,
-  updateDoc,
   query,
   where,
-  orderBy,
+  getDocs,
   writeBatch,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeGenreName } from './utils.js';
+import { genreRepository } from './repositories/genre-repository.js';
+import { bookRepository } from './repositories/book-repository.js';
 
 // Predefined colour palette for genres (~150 colours) - rainbow order
 // Expanded with Tailwind 200-800 shades for extensive genre lists
@@ -182,14 +181,7 @@ export async function loadUserGenres(userId, forceRefresh = false) {
   }
 
   try {
-    const genresRef = collection(db, 'users', userId, 'genres');
-    const q = query(genresRef, orderBy('name', 'asc'));
-    const snapshot = await getDocs(q);
-
-    genresCache = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    genresCache = await genreRepository.getAllSorted(userId);
     genresCacheUserId = userId;
     genresCacheTime = Date.now();
 
@@ -263,17 +255,14 @@ export async function createGenre(userId, name, color = null) {
       normalizedName,
       color,
       bookCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
 
-    const genresRef = collection(db, 'users', userId, 'genres');
-    const docRef = await addDoc(genresRef, genreData);
+    const result = await genreRepository.create(userId, genreData);
 
     // Invalidate cache
     genresCache = null;
 
-    return { id: docRef.id, ...genreData };
+    return result;
   } catch (error) {
     // Re-throw validation errors as-is, log Firebase errors
     if (!error.message.includes('already exists') && !error.message.includes('already used')) {
@@ -293,7 +282,7 @@ export async function createGenre(userId, name, color = null) {
  */
 export async function updateGenre(userId, genreId, updates) {
   try {
-    const updateData = { updatedAt: serverTimestamp() };
+    const updateData = {};
     const genres = await loadUserGenres(userId);
 
     if (updates.name !== undefined) {
@@ -319,8 +308,7 @@ export async function updateGenre(userId, genreId, updates) {
       updateData.color = updates.color;
     }
 
-    const genreRef = doc(db, 'users', userId, 'genres', genreId);
-    await updateDoc(genreRef, updateData);
+    await genreRepository.update(userId, genreId, updateData);
 
     // Invalidate cache
     genresCache = null;
@@ -344,21 +332,17 @@ export async function deleteGenre(userId, genreId) {
   try {
     const batch = writeBatch(db);
 
-    // Find all books with this genre
-    const booksRef = collection(db, 'users', userId, 'books');
-    const q = query(booksRef, where('genres', 'array-contains', genreId));
-    const snapshot = await getDocs(q);
+    // Find all books with this genre using repository
+    const booksWithGenre = await bookRepository.getByGenreId(userId, genreId);
 
     // Remove genre from each active book (skip soft-deleted)
-    snapshot.docs.forEach(bookDoc => {
-      const bookData = bookDoc.data();
-      if (bookData.deletedAt) return; // Skip soft-deleted books
+    booksWithGenre.forEach(book => {
+      if (book.deletedAt) return; // Skip soft-deleted books
 
-      const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
-      const currentGenres = bookData.genres || [];
+      const bookRef = doc(db, 'users', userId, 'books', book.id);
+      const currentGenres = book.genres || [];
       batch.update(bookRef, {
         genres: currentGenres.filter(g => g !== genreId),
-        updatedAt: serverTimestamp(),
       });
     });
 
@@ -371,7 +355,7 @@ export async function deleteGenre(userId, genreId) {
     // Invalidate cache
     genresCache = null;
 
-    return snapshot.docs.length;
+    return booksWithGenre.length;
   } catch (error) {
     console.error('Error deleting genre:', error);
     throw error;

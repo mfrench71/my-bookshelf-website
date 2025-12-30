@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -13,6 +14,7 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db } from '/js/firebase-config.js';
@@ -156,5 +158,46 @@ export class BaseRepository {
     const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  /**
+   * Get paginated documents with cursor support
+   * @param {string} userId - The user's Firebase UID
+   * @param {Object} options - Pagination options
+   * @param {string} [options.orderByField='createdAt'] - Field to order by
+   * @param {string} [options.orderDirection='desc'] - 'asc' or 'desc'
+   * @param {number} [options.limitCount=20] - Documents per page
+   * @param {DocumentSnapshot} [options.afterDoc] - Cursor for pagination (from previous result)
+   * @param {boolean} [options.fromServer=false] - Bypass Firestore cache
+   * @returns {Promise<{docs: Array<Object>, lastDoc: DocumentSnapshot|null, hasMore: boolean}>}
+   */
+  async getPaginated(userId, options = {}) {
+    const {
+      orderByField = 'createdAt',
+      orderDirection = 'desc',
+      limitCount = 20,
+      afterDoc = null,
+      fromServer = false,
+    } = options;
+
+    const collectionRef = this.getCollectionRef(userId);
+    const constraints = [orderBy(orderByField, orderDirection)];
+
+    if (afterDoc) {
+      constraints.push(startAfter(afterDoc));
+    }
+    constraints.push(limit(limitCount));
+
+    const q = query(collectionRef, ...constraints);
+    const snapshot = fromServer ? await getDocsFromServer(q) : await getDocs(q);
+
+    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+
+    return {
+      docs,
+      lastDoc,
+      hasMore: snapshot.docs.length === limitCount,
+    };
   }
 }

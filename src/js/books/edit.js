@@ -1,12 +1,7 @@
 // Book Edit Page Logic
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import {
   parseTimestamp,
   formatDate,
@@ -280,16 +275,14 @@ async function fetchGenreSuggestions(isbn) {
 // Load Book
 async function loadBook() {
   try {
-    const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
-    const bookSnap = await getDoc(bookRef);
+    book = await bookRepository.getById(currentUser.uid, bookId);
 
-    if (!bookSnap.exists()) {
+    if (!book) {
       showToast('Book not found', { type: 'error' });
       setTimeout(() => (window.location.href = '/books/'), 1500);
       return;
     }
 
-    book = { id: bookSnap.id, ...bookSnap.data() };
     renderForm();
   } catch (error) {
     console.error('Error loading book:', error);
@@ -604,12 +597,10 @@ editForm.addEventListener('submit', async e => {
     genres: selectedGenres,
     images: imageGallery ? imageGallery.getImages() : [],
     reads: currentReads,
-    updatedAt: serverTimestamp(),
   };
 
   try {
-    const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
-    await updateDoc(bookRef, updates);
+    await bookRepository.update(currentUser.uid, bookId, updates);
 
     const addedGenres = selectedGenres.filter(g => !originalGenres.includes(g));
     const removedGenres = originalGenres.filter(g => !selectedGenres.includes(g));

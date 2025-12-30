@@ -1,15 +1,7 @@
 // Books List Page Logic
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  getDocs,
-  getDocsFromServer,
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import {
   showToast,
   initIcons,
@@ -331,21 +323,6 @@ function clearCache() {
 }
 
 /**
- * Convert Firestore document to serializable format
- * @param {DocumentSnapshot} doc - Firestore document snapshot
- * @returns {Object} Book object with serialized timestamps
- */
-function serializeBook(doc) {
-  const data = doc.data();
-  return {
-    id: doc.id,
-    ...data,
-    createdAt: serializeTimestamp(data.createdAt),
-    updatedAt: serializeTimestamp(data.updatedAt),
-  };
-}
-
-/**
  * Load books from cache or Firebase
  * Fetches all pages to get complete data for client-side filtering
  * @param {boolean} [forceRefresh=false] - Force reload from Firebase
@@ -447,27 +424,21 @@ async function fetchNextPage() {
   const [field, direction] = currentSort.split('-');
 
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    let q;
+    // Use repository for paginated fetch with cursor support
+    const result = await bookRepository.getPaginated(currentUser.uid, {
+      orderByField: field === 'createdAt' ? 'createdAt' : field,
+      orderDirection: direction === 'asc' ? 'asc' : 'desc',
+      limitCount: BOOKS_PER_PAGE,
+      afterDoc: lastDoc,
+      fromServer: forceServerFetch,
+    });
 
-    if (lastDoc) {
-      q = query(
-        booksRef,
-        orderBy(field === 'createdAt' ? 'createdAt' : field, direction === 'asc' ? 'asc' : 'desc'),
-        startAfter(lastDoc),
-        limit(BOOKS_PER_PAGE)
-      );
-    } else {
-      q = query(
-        booksRef,
-        orderBy(field === 'createdAt' ? 'createdAt' : field, direction === 'asc' ? 'asc' : 'desc'),
-        limit(BOOKS_PER_PAGE)
-      );
-    }
-
-    // Use getDocsFromServer on refresh to bypass Firestore's offline cache for all pages
-    const snapshot = forceServerFetch ? await getDocsFromServer(q) : await getDocs(q);
-    const newBooks = snapshot.docs.map(serializeBook);
+    // Serialize timestamps for caching
+    const newBooks = result.docs.map(book => ({
+      ...book,
+      createdAt: serializeTimestamp(book.createdAt),
+      updatedAt: serializeTimestamp(book.updatedAt),
+    }));
 
     // Deduplicate - filter out books already in the array
     const existingIds = new Set(books.map(b => b.id));
@@ -475,13 +446,13 @@ async function fetchNextPage() {
 
     books = [...books, ...uniqueNewBooks];
     cachedFilteredBooks = null; // Invalidate filtered cache when books change
-    lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    lastDoc = result.lastDoc;
 
     // If we got a full page but no new unique books, we've caught up - no more to fetch
-    if (snapshot.docs.length === BOOKS_PER_PAGE && uniqueNewBooks.length === 0) {
+    if (result.hasMore && uniqueNewBooks.length === 0) {
       hasMoreFromFirebase = false;
     } else {
-      hasMoreFromFirebase = snapshot.docs.length === BOOKS_PER_PAGE;
+      hasMoreFromFirebase = result.hasMore;
     }
 
     // Update cache with all loaded books

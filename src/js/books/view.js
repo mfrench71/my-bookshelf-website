@@ -1,14 +1,7 @@
 // Book View Page Logic (Read-only display)
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import {
   parseTimestamp,
   formatDate,
@@ -140,16 +133,13 @@ onAuthStateChanged(auth, async user => {
 // Load Book
 async function loadBook() {
   try {
-    const bookRef = doc(db, 'users', currentUser.uid, 'books', bookId);
-    const bookSnap = await getDoc(bookRef);
+    book = await bookRepository.getById(currentUser.uid, bookId);
 
-    if (!bookSnap.exists()) {
+    if (!book) {
       showToast('Book not found', { type: 'error' });
       setTimeout(() => (window.location.href = '/books/'), 1500);
       return;
     }
-
-    book = { id: bookSnap.id, ...bookSnap.data() };
 
     // Redirect to bin if book is in bin
     if (book.deletedAt) {
@@ -336,14 +326,12 @@ async function renderSeriesSection() {
   // Update title with series name
   seriesTitle.textContent = seriesName;
 
-  // Load books in the same series using Firestore query
+  // Load books in the same series using repository
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const seriesQuery = query(booksRef, where('seriesId', '==', book.seriesId));
-    const snapshot = await getDocs(seriesQuery);
+    const allSeriesBooks = await bookRepository.getBySeriesId(currentUser.uid, book.seriesId);
 
     // Filter out binned (soft-deleted) books
-    const seriesBooksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(b => !b.deletedAt);
+    const seriesBooksData = allSeriesBooks.filter(b => !b.deletedAt);
 
     // Sort by position (nulls at end)
     seriesBooksData.sort((a, b) => {

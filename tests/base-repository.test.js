@@ -6,6 +6,7 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () =>
   doc: vi.fn((db, ...path) => ({ path: path.join('/') })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
+  getDocsFromServer: vi.fn(),
   addDoc: vi.fn(),
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () =>
   where: vi.fn((field, op, value) => ({ type: 'where', field, op, value })),
   orderBy: vi.fn((field, dir) => ({ type: 'orderBy', field, dir })),
   limit: vi.fn(n => ({ type: 'limit', n })),
+  startAfter: vi.fn(doc => ({ type: 'startAfter', doc })),
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
 }));
 
@@ -26,6 +28,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -33,6 +36,7 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 describe('BaseRepository', () => {
@@ -219,6 +223,81 @@ describe('BaseRepository', () => {
       const result = await repository.getWithOptions(userId);
 
       expect(result).toEqual([{ id: 'doc1', title: 'Book' }]);
+    });
+  });
+
+  describe('getPaginated', () => {
+    it('should return paginated results with default options', async () => {
+      const mockDocs = [
+        { id: 'doc1', data: () => ({ title: 'Book 1' }) },
+        { id: 'doc2', data: () => ({ title: 'Book 2' }) },
+      ];
+      getDocs.mockResolvedValue({ docs: mockDocs });
+
+      const result = await repository.getPaginated(userId);
+
+      expect(orderBy).toHaveBeenCalledWith('createdAt', 'desc');
+      expect(limit).toHaveBeenCalledWith(20);
+      expect(result.docs).toEqual([
+        { id: 'doc1', title: 'Book 1' },
+        { id: 'doc2', title: 'Book 2' },
+      ]);
+      expect(result.lastDoc).toBe(mockDocs[1]);
+      expect(result.hasMore).toBe(false); // Less than limit
+    });
+
+    it('should use custom ordering and limit', async () => {
+      getDocs.mockResolvedValue({ docs: [] });
+
+      await repository.getPaginated(userId, {
+        orderByField: 'title',
+        orderDirection: 'asc',
+        limitCount: 10,
+      });
+
+      expect(orderBy).toHaveBeenCalledWith('title', 'asc');
+      expect(limit).toHaveBeenCalledWith(10);
+    });
+
+    it('should use startAfter when afterDoc is provided', async () => {
+      const cursorDoc = { id: 'cursor' };
+      getDocs.mockResolvedValue({ docs: [] });
+
+      await repository.getPaginated(userId, { afterDoc: cursorDoc });
+
+      expect(startAfter).toHaveBeenCalledWith(cursorDoc);
+    });
+
+    it('should use getDocsFromServer when fromServer is true', async () => {
+      const mockDocs = [{ id: 'doc1', data: () => ({ title: 'Book 1' }) }];
+      getDocsFromServer.mockResolvedValue({ docs: mockDocs });
+
+      await repository.getPaginated(userId, { fromServer: true });
+
+      expect(getDocsFromServer).toHaveBeenCalled();
+      expect(getDocs).not.toHaveBeenCalled();
+    });
+
+    it('should set hasMore true when full page returned', async () => {
+      // Create exactly 20 mock docs (default limit)
+      const mockDocs = Array.from({ length: 20 }, (_, i) => ({
+        id: `doc${i}`,
+        data: () => ({ title: `Book ${i}` }),
+      }));
+      getDocs.mockResolvedValue({ docs: mockDocs });
+
+      const result = await repository.getPaginated(userId);
+
+      expect(result.hasMore).toBe(true);
+    });
+
+    it('should return null lastDoc for empty results', async () => {
+      getDocs.mockResolvedValue({ docs: [] });
+
+      const result = await repository.getPaginated(userId);
+
+      expect(result.lastDoc).toBeNull();
+      expect(result.hasMore).toBe(false);
     });
   });
 });

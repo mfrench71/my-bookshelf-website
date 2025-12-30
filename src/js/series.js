@@ -3,17 +3,15 @@ import { db } from '/js/firebase-config.js';
 import {
   collection,
   doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
   query,
   where,
-  orderBy,
+  getDocs,
   writeBatch,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeSeriesName } from './utils/series-parser.js';
+import { seriesRepository } from './repositories/series-repository.js';
+import { bookRepository } from './repositories/book-repository.js';
 
 // In-memory cache for series (with TTL)
 let seriesCache = null;
@@ -36,12 +34,9 @@ export async function loadUserSeries(userId, forceRefresh = false) {
   }
 
   try {
-    const seriesRef = collection(db, 'users', userId, 'series');
-    const q = query(seriesRef, orderBy('name', 'asc'));
-    const snapshot = await getDocs(q);
-
+    const allSeries = await seriesRepository.getAllSorted(userId);
     // Filter out soft-deleted series
-    seriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(s => !s.deletedAt);
+    seriesCache = allSeries.filter(s => !s.deletedAt);
     seriesCacheUserId = userId;
     seriesCacheTime = Date.now();
 
@@ -96,18 +91,15 @@ export async function createSeries(userId, name, description = null, totalBooks 
     totalBooks: totalBooks && totalBooks > 0 ? totalBooks : null,
     expectedBooks: [],
     bookCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
   };
 
   try {
-    const seriesRef = collection(db, 'users', userId, 'series');
-    const docRef = await addDoc(seriesRef, seriesData);
+    const result = await seriesRepository.create(userId, seriesData);
 
     // Invalidate cache
     seriesCache = null;
 
-    return { id: docRef.id, ...seriesData };
+    return result;
   } catch (error) {
     console.error('Error creating series:', error);
     throw error;
@@ -123,7 +115,7 @@ export async function createSeries(userId, name, description = null, totalBooks 
  * @throws {Error} If renaming to an existing series name
  */
 export async function updateSeries(userId, seriesId, updates) {
-  const updateData = { updatedAt: serverTimestamp() };
+  const updateData = {};
   const series = await loadUserSeries(userId);
 
   if (updates.name !== undefined) {
@@ -153,8 +145,7 @@ export async function updateSeries(userId, seriesId, updates) {
   }
 
   try {
-    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
-    await updateDoc(seriesRef, updateData);
+    await seriesRepository.update(userId, seriesId, updateData);
 
     // Invalidate cache
     seriesCache = null;
@@ -177,18 +168,15 @@ export async function deleteSeries(userId, seriesId) {
   try {
     const batch = writeBatch(db);
 
-    // Find all books with this series
-    const booksRef = collection(db, 'users', userId, 'books');
-    const q = query(booksRef, where('seriesId', '==', seriesId));
-    const snapshot = await getDocs(q);
+    // Find all books with this series using repository
+    const booksInSeries = await bookRepository.getBySeriesId(userId, seriesId);
 
     // Remove series reference from each book
-    snapshot.docs.forEach(bookDoc => {
-      const bookRef = doc(db, 'users', userId, 'books', bookDoc.id);
+    booksInSeries.forEach(book => {
+      const bookRef = doc(db, 'users', userId, 'books', book.id);
       batch.update(bookRef, {
         seriesId: null,
         seriesPosition: null,
-        updatedAt: serverTimestamp(),
       });
     });
 
@@ -201,7 +189,7 @@ export async function deleteSeries(userId, seriesId) {
     // Invalidate cache
     seriesCache = null;
 
-    return snapshot.docs.length;
+    return booksInSeries.length;
   } catch (error) {
     console.error('Error deleting series:', error);
     throw error;
@@ -217,11 +205,7 @@ export async function deleteSeries(userId, seriesId) {
  */
 export async function softDeleteSeries(userId, seriesId) {
   try {
-    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
-    await updateDoc(seriesRef, {
-      deletedAt: Date.now(),
-      updatedAt: serverTimestamp(),
-    });
+    await seriesRepository.softDelete(userId, seriesId);
 
     // Invalidate cache
     seriesCache = null;
@@ -239,11 +223,7 @@ export async function softDeleteSeries(userId, seriesId) {
  */
 export async function restoreSeries(userId, seriesId) {
   try {
-    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
-    await updateDoc(seriesRef, {
-      deletedAt: null,
-      updatedAt: serverTimestamp(),
-    });
+    await seriesRepository.restore(userId, seriesId);
 
     // Invalidate cache
     seriesCache = null;
@@ -262,14 +242,7 @@ export async function restoreSeries(userId, seriesId) {
  */
 export async function getSeriesById(userId, seriesId) {
   try {
-    const seriesRef = doc(db, 'users', userId, 'series', seriesId);
-    const snapshot = await getDoc(seriesRef);
-
-    if (!snapshot.exists()) {
-      return null;
-    }
-
-    return { id: snapshot.id, ...snapshot.data() };
+    return await seriesRepository.getById(userId, seriesId);
   } catch (error) {
     console.error('Error getting series by ID:', error);
     throw error;

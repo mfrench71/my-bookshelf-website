@@ -1,7 +1,7 @@
 // Add Book Page Logic
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import {
   escapeHtml,
   escapeAttr,
@@ -1213,12 +1213,9 @@ bookForm.addEventListener('submit', async e => {
       seriesPosition: selectedSeries.position,
       images: imageGallery ? imageGallery.getImages() : [],
       reads: [], // Reading status inferred from reads array
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
 
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    await addDoc(booksRef, bookData);
+    await bookRepository.create(currentUser.uid, bookData);
 
     // Update genre book counts
     if (selectedGenres.length > 0) {
