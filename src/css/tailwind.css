@@ -679,6 +679,37 @@ select {
   transition: opacity 0.15s ease-in;
 }
 
+/* Section crossfade transitions (search ↔ form) */
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sectionFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.section-enter {
+  animation: sectionFadeIn 0.2s ease-out forwards;
+}
+
+.section-exit {
+  animation: sectionFadeOut 0.15s ease-in forwards;
+}
+
 /* Toast slide-in animations */
 @keyframes toastSlideInBottom {
   from {

@@ -6,6 +6,10 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- Add Book page polish:
+  - Smooth crossfade transitions between search and form sections
+  - Fix barcode scanner not releasing camera after closing (force-stop video streams)
+  - Add escape key to close barcode scanner modal
 - Book view page improvements:
   - Author link now clickable (blue with arrow, filters book list by author)
   - Genre badges now clickable (filters book list by genre)

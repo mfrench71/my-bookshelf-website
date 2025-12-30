@@ -152,41 +152,69 @@ const closeScannerBtn = document.getElementById('close-scanner');
 const scannerContainer = document.getElementById('scanner-container');
 
 /**
- * Show the search section and hide form
+ * Show the search section and hide form with animation
  */
 function showSearchSection() {
-  searchSection.classList.remove('hidden');
-  formSection.classList.add('hidden');
-  bookSearchInput.focus();
+  // Animate form out
+  formSection.classList.add('section-exit');
+
+  setTimeout(() => {
+    formSection.classList.add('hidden');
+    formSection.classList.remove('section-exit');
+
+    // Animate search in
+    searchSection.classList.remove('hidden');
+    searchSection.classList.add('section-enter');
+    bookSearchInput.focus();
+
+    // Clean up animation class
+    setTimeout(() => {
+      searchSection.classList.remove('section-enter');
+    }, 200);
+  }, 150);
 }
 
 /**
- * Show the form section and hide search
+ * Show the form section and hide search with animation
  * @param {string} source - Data source: 'manual' | 'google' | 'openlibrary' | 'scan'
  */
 function showFormSection(source = 'manual') {
   dataSource = source;
-  searchSection.classList.add('hidden');
-  formSection.classList.remove('hidden');
 
-  // Update data source display
-  if (source === 'manual') {
-    dataSourceEl.classList.add('hidden');
-    // Reset dirty flag for manual entry - user hasn't made changes yet
-    // (API lookups set formDirty = true when populating form data)
-    formDirty = false;
-  } else {
-    dataSourceEl.classList.remove('hidden');
-    const sourceLabels = {
-      google: 'Found via Google Books',
-      openlibrary: 'Found via Open Library',
-      scan: 'Found via barcode scan'
-    };
-    dataSourceText.textContent = sourceLabels[source] || 'Book data loaded';
-  }
+  // Animate search out
+  searchSection.classList.add('section-exit');
 
-  initIcons();
-  titleInput.focus();
+  setTimeout(() => {
+    searchSection.classList.add('hidden');
+    searchSection.classList.remove('section-exit');
+
+    // Update data source display
+    if (source === 'manual') {
+      dataSourceEl.classList.add('hidden');
+      // Reset dirty flag for manual entry - user hasn't made changes yet
+      // (API lookups set formDirty = true when populating form data)
+      formDirty = false;
+    } else {
+      dataSourceEl.classList.remove('hidden');
+      const sourceLabels = {
+        google: 'Found via Google Books',
+        openlibrary: 'Found via Open Library',
+        scan: 'Found via barcode scan'
+      };
+      dataSourceText.textContent = sourceLabels[source] || 'Book data loaded';
+    }
+
+    // Animate form in
+    formSection.classList.remove('hidden');
+    formSection.classList.add('section-enter');
+    initIcons();
+    titleInput.focus();
+
+    // Clean up animation class
+    setTimeout(() => {
+      formSection.classList.remove('section-enter');
+    }, 200);
+  }, 150);
 }
 
 /**
@@ -917,6 +945,13 @@ async function openScanner() {
   lockBodyScroll();
   initIcons();
 
+  // Close on escape key
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') closeScanner();
+  };
+  document.addEventListener('keydown', escapeHandler);
+  scannerModal._escapeHandler = escapeHandler;
+
   try {
     // Add 10s timeout for camera access to prevent indefinite waiting
     const cameraPromise = navigator.mediaDevices.getUserMedia({
@@ -995,6 +1030,12 @@ function startQuagga() {
 }
 
 function closeScanner() {
+  // Remove escape key handler
+  if (scannerModal._escapeHandler) {
+    document.removeEventListener('keydown', scannerModal._escapeHandler);
+    delete scannerModal._escapeHandler;
+  }
+
   scannerModal.classList.add('hidden');
   unlockBodyScroll();
 
@@ -1006,6 +1047,13 @@ function closeScanner() {
       // Ignore stop errors
     }
     scannerRunning = false;
+  }
+
+  // Force stop any remaining video streams (Quagga may not release properly)
+  const video = scannerContainer.querySelector('video');
+  if (video && video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
   }
 
   scannerContainer.innerHTML = '';
