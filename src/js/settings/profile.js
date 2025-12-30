@@ -18,7 +18,7 @@ import {
   writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showToast, initIcons, getCachedUserProfile, clearUserProfileCache, checkPasswordStrength, isMobile } from '../utils.js';
-import { validateForm, showFormErrors, clearFormErrors } from '../utils/validation.js';
+import { validateForm, showFormErrors, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { ChangePasswordSchema, DeleteAccountSchema } from '../schemas/auth.js';
 import { getGravatarUrl } from '../md5.js';
 import { BottomSheet } from '../components/modal.js';
@@ -376,12 +376,34 @@ function fileToBase64(file) {
 
 // ==================== Change Password ====================
 
+/**
+ * Check if password form has all required fields filled
+ */
+function isPasswordFormComplete() {
+  if (!currentPasswordInput.value.trim()) return false;
+  if (!newPasswordInput.value) return false;
+  if (!confirmPasswordInput.value) return false;
+  return true;
+}
+
+/**
+ * Update password save button state based on form completeness
+ */
+function updatePasswordSaveButtonState() {
+  const isComplete = isPasswordFormComplete();
+  savePasswordBtn.disabled = !isComplete;
+  savePasswordBtn.classList.toggle('opacity-50', !isComplete);
+  savePasswordBtn.classList.toggle('cursor-not-allowed', !isComplete);
+}
+
 changePasswordBtn?.addEventListener('click', () => {
   currentPasswordInput.value = '';
   newPasswordInput.value = '';
   confirmPasswordInput.value = '';
   updateNewPasswordUI('');
   clearFormErrors(passwordForm);
+  // Initialize button state (disabled until all fields filled)
+  updatePasswordSaveButtonState();
   passwordSheet?.open();
   if (!isMobile()) currentPasswordInput.focus();
 });
@@ -389,6 +411,11 @@ changePasswordBtn?.addEventListener('click', () => {
 cancelPasswordBtn?.addEventListener('click', () => {
   passwordSheet?.close();
 });
+
+// Update save button state when password fields change
+currentPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
+newPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
+confirmPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
 
 function updateNewPasswordUI(password) {
   if (!newPasswordStrength) return;
@@ -486,10 +513,31 @@ passwordForm?.addEventListener('submit', async (e) => {
 
 // ==================== Delete Account ====================
 
+/**
+ * Check if delete account form has all required fields filled
+ */
+function isDeleteFormComplete() {
+  if (!deleteConfirmPasswordInput.value.trim()) return false;
+  if (!deleteConfirmTextInput.value.trim()) return false;
+  return true;
+}
+
+/**
+ * Update delete account button state based on form completeness
+ */
+function updateDeleteButtonState() {
+  const isComplete = isDeleteFormComplete();
+  confirmDeleteAccountBtn.disabled = !isComplete;
+  confirmDeleteAccountBtn.classList.toggle('opacity-50', !isComplete);
+  confirmDeleteAccountBtn.classList.toggle('cursor-not-allowed', !isComplete);
+}
+
 deleteAccountBtn?.addEventListener('click', () => {
   deleteConfirmPasswordInput.value = '';
   deleteConfirmTextInput.value = '';
   clearFormErrors(deleteAccountForm);
+  // Initialize button state (disabled until all fields filled)
+  updateDeleteButtonState();
   deleteAccountSheet?.open();
   if (!isMobile()) deleteConfirmPasswordInput.focus();
 });
@@ -497,6 +545,10 @@ deleteAccountBtn?.addEventListener('click', () => {
 cancelDeleteAccountBtn?.addEventListener('click', () => {
   deleteAccountSheet?.close();
 });
+
+// Update delete button state when form fields change
+deleteConfirmPasswordInput?.addEventListener('input', updateDeleteButtonState);
+deleteConfirmTextInput?.addEventListener('input', updateDeleteButtonState);
 
 deleteAccountForm?.addEventListener('submit', async (e) => {
   e.preventDefault();

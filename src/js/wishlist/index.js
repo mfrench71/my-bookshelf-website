@@ -36,6 +36,7 @@ const editForm = document.getElementById('edit-form');
 const editPrioritySelect = document.getElementById('edit-priority');
 const editNotesTextarea = document.getElementById('edit-notes');
 const cancelEditBtn = document.getElementById('cancel-edit');
+const saveEditBtn = document.getElementById('save-edit');
 
 // Move modal elements
 const moveModal = document.getElementById('move-modal');
@@ -54,6 +55,9 @@ let currentUser = null;
 let wishlistItems = [];
 let selectedItem = null;
 let currentSort = 'createdAt-desc';
+
+// Original values for change tracking
+let originalEditValues = { priority: '', notes: '' };
 
 // Bottom sheets
 let editSheet = null;
@@ -216,6 +220,13 @@ function renderWishlistItems() {
         clearFormErrors(editForm);
         editPrioritySelect.value = selectedItem.priority || '';
         editNotesTextarea.value = selectedItem.notes || '';
+        // Store original values for change tracking
+        originalEditValues = {
+          priority: selectedItem.priority || '',
+          notes: selectedItem.notes || ''
+        };
+        // Initialize button state (disabled until changes made)
+        updateEditSaveButtonState();
         editSheet?.open();
       }
     });
@@ -230,6 +241,25 @@ function renderWishlistItems() {
       }
     });
   });
+}
+
+/**
+ * Check if wishlist edit form has unsaved changes
+ */
+function isEditFormDirty() {
+  if ((editPrioritySelect.value || '') !== originalEditValues.priority) return true;
+  if ((editNotesTextarea.value || '') !== originalEditValues.notes) return true;
+  return false;
+}
+
+/**
+ * Update wishlist edit save button state based on form changes
+ */
+function updateEditSaveButtonState() {
+  const isDirty = isEditFormDirty();
+  saveEditBtn.disabled = !isDirty;
+  saveEditBtn.classList.toggle('opacity-50', !isDirty);
+  saveEditBtn.classList.toggle('cursor-not-allowed', !isDirty);
 }
 
 /**
@@ -291,9 +321,8 @@ async function handleEditSave(e) {
     return;
   }
 
-  const saveBtn = document.getElementById('save-edit');
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Saving...';
+  saveEditBtn.disabled = true;
+  saveEditBtn.textContent = 'Saving...';
 
   try {
     await updateWishlistItem(currentUser.uid, selectedItem.id, {
@@ -307,8 +336,8 @@ async function handleEditSave(e) {
     console.error('Error updating item:', error);
     showToast('Failed to update item. Please try again.', { type: 'error' });
   } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = 'Save';
+    saveEditBtn.disabled = false;
+    saveEditBtn.textContent = 'Save';
     selectedItem = null;
   }
 }
@@ -356,6 +385,11 @@ sortSelect?.addEventListener('change', () => {
 
 editForm?.addEventListener('submit', handleEditSave);
 cancelEditBtn?.addEventListener('click', () => editSheet?.close());
+
+// Update save button state when edit form fields change
+editPrioritySelect?.addEventListener('change', updateEditSaveButtonState);
+editNotesTextarea?.addEventListener('input', updateEditSaveButtonState);
+
 cancelMoveBtn?.addEventListener('click', () => moveSheet?.close());
 confirmMoveBtn?.addEventListener('click', handleMoveToLibrary);
 cancelDeleteBtn?.addEventListener('click', () => deleteSheet?.close());
