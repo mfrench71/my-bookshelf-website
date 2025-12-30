@@ -221,7 +221,7 @@ function startOver() {
   if (formDirty) {
     const confirmSheet = new ConfirmSheet({
       title: 'Discard Changes?',
-      message: 'You have unsaved book data. Are you sure you want to start over?',
+      message: 'You have unsaved book data. Are you sure you want to go back?',
       confirmText: 'Discard',
       cancelText: 'Keep Editing',
       confirmClass: 'bg-red-600 hover:bg-red-700',
