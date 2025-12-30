@@ -195,7 +195,10 @@ function startOver() {
   // Reset pickers
   if (ratingInput) ratingInput.setValue(0);
   if (coverPicker) coverPicker.setCovers(null);
-  if (genrePicker) genrePicker.clear();
+  if (genrePicker) {
+    genrePicker.setSelected([]);
+    genrePicker.setSuggestions([]);
+  }
   if (seriesPicker) seriesPicker.clear();
   if (imageGallery) imageGallery.cleanupUnsavedUploads();
 
