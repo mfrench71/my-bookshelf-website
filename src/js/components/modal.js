@@ -570,8 +570,8 @@ export class ConfirmSheet extends BottomSheet {
    */
   static createContainer() {
     const container = document.createElement('div');
-    // Mobile: bottom-aligned (items-end), Tablet+: centered (md:items-center md:justify-center)
-    container.className = 'hidden fixed inset-0 bg-black/50 z-50 flex items-end md:items-center md:justify-center p-4';
+    // Match template structure - flex positioning comes from bottom-sheet-backdrop CSS class
+    container.className = 'hidden fixed inset-0 bg-black/50 z-50 md:p-4';
     document.body.appendChild(container);
     return container;
   }
@@ -581,8 +581,8 @@ export class ConfirmSheet extends BottomSheet {
    */
   render() {
     this.container.innerHTML = `
-      <div class="bottom-sheet-content bg-white p-6 max-w-md w-full shadow-xl lg:mx-auto">
-        <div class="bottom-sheet-handle"></div>
+      <div class="bottom-sheet-content bg-white w-full md:max-w-sm p-6 md:mx-auto">
+        <div class="bottom-sheet-handle md:hidden"></div>
         <h3 class="confirm-title text-lg font-semibold mb-2">${this.title}</h3>
         <p class="confirm-message text-gray-600 mb-6">${this.message}</p>
         <div class="flex gap-3">
