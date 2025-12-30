@@ -507,6 +507,12 @@ Common utilities are consolidated in shared modules:
 - `utils/reading.js` - getBookStatus (reading status calculation)
 - `utils/duplicate-checker.js` - isISBN, cleanISBN, checkForDuplicate, DUPLICATE_CHECK_LIMIT
 
+Data access layer in `src/js/repositories/`:
+- `base-repository.js` - BaseRepository class with common CRUD operations (getAll, getById, create, update, delete, queryByField, getWithOptions)
+- `book-repository.js` - BookRepository extending base with getByIsbn, getBySeriesId, isSeriesPositionTaken, getActive, getDeleted, getByGenreId, getRecent, softDelete, restore
+- `genre-repository.js` - GenreRepository extending base with getByNormalizedName, getAllSorted, nameExists, getByIds, incrementBookCount
+- `series-repository.js` - SeriesRepository extending base with findByName, getAllSorted, getActive, getDeleted, nameExists, softDelete, restore, incrementBookCount, getByIds
+
 Reusable UI components in `src/js/components/`:
 - `author-picker.js` - AuthorPicker class for single-select author input with library suggestions and book counts
 - `book-card.js` - BookCard component for rendering book list items with genre/series badges
@@ -546,6 +552,8 @@ Toast notifications support types: `showToast('message', { type: 'success' | 'er
 - `visibility-refresh.test.js` - Tests for visibility-based auto-refresh
 - `library-health.test.js` - Tests for library health analysis and fix functions
 - `form-html-alignment.test.js` - Tests that HTML form elements match Zod schema field names
+- `base-repository.test.js` - Tests for BaseRepository CRUD operations
+- `book-repository.test.js` - Tests for BookRepository specific methods
 
 ### E2E Tests (Playwright)
 - `e2e/auth.spec.js` - Login/register form interactions
