@@ -123,8 +123,12 @@ MyBookShelf/
 ├── tests/                      # Test files
 ├── e2e/                        # Playwright E2E tests
 ├── _site/                      # Built output
+├── docs/                       # Documentation
+│   ├── CLAUDE.md               # AI assistant instructions
+│   ├── PROJECT.md              # This file
+│   └── DEVELOPMENT_STANDARDS.md # Coding standards & roadmap
 ├── CHANGELOG.md                # Version history
-└── PROJECT.md                  # This file
+└── README.md                   # Repository overview
 ```
 
 ---

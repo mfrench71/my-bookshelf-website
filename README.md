@@ -126,6 +126,14 @@ src/
 └── css/              # Tailwind CSS source
 ```
 
+## Documentation
+
+Detailed documentation is in the `docs/` folder:
+
+- **[PROJECT.md](docs/PROJECT.md)** - Architecture, features, and roadmap
+- **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant coding guidelines
+- **[DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md)** - Coding standards and implementation roadmap
+
 ## Deployment
 
 The site uses CI/CD with GitHub Actions and Netlify:
