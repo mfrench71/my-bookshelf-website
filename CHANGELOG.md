@@ -6,6 +6,7 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- Internal: Convert all UI components and domain modules to TypeScript for improved code reliability
 - New AuthorPicker component for book add/edit forms:
   - Library-aware suggestions showing authors from your existing books
   - Book counts displayed next to each author (e.g., "Stephen King (5 books)")
