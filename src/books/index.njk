@@ -133,14 +133,14 @@ scripts: '<script type="module" src="/js/books/index.js"></script>'
       </div>
 
       <!-- Empty State (no books in library) -->
-      <div id="empty-state" class="hidden py-12 text-center">
+      <div id="empty-state" class="hidden py-12 text-center empty-state-animate">
         <i data-lucide="book-open" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
         <p class="text-gray-500 mt-3">No books yet</p>
         <p class="text-gray-400 text-sm mt-1">Tap the + button to add your first book</p>
       </div>
 
       <!-- No Results State (filters active, no matches) -->
-      <div id="no-results-state" class="hidden py-12 text-center">
+      <div id="no-results-state" class="hidden py-12 text-center empty-state-animate">
         <i data-lucide="search-x" class="w-12 h-12 text-gray-300 mx-auto" aria-hidden="true"></i>
         <p id="no-results-title" class="text-gray-500 mt-3">No books match your filters</p>
         <p class="text-gray-400 text-sm mt-1">Try adjusting your filters or <button id="clear-filters-link" class="text-primary hover:underline">clear all filters</button></p>
