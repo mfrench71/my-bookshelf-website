@@ -14,11 +14,6 @@ All notable changes to MyBookShelf are documented here.
 - Increase test coverage from 73% to 77% (exceeds 75% target)
   - Add ImageGallery component tests (41 tests)
   - Add image-upload utility tests (27 tests)
-- Add three new periodic audits to CLAUDE.md:
-  - Accessibility Audit (automated + manual checks)
-  - Security Audit (XSS, input validation, auth)
-  - Test Coverage Audit (verify thresholds)
-- Add 'always read before reusing' guideline to CLAUDE.md
 - UX polish - visual enhancements:
   - Add cover shadow/depth effect to book covers (list and view pages)
   - Add badge pulse animation when wishlist/filter counts change
@@ -39,11 +34,6 @@ All notable changes to MyBookShelf are documented here.
   - Search results: stagger animation on book cards
   - Filter chips: scale animation when appearing
   - Empty states: fade-in animation across all pages
-- Document empty state styling standard in CLAUDE.md:
-  - Icon: `w-12 h-12 text-gray-300 mx-auto` (plain Lucide icon)
-  - Title: `text-gray-500 mt-3`
-  - Description: `text-gray-400 text-sm mt-1`
-  - Padding: `py-12` (page-level) or `py-8` (inline sections)
 - Enhance book card component:
   - Add `className` option for custom CSS classes
   - Add `animationDelay` option for stagger effects
@@ -81,7 +71,6 @@ All notable changes to MyBookShelf are documented here.
 - Fix semantic HTML structure across all templates:
   - Remove duplicate `<main id="main-content">` elements that conflicted with base.njk
   - Fix blank book view/edit pages caused by duplicate IDs
-  - Add Semantic HTML section to CLAUDE.md with guidelines
 - Fix mobile filter panel counts not updating when clicking checkboxes:
   - Filter counts now update live as user interacts with mobile bottom sheet
   - Fixed missing author filter sync when opening mobile filter sheet
@@ -160,7 +149,7 @@ All notable changes to MyBookShelf are documented here.
   - Persists on page so user can read (no auto-redirect)
 - Show filled heart icon on search results for already-wishlisted books
 - Show last modified date on book view page (only if different from added date)
-- Codebase audit fixes per CLAUDE.md guidelines:
+- Codebase audit fixes:
   - Fix touch targets below 44px (header search clear button, preferences widget buttons)
   - Add Zod validation to wishlist edit form (priority and notes fields)
   - Remove redundant validation toast messages (inline errors are sufficient)
@@ -177,25 +166,18 @@ All notable changes to MyBookShelf are documented here.
   - Add `aria-label` to rating star buttons
   - Add `aria-label` to genre colour picker buttons
   - Add `aria-label` to filter chip remove buttons
-  - Add "Form Label Association" guideline to CLAUDE.md
 - Mobile usability audit fixes:
   - Add `viewport-fit=cover` for safe area/notch handling
   - Fix touch targets in genre-picker (close button, remove genre button)
   - Fix touch target in series-picker (clear button)
-  - Add comprehensive "Mobile UX Audit" checklist to CLAUDE.md
 - SEO audit fixes:
   - Remove auth-protected pages from sitemap (only public pages now)
   - Add meta descriptions to home, login, and books pages
   - Add sr-only `<h1>` to home and books list pages for SEO
-  - Add comprehensive "SEO Audit" checklist to CLAUDE.md
 - Core Web Vitals audit:
   - Add `loading="lazy"` to remaining images (maintenance, add book search)
-  - Add comprehensive "Core Web Vitals Audit" checklist to CLAUDE.md
 - Privacy/GDPR audit:
   - Fix account deletion to also delete series and wishlist subcollections
-  - Add comprehensive "Privacy/GDPR Audit" checklist to CLAUDE.md
-- Browser Compatibility audit:
-  - Add comprehensive "Browser Compatibility Audit" checklist to CLAUDE.md
 - Fix series order sorting when linking from series widget to book list
 - Fix picker components not closing when another picker opens
 - Add option to delete empty series when deleting last book in series:
@@ -208,7 +190,6 @@ All notable changes to MyBookShelf are documented here.
   - Genre and series book counts
   - Maintenance page health analysis
   - Genre deletion and migration operations
-- Add "Code Documentation" guidelines section to CLAUDE.md
 - Settings audit and reorganisation:
   - Remove duplicate Export My Data from Profile (use Library's Backup/Restore)
   - Move Clear Cache from Profile to Preferences (new Browser section)
@@ -248,7 +229,6 @@ All notable changes to MyBookShelf are documented here.
   - Remove redundant X close button (use handle swipe or backdrop tap)
   - Apply filters on dismiss (backdrop tap or swipe) for better mobile UX
 - Fix raw error.message exposure to users (14 occurrences)
-- Add CLAUDE.md guideline for user-friendly error messages
 - Add .claude/settings.local.json to .gitignore.
 - Fix duplicate IDs in FilterPanel (now uses classes for reusable component)
 
