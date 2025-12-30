@@ -41,7 +41,8 @@ description: Privacy policy for MyBookShelf - how we collect, use, and protect y
         <p class="text-gray-600 leading-relaxed mb-3">We collect only the data necessary to provide the service:</p>
         <ul class="text-gray-600 space-y-2 ml-6 list-disc">
           <li><strong>Account information:</strong> Email address and password (encrypted)</li>
-          <li><strong>Book data:</strong> Books you add, including titles, authors, ISBNs, covers, genres, ratings, and reading dates</li>
+          <li><strong>Book data:</strong> Books you add, including titles, authors, ISBNs, covers, genres, ratings, notes, and reading dates</li>
+          <li><strong>Wishlist data:</strong> Books you want to buy, including priority and notes</li>
           <li><strong>Organisation data:</strong> Custom genres and series you create</li>
           <li><strong>Preferences:</strong> Display settings and widget configurations</li>
         </ul>
@@ -59,7 +60,7 @@ description: Privacy policy for MyBookShelf - how we collect, use, and protect y
         <p class="text-gray-600 leading-relaxed mt-3">
           We also use your browser's local storage to cache data for faster loading and offline access.
           This cached data never leaves your device and can be cleared at any time from
-          <a href="/settings/" class="text-primary hover:underline">Settings</a>.
+          <a href="/settings/preferences/" class="text-primary hover:underline">Settings → Preferences</a>.
         </p>
       </section>
 
@@ -93,18 +94,23 @@ description: Privacy policy for MyBookShelf - how we collect, use, and protect y
         <p class="text-gray-600 leading-relaxed mb-3">You have full control over your data:</p>
         <ul class="text-gray-600 space-y-2 ml-6 list-disc">
           <li><strong>Access:</strong> View all your data within the app at any time</li>
-          <li><strong>Export:</strong> Download all your data as a JSON file from <a href="/settings/" class="text-primary hover:underline">Settings → Export My Data</a></li>
-          <li><strong>Delete:</strong> Permanently delete your account and all associated data from <a href="/settings/" class="text-primary hover:underline">Settings → Delete Account</a></li>
-          <li><strong>Clear cache:</strong> Remove locally stored data from your browser via <a href="/settings/" class="text-primary hover:underline">Settings → Clear Local Cache</a></li>
+          <li><strong>Export:</strong> Download all your data as a JSON file from <a href="/settings/library/" class="text-primary hover:underline">Settings → Library → Backup & Restore</a></li>
+          <li><strong>Delete:</strong> Permanently delete your account and all associated data from <a href="/settings/" class="text-primary hover:underline">Settings → Profile → Delete Account</a></li>
+          <li><strong>Clear cache:</strong> Remove locally stored data from your browser via <a href="/settings/preferences/" class="text-primary hover:underline">Settings → Preferences → Clear Local Cache</a></li>
         </ul>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-gray-900 mb-3">Data Retention</h2>
-        <p class="text-gray-600 leading-relaxed">
+        <p class="text-gray-600 leading-relaxed mb-3">
           Your data is retained for as long as you have an account. When you delete your account,
           all your data is permanently removed from our servers. Local cached data is cleared
           when you sign out or clear your browser data.
+        </p>
+        <p class="text-gray-600 leading-relaxed">
+          <strong>Deleted books:</strong> When you delete a book, it moves to a bin where it can be
+          restored for 30 days. After 30 days, deleted books are permanently removed. You can also
+          empty the bin manually from <a href="/settings/bin/" class="text-primary hover:underline">Settings → Bin</a>.
         </p>
       </section>
 
