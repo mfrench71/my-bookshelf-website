@@ -443,9 +443,8 @@ async function fetchNextPage() {
       );
     }
 
-    // Use getDocsFromServer on manual refresh to bypass Firestore cache (first page only)
-    const useServerFetch = forceServerFetch && !lastDoc; // Only force server on first page
-    const snapshot = useServerFetch ? await getDocsFromServer(q) : await getDocs(q);
+    // Use getDocsFromServer on refresh to bypass Firestore's offline cache for all pages
+    const snapshot = forceServerFetch ? await getDocsFromServer(q) : await getDocs(q);
     const newBooks = snapshot.docs.map(serializeBook);
 
     // Deduplicate - filter out books already in the array

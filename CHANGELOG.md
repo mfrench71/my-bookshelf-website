@@ -14,6 +14,7 @@ All notable changes to MyBookShelf are documented here.
   - Close button and keyboard navigation (arrow keys, Enter, Escape)
 - Fix false dirty state on book edit page (Save Changes button no longer active on load)
 - Fix discard changes modal on book add page (now only shows when form has actual content)
+- Fix auto-sync not showing books added from other devices (now fetches all pages from server)
 - Barcode scanner UX improvements:
   - Add viewfinder frame with corner accents to guide barcode positioning
   - Add loading spinner ("Starting camera...") while camera initialises
