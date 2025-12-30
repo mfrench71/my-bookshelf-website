@@ -6,6 +6,12 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-30
 
+- Fix service worker missing pages (wishlist, bin, privacy) - found via PWA audit
+- Add three new periodic audits to CLAUDE.md:
+  - Accessibility Audit (automated + manual checks)
+  - Security Audit (XSS, input validation, auth)
+  - Test Coverage Audit (verify thresholds)
+- Add 'always read before reusing' guideline to CLAUDE.md
 - UX polish - visual enhancements:
   - Add cover shadow/depth effect to book covers (list and view pages)
   - Add badge pulse animation when wishlist/filter counts change

@@ -881,6 +881,86 @@ npx lighthouse http://localhost:8080 --view
 npx browserslist  # See target browsers from package.json
 ```
 
+### Accessibility Audit
+Run automated and manual accessibility checks.
+
+**Automated Testing**
+```bash
+# Run E2E accessibility tests (axe-core)
+npm run test:e2e
+```
+- [ ] All axe-core tests pass?
+- [ ] No critical or serious violations?
+
+**Manual Checks**
+- [ ] Keyboard navigation works for all interactive elements?
+- [ ] Focus order is logical (left-to-right, top-to-bottom)?
+- [ ] Focus indicator visible on all focusable elements?
+- [ ] Screen reader announces content correctly? (test with VoiceOver/NVDA)
+- [ ] Colour contrast meets WCAG AA (4.5:1 text, 3:1 large text)?
+- [ ] All images have appropriate alt text?
+- [ ] Form inputs have associated labels?
+- [ ] Error messages are announced to screen readers?
+- [ ] Skip link works and is visible on focus?
+- [ ] No content relies solely on colour to convey meaning?
+
+### Security Audit
+Review code for common vulnerabilities.
+
+**XSS Prevention**
+- [ ] All user input escaped before rendering? (`escapeHtml()`, `escapeAttr()`)
+- [ ] No `innerHTML` with unsanitised user data?
+- [ ] Template literals don't include raw user input?
+- [ ] URL parameters validated before use?
+
+**Input Validation**
+- [ ] All forms use Zod schemas?
+- [ ] Server-side validation via Firestore rules?
+- [ ] File uploads validated (type, size)?
+- [ ] No SQL/NoSQL injection vectors?
+
+**Authentication & Authorisation**
+- [ ] Firestore rules restrict access to own data only?
+- [ ] No sensitive data in localStorage?
+- [ ] Session handling secure?
+- [ ] Password requirements enforced?
+
+**API Security**
+- [ ] API keys not exposed in client code? (Firebase config is OK)
+- [ ] External API calls validated?
+- [ ] No arbitrary URL fetching from user input?
+
+**Testing Commands**
+```bash
+# Check innerHTML usage vs escapeHtml usage
+grep -rn "innerHTML\s*=" src/js --include="*.js" | wc -l
+grep -rn "escapeHtml\|escapeAttr" src/js --include="*.js" | wc -l
+```
+
+### Test Coverage Audit
+Verify test coverage meets project thresholds.
+
+**Coverage Thresholds**
+- [ ] Lines: ≥60%
+- [ ] Functions: ≥60%
+- [ ] Branches: ≥50%
+- [ ] Statements: ≥60%
+
+**Testing Commands**
+```bash
+# Run coverage report
+npm run test:coverage
+
+# Check for untested files
+# Look for files with 0% coverage in report
+```
+
+**Coverage Gaps to Address**
+- [ ] New features have corresponding tests?
+- [ ] Edge cases covered (empty states, errors, boundaries)?
+- [ ] Integration points tested (API calls, Firebase)?
+- [ ] UI components have render tests?
+
 ## Competitor Reference
 
 When researching features, check how these apps handle similar functionality:
