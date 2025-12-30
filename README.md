@@ -59,12 +59,11 @@ npm install
 ### Development
 
 ```bash
-# Build and serve with live reload
-npm run start
+# Watch all files (JS, CSS, templates) with live reload
+npm run dev
 
-# Or run separately:
-npm run watch:11ty   # 11ty with --serve
-npm run watch:css    # Tailwind with --watch
+# Or use start (JS/CSS built once, only templates watched)
+npm run start
 ```
 
 ### Production Build
