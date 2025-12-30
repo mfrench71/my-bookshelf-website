@@ -425,8 +425,8 @@ Book cards have basic hover states but could feel more premium.
 **Transitions & Animations:**
 - [x] Stagger animation on initial load (cards appear sequentially)
 - [x] Use existing `.card-animate` class (already defined in CSS)
-- [ ] Smooth skeleton→content fade transition
-- [ ] Badge count update animation (brief pulse)
+- [x] Smooth skeleton→content fade transition
+- [x] Badge count update animation (brief pulse)
 
 **Mobile Gestures:**
 - [ ] Long-press context menu (edit, delete, share)
@@ -438,7 +438,7 @@ Book cards have basic hover states but could feel more premium.
 - [ ] Virtualised list for 100+ books (render only visible)
 
 **Visual Polish:**
-- [ ] Cover image shadow/depth effect
+- [x] Cover image shadow/depth effect
 - [ ] Status badge micro-animations
 - [x] Empty state with icon (standardised pattern - icons preferred over illustrations)
 
