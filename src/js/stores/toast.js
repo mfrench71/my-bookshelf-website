@@ -50,6 +50,11 @@ function createToastElement(message, type) {
 
   toast.classList.add(...(typeClasses[type] || typeClasses.info).split(' '));
 
+  // Error toasts use role="alert" for immediate screen reader announcement
+  if (type === 'error') {
+    toast.setAttribute('role', 'alert');
+  }
+
   const icon = TOAST_ICONS[type] || TOAST_ICONS.info;
   toast.innerHTML = `
     <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>

@@ -28,6 +28,10 @@ All notable changes to MyBookShelf are documented here.
   - Applied to book add and edit forms
   - CSS `scroll-margin-top` on inputs for sticky header offset
   - Focus disabled on mobile to avoid virtual keyboard popup
+- Accessibility improvements:
+  - Add `role="alert"` to error toasts for immediate screen reader announcement
+  - Add `role="search"` landmark to search overlay
+  - Add `aria-live="polite"` to book/wishlist count elements for filter updates
 - Fix semantic HTML structure across all templates:
   - Remove duplicate `<main id="main-content">` elements that conflicted with base.njk
   - Fix blank book view/edit pages caused by duplicate IDs

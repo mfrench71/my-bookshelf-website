@@ -419,7 +419,7 @@ Current toasts are functional but basic.
 
 **Accessibility:**
 - [x] `aria-live="polite"` on toast container
-- [ ] Role="alert" for error toasts
+- [x] Role="alert" for error toasts
 - [ ] Focus management for action buttons
 
 ### Book Cards & List UX Polish
@@ -446,7 +446,7 @@ Book cards have basic hover states but could feel more premium.
 - [ ] Empty state illustration (not just icon)
 
 **Accessibility:**
-- [ ] Announce list updates to screen readers
+- [x] Announce list updates to screen readers (aria-live on count elements)
 - [ ] Card selection states for keyboard users
 
 ### Filter Panel UX Polish
@@ -490,8 +490,8 @@ Search works but appears/disappears instantly.
 - [x] Highlight matching text in results
 
 **Accessibility:**
-- [ ] Search landmark role (`role="search"`)
-- [ ] Announce result count changes
+- [x] Search landmark role (`role="search"`)
+- [x] Announce result count changes (already had aria-live="polite")
 
 ### Navigation Menu UX Polish
 Mobile menu shows/hides without animation.
