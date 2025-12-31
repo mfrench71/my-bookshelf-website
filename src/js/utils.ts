@@ -1,6 +1,6 @@
 // Shared Utilities Module
 // This file re-exports from focused modules for backwards compatibility
-// New code should import directly from utils/[module].js
+// New code should import directly from utils/[module].ts
 
 // Format utilities
 export {
