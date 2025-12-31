@@ -12,6 +12,8 @@ import { db } from '/js/firebase-config.js';
 import { eventBus, Events } from '../utils/event-bus.js';
 import { clearBooksCache } from '../utils/cache.js';
 import { deleteImages } from '../utils/image-upload.js';
+import { updateGenreBookCounts, loadUserGenres, clearGenresCache } from '../genres.js';
+import { loadUserSeries, clearSeriesCache, getSeriesById, restoreSeries, updateSeriesBookCounts } from '../series.js';
 
 /** Book with bin-related fields */
 export interface BinnedBook {
@@ -42,19 +44,8 @@ class BinRepository {
    * @param userId - The user's ID
    * @param bookId - The book ID
    * @param book - The book data (for updating counts)
-   * @param callbacks - Callbacks for updating genre/series counts
    */
-  async softDelete(
-    userId: string,
-    bookId: string,
-    book: BinnedBook,
-    callbacks: {
-      updateGenreCounts?: (userId: string, added: string[], removed: string[]) => Promise<void>;
-      updateSeriesCount?: (userId: string, seriesId: string, delta: number) => Promise<void>;
-      clearGenresCache?: () => void;
-      clearSeriesCache?: () => void;
-    } = {}
-  ): Promise<void> {
+  async softDelete(userId: string, bookId: string, book: BinnedBook): Promise<void> {
     const bookRef = doc(db, 'users', userId, 'books', bookId);
 
     await updateDoc(bookRef, {
@@ -64,20 +55,20 @@ class BinRepository {
 
     // Decrement genre book counts
     const bookGenres = book.genres || [];
-    if (bookGenres.length > 0 && callbacks.updateGenreCounts) {
-      await callbacks.updateGenreCounts(userId, [], bookGenres);
+    if (bookGenres.length > 0) {
+      await updateGenreBookCounts(userId, [], bookGenres);
     }
 
-    // Decrement series book count
-    if (book.seriesId && callbacks.updateSeriesCount) {
-      await callbacks.updateSeriesCount(userId, book.seriesId, -1);
+    // Decrement series book count via recalculation
+    if (book.seriesId) {
+      await updateSeriesBookCounts(userId);
     }
 
     // Clear caches
     clearBooksCache(userId);
-    callbacks.clearGenresCache?.();
+    clearGenresCache();
     if (book.seriesId) {
-      callbacks.clearSeriesCache?.();
+      clearSeriesCache();
     }
 
     eventBus.emit(Events.BOOK_DELETED, { bookId, soft: true });
@@ -88,24 +79,9 @@ class BinRepository {
    * @param userId - The user's ID
    * @param bookId - The book ID
    * @param book - The book data
-   * @param callbacks - Callbacks for validating and updating related data
    * @returns Result with warnings if any
    */
-  async restore(
-    userId: string,
-    bookId: string,
-    book: BinnedBook,
-    callbacks: {
-      loadGenres?: (userId: string, force: boolean) => Promise<Array<{ id: string }>>;
-      loadSeries?: (userId: string, force: boolean) => Promise<Array<{ id: string }>>;
-      getSeriesById?: (userId: string, seriesId: string) => Promise<{ deletedAt?: number | null } | null>;
-      restoreSeries?: (userId: string, seriesId: string) => Promise<void>;
-      updateGenreCounts?: (userId: string, added: string[], removed: string[]) => Promise<void>;
-      updateSeriesCount?: (userId: string, seriesId: string, delta: number) => Promise<void>;
-      clearGenresCache?: () => void;
-      clearSeriesCache?: () => void;
-    } = {}
-  ): Promise<RestoreResult> {
+  async restore(userId: string, bookId: string, book: BinnedBook): Promise<RestoreResult> {
     const warnings: string[] = [];
     const bookRef = doc(db, 'users', userId, 'books', bookId);
     const updateData: Record<string, unknown> = {
@@ -116,15 +92,15 @@ class BinRepository {
     // Check if series still exists (including soft-deleted)
     let seriesExists = true;
     let seriesRestored = false;
-    if (book.seriesId && callbacks.loadSeries) {
-      const activeSeries = await callbacks.loadSeries(userId, true);
+    if (book.seriesId) {
+      const activeSeries = await loadUserSeries(userId, true);
       seriesExists = activeSeries.some((s: { id: string }) => s.id === book.seriesId);
 
-      if (!seriesExists && callbacks.getSeriesById && callbacks.restoreSeries) {
-        const seriesData = await callbacks.getSeriesById(userId, book.seriesId);
+      if (!seriesExists) {
+        const seriesData = await getSeriesById(userId, book.seriesId);
 
         if (seriesData?.deletedAt) {
-          await callbacks.restoreSeries(userId, book.seriesId);
+          await restoreSeries(userId, book.seriesId);
           seriesExists = true;
           seriesRestored = true;
         } else if (!seriesData) {
@@ -137,8 +113,8 @@ class BinRepository {
 
     // Check which genres still exist
     let validGenres = book.genres || [];
-    if (validGenres.length > 0 && callbacks.loadGenres) {
-      const genres = await callbacks.loadGenres(userId, true);
+    if (validGenres.length > 0) {
+      const genres = await loadUserGenres(userId, true);
       const existingGenreIds = new Set(genres.map((g: { id: string }) => g.id));
       const originalCount = validGenres.length;
       validGenres = validGenres.filter(gid => existingGenreIds.has(gid));
@@ -155,19 +131,19 @@ class BinRepository {
     await updateDoc(bookRef, updateData);
 
     // Re-increment genre book counts
-    if (validGenres.length > 0 && callbacks.updateGenreCounts) {
-      await callbacks.updateGenreCounts(userId, validGenres, []);
+    if (validGenres.length > 0) {
+      await updateGenreBookCounts(userId, validGenres, []);
     }
 
-    // Re-increment series book count
-    if (book.seriesId && seriesExists && callbacks.updateSeriesCount) {
-      await callbacks.updateSeriesCount(userId, book.seriesId, 1);
+    // Re-increment series book count via recalculation
+    if (book.seriesId && seriesExists) {
+      await updateSeriesBookCounts(userId);
     }
 
     // Clear caches
     clearBooksCache(userId);
-    callbacks.clearGenresCache?.();
-    callbacks.clearSeriesCache?.();
+    clearGenresCache();
+    clearSeriesCache();
 
     eventBus.emit(Events.BOOK_RESTORED, { bookId });
 

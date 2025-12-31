@@ -19,7 +19,7 @@ import { loadUserSeries, createSeriesLookup, softDeleteSeries } from '../series.
 import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
-import { softDeleteBook } from '../bin.js';
+import { binRepository } from '../repositories/bin-repository.js';
 
 /** Book image data structure */
 interface BookImage {
@@ -515,7 +515,7 @@ confirmDeleteBtn?.addEventListener('click', async () => {
   const seriesIdToDelete = shouldDeleteSeries ? book.seriesId : null;
 
   try {
-    await softDeleteBook(currentUser.uid, bookId, book);
+    await binRepository.softDelete(currentUser.uid, bookId, book);
 
     // Soft-delete the series if requested (can be restored with book)
     if (seriesIdToDelete) {

@@ -20,7 +20,7 @@ import {
 import { bookCard } from '../components/book-card.js';
 import { loadUserGenres, createGenreLookup } from '../genres.js';
 import { loadUserSeries, createSeriesLookup } from '../series.js';
-import { filterActivebooks } from '../bin.js';
+import { binRepository } from '../repositories/bin-repository.js';
 import { FilterPanel } from '../components/filter-panel.js';
 import {
   filterByRating,
@@ -589,7 +589,7 @@ function getUniqueAuthors(): string[] {
 function getFilteredBooks(): BookData[] {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   // First filter out binned (soft-deleted) books
-  let filtered = filterActivebooks(books);
+  let filtered = binRepository.filterActive(books);
   filtered = filterByRating(filtered, ratingFilter);
   filtered = filterByGenres(filtered, genreFilters);
   filtered = filterByStatuses(filtered, statusFilters);
@@ -621,7 +621,7 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const activeSeriesIds = filterOverrides?.seriesIds ?? seriesFilters;
   const activeAuthor = filterOverrides?.author ?? authorFilter;
 
-  const activeBooks = filterActivebooks(books);
+  const activeBooks = binRepository.filterActive(books);
 
   // For rating counts: apply all filters EXCEPT rating
   let booksForRating = activeBooks;
@@ -743,7 +743,7 @@ function updateFilterCounts(): void {
  */
 function updateBookCount(): void {
   const filtered = getFilteredBooks();
-  const total = filterActivebooks(books).length;
+  const total = binRepository.filterActive(books).length;
   const hasFilters = hasActiveFilters();
 
   let countText: string;

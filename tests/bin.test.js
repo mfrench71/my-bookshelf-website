@@ -27,7 +27,8 @@ vi.mock('../src/js/series.js', () => ({
   loadUserSeries: vi.fn(() => []),
   clearSeriesCache: vi.fn(),
   getSeriesById: vi.fn(),
-  restoreSeries: vi.fn()
+  restoreSeries: vi.fn(),
+  updateSeriesBookCounts: vi.fn()
 }));
 
 vi.mock('../src/js/utils/cache.js', () => ({
@@ -38,12 +39,7 @@ vi.mock('../src/js/utils/image-upload.js', () => ({
   deleteImages: vi.fn()
 }));
 
-import {
-  BIN_RETENTION_DAYS,
-  getDaysRemaining,
-  filterActivebooks,
-  filterBinnedBooks
-} from '../src/js/bin.js';
+import { binRepository, BIN_RETENTION_DAYS } from '../src/js/repositories/bin-repository.js';
 
 describe('Bin Module', () => {
   describe('BIN_RETENTION_DAYS', () => {
@@ -54,36 +50,36 @@ describe('Bin Module', () => {
 
   describe('getDaysRemaining', () => {
     it('should return full retention period for null deletedAt', () => {
-      expect(getDaysRemaining(null)).toBe(30);
+      expect(binRepository.getDaysRemaining(null)).toBe(30);
     });
 
     it('should return full retention period for undefined deletedAt', () => {
-      expect(getDaysRemaining(undefined)).toBe(30);
+      expect(binRepository.getDaysRemaining(undefined)).toBe(30);
     });
 
     it('should return correct days remaining', () => {
       const tenDaysAgo = Date.now() - (10 * 24 * 60 * 60 * 1000);
-      expect(getDaysRemaining(tenDaysAgo)).toBe(20);
+      expect(binRepository.getDaysRemaining(tenDaysAgo)).toBe(20);
     });
 
     it('should return 0 for expired books', () => {
       const thirtyOneDaysAgo = Date.now() - (31 * 24 * 60 * 60 * 1000);
-      expect(getDaysRemaining(thirtyOneDaysAgo)).toBe(0);
+      expect(binRepository.getDaysRemaining(thirtyOneDaysAgo)).toBe(0);
     });
 
     it('should return 0 for exactly expired books', () => {
       const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      expect(getDaysRemaining(thirtyDaysAgo)).toBe(0);
+      expect(binRepository.getDaysRemaining(thirtyDaysAgo)).toBe(0);
     });
 
     it('should return 30 for just-deleted books', () => {
       const justNow = Date.now();
-      expect(getDaysRemaining(justNow)).toBe(30);
+      expect(binRepository.getDaysRemaining(justNow)).toBe(30);
     });
 
     it('should return 1 for book deleted 29 days ago', () => {
       const twentyNineDaysAgo = Date.now() - (29 * 24 * 60 * 60 * 1000);
-      expect(getDaysRemaining(twentyNineDaysAgo)).toBe(1);
+      expect(binRepository.getDaysRemaining(twentyNineDaysAgo)).toBe(1);
     });
   });
 
@@ -95,7 +91,7 @@ describe('Bin Module', () => {
         { id: '3', title: 'Also Active' }
       ];
 
-      const result = filterActivebooks(books);
+      const result = binRepository.filterActive(books);
       expect(result).toHaveLength(2);
       expect(result.map(b => b.title)).toEqual(['Active', 'Also Active']);
     });
@@ -106,7 +102,7 @@ describe('Bin Module', () => {
         { id: '2', title: 'Book 2' }
       ];
 
-      const result = filterActivebooks(books);
+      const result = binRepository.filterActive(books);
       expect(result).toHaveLength(2);
     });
 
@@ -116,12 +112,12 @@ describe('Bin Module', () => {
         { id: '2', title: 'Deleted 2', deletedAt: Date.now() }
       ];
 
-      const result = filterActivebooks(books);
+      const result = binRepository.filterActive(books);
       expect(result).toHaveLength(0);
     });
 
     it('should return empty array for empty input', () => {
-      expect(filterActivebooks([])).toEqual([]);
+      expect(binRepository.filterActive([])).toEqual([]);
     });
   });
 
@@ -133,7 +129,7 @@ describe('Bin Module', () => {
         { id: '3', title: 'Also Active' }
       ];
 
-      const result = filterBinnedBooks(books);
+      const result = binRepository.filterBinned(books);
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe('Deleted');
     });
@@ -144,7 +140,7 @@ describe('Bin Module', () => {
         { id: '2', title: 'Book 2' }
       ];
 
-      const result = filterBinnedBooks(books);
+      const result = binRepository.filterBinned(books);
       expect(result).toHaveLength(0);
     });
 
@@ -154,12 +150,12 @@ describe('Bin Module', () => {
         { id: '2', title: 'Deleted 2', deletedAt: Date.now() }
       ];
 
-      const result = filterBinnedBooks(books);
+      const result = binRepository.filterBinned(books);
       expect(result).toHaveLength(2);
     });
 
     it('should return empty array for empty input', () => {
-      expect(filterBinnedBooks([])).toEqual([]);
+      expect(binRepository.filterBinned([])).toEqual([]);
     });
 
     it('should correctly filter by deletedAt truthiness', () => {
@@ -170,7 +166,7 @@ describe('Bin Module', () => {
         { id: '4', deletedAt: null } // Null - not deleted
       ];
 
-      const result = filterBinnedBooks(books);
+      const result = binRepository.filterBinned(books);
       // Only books with truthy deletedAt
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('2');
