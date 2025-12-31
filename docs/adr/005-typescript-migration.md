@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Completed (December 2025)
 
 ## Context
 
@@ -55,17 +55,23 @@ Use **gradual TypeScript migration**, starting with utilities and data layer.
 - **IDE support**: Better autocomplete and refactoring
 - **Documentation**: Types serve as documentation
 
-### Negative
-- **Inconsistency**: Mixed JS/TS codebase during migration
-- **Build complexity**: esbuild handles both .js and .ts
+### Negative (resolved)
+- ~~**Inconsistency**: Mixed JS/TS codebase during migration~~ - Migration complete
+- **Build complexity**: esbuild handles .ts files (minimal overhead)
 - **Import paths**: Must maintain .js extensions for browser compatibility
 
 ### Current State
 
+Migration completed December 2025.
+
 | Category | TypeScript | JavaScript |
 |----------|------------|------------|
-| Utilities | ✅ 80% | 20% |
-| Repositories | ✅ 100% | 0% |
-| Components | ✅ 70% | 30% |
-| Page scripts | ❌ 0% | 100% |
-| Schemas | ✅ 100% | 0% |
+| Utilities | ✅ 100% (22 files) | 0% |
+| Repositories | ✅ 100% (5 files) | 0% |
+| Components | ✅ 100% (11 files) | 0% |
+| Page scripts | ✅ 100% (21 files) | 0% |
+| Schemas | ✅ 100% (8 files) | 0% |
+| Widgets | ✅ 100% (5 files) | 0% |
+| Stores | ✅ 100% (1 file) | 0% |
+
+**Total: 73 TypeScript files, 0 JavaScript files** (excluding vendor)
