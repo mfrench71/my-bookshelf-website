@@ -27,6 +27,7 @@ import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
 import { getWishlistCount, clearWishlistCache } from './wishlist.js';
 import { getRecentSearches, saveRecentSearch, clearRecentSearches } from './utils/recent-searches.js';
+import { initCacheInvalidation, clearAllCaches } from './utils/cache-invalidation.js';
 
 /** Book data structure for search */
 interface BookData {
@@ -217,6 +218,8 @@ if (!onlineListenersAttached) {
 onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
+    // Initialize event-driven cache invalidation
+    initCacheInvalidation(user.uid);
     // Set email in both mobile and desktop menus
     if (userEmail) userEmail.textContent = user.email;
     if (userEmailMobile) userEmailMobile.textContent = user.email;
@@ -226,6 +229,8 @@ onAuthStateChanged(auth, async (user: User | null) => {
     await updateWishlistBadge(user.uid);
     // Don't load all books upfront - load when search opens
   } else {
+    // Clear caches on logout
+    clearAllCaches();
     window.location.href = '/login/';
   }
 });
