@@ -1,41 +1,42 @@
 import { BaseWidget } from '../base-widget.js';
 import { escapeHtml, renderStars, isValidImageUrl } from '../../utils.js';
+import type { Book, GenreLookup, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Top Rated Widget - Shows highest rated books
  */
 export class TopRatedWidget extends BaseWidget {
-  static id = 'topRated';
-  static name = 'Top Rated';
-  static icon = 'star';
-  static iconColor = 'text-yellow-500';
-  static defaultSize = 12;
-  static defaultSettings = { count: 6, minRating: 4 };
+  static override id = 'topRated';
+  static override name = 'Top Rated';
+  static override icon = 'star';
+  static override iconColor = 'text-yellow-500';
+  static override defaultSize = 12;
+  static override defaultSettings: Record<string, unknown> = { count: 6, minRating: 4 };
 
-  static settingsSchema = [
+  static override settingsSchema: SettingsSchemaItem[] = [
     { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] },
     { key: 'minRating', label: 'Minimum rating', type: 'select', options: [1, 2, 3, 4, 5] },
   ];
 
-  static filterAndSort(books) {
+  static override filterAndSort(books: Book[]): Book[] {
     return [...books].filter(b => b.rating && b.rating >= 4).sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return 'No highly rated books yet';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string {
     return '/books/';
   }
 
-  static getSeeAllParams() {
+  static override getSeeAllParams(): Record<string, string> {
     return { sort: 'rating-desc', rating: '4' };
   }
 
-  static render(books, config, _genreLookup) {
-    const minRating = config.settings?.minRating || 4;
-    const filteredBooks = books.filter(b => b.rating >= minRating);
+  static override render(books: Book[], config: WidgetConfig, _genreLookup?: GenreLookup): string {
+    const minRating = (config.settings?.minRating as number) || 4;
+    const filteredBooks = books.filter(b => (b.rating || 0) >= minRating);
 
     return `
       <div class="widget-scroll-container">
@@ -44,7 +45,7 @@ export class TopRatedWidget extends BaseWidget {
     `;
   }
 
-  static renderBookCard(book) {
+  static renderBookCard(book: Book): string {
     const cover =
       book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
         ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">

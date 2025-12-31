@@ -16,17 +16,33 @@ import { loadUserSeries, clearSeriesCache, getSeriesById, restoreSeries } from '
 import { clearBooksCache } from './utils/cache.js';
 import { deleteImages } from './utils/image-upload.js';
 
+/** Book data with optional bin fields */
+interface BinnedBook {
+  id: string;
+  deletedAt?: number | null;
+  genres?: string[];
+  seriesId?: string | null;
+  seriesPosition?: number | null;
+  images?: Array<{ storagePath: string }>;
+  [key: string]: unknown;
+}
+
+/** Result of restoring a book */
+interface RestoreResult {
+  warnings: string[];
+  seriesRestored: boolean;
+}
+
 /** Number of days before binned books are auto-deleted */
 export const BIN_RETENTION_DAYS = 30;
 
 /**
  * Soft delete a book (move to bin)
- * @param {string} userId - The user's ID
- * @param {string} bookId - The book ID
- * @param {Object} book - The book data (for updating counts)
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param bookId - The book ID
+ * @param book - The book data (for updating counts)
  */
-export async function softDeleteBook(userId, bookId, book) {
+export async function softDeleteBook(userId: string, bookId: string, book: BinnedBook): Promise<void> {
   const bookRef = doc(db, 'users', userId, 'books', bookId);
 
   await updateDoc(bookRef, {
@@ -55,15 +71,15 @@ export async function softDeleteBook(userId, bookId, book) {
 
 /**
  * Restore a book from bin
- * @param {string} userId - The user's ID
- * @param {string} bookId - The book ID
- * @param {Object} book - The book data
- * @returns {Promise<Object>} Result with warnings if any
+ * @param userId - The user's ID
+ * @param bookId - The book ID
+ * @param book - The book data
+ * @returns Result with warnings if any
  */
-export async function restoreBook(userId, bookId, book) {
-  const warnings = [];
+export async function restoreBook(userId: string, bookId: string, book: BinnedBook): Promise<RestoreResult> {
+  const warnings: string[] = [];
   const bookRef = doc(db, 'users', userId, 'books', bookId);
-  const updateData = {
+  const updateData: Record<string, unknown> = {
     deletedAt: null,
     updatedAt: serverTimestamp(),
   };
@@ -74,7 +90,7 @@ export async function restoreBook(userId, bookId, book) {
   if (book.seriesId) {
     // First check active series
     const activeSeries = await loadUserSeries(userId, true);
-    seriesExists = activeSeries.some(s => s.id === book.seriesId);
+    seriesExists = activeSeries.some((s: { id: string }) => s.id === book.seriesId);
 
     if (!seriesExists) {
       // Check if series was soft-deleted (can be restored)
@@ -98,7 +114,7 @@ export async function restoreBook(userId, bookId, book) {
   let validGenres = book.genres || [];
   if (validGenres.length > 0) {
     const genres = await loadUserGenres(userId, true);
-    const existingGenreIds = new Set(genres.map(g => g.id));
+    const existingGenreIds = new Set(genres.map((g: { id: string }) => g.id));
     const originalCount = validGenres.length;
     validGenres = validGenres.filter(gid => existingGenreIds.has(gid));
 
@@ -134,14 +150,17 @@ export async function restoreBook(userId, bookId, book) {
 
 /**
  * Permanently delete a book (hard delete)
- * @param {string} userId - The user's ID
- * @param {string} bookId - The book ID
- * @param {Object} [book] - The book data (for deleting images)
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param bookId - The book ID
+ * @param book - The book data (for deleting images)
  */
-export async function permanentlyDeleteBook(userId, bookId, book = null) {
+export async function permanentlyDeleteBook(
+  userId: string,
+  bookId: string,
+  book: BinnedBook | null = null
+): Promise<void> {
   // Delete images from Storage first (if book has any)
-  if (book?.images?.length > 0) {
+  if (book?.images?.length) {
     await deleteImages(book.images);
   }
 
@@ -154,11 +173,11 @@ export async function permanentlyDeleteBook(userId, bookId, book = null) {
 
 /**
  * Empty all books from bin (permanent delete)
- * @param {string} userId - The user's ID
- * @param {Array<Object>} binnedBooks - Books to delete
- * @returns {Promise<number>} Number of books deleted
+ * @param userId - The user's ID
+ * @param binnedBooks - Books to delete
+ * @returns Number of books deleted
  */
-export async function emptyBin(userId, binnedBooks) {
+export async function emptyBin(userId: string, binnedBooks: BinnedBook[]): Promise<number> {
   if (binnedBooks.length === 0) return 0;
 
   // Delete all images from Storage first
@@ -184,11 +203,11 @@ export async function emptyBin(userId, binnedBooks) {
 
 /**
  * Purge expired books from bin (older than retention period)
- * @param {string} userId - The user's ID
- * @param {Array<Object>} binnedBooks - All binned books
- * @returns {Promise<number>} Number of books purged
+ * @param userId - The user's ID
+ * @param binnedBooks - All binned books
+ * @returns Number of books purged
  */
-export async function purgeExpiredBooks(userId, binnedBooks) {
+export async function purgeExpiredBooks(userId: string, binnedBooks: BinnedBook[]): Promise<number> {
   const now = Date.now();
   const retentionMs = BIN_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
@@ -219,10 +238,10 @@ export async function purgeExpiredBooks(userId, binnedBooks) {
 
 /**
  * Calculate days remaining before auto-purge
- * @param {number} deletedAt - Timestamp when book was deleted
- * @returns {number} Days remaining (0 if expired)
+ * @param deletedAt - Timestamp when book was deleted
+ * @returns Days remaining (0 if expired)
  */
-export function getDaysRemaining(deletedAt) {
+export function getDaysRemaining(deletedAt: number | null | undefined): number {
   if (!deletedAt) return BIN_RETENTION_DAYS;
 
   const now = Date.now();
@@ -235,31 +254,31 @@ export function getDaysRemaining(deletedAt) {
 
 /**
  * Filter binned books from a list
- * @param {Array<Object>} books - All books
- * @returns {Array<Object>} Active (non-binned) books
+ * @param books - All books
+ * @returns Active (non-binned) books
  */
-export function filterActivebooks(books) {
+export function filterActivebooks<T extends { deletedAt?: number | null }>(books: T[]): T[] {
   return books.filter(book => !book.deletedAt);
 }
 
 /**
  * Filter to get only binned books
- * @param {Array<Object>} books - All books
- * @returns {Array<Object>} Binned books
+ * @param books - All books
+ * @returns Binned books
  */
-export function filterBinnedBooks(books) {
+export function filterBinnedBooks<T extends { deletedAt?: number | null }>(books: T[]): T[] {
   return books.filter(book => book.deletedAt);
 }
 
 /**
  * Update series book count
- * @param {string} userId - The user's ID
- * @param {string} seriesId - The series ID
- * @param {number} delta - Amount to change (+1 or -1)
+ * @param userId - The user's ID
+ * @param seriesId - The series ID
+ * @param delta - Amount to change (+1 or -1)
  */
-async function updateSeriesBookCount(userId, seriesId, delta) {
+async function updateSeriesBookCount(userId: string, seriesId: string, delta: number): Promise<void> {
   const series = await loadUserSeries(userId, true);
-  const targetSeries = series.find(s => s.id === seriesId);
+  const targetSeries = series.find((s: { id: string }) => s.id === seriesId);
 
   if (!targetSeries) return; // Series doesn't exist, skip
 

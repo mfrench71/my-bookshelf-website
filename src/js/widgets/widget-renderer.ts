@@ -8,13 +8,23 @@
 import { widgetRegistry } from './registry.js';
 import { getEnabledWidgets } from '../utils/widget-settings.js';
 import { initIcons } from '../utils.js';
+import type {
+  Book,
+  WishlistItem,
+  GenreLookup,
+  SeriesLookup,
+  WidgetSettings,
+  WidgetConfig,
+  WidgetInfo,
+  WidgetSizeOption,
+} from './types.js';
 
 /**
  * Render skeleton loading state for widgets
- * @param {HTMLElement} container - Container element
- * @param {number} count - Number of skeleton widgets to show
+ * @param container - Container element
+ * @param count - Number of skeleton widgets to show
  */
-export function renderWidgetSkeletons(container, count = 4) {
+export function renderWidgetSkeletons(container: HTMLElement, count = 4): void {
   const skeletons = Array(count)
     .fill(0)
     .map(
@@ -48,15 +58,22 @@ export function renderWidgetSkeletons(container, count = 4) {
 
 /**
  * Render all enabled widgets to container
- * @param {HTMLElement} container - Container element
- * @param {Array<Object>} books - User's books
- * @param {Object} settings - Widget settings { version, widgets: [...] }
- * @param {Object} genreLookup - Genre ID to genre object map
- * @param {Object} seriesLookup - Series ID to series object map
- * @param {Array<Object>} wishlistItems - User's wishlist items (optional)
+ * @param container - Container element
+ * @param books - User's books
+ * @param settings - Widget settings { version, widgets: [...] }
+ * @param genreLookup - Genre ID to genre object map
+ * @param seriesLookup - Series ID to series object map
+ * @param wishlistItems - User's wishlist items (optional)
  */
-export function renderWidgets(container, books, settings, genreLookup = {}, seriesLookup = null, wishlistItems = []) {
-  const enabledWidgets = getEnabledWidgets(settings);
+export function renderWidgets(
+  container: HTMLElement,
+  books: Book[],
+  settings: WidgetSettings,
+  genreLookup: GenreLookup = {},
+  seriesLookup: SeriesLookup | null = null,
+  wishlistItems: WishlistItem[] = []
+): void {
+  const enabledWidgets = getEnabledWidgets(settings) as WidgetConfig[];
 
   if (enabledWidgets.length === 0) {
     container.innerHTML = `
@@ -93,14 +110,20 @@ export function renderWidgets(container, books, settings, genreLookup = {}, seri
 
 /**
  * Render a single widget (for preview in settings)
- * @param {string} widgetId - Widget ID
- * @param {Array<Object>} books - Sample books
- * @param {Object} config - Widget configuration
- * @param {Object} genreLookup - Genre lookup
- * @param {Object} seriesLookup - Series lookup
- * @returns {string} - HTML string
+ * @param widgetId - Widget ID
+ * @param books - Sample books
+ * @param config - Widget configuration
+ * @param genreLookup - Genre lookup
+ * @param seriesLookup - Series lookup
+ * @returns HTML string
  */
-export function renderSingleWidget(widgetId, books, config, genreLookup = {}, seriesLookup = null) {
+export function renderSingleWidget(
+  widgetId: string,
+  books: Book[],
+  config: WidgetConfig,
+  genreLookup: GenreLookup = {},
+  seriesLookup: SeriesLookup | null = null
+): string {
   const Widget = widgetRegistry.get(widgetId);
   if (!Widget) {
     return '<p class="text-gray-500">Widget not found</p>';
@@ -111,9 +134,9 @@ export function renderSingleWidget(widgetId, books, config, genreLookup = {}, se
 
 /**
  * Get widget info for settings UI
- * @returns {Array<Object>} - Array of { id, name, icon, iconColor, defaultSize, defaultSettings, settingsSchema }
+ * @returns Array of widget info objects
  */
-export function getWidgetInfo() {
+export function getWidgetInfo(): WidgetInfo[] {
   return widgetRegistry.getAll().map(Widget => ({
     id: Widget.id,
     name: Widget.name,
@@ -128,7 +151,7 @@ export function getWidgetInfo() {
 /**
  * Size options for widget configuration
  */
-export const WIDGET_SIZES = [
+export const WIDGET_SIZES: WidgetSizeOption[] = [
   { value: 3, label: 'Small', description: 'Quarter width' },
   { value: 6, label: 'Medium', description: 'Half width' },
   { value: 9, label: 'Large', description: 'Three-quarter width' },

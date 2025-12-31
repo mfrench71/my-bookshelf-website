@@ -1,5 +1,6 @@
 import { BaseWidget } from '../base-widget.js';
 import { escapeHtml } from '../../utils.js';
+import type { Book, GenreLookup, SeriesLookup, Series, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Series Progress Widget - Shows series completion status
@@ -8,14 +9,14 @@ import { escapeHtml } from '../../utils.js';
  * with completion progress (owned vs total books).
  */
 export class SeriesProgressWidget extends BaseWidget {
-  static id = 'seriesProgress';
-  static name = 'Series Progress';
-  static icon = 'library';
-  static iconColor = 'text-purple-600';
-  static defaultSize = 6;
-  static defaultSettings = { count: 6, sortBy: 'name' };
+  static override id = 'seriesProgress';
+  static override name = 'Series Progress';
+  static override icon = 'library';
+  static override iconColor = 'text-purple-600';
+  static override defaultSize = 6;
+  static override defaultSettings: Record<string, unknown> = { count: 6, sortBy: 'name' };
 
-  static settingsSchema = [
+  static override settingsSchema: SettingsSchemaItem[] = [
     { key: 'count', label: 'Series to show', type: 'select', options: [3, 6, 9, 12] },
     {
       key: 'sortBy',
@@ -30,24 +31,29 @@ export class SeriesProgressWidget extends BaseWidget {
   ];
 
   // This widget doesn't use filterAndSort for books
-  static filterAndSort(_books) {
+  static override filterAndSort(_books: Book[]): Book[] {
     return [];
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return 'No series yet. Add books to a series to track progress.';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string {
     return '/settings/';
   }
 
   /**
    * Override renderWidget to handle series data instead of books
    */
-  static renderWidget(_books, config, _genreLookup, seriesLookup) {
+  static override renderWidget(
+    _books: Book[],
+    config: WidgetConfig,
+    _genreLookup?: GenreLookup,
+    seriesLookup?: SeriesLookup | null
+  ): string {
     // Get series from lookup
-    const series = seriesLookup ? Array.from(seriesLookup.values()) : [];
+    const series: Series[] = seriesLookup ? Array.from(seriesLookup.values()) : [];
 
     if (series.length === 0) {
       return `
@@ -67,11 +73,11 @@ export class SeriesProgressWidget extends BaseWidget {
     }
 
     // Sort series based on settings
-    const sortBy = config.settings?.sortBy || 'name';
+    const sortBy = (config.settings?.sortBy as string) || 'name';
     const sortedSeries = this.sortSeries(series, sortBy);
 
     // Limit to count
-    const count = config.settings?.count || 6;
+    const count = (config.settings?.count as number) || 6;
     const displaySeries = sortedSeries.slice(0, count);
 
     const seeAllHtml =
@@ -106,13 +112,13 @@ export class SeriesProgressWidget extends BaseWidget {
   /**
    * Sort series based on sort option
    */
-  static sortSeries(series, sortBy) {
+  static sortSeries(series: Series[], sortBy: string): Series[] {
     return [...series].sort((a, b) => {
       switch (sortBy) {
         case 'progress': {
           // Sort by completion percentage (descending), incomplete first
-          const aProgress = a.totalBooks ? a.bookCount / a.totalBooks : 0;
-          const bProgress = b.totalBooks ? b.bookCount / b.totalBooks : 0;
+          const aProgress = a.totalBooks ? (a.bookCount || 0) / a.totalBooks : 0;
+          const bProgress = b.totalBooks ? (b.bookCount || 0) / b.totalBooks : 0;
           // Incomplete series first, then by progress
           if (aProgress < 1 && bProgress >= 1) return -1;
           if (bProgress < 1 && aProgress >= 1) return 1;
@@ -130,7 +136,7 @@ export class SeriesProgressWidget extends BaseWidget {
   /**
    * Render a single series row with progress bar
    */
-  static renderSeriesRow(series) {
+  static renderSeriesRow(series: Series): string {
     const owned = series.bookCount || 0;
     const total = series.totalBooks;
     const hasTotal = total && total > 0;
@@ -144,7 +150,7 @@ export class SeriesProgressWidget extends BaseWidget {
     const bgColor = isComplete ? 'bg-green-100' : 'bg-gray-200';
 
     // Status text
-    let statusText;
+    let statusText: string;
     if (hasTotal) {
       statusText = isComplete
         ? `<span class="text-green-600 font-medium">Complete!</span>`

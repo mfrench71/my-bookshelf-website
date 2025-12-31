@@ -162,3 +162,8 @@ export const BookFormSchema = BookSchema.extend({
  * Partial schema for updating specific fields
  */
 export const BookUpdateSchema = BookSchema.partial();
+
+/** Inferred types from schemas */
+export type Book = z.infer<typeof BookSchema>;
+export type BookFormData = z.infer<typeof BookFormSchema>;
+export type BookUpdateData = z.infer<typeof BookUpdateSchema>;

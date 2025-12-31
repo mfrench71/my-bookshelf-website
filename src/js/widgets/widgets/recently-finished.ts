@@ -1,20 +1,23 @@
 import { BaseWidget } from '../base-widget.js';
 import { escapeHtml, parseTimestamp, formatDate, getBookStatus, isValidImageUrl } from '../../utils.js';
+import type { Book, GenreLookup, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Recently Finished Widget - Shows recently completed books
  */
 export class RecentlyFinishedWidget extends BaseWidget {
-  static id = 'recentlyFinished';
-  static name = 'Recently Finished';
-  static icon = 'check-circle';
-  static iconColor = 'text-purple-600';
-  static defaultSize = 12;
-  static defaultSettings = { count: 6 };
+  static override id = 'recentlyFinished';
+  static override name = 'Recently Finished';
+  static override icon = 'check-circle';
+  static override iconColor = 'text-purple-600';
+  static override defaultSize = 12;
+  static override defaultSettings: Record<string, unknown> = { count: 6 };
 
-  static settingsSchema = [{ key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] }];
+  static override settingsSchema: SettingsSchemaItem[] = [
+    { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] },
+  ];
 
-  static filterAndSort(books) {
+  static override filterAndSort(books: Book[]): Book[] {
     return [...books]
       .filter(b => getBookStatus(b) === 'finished')
       .sort((a, b) => {
@@ -27,19 +30,19 @@ export class RecentlyFinishedWidget extends BaseWidget {
       });
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return 'No finished books yet';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string {
     return '/books/';
   }
 
-  static getSeeAllParams() {
+  static override getSeeAllParams(): Record<string, string> {
     return { status: 'finished' };
   }
 
-  static render(books, _config, _genreLookup) {
+  static override render(books: Book[], _config: WidgetConfig, _genreLookup?: GenreLookup): string {
     return `
       <div class="widget-scroll-container">
         ${books.map(book => this.renderBookCard(book)).join('')}
@@ -47,7 +50,7 @@ export class RecentlyFinishedWidget extends BaseWidget {
     `;
   }
 
-  static renderBookCard(book) {
+  static renderBookCard(book: Book): string {
     const cover =
       book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
         ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">

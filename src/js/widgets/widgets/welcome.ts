@@ -1,39 +1,49 @@
 import { BaseWidget } from '../base-widget.js';
+import type { Book, GenreLookup, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Welcome Widget - Shows welcome message and library stats
  */
 export class WelcomeWidget extends BaseWidget {
-  static id = 'welcome';
-  static name = 'Welcome';
-  static icon = 'home';
-  static iconColor = 'text-primary';
-  static defaultSize = 12;
-  static defaultSettings = {};
+  static override id = 'welcome';
+  static override name = 'Welcome';
+  static override icon = 'home';
+  static override iconColor = 'text-primary';
+  static override defaultSize = 12;
+  static override defaultSettings: Record<string, unknown> = {};
 
-  static settingsSchema = [];
+  static override settingsSchema: SettingsSchemaItem[] = [];
 
-  static filterAndSort(books) {
+  static override filterAndSort(books: Book[]): Book[] {
     return books;
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return '';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string | null {
     return null;
   }
 
   /**
    * Override renderWidget to create a custom layout without the standard header
    */
-  static renderWidget(books, _config, _genreLookup) {
+  static override renderWidget(books: Book[], _config: WidgetConfig, _genreLookup?: GenreLookup): string {
     const totalBooks = books.length;
     const thisYear = new Date().getFullYear();
     const booksThisYear = books.filter(b => {
       if (!b.createdAt) return false;
-      const date = new Date(b.createdAt);
+      let date: Date;
+      if (typeof b.createdAt === 'string') {
+        date = new Date(b.createdAt);
+      } else if (typeof b.createdAt === 'number') {
+        date = new Date(b.createdAt);
+      } else if (b.createdAt && typeof b.createdAt === 'object' && 'toDate' in b.createdAt) {
+        date = b.createdAt.toDate();
+      } else {
+        date = b.createdAt as Date;
+      }
       return date.getFullYear() === thisYear;
     }).length;
 

@@ -82,3 +82,10 @@ export const DeleteAccountSchema = z.object({
     errorMap: () => ({ message: 'Please type DELETE to confirm' }),
   }),
 });
+
+/** Inferred types from schemas */
+export type LoginData = z.infer<typeof LoginSchema>;
+export type RegisterData = z.infer<typeof RegisterSchema>;
+export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
+export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;
+export type DeleteAccountData = z.infer<typeof DeleteAccountSchema>;

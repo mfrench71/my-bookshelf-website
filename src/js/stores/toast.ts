@@ -2,13 +2,39 @@
 
 import { escapeHtml, initIcons } from '../utils.js';
 
+/** Toast type */
+type ToastType = 'success' | 'error' | 'info';
+
+/** Toast data for display/queue */
+interface ToastData {
+  message: string;
+  duration: number;
+  type: ToastType;
+}
+
+/** Toast state for tracking active toasts */
+interface ToastState {
+  element: HTMLElement;
+  timeout: ReturnType<typeof setTimeout> | null;
+  isPaused: boolean;
+  isSwiping?: boolean;
+  remainingTime?: number;
+  startTime?: number;
+}
+
+/** Toast options */
+interface ToastOptions {
+  duration?: number;
+  type?: ToastType;
+}
+
 // Toast queue and state management
 const MAX_VISIBLE_TOASTS = 3;
-const toastQueue = [];
-let activeToasts = [];
+const toastQueue: ToastData[] = [];
+let activeToasts: ToastState[] = [];
 
 // Icon names for each toast type
-const TOAST_ICONS = {
+const TOAST_ICONS: Record<ToastType, string> = {
   success: 'check-circle',
   error: 'x-circle',
   info: 'info',
@@ -16,9 +42,9 @@ const TOAST_ICONS = {
 
 /**
  * Get or create the toast container element
- * @returns {HTMLElement} The toast container
+ * @returns The toast container
  */
-function getToastContainer() {
+function getToastContainer(): HTMLElement {
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -34,17 +60,17 @@ function getToastContainer() {
 
 /**
  * Create a toast element
- * @param {string} message - The message to display
- * @param {string} type - Toast type ('success', 'error', 'info')
- * @returns {HTMLElement} The toast element
+ * @param message - The message to display
+ * @param type - Toast type ('success', 'error', 'info')
+ * @returns The toast element
  */
-function createToastElement(message, type) {
+function createToastElement(message: string, type: ToastType): HTMLElement {
   const toast = document.createElement('div');
   toast.className =
     'toast-item px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 cursor-pointer pointer-events-auto opacity-0';
 
   // Type-specific colours
-  const typeClasses = {
+  const typeClasses: Record<ToastType, string> = {
     success: 'bg-green-600 text-white',
     error: 'bg-red-600 text-white',
     info: 'bg-gray-800 text-white',
@@ -69,15 +95,13 @@ function createToastElement(message, type) {
 
 /**
  * Show a toast notification with queue support
- * @param {string} message - The message to display
- * @param {Object} options - Optional settings
- * @param {number} options.duration - Duration in ms (default: 3000)
- * @param {string} options.type - 'success', 'error', or 'info' (default: 'info')
+ * @param message - The message to display
+ * @param options - Optional settings
  */
-export function showToast(message, options = {}) {
+export function showToast(message: string, options: ToastOptions | number = {}): void {
   const { duration = 3000, type = 'info' } = typeof options === 'number' ? { duration: options } : options;
 
-  const toastData = { message, duration, type };
+  const toastData: ToastData = { message, duration, type };
 
   // If we have room, show immediately; otherwise queue
   if (activeToasts.length < MAX_VISIBLE_TOASTS) {
@@ -89,15 +113,15 @@ export function showToast(message, options = {}) {
 
 /**
  * Display a toast immediately
- * @param {Object} toastData - Toast configuration
+ * @param toastData - Toast configuration
  */
-function displayToast(toastData) {
+function displayToast(toastData: ToastData): void {
   const { message, duration, type } = toastData;
   const container = getToastContainer();
   const toast = createToastElement(message, type);
 
   // Track this toast
-  const toastState = {
+  const toastState: ToastState = {
     element: toast,
     timeout: null,
     isPaused: false,
@@ -114,7 +138,7 @@ function displayToast(toastData) {
   });
 
   // Dismiss handlers
-  const dismiss = () => dismissToast(toastState);
+  const dismiss = (): void => dismissToast(toastState);
 
   // Click to dismiss (only if not swiping)
   toast.addEventListener('click', _e => {
@@ -136,10 +160,10 @@ function displayToast(toastData) {
 
 /**
  * Schedule auto-dismiss for a toast
- * @param {Object} toastState - Toast state object
- * @param {number} duration - Duration in ms
+ * @param toastState - Toast state object
+ * @param duration - Duration in ms
  */
-function scheduleAutoDismiss(toastState, duration) {
+function scheduleAutoDismiss(toastState: ToastState, duration: number): void {
   toastState.remainingTime = duration;
   toastState.startTime = Date.now();
   toastState.timeout = setTimeout(() => {
@@ -149,23 +173,23 @@ function scheduleAutoDismiss(toastState, duration) {
 
 /**
  * Pause toast auto-dismiss (on hover/focus)
- * @param {Object} toastState - Toast state object
+ * @param toastState - Toast state object
  */
-function pauseToast(toastState) {
+function pauseToast(toastState: ToastState): void {
   if (toastState.isPaused || !toastState.timeout) return;
   toastState.isPaused = true;
   clearTimeout(toastState.timeout);
   toastState.timeout = null;
   // Calculate remaining time
-  toastState.remainingTime -= Date.now() - toastState.startTime;
+  toastState.remainingTime! -= Date.now() - toastState.startTime!;
 }
 
 /**
  * Resume toast auto-dismiss (on mouse leave/blur)
- * @param {Object} toastState - Toast state object
- * @param {number} originalDuration - Original duration (fallback)
+ * @param toastState - Toast state object
+ * @param originalDuration - Original duration (fallback)
  */
-function resumeToast(toastState, originalDuration) {
+function resumeToast(toastState: ToastState, originalDuration: number): void {
   if (!toastState.isPaused) return;
   toastState.isPaused = false;
   const remaining = Math.max(toastState.remainingTime || originalDuration, 500);
@@ -177,11 +201,11 @@ function resumeToast(toastState, originalDuration) {
 
 /**
  * Set up swipe-to-dismiss gesture for touch devices
- * @param {HTMLElement} toast - Toast element
- * @param {Object} toastState - Toast state object
- * @param {number} duration - Original duration
+ * @param toast - Toast element
+ * @param toastState - Toast state object
+ * @param duration - Original duration
  */
-function setupSwipeToDismiss(toast, toastState, duration) {
+function setupSwipeToDismiss(toast: HTMLElement, toastState: ToastState, duration: number): void {
   let startX = 0;
   let currentX = 0;
   const SWIPE_THRESHOLD = 80; // pixels to trigger dismiss
@@ -208,7 +232,7 @@ function setupSwipeToDismiss(toast, toastState, duration) {
       if (diffX > 10) {
         toastState.isSwiping = true;
         toast.style.transform = `translateX(${diffX}px)`;
-        toast.style.opacity = Math.max(0.3, 1 - diffX / 150);
+        toast.style.opacity = String(Math.max(0.3, 1 - diffX / 150));
       }
     },
     { passive: true }
@@ -243,9 +267,9 @@ function setupSwipeToDismiss(toast, toastState, duration) {
 
 /**
  * Dismiss a toast with exit animation
- * @param {Object} toastState - Toast state object
+ * @param toastState - Toast state object
  */
-function dismissToast(toastState) {
+function dismissToast(toastState: ToastState): void {
   const { element, timeout } = toastState;
 
   // Clear timeout if still pending
@@ -268,7 +292,7 @@ function dismissToast(toastState) {
     // Process queue if there are waiting toasts
     if (toastQueue.length > 0 && activeToasts.length < MAX_VISIBLE_TOASTS) {
       const next = toastQueue.shift();
-      displayToast(next);
+      if (next) displayToast(next);
     }
   }, 150);
 }
@@ -276,7 +300,7 @@ function dismissToast(toastState) {
 /**
  * Clear all toasts immediately
  */
-export function clearAllToasts() {
+export function clearAllToasts(): void {
   // Clear queue
   toastQueue.length = 0;
 
@@ -290,7 +314,7 @@ export function clearAllToasts() {
  * Reset toast state (for testing purposes)
  * Clears all toasts and removes the container
  */
-export function resetToastState() {
+export function resetToastState(): void {
   // Clear all timeouts
   activeToasts.forEach(toastState => {
     if (toastState.timeout) {

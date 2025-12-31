@@ -87,3 +87,9 @@ export const SeriesFormSchema = SeriesSchema.extend({
  * Partial schema for updating specific fields
  */
 export const SeriesUpdateSchema = SeriesSchema.partial();
+
+/** Inferred types from schemas */
+export type ExpectedBook = z.infer<typeof ExpectedBookSchema>;
+export type Series = z.infer<typeof SeriesSchema>;
+export type SeriesFormData = z.infer<typeof SeriesFormSchema>;
+export type SeriesUpdateData = z.infer<typeof SeriesUpdateSchema>;

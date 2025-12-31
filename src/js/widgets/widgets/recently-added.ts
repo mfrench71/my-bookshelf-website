@@ -1,20 +1,23 @@
 import { BaseWidget } from '../base-widget.js';
 import { escapeHtml, parseTimestamp, formatDate, isValidImageUrl } from '../../utils.js';
+import type { Book, GenreLookup, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Recently Added Widget - Shows most recently added books
  */
 export class RecentlyAddedWidget extends BaseWidget {
-  static id = 'recentlyAdded';
-  static name = 'Recently Added';
-  static icon = 'plus-circle';
-  static iconColor = 'text-green-600';
-  static defaultSize = 12;
-  static defaultSettings = { count: 6 };
+  static override id = 'recentlyAdded';
+  static override name = 'Recently Added';
+  static override icon = 'plus-circle';
+  static override iconColor = 'text-green-600';
+  static override defaultSize = 12;
+  static override defaultSettings: Record<string, unknown> = { count: 6 };
 
-  static settingsSchema = [{ key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] }];
+  static override settingsSchema: SettingsSchemaItem[] = [
+    { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] },
+  ];
 
-  static filterAndSort(books) {
+  static override filterAndSort(books: Book[]): Book[] {
     return [...books].sort((a, b) => {
       const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
       const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
@@ -22,19 +25,19 @@ export class RecentlyAddedWidget extends BaseWidget {
     });
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return 'No books added yet';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string {
     return '/books/';
   }
 
-  static getSeeAllParams() {
+  static override getSeeAllParams(): Record<string, string> {
     return { sort: 'createdAt-desc' };
   }
 
-  static render(books, _config, _genreLookup) {
+  static override render(books: Book[], _config: WidgetConfig, _genreLookup?: GenreLookup): string {
     return `
       <div class="widget-scroll-container">
         ${books.map(book => this.renderBookCard(book)).join('')}
@@ -42,7 +45,7 @@ export class RecentlyAddedWidget extends BaseWidget {
     `;
   }
 
-  static renderBookCard(book) {
+  static renderBookCard(book: Book): string {
     const cover =
       book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
         ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">

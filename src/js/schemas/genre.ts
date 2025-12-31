@@ -2,6 +2,13 @@
 import { z } from '/js/vendor/zod.js';
 import { GENRE_COLORS } from '../genres.js';
 
+/** Genre data structure */
+interface Genre {
+  id: string;
+  name: string;
+  color: string;
+}
+
 /**
  * Schema for validating genre data
  * - name: required for both add and edit
@@ -37,12 +44,16 @@ export const UpdateGenreSchema = GenreSchema.partial();
 
 /**
  * Helper to validate genre name is unique
- * @param {string} name - Genre name to check
- * @param {Array} existingGenres - Array of existing genre objects
- * @param {string|null} excludeId - Genre ID to exclude (for updates)
- * @returns {string|null} Error message or null if valid
+ * @param name - Genre name to check
+ * @param existingGenres - Array of existing genre objects
+ * @param excludeId - Genre ID to exclude (for updates)
+ * @returns Error message or null if valid
  */
-export function validateGenreUniqueness(name, existingGenres, excludeId = null) {
+export function validateGenreUniqueness(
+  name: string,
+  existingGenres: Genre[],
+  excludeId: string | null = null
+): string | null {
   const normalizedName = name.trim().toLowerCase();
   const duplicate = existingGenres.find(g => g.name.toLowerCase() === normalizedName && g.id !== excludeId);
 
@@ -55,12 +66,16 @@ export function validateGenreUniqueness(name, existingGenres, excludeId = null) 
 
 /**
  * Helper to validate colour is not already in use
- * @param {string} color - Colour to check
- * @param {Array} existingGenres - Array of existing genre objects
- * @param {string|null} excludeId - Genre ID to exclude (for updates)
- * @returns {string|null} Error message or null if valid
+ * @param color - Colour to check
+ * @param existingGenres - Array of existing genre objects
+ * @param excludeId - Genre ID to exclude (for updates)
+ * @returns Error message or null if valid
  */
-export function validateColourUniqueness(color, existingGenres, excludeId = null) {
+export function validateColourUniqueness(
+  color: string,
+  existingGenres: Genre[],
+  excludeId: string | null = null
+): string | null {
   const normalizedColor = color.toLowerCase();
   const duplicate = existingGenres.find(g => g.color.toLowerCase() === normalizedColor && g.id !== excludeId);
 
@@ -70,3 +85,6 @@ export function validateColourUniqueness(color, existingGenres, excludeId = null
 
   return null;
 }
+
+/** Inferred type from GenreSchema */
+export type GenreData = z.infer<typeof GenreSchema>;

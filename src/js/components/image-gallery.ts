@@ -6,6 +6,29 @@ import { uploadImage, deleteImage, validateImage } from '../utils/image-upload.j
 import { setPrimaryImage, getPrimaryImage } from '../schemas/image.js';
 import { ConfirmModal } from './modal.js';
 
+/** Image data structure */
+export interface GalleryImage {
+  id: string;
+  url: string;
+  storagePath: string;
+  isPrimary: boolean;
+  uploadedAt: number;
+  sizeBytes?: number;
+  width?: number;
+  height?: number;
+  caption?: string;
+}
+
+/** Options for ImageGallery constructor */
+export interface ImageGalleryOptions {
+  container: HTMLElement;
+  userId: string;
+  bookId?: string | null;
+  maxImages?: number;
+  onPrimaryChange?: (url: string | null, userInitiated?: boolean) => void;
+  onChange?: (images: GalleryImage[]) => void;
+}
+
 /**
  * ImageGallery - Upload, display, and manage book images
  *
@@ -20,16 +43,36 @@ import { ConfirmModal } from './modal.js';
  * });
  */
 export class ImageGallery {
+  private container: HTMLElement;
+  private userId: string;
+  private bookId: string;
+  private maxImages: number;
+  private onPrimaryChange: (url: string | null, userInitiated?: boolean) => void;
+  private onChange: (images: GalleryImage[]) => void;
+
+  private images: GalleryImage[] = [];
+  private uploading: Map<string, number> = new Map(); // id -> progress
+  private newlyUploaded: Set<string> = new Set(); // Track images uploaded this session (for cleanup on cancel)
+  private draggedIndex: number | null = null;
+
+  // Touch drag state
+  private touchStartIndex?: number;
+  private touchStartTime?: number;
+  private touchStartY?: number;
+  private touchStartX?: number;
+  private isTouchDragging = false;
+
   /**
-   * @param {Object} options
-   * @param {HTMLElement} options.container - Container element to render into
-   * @param {string} options.userId - Current user's ID
-   * @param {string} [options.bookId] - Book ID (null for new books, uses temp ID)
-   * @param {number} [options.maxImages=10] - Maximum images allowed
-   * @param {Function} [options.onPrimaryChange] - Callback when primary image changes (url or null)
-   * @param {Function} [options.onChange] - Callback when images array changes
+   * @param options - Gallery configuration
    */
-  constructor({ container, userId, bookId = null, maxImages = 10, onPrimaryChange = () => {}, onChange = () => {} }) {
+  constructor({
+    container,
+    userId,
+    bookId = null,
+    maxImages = 10,
+    onPrimaryChange = () => {},
+    onChange = () => {},
+  }: ImageGalleryOptions) {
     this.container = container;
     this.userId = userId;
     this.bookId = bookId || `temp-${Date.now()}`;
@@ -37,27 +80,22 @@ export class ImageGallery {
     this.onPrimaryChange = onPrimaryChange;
     this.onChange = onChange;
 
-    this.images = [];
-    this.uploading = new Map(); // id -> progress
-    this.newlyUploaded = new Set(); // Track images uploaded this session (for cleanup on cancel)
-    this.draggedIndex = null;
-
     this.render();
   }
 
   /**
    * Set book ID (call when saving new book)
-   * @param {string} bookId
+   * @param bookId - The book ID
    */
-  setBookId(bookId) {
+  setBookId(bookId: string): void {
     this.bookId = bookId;
   }
 
   /**
    * Load existing images
-   * @param {Array} images - Array of image objects
+   * @param images - Array of image objects
    */
-  setImages(images) {
+  setImages(images: GalleryImage[]): void {
     this.images = images || [];
     this.render();
     this.notifyPrimaryChange();
@@ -65,34 +103,34 @@ export class ImageGallery {
 
   /**
    * Get current images array
-   * @returns {Array}
+   * @returns Copy of images array
    */
-  getImages() {
+  getImages(): GalleryImage[] {
     return [...this.images];
   }
 
   /**
    * Get primary image URL
-   * @returns {string|null}
+   * @returns Primary image URL or null
    */
-  getPrimaryImageUrl() {
+  getPrimaryImageUrl(): string | null {
     const primary = getPrimaryImage(this.images);
     return primary ? primary.url : null;
   }
 
   /**
    * Check if there are any images
-   * @returns {boolean}
+   * @returns True if images exist
    */
-  hasImages() {
+  hasImages(): boolean {
     return this.images.length > 0;
   }
 
   /**
    * Handle file selection from input
-   * @param {FileList} files
+   * @param files - Selected files
    */
-  async handleFileSelect(files) {
+  async handleFileSelect(files: FileList): Promise<void> {
     const fileArray = Array.from(files);
     const availableSlots = this.maxImages - this.images.length - this.uploading.size;
 
@@ -105,7 +143,7 @@ export class ImageGallery {
     for (const file of fileArray) {
       const validation = validateImage(file);
       if (!validation.valid) {
-        showToast(validation.error, { type: 'error' });
+        showToast(validation.error || 'Invalid image', { type: 'error' });
         return;
       }
     }
@@ -118,21 +156,21 @@ export class ImageGallery {
 
   /**
    * Upload a single image
-   * @param {File} file
+   * @param file - File to upload
    */
-  async uploadSingleImage(file) {
+  async uploadSingleImage(file: File): Promise<void> {
     const tempId = `uploading-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.uploading.set(tempId, 0);
     this.render();
 
     try {
-      const result = await uploadImage(file, this.userId, this.bookId, progress => {
+      const result = await uploadImage(file, this.userId, this.bookId, (progress: number) => {
         this.uploading.set(tempId, progress);
         this.render();
       });
 
       // Create image object
-      const newImage = {
+      const newImage: GalleryImage = {
         id: result.id,
         url: result.url,
         storagePath: result.storagePath,
@@ -161,9 +199,9 @@ export class ImageGallery {
 
   /**
    * Delete an image
-   * @param {string} imageId
+   * @param imageId - ID of image to delete
    */
-  async handleDelete(imageId) {
+  async handleDelete(imageId: string): Promise<void> {
     const image = this.images.find(img => img.id === imageId);
     if (!image) return;
 
@@ -199,7 +237,7 @@ export class ImageGallery {
       await deleteImage(image.storagePath);
     } catch (error) {
       // Ignore storage errors - file may already be deleted
-      console.warn('Storage delete failed (file may already be deleted):', error.message);
+      console.warn('Storage delete failed (file may already be deleted):', (error as Error).message);
     }
 
     showToast('Image deleted', { type: 'success' });
@@ -207,9 +245,9 @@ export class ImageGallery {
 
   /**
    * Set an image as primary cover
-   * @param {string} imageId
+   * @param imageId - ID of image to set as primary
    */
-  handleSetPrimary(imageId) {
+  handleSetPrimary(imageId: string): void {
     this.images = setPrimaryImage(this.images, imageId);
     this.render();
     this.notifyChange();
@@ -218,19 +256,21 @@ export class ImageGallery {
 
   /**
    * Handle drag start
-   * @param {number} index
+   * @param index - Index of dragged item
    */
-  handleDragStart(index) {
+  handleDragStart(index: number): void {
     this.draggedIndex = index;
   }
 
   /**
    * Handle drag over
-   * @param {number} index
-   * @param {DragEvent} event
+   * @param index - Index being dragged over
+   * @param event - Drag event
    */
-  handleDragOver(index, event) {
-    event.preventDefault();
+  handleDragOver(index: number, event: DragEvent | TouchEvent): void {
+    if ('preventDefault' in event) {
+      event.preventDefault();
+    }
     if (this.draggedIndex === null || this.draggedIndex === index) return;
 
     // Reorder images
@@ -244,7 +284,7 @@ export class ImageGallery {
   /**
    * Handle drag end
    */
-  handleDragEnd() {
+  handleDragEnd(): void {
     if (this.draggedIndex !== null) {
       this.draggedIndex = null;
       this.notifyChange();
@@ -254,15 +294,15 @@ export class ImageGallery {
   /**
    * Notify parent of images change
    */
-  notifyChange() {
+  notifyChange(): void {
     this.onChange(this.getImages());
   }
 
   /**
    * Notify parent of primary image change
-   * @param {boolean} [userInitiated=false] - True if user explicitly clicked to set as cover
+   * @param userInitiated - True if user explicitly clicked to set as cover
    */
-  notifyPrimaryChange(userInitiated = false) {
+  notifyPrimaryChange(userInitiated = false): void {
     const primaryUrl = this.getPrimaryImageUrl();
     this.onPrimaryChange(primaryUrl, userInitiated);
   }
@@ -270,7 +310,7 @@ export class ImageGallery {
   /**
    * Render the gallery UI
    */
-  render() {
+  render(): void {
     const total = this.images.length + this.uploading.size;
     const canAdd = total < this.maxImages;
 
@@ -309,11 +349,11 @@ export class ImageGallery {
 
   /**
    * Render a single image tile
-   * @param {Object} img
-   * @param {number} index
-   * @returns {string}
+   * @param img - Image data
+   * @param index - Index in array
+   * @returns HTML string
    */
-  renderImageTile(img, index) {
+  renderImageTile(img: GalleryImage, index: number): string {
     const isPrimary = img.isPrimary;
 
     return `
@@ -372,11 +412,11 @@ export class ImageGallery {
 
   /**
    * Render an uploading tile with progress
-   * @param {string} id
-   * @param {number} progress
-   * @returns {string}
+   * @param _id - Temporary upload ID
+   * @param progress - Upload progress percentage
+   * @returns HTML string
    */
-  renderUploadingTile(id, progress) {
+  renderUploadingTile(_id: string, progress: number): string {
     return `
       <div class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300">
         <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -392,9 +432,9 @@ export class ImageGallery {
 
   /**
    * Render empty slot placeholder
-   * @returns {string}
+   * @returns HTML string
    */
-  renderEmptySlot() {
+  renderEmptySlot(): string {
     return `
       <label class="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer flex flex-col items-center justify-center">
         <i data-lucide="image-plus" class="w-8 h-8 text-gray-400" aria-hidden="true"></i>
@@ -407,41 +447,46 @@ export class ImageGallery {
   /**
    * Attach event listeners
    */
-  attachEventListeners() {
+  attachEventListeners(): void {
     // File input listeners
-    const fileInputs = this.container.querySelectorAll('input[type="file"]');
+    const fileInputs = this.container.querySelectorAll<HTMLInputElement>('input[type="file"]');
     fileInputs.forEach(input => {
       input.addEventListener('change', e => {
-        if (e.target.files && e.target.files.length > 0) {
-          this.handleFileSelect(e.target.files);
-          e.target.value = ''; // Reset for same file selection
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files.length > 0) {
+          this.handleFileSelect(target.files);
+          target.value = ''; // Reset for same file selection
         }
       });
     });
 
     // Delete buttons
-    this.container.querySelectorAll('.delete-btn').forEach(btn => {
+    this.container.querySelectorAll<HTMLButtonElement>('.delete-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
         const imageId = btn.dataset.imageId;
-        this.handleDelete(imageId);
+        if (imageId) {
+          this.handleDelete(imageId);
+        }
       });
     });
 
     // Set primary buttons
-    this.container.querySelectorAll('.set-primary-btn').forEach(btn => {
+    this.container.querySelectorAll<HTMLButtonElement>('.set-primary-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
         const imageId = btn.dataset.imageId;
-        this.handleSetPrimary(imageId);
+        if (imageId) {
+          this.handleSetPrimary(imageId);
+        }
       });
     });
 
     // Drag and drop (desktop)
-    const tiles = this.container.querySelectorAll('[draggable="true"]');
+    const tiles = this.container.querySelectorAll<HTMLElement>('[draggable="true"]');
     tiles.forEach(tile => {
       tile.addEventListener('dragstart', () => {
-        const index = parseInt(tile.dataset.index, 10);
+        const index = parseInt(tile.dataset.index || '0', 10);
         this.handleDragStart(index);
         tile.classList.add('opacity-50');
       });
@@ -453,7 +498,7 @@ export class ImageGallery {
 
       tile.addEventListener('dragover', e => {
         e.preventDefault();
-        const index = parseInt(tile.dataset.index, 10);
+        const index = parseInt(tile.dataset.index || '0', 10);
         this.handleDragOver(index, e);
       });
 
@@ -464,7 +509,7 @@ export class ImageGallery {
           // Only handle if more than one image (reordering makes sense)
           if (this.images.length <= 1) return;
 
-          const index = parseInt(tile.dataset.index, 10);
+          const index = parseInt(tile.dataset.index || '0', 10);
           this.touchStartIndex = index;
           this.touchStartTime = Date.now();
           this.touchStartY = e.touches[0].clientY;
@@ -480,8 +525,8 @@ export class ImageGallery {
           if (this.touchStartIndex === undefined) return;
 
           const touch = e.touches[0];
-          const deltaX = Math.abs(touch.clientX - this.touchStartX);
-          const deltaY = Math.abs(touch.clientY - this.touchStartY);
+          const deltaX = Math.abs(touch.clientX - (this.touchStartX || 0));
+          const deltaY = Math.abs(touch.clientY - (this.touchStartY || 0));
 
           // Start dragging after moving 10px
           if (!this.isTouchDragging && (deltaX > 10 || deltaY > 10)) {
@@ -498,10 +543,10 @@ export class ImageGallery {
             const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
             tile.style.pointerEvents = '';
 
-            const tileBelow = elementBelow?.closest('[draggable="true"]');
+            const tileBelow = elementBelow?.closest<HTMLElement>('[draggable="true"]');
 
             if (tileBelow && tileBelow !== tile) {
-              const targetIndex = parseInt(tileBelow.dataset.index, 10);
+              const targetIndex = parseInt(tileBelow.dataset.index || '', 10);
               if (!isNaN(targetIndex) && targetIndex !== this.draggedIndex) {
                 this.handleDragOver(targetIndex, e);
               }
@@ -524,17 +569,17 @@ export class ImageGallery {
 
   /**
    * Check if there are unsaved uploads
-   * @returns {boolean}
+   * @returns True if unsaved uploads exist
    */
-  hasUnsavedUploads() {
+  hasUnsavedUploads(): boolean {
     return this.newlyUploaded.size > 0;
   }
 
   /**
    * Get newly uploaded images (for cleanup)
-   * @returns {Array} Array of image objects that were uploaded this session
+   * @returns Array of image objects that were uploaded this session
    */
-  getNewlyUploadedImages() {
+  getNewlyUploadedImages(): GalleryImage[] {
     return this.images.filter(img => this.newlyUploaded.has(img.id));
   }
 
@@ -542,16 +587,16 @@ export class ImageGallery {
    * Mark all uploads as saved (call after successful book save)
    * Clears the tracking so images won't be deleted on navigation
    */
-  markAsSaved() {
+  markAsSaved(): void {
     this.newlyUploaded.clear();
   }
 
   /**
    * Delete all newly uploaded images (call on cancel/navigation)
    * Best effort - may not complete if page unloads
-   * @returns {Promise<number>} Number of images deleted
+   * @returns Number of images deleted
    */
-  async cleanupUnsavedUploads() {
+  async cleanupUnsavedUploads(): Promise<number> {
     if (this.newlyUploaded.size === 0) return 0;
 
     const imagesToDelete = this.getNewlyUploadedImages();
@@ -576,7 +621,7 @@ export class ImageGallery {
   /**
    * Cleanup - call when component is removed
    */
-  destroy() {
+  destroy(): void {
     this.container.innerHTML = '';
     this.images = [];
     this.uploading.clear();

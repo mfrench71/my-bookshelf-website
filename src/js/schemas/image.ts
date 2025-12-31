@@ -3,6 +3,25 @@
 
 import { z } from '/js/vendor/zod.js';
 
+/** Image data structure */
+export interface ImageData {
+  id: string;
+  url: string;
+  storagePath: string;
+  isPrimary: boolean;
+  caption?: string;
+  uploadedAt: number;
+  sizeBytes?: number;
+  width?: number;
+  height?: number;
+}
+
+/** Validation result for primary image check */
+interface PrimaryImageValidation {
+  valid: boolean;
+  error?: string;
+}
+
 /**
  * Schema for a single book image
  */
@@ -51,10 +70,10 @@ export const UpdateImageCaptionSchema = z.object({
 
 /**
  * Validate that only one image is marked as primary
- * @param {Array} images - Array of image objects
- * @returns {{valid: boolean, error?: string}}
+ * @param images - Array of image objects
+ * @returns Validation result
  */
-export function validatePrimaryImage(images) {
+export function validatePrimaryImage(images: ImageData[] | null | undefined): PrimaryImageValidation {
   if (!images || images.length === 0) {
     return { valid: true };
   }
@@ -70,11 +89,11 @@ export function validatePrimaryImage(images) {
 
 /**
  * Set an image as primary, unsetting others
- * @param {Array} images - Array of image objects
- * @param {string} imageId - ID of image to set as primary
- * @returns {Array} Updated images array
+ * @param images - Array of image objects
+ * @param imageId - ID of image to set as primary
+ * @returns Updated images array
  */
-export function setPrimaryImage(images, imageId) {
+export function setPrimaryImage(images: ImageData[], imageId: string): ImageData[] {
   return images.map(img => ({
     ...img,
     isPrimary: img.id === imageId,
@@ -83,10 +102,13 @@ export function setPrimaryImage(images, imageId) {
 
 /**
  * Get the primary image from array
- * @param {Array} images - Array of image objects
- * @returns {Object|null} Primary image or null
+ * @param images - Array of image objects
+ * @returns Primary image or null
  */
-export function getPrimaryImage(images) {
+export function getPrimaryImage(images: ImageData[] | null | undefined): ImageData | null {
   if (!images || images.length === 0) return null;
   return images.find(img => img.isPrimary) || null;
 }
+
+/** Inferred type from ImageSchema */
+export type Image = z.infer<typeof ImageSchema>;

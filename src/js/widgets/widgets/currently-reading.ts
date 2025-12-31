@@ -1,36 +1,39 @@
 import { BaseWidget } from '../base-widget.js';
 import { escapeHtml, getBookStatus, isValidImageUrl } from '../../utils.js';
+import type { Book, GenreLookup, WidgetConfig, SettingsSchemaItem } from '../types.js';
 
 /**
  * Currently Reading Widget - Shows books currently being read
  */
 export class CurrentlyReadingWidget extends BaseWidget {
-  static id = 'currentlyReading';
-  static name = 'Currently Reading';
-  static icon = 'book-open';
-  static iconColor = 'text-blue-600';
-  static defaultSize = 6;
-  static defaultSettings = { count: 6 };
+  static override id = 'currentlyReading';
+  static override name = 'Currently Reading';
+  static override icon = 'book-open';
+  static override iconColor = 'text-blue-600';
+  static override defaultSize = 6;
+  static override defaultSettings: Record<string, unknown> = { count: 6 };
 
-  static settingsSchema = [{ key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] }];
+  static override settingsSchema: SettingsSchemaItem[] = [
+    { key: 'count', label: 'Items to show', type: 'select', options: [3, 6, 9, 12] },
+  ];
 
-  static filterAndSort(books) {
+  static override filterAndSort(books: Book[]): Book[] {
     return books.filter(b => getBookStatus(b) === 'reading');
   }
 
-  static getEmptyMessage() {
+  static override getEmptyMessage(): string {
     return 'No books currently being read';
   }
 
-  static getSeeAllLink() {
+  static override getSeeAllLink(): string {
     return '/books/';
   }
 
-  static getSeeAllParams() {
+  static override getSeeAllParams(): Record<string, string> {
     return { status: 'reading' };
   }
 
-  static render(books, _config, _genreLookup) {
+  static override render(books: Book[], _config: WidgetConfig, _genreLookup?: GenreLookup): string {
     return `
       <div class="widget-scroll-container">
         ${books.map(book => this.renderBookCard(book)).join('')}
@@ -38,7 +41,7 @@ export class CurrentlyReadingWidget extends BaseWidget {
     `;
   }
 
-  static renderBookCard(book) {
+  static renderBookCard(book: Book): string {
     const cover =
       book.coverImageUrl && isValidImageUrl(book.coverImageUrl)
         ? `<div class="relative w-24 h-36 bg-primary rounded-lg shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">

@@ -1,9 +1,9 @@
 // MD5 implementation for Gravatar
-export function md5(string) {
-  function rotateLeft(val, shift) {
+export function md5(string: string): string {
+  function rotateLeft(val: number, shift: number): number {
     return (val << shift) | (val >>> (32 - shift));
   }
-  function addUnsigned(x, y) {
+  function addUnsigned(x: number, y: number): number {
     const x4 = x & 0x40000000,
       y4 = y & 0x40000000;
     const x8 = x & 0x80000000,
@@ -16,33 +16,33 @@ export function md5(string) {
     }
     return result ^ x8 ^ y8;
   }
-  function F(x, y, z) {
+  function F(x: number, y: number, z: number): number {
     return (x & y) | (~x & z);
   }
-  function G(x, y, z) {
+  function G(x: number, y: number, z: number): number {
     return (x & z) | (y & ~z);
   }
-  function H(x, y, z) {
+  function H(x: number, y: number, z: number): number {
     return x ^ y ^ z;
   }
-  function I(x, y, z) {
+  function I(x: number, y: number, z: number): number {
     return y ^ (x | ~z);
   }
-  function FF(a, b, c, d, x, s, ac) {
+  function FF(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
     return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(F(b, c, d), x), ac)), s), b);
   }
-  function GG(a, b, c, d, x, s, ac) {
+  function GG(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
     return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(G(b, c, d), x), ac)), s), b);
   }
-  function HH(a, b, c, d, x, s, ac) {
+  function HH(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
     return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(H(b, c, d), x), ac)), s), b);
   }
-  function II(a, b, c, d, x, s, ac) {
+  function II(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
     return addUnsigned(rotateLeft(addUnsigned(a, addUnsigned(addUnsigned(I(b, c, d), x), ac)), s), b);
   }
-  function convertToWordArray(str) {
+  function convertToWordArray(str: string): number[] {
     const len = str.length,
-      words = [];
+      words: number[] = [];
     for (let i = 0; i < len; i += 4) {
       words.push(
         str.charCodeAt(i) | (str.charCodeAt(i + 1) << 8) | (str.charCodeAt(i + 2) << 16) | (str.charCodeAt(i + 3) << 24)
@@ -50,29 +50,29 @@ export function md5(string) {
     }
     return words;
   }
-  function wordToHex(val) {
+  function wordToHex(val: number): string {
     let hex = '',
-      temp;
+      temp: number;
     for (let i = 0; i <= 3; i++) {
       temp = (val >>> (i * 8)) & 255;
       hex += ('0' + temp.toString(16)).slice(-2);
     }
     return hex;
   }
-  function utf8Encode(str) {
+  function utf8Encode(str: string): string {
     return unescape(encodeURIComponent(str));
   }
 
-  let x = [],
-    k,
-    AA,
-    BB,
-    CC,
-    DD,
-    a,
-    b,
-    c,
-    d;
+  let x: number[] = [],
+    k: number,
+    AA: number,
+    BB: number,
+    CC: number,
+    DD: number,
+    a: number,
+    b: number,
+    c: number,
+    d: number;
   const S11 = 7,
     S12 = 12,
     S13 = 17,
@@ -185,7 +185,7 @@ export function md5(string) {
   return (wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d)).toLowerCase();
 }
 
-export function getGravatarUrl(email, size = 80) {
+export function getGravatarUrl(email: string, size = 80): string {
   const hash = md5(email.trim().toLowerCase());
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`;
 }

@@ -1,16 +1,17 @@
 /**
  * Widget Registry - Singleton for registering and retrieving widgets
  */
+
+import type { BaseWidgetClass, WidgetConfig } from './types.js';
+
 class WidgetRegistry {
-  constructor() {
-    this.widgets = new Map();
-  }
+  private widgets: Map<string, BaseWidgetClass> = new Map();
 
   /**
    * Register a widget class
-   * @param {typeof BaseWidget} widgetClass - Widget class to register
+   * @param widgetClass - Widget class to register
    */
-  register(widgetClass) {
+  register(widgetClass: BaseWidgetClass): void {
     if (!widgetClass.id) {
       throw new Error('Widget must have a static id property');
     }
@@ -19,43 +20,43 @@ class WidgetRegistry {
 
   /**
    * Get a widget class by ID
-   * @param {string} id - Widget ID
-   * @returns {typeof BaseWidget|undefined}
+   * @param id - Widget ID
+   * @returns Widget class or undefined
    */
-  get(id) {
+  get(id: string): BaseWidgetClass | undefined {
     return this.widgets.get(id);
   }
 
   /**
    * Get all registered widgets
-   * @returns {Array<typeof BaseWidget>}
+   * @returns Array of widget classes
    */
-  getAll() {
+  getAll(): BaseWidgetClass[] {
     return Array.from(this.widgets.values());
   }
 
   /**
    * Get all widget IDs
-   * @returns {Array<string>}
+   * @returns Array of widget IDs
    */
-  getIds() {
+  getIds(): string[] {
     return Array.from(this.widgets.keys());
   }
 
   /**
    * Check if a widget is registered
-   * @param {string} id - Widget ID
-   * @returns {boolean}
+   * @param id - Widget ID
+   * @returns True if registered
    */
-  has(id) {
+  has(id: string): boolean {
     return this.widgets.has(id);
   }
 
   /**
    * Get default widget configurations
-   * @returns {Array<Object>}
+   * @returns Array of default configurations
    */
-  getDefaultConfigs() {
+  getDefaultConfigs(): WidgetConfig[] {
     return this.getAll().map((Widget, index) => ({
       id: Widget.id,
       enabled: true,

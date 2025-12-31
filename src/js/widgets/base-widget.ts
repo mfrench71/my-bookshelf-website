@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils.js';
+import type { Book, WishlistItem, GenreLookup, SeriesLookup, WidgetConfig, SettingsSchemaItem } from './types.js';
 
 /**
  * Base Widget Class - All widgets extend this class
@@ -10,65 +11,75 @@ export class BaseWidget {
   static icon = ''; // Lucide icon name (e.g., 'book-open')
   static iconColor = ''; // Tailwind text color class (e.g., 'text-blue-600')
   static defaultSize = 12; // Default column span: 3, 6, 9, or 12
-  static defaultSettings = {}; // Default widget-specific settings
+  static defaultSettings: Record<string, unknown> = {}; // Default widget-specific settings
 
   // Settings schema for UI generation (optional)
-  static settingsSchema = [];
+  static settingsSchema: SettingsSchemaItem[] = [];
+
+  // Flag for widgets that use wishlist data instead of books
+  static requiresWishlist = false;
 
   /**
    * Filter and sort books for this widget
-   * @param {Array<Object>} books - All user's books
-   * @returns {Array<Object>} - Filtered/sorted books for this widget
+   * @param books - All user's books
+   * @param _config - Widget configuration (optional)
+   * @returns Filtered/sorted books for this widget
    */
-  static filterAndSort(books) {
+  static filterAndSort(books: Book[], _config?: WidgetConfig): Book[] {
     return books;
   }
 
   /**
    * Render the widget content
-   * @param {Array<Object>} books - Filtered books for this widget
-   * @param {Object} config - Widget configuration { size, settings }
-   * @param {Object} genreLookup - Genre ID to genre object map
-   * @returns {string} - HTML string
+   * @param _books - Filtered books for this widget
+   * @param _config - Widget configuration { size, settings }
+   * @param _genreLookup - Genre ID to genre object map
+   * @returns HTML string
    */
-  static render(_books, _config, _genreLookup) {
+  static render(_books: Book[] | WishlistItem[], _config: WidgetConfig, _genreLookup?: GenreLookup): string {
     return '<p class="text-gray-500">No content</p>';
   }
 
   /**
    * Get empty state message
-   * @returns {string}
+   * @returns Empty state message
    */
-  static getEmptyMessage() {
+  static getEmptyMessage(): string {
     return 'No items to display';
   }
 
   /**
    * Get "See all" link URL (optional)
-   * @returns {string|null}
+   * @returns URL or null
    */
-  static getSeeAllLink() {
+  static getSeeAllLink(): string | null {
     return null;
   }
 
   /**
    * Get "See all" link filter params (optional)
-   * @returns {Object|null} - { status: 'reading' } etc.
+   * @returns Params object or null
    */
-  static getSeeAllParams() {
+  static getSeeAllParams(): Record<string, string> | null {
     return null;
   }
 
   /**
    * Render widget wrapper with header
-   * @param {Array<Object>} books - Filtered books
-   * @param {Object} config - Widget configuration
-   * @param {Object} genreLookup - Genre lookup
-   * @returns {string} - Full widget HTML
+   * @param books - Filtered books
+   * @param config - Widget configuration
+   * @param genreLookup - Genre lookup
+   * @param _seriesLookup - Series lookup (unused in base class)
+   * @returns Full widget HTML
    */
-  static renderWidget(books, config, genreLookup) {
-    const filteredBooks = this.filterAndSort(books);
-    const count = config.settings?.count || 6;
+  static renderWidget(
+    books: Book[] | WishlistItem[],
+    config: WidgetConfig,
+    genreLookup?: GenreLookup,
+    _seriesLookup?: SeriesLookup | null
+  ): string {
+    const filteredBooks = this.filterAndSort(books as Book[], config);
+    const count = (config.settings?.count as number) || 6;
     const displayBooks = filteredBooks.slice(0, count);
     const seeAllLink = this.getSeeAllLink();
     const seeAllParams = this.getSeeAllParams();

@@ -37,3 +37,18 @@ export {
   SeriesProgressWidget,
   WishlistWidget,
 };
+
+// Export types
+export type {
+  Book,
+  WishlistItem,
+  GenreLookup,
+  SeriesLookup,
+  Series,
+  WidgetConfig,
+  WidgetSettings,
+  WidgetInfo,
+  WidgetSizeOption,
+  SettingsSchemaItem,
+  BaseWidgetClass,
+} from './types.js';

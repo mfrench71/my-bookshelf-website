@@ -104,3 +104,8 @@ export const WishlistItemFormSchema = WishlistItemSchema.extend({
  * Partial schema for updating specific fields
  */
 export const WishlistItemUpdateSchema = WishlistItemSchema.partial();
+
+/** Inferred types from schemas */
+export type WishlistItem = z.infer<typeof WishlistItemSchema>;
+export type WishlistItemFormData = z.infer<typeof WishlistItemFormSchema>;
+export type WishlistItemUpdateData = z.infer<typeof WishlistItemUpdateSchema>;
