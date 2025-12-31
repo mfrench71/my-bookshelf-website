@@ -79,7 +79,7 @@ class BookRepository extends BaseRepository<Book> {
 1. ✅ Created base and entity repositories
 2. ✅ New code uses repositories
 3. ✅ Page scripts migrated to use repositories for CRUD
-4. ✅ Page scripts migrated to use repositories for reads (header, index, bin, author-picker)
+4. ✅ Page scripts migrated to use repositories for reads (all page scripts now use repositories)
 
 ### Files with Direct Firestore (Acceptable)
 
@@ -90,9 +90,9 @@ class BookRepository extends BaseRepository<Book> {
 - `genres.ts` - batch update book counts, merge genres
 - `series.ts` - batch update book counts, merge series
 
-**Page Scripts** (complex batch operations):
-- `settings/library.ts` - export/import with batch writes
-- `settings/maintenance.ts` - maintenance batch operations
+**Page Scripts** (batch writes only - reads use repositories):
+- `settings/library.ts` - batch writes for bulk import
+- `settings/maintenance.ts` - Storage operations for orphaned images
 
 **Other** (non-book data):
 - `header.ts` - user profile doc for avatar (not book subcollection)
