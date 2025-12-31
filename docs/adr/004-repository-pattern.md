@@ -61,11 +61,22 @@ class BookRepository extends BaseRepository<Book> {
 
 ### Negative
 - **Indirection**: Extra layer between pages and data
-- **Incomplete migration**: Some direct Firestore calls remain in legacy code
+- **Partial migration**: Some page scripts still use direct Firestore for complex operations
+
+### Current State (December 2025)
+
+| Repository | Status | Notes |
+|------------|--------|-------|
+| BaseRepository | ✅ Complete | Generic CRUD with pagination |
+| BookRepository | ✅ Complete | ISBN lookup, series queries |
+| GenreRepository | ✅ Complete | Color management, book counts |
+| SeriesRepository | ✅ Complete | Book counts, soft delete |
+| WishlistRepository | ✅ Complete | Duplicate checking, move to library |
+| BinRepository | ✅ Complete | Soft delete, restore, auto-purge |
 
 ### Migration Path
 
-1. Created base and entity repositories
-2. New code uses repositories
-3. Refactor existing code incrementally
-4. Eventually remove all direct Firestore imports from pages
+1. ✅ Created base and entity repositories
+2. ✅ New code uses repositories
+3. 🔄 Refactor existing code incrementally (ongoing)
+4. ⏳ Eventually remove all direct Firestore imports from pages

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Implemented (December 2025)
 
 ## Context
 
@@ -96,3 +96,13 @@ eventBus.on(Events.GENRES_CHANGED, () => {
 2. Unsubscribe in component cleanup/destroy methods
 3. Keep event payloads simple and serialisable
 4. Document event flow in comments for complex interactions
+
+### Current Usage
+
+Components emitting events:
+- **GenrePicker**: Emits `GENRES_CHANGED` on selection change
+- **SeriesPicker**: Emits `SERIES_SELECTION_CHANGED` on selection change
+- **WishlistRepository**: Emits `BOOK_SAVED`, `BOOK_DELETED` on CRUD operations
+- **BinRepository**: Emits `BOOK_DELETED`, `BOOK_RESTORED` on bin operations
+
+All emitters also call their `onChange` callback for backward compatibility.
