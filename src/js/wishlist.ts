@@ -11,27 +11,110 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  DocumentData,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { normalizeText, lookupISBN } from './utils.js';
 
+/** Cover URLs from different sources */
+interface BookCovers {
+  googleBooks?: string;
+  openLibrary?: string;
+  [key: string]: string | undefined;
+}
+
+/** Wishlist item data structure */
+export interface WishlistItem {
+  id: string;
+  title: string;
+  author: string;
+  isbn?: string | null;
+  coverImageUrl?: string | null;
+  covers?: BookCovers | null;
+  publisher?: string | null;
+  publishedDate?: string | null;
+  pageCount?: number | null;
+  priority?: 'high' | 'medium' | 'low' | null;
+  notes?: string | null;
+  addedFrom?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+/** Input data for creating a wishlist item */
+interface WishlistItemInput {
+  title: string;
+  author: string;
+  isbn?: string | null;
+  coverImageUrl?: string | null;
+  covers?: BookCovers | null;
+  publisher?: string | null;
+  publishedDate?: string | null;
+  pageCount?: number | null;
+  priority?: 'high' | 'medium' | 'low' | null;
+  notes?: string | null;
+  addedFrom?: string;
+}
+
+/** Update data for wishlist item */
+interface WishlistItemUpdate {
+  priority?: 'high' | 'medium' | 'low' | null;
+  notes?: string | null;
+  coverImageUrl?: string | null;
+}
+
+/** API lookup result for enriching data */
+interface APILookupResult {
+  coverImageUrl?: string;
+  covers?: BookCovers;
+  publisher?: string;
+  publishedDate?: string;
+  physicalFormat?: string;
+  pageCount?: number | null;
+}
+
+/** Book data created from wishlist item */
+interface BookData {
+  title: string;
+  author: string;
+  isbn: string;
+  coverImageUrl: string;
+  covers: BookCovers | null;
+  publisher: string;
+  publishedDate: string;
+  physicalFormat: string;
+  pageCount: number | null;
+  rating: number | null;
+  notes: string;
+  genres: string[];
+  seriesId: string | null;
+  seriesPosition: number | null;
+  reads: unknown[];
+  deletedAt: number | null;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+/** Wishlist lookup map type */
+export type WishlistLookup = Map<string, WishlistItem>;
+
 // In-memory cache for wishlist items (with TTL)
-let wishlistCache = null;
-let wishlistCacheUserId = null;
+let wishlistCache: WishlistItem[] | null = null;
+let wishlistCacheUserId: string | null = null;
 let wishlistCacheTime = 0;
 const WISHLIST_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get all wishlist items for a user
- * @param {string} userId - The user's ID
- * @param {boolean} forceRefresh - Force reload from Firestore
- * @returns {Promise<Array>} Array of wishlist item objects
+ * @param userId - The user's ID
+ * @param forceRefresh - Force reload from Firestore
+ * @returns Array of wishlist item objects
  */
-export async function loadWishlistItems(userId, forceRefresh = false) {
+export async function loadWishlistItems(userId: string, forceRefresh = false): Promise<WishlistItem[]> {
   const now = Date.now();
   const cacheValid = wishlistCache && wishlistCacheUserId === userId && now - wishlistCacheTime < WISHLIST_CACHE_TTL;
 
   if (!forceRefresh && cacheValid) {
-    return wishlistCache;
+    return wishlistCache!;
   }
 
   try {
@@ -42,7 +125,7 @@ export async function loadWishlistItems(userId, forceRefresh = false) {
     wishlistCache = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    }));
+    })) as WishlistItem[];
     wishlistCacheUserId = userId;
     wishlistCacheTime = Date.now();
 
@@ -55,10 +138,10 @@ export async function loadWishlistItems(userId, forceRefresh = false) {
 
 /**
  * Get wishlist item count for a user (for header badge)
- * @param {string} userId - The user's ID
- * @returns {Promise<number>} Number of items in wishlist
+ * @param userId - The user's ID
+ * @returns Number of items in wishlist
  */
-export async function getWishlistCount(userId) {
+export async function getWishlistCount(userId: string): Promise<number> {
   try {
     const items = await loadWishlistItems(userId);
     return items.length;
@@ -70,13 +153,18 @@ export async function getWishlistCount(userId) {
 
 /**
  * Check for duplicate wishlist item
- * @param {string} userId - The user's ID
- * @param {string} isbn - ISBN to check (optional)
- * @param {string} title - Title to check
- * @param {string} author - Author to check
- * @returns {Promise<Object|null>} Existing item if duplicate found, null otherwise
+ * @param userId - The user's ID
+ * @param isbn - ISBN to check (optional)
+ * @param title - Title to check
+ * @param author - Author to check
+ * @returns Existing item if duplicate found, null otherwise
  */
-export async function checkWishlistDuplicate(userId, isbn, title, author) {
+export async function checkWishlistDuplicate(
+  userId: string,
+  isbn: string | undefined | null,
+  title: string,
+  author: string
+): Promise<WishlistItem | null> {
   try {
     const items = await loadWishlistItems(userId);
 
@@ -105,12 +193,12 @@ export async function checkWishlistDuplicate(userId, isbn, title, author) {
 
 /**
  * Add an item to the wishlist
- * @param {string} userId - The user's ID
- * @param {Object} itemData - Wishlist item data
- * @returns {Promise<Object>} Created wishlist item with ID
- * @throws {Error} If item already exists in wishlist
+ * @param userId - The user's ID
+ * @param itemData - Wishlist item data
+ * @returns Created wishlist item with ID
+ * @throws Error if item already exists in wishlist
  */
-export async function addWishlistItem(userId, itemData) {
+export async function addWishlistItem(userId: string, itemData: WishlistItemInput): Promise<WishlistItem> {
   // Check for duplicate
   const existing = await checkWishlistDuplicate(userId, itemData.isbn, itemData.title, itemData.author);
 
@@ -142,7 +230,7 @@ export async function addWishlistItem(userId, itemData) {
     clearWishlistCache();
     notifyWishlistUpdated();
 
-    return { id: docRef.id, ...wishlistData };
+    return { id: docRef.id, ...wishlistData } as WishlistItem;
   } catch (error) {
     console.error('Error adding to wishlist:', error);
     throw error;
@@ -151,16 +239,20 @@ export async function addWishlistItem(userId, itemData) {
 
 /**
  * Update an existing wishlist item
- * @param {string} userId - The user's ID
- * @param {string} itemId - The wishlist item ID
- * @param {Object} updates - Fields to update
- * @returns {Promise<Object>} Updated item
+ * @param userId - The user's ID
+ * @param itemId - The wishlist item ID
+ * @param updates - Fields to update
+ * @returns Updated item
  */
-export async function updateWishlistItem(userId, itemId, updates) {
-  const updateData = { updatedAt: serverTimestamp() };
+export async function updateWishlistItem(
+  userId: string,
+  itemId: string,
+  updates: WishlistItemUpdate
+): Promise<{ id: string; [key: string]: unknown }> {
+  const updateData: DocumentData = { updatedAt: serverTimestamp() };
 
   // Only update allowed fields
-  const allowedFields = ['priority', 'notes', 'coverImageUrl'];
+  const allowedFields: (keyof WishlistItemUpdate)[] = ['priority', 'notes', 'coverImageUrl'];
   for (const field of allowedFields) {
     if (updates[field] !== undefined) {
       updateData[field] = updates[field];
@@ -184,11 +276,10 @@ export async function updateWishlistItem(userId, itemId, updates) {
 
 /**
  * Delete a wishlist item
- * @param {string} userId - The user's ID
- * @param {string} itemId - The wishlist item ID
- * @returns {Promise<void>}
+ * @param userId - The user's ID
+ * @param itemId - The wishlist item ID
  */
-export async function deleteWishlistItem(userId, itemId) {
+export async function deleteWishlistItem(userId: string, itemId: string): Promise<void> {
   try {
     const itemRef = doc(db, 'users', userId, 'wishlist', itemId);
     await deleteDoc(itemRef);
@@ -206,11 +297,11 @@ export async function deleteWishlistItem(userId, itemId) {
  * Move a wishlist item to the library (user bought the book)
  * Creates a new book document and deletes the wishlist item
  * If ISBN is available, enriches data from APIs before creating book
- * @param {string} userId - The user's ID
- * @param {string} itemId - The wishlist item ID
- * @returns {Promise<Object>} Created book document
+ * @param userId - The user's ID
+ * @param itemId - The wishlist item ID
+ * @returns Created book document
  */
-export async function moveToLibrary(userId, itemId) {
+export async function moveToLibrary(userId: string, itemId: string): Promise<{ id: string } & BookData> {
   try {
     // Get the wishlist item
     const itemRef = doc(db, 'users', userId, 'wishlist', itemId);
@@ -220,31 +311,32 @@ export async function moveToLibrary(userId, itemId) {
       throw new Error('Wishlist item not found');
     }
 
-    const item = itemSnap.data();
+    const item = itemSnap.data() as WishlistItem;
 
     // Try to enrich data from APIs if we have an ISBN
-    let enrichedData = {};
+    let enrichedData: Partial<APILookupResult> = {};
     if (item.isbn) {
       try {
         const apiData = await lookupISBN(item.isbn);
         if (apiData) {
           enrichedData = {
-            coverImageUrl: apiData.coverImageUrl || item.coverImageUrl,
-            covers: apiData.covers || item.covers,
-            publisher: apiData.publisher || item.publisher,
-            publishedDate: apiData.publishedDate || item.publishedDate,
+            coverImageUrl: apiData.coverImageUrl || item.coverImageUrl || undefined,
+            covers: apiData.covers || item.covers || undefined,
+            publisher: apiData.publisher || item.publisher || undefined,
+            publishedDate: apiData.publishedDate || item.publishedDate || undefined,
             physicalFormat: apiData.physicalFormat || '',
             pageCount: apiData.pageCount || item.pageCount,
           };
         }
-      } catch (e) {
-        console.warn('ISBN lookup failed during move to library:', e.message);
+      } catch (e: unknown) {
+        const error = e as { message?: string };
+        console.warn('ISBN lookup failed during move to library:', error.message);
         // Continue with wishlist data if lookup fails
       }
     }
 
     // Create book data from wishlist item, enriched with API data
-    const bookData = {
+    const bookData: BookData = {
       title: item.title,
       author: item.author,
       isbn: item.isbn || '',
@@ -287,7 +379,7 @@ export async function moveToLibrary(userId, itemId) {
 /**
  * Clear the wishlist cache
  */
-export function clearWishlistCache() {
+export function clearWishlistCache(): void {
   wishlistCache = null;
   wishlistCacheUserId = null;
   wishlistCacheTime = 0;
@@ -296,17 +388,17 @@ export function clearWishlistCache() {
 /**
  * Notify other modules that wishlist has been updated
  */
-function notifyWishlistUpdated() {
+function notifyWishlistUpdated(): void {
   window.dispatchEvent(new CustomEvent('wishlist-updated'));
 }
 
 /**
  * Create a lookup map of wishlist items by ISBN
- * @param {Array} items - Array of wishlist items
- * @returns {Map} Map of ISBN -> wishlist item
+ * @param items - Array of wishlist items
+ * @returns Map of ISBN -> wishlist item
  */
-export function createWishlistLookup(items) {
-  const lookup = new Map();
+export function createWishlistLookup(items: WishlistItem[]): WishlistLookup {
+  const lookup = new Map<string, WishlistItem>();
   for (const item of items) {
     if (item.isbn) {
       lookup.set(item.isbn, item);

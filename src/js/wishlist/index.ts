@@ -1,7 +1,7 @@
 // Wishlist Page
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { loadWishlistItems, updateWishlistItem, deleteWishlistItem, moveToLibrary } from '../wishlist.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { loadWishlistItems, updateWishlistItem, deleteWishlistItem, moveToLibrary, WishlistItem } from '../wishlist.js';
 import { clearBooksCache } from '../utils/cache.js';
 import { showToast, initIcons, escapeHtml, isValidImageUrl } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
@@ -10,63 +10,72 @@ import { z } from '/js/vendor/zod.js';
 
 // Simple schema for edit form (priority + notes only)
 const WishlistEditSchema = z.object({
-  priority: z.enum(['high', 'medium', 'low', '']).transform(s => s || null),
+  priority: z.enum(['high', 'medium', 'low', '']).transform((s: string) => s || null),
   notes: z
     .string()
     .max(2000, 'Notes must be 2000 characters or less')
-    .transform(s => s?.trim() || null),
+    .transform((s: string) => s?.trim() || null),
 });
+
+/** Priority color mapping */
+type Priority = 'high' | 'medium' | 'low';
+
+/** Original edit form values for change tracking */
+interface OriginalEditValues {
+  priority: string;
+  notes: string;
+}
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
 const wishlistItemsContainer = document.getElementById('wishlist-items');
 const itemCount = document.getElementById('item-count');
-const sortSelect = document.getElementById('sort-select');
+const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
 
 // Edit modal elements
 const editModal = document.getElementById('edit-modal');
-const editForm = document.getElementById('edit-form');
-const editPrioritySelect = document.getElementById('edit-priority');
-const editNotesTextarea = document.getElementById('edit-notes');
-const cancelEditBtn = document.getElementById('cancel-edit');
-const saveEditBtn = document.getElementById('save-edit');
+const editForm = document.getElementById('edit-form') as HTMLFormElement | null;
+const editPrioritySelect = document.getElementById('edit-priority') as HTMLSelectElement | null;
+const editNotesTextarea = document.getElementById('edit-notes') as HTMLTextAreaElement | null;
+const cancelEditBtn = document.getElementById('cancel-edit') as HTMLButtonElement | null;
+const saveEditBtn = document.getElementById('save-edit') as HTMLButtonElement | null;
 
 // Move modal elements
 const moveModal = document.getElementById('move-modal');
 const moveText = document.getElementById('move-text');
-const cancelMoveBtn = document.getElementById('cancel-move');
-const confirmMoveBtn = document.getElementById('confirm-move');
+const cancelMoveBtn = document.getElementById('cancel-move') as HTMLButtonElement | null;
+const confirmMoveBtn = document.getElementById('confirm-move') as HTMLButtonElement | null;
 
 // Delete modal elements
 const deleteModal = document.getElementById('delete-modal');
 const deleteText = document.getElementById('delete-text');
-const cancelDeleteBtn = document.getElementById('cancel-delete');
-const confirmDeleteBtn = document.getElementById('confirm-delete');
+const cancelDeleteBtn = document.getElementById('cancel-delete') as HTMLButtonElement | null;
+const confirmDeleteBtn = document.getElementById('confirm-delete') as HTMLButtonElement | null;
 
 // State
-let currentUser = null;
-let wishlistItems = [];
-let selectedItem = null;
+let currentUser: User | null = null;
+let wishlistItems: WishlistItem[] = [];
+let selectedItem: WishlistItem | null = null;
 let currentSort = 'createdAt-desc';
 let hasTriggeredInitialFade = false;
 
 // Original values for change tracking
-let originalEditValues = { priority: '', notes: '' };
+let originalEditValues: OriginalEditValues = { priority: '', notes: '' };
 
 // Bottom sheets
-let editSheet = null;
-let moveSheet = null;
-let deleteSheet = null;
+let editSheet: BottomSheet | null = null;
+let moveSheet: BottomSheet | null = null;
+let deleteSheet: BottomSheet | null = null;
 
 // Priority colours
-const PRIORITY_COLORS = {
+const PRIORITY_COLORS: Record<Priority, string> = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-amber-100 text-amber-700',
   low: 'bg-blue-100 text-blue-700',
 };
 
-const PRIORITY_LABELS = {
+const PRIORITY_LABELS: Record<Priority, string> = {
   high: 'High',
   medium: 'Medium',
   low: 'Low',
@@ -74,8 +83,10 @@ const PRIORITY_LABELS = {
 
 /**
  * Render a wishlist item card
+ * @param item - Wishlist item to render
+ * @returns HTML string for the card
  */
-function renderWishlistCard(item) {
+function renderWishlistCard(item: WishlistItem): string {
   const cover =
     item.coverImageUrl && isValidImageUrl(item.coverImageUrl)
       ? `<div class="w-[48px] h-[72px] flex-shrink-0 bg-gray-100 rounded overflow-hidden">
@@ -125,8 +136,10 @@ function renderWishlistCard(item) {
 
 /**
  * Get author surname for sorting (last word of author name)
+ * @param author - Author name
+ * @returns Lowercase surname
  */
-function getAuthorSurname(author) {
+function getAuthorSurname(author: string | undefined): string {
   if (!author) return '';
   const parts = author.trim().split(/\s+/);
   return parts[parts.length - 1].toLowerCase();
@@ -134,34 +147,37 @@ function getAuthorSurname(author) {
 
 /**
  * Sort wishlist items
+ * @param items - Items to sort
+ * @param sortKey - Sort key
+ * @returns Sorted items
  */
-function sortItems(items, sortKey) {
+function sortItems(items: WishlistItem[], sortKey: string): WishlistItem[] {
   const sorted = [...items];
 
   switch (sortKey) {
     case 'createdAt-desc':
       sorted.sort((a, b) => {
-        const aTime = a.createdAt?.seconds || 0;
-        const bTime = b.createdAt?.seconds || 0;
+        const aTime = (a.createdAt as { seconds?: number })?.seconds || 0;
+        const bTime = (b.createdAt as { seconds?: number })?.seconds || 0;
         return bTime - aTime;
       });
       break;
     case 'createdAt-asc':
       sorted.sort((a, b) => {
-        const aTime = a.createdAt?.seconds || 0;
-        const bTime = b.createdAt?.seconds || 0;
+        const aTime = (a.createdAt as { seconds?: number })?.seconds || 0;
+        const bTime = (b.createdAt as { seconds?: number })?.seconds || 0;
         return aTime - bTime;
       });
       break;
     case 'priority-high': {
-      const priorityOrder = { high: 0, medium: 1, low: 2, null: 3 };
+      const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2, null: 3 };
       sorted.sort((a, b) => {
-        const aOrder = priorityOrder[a.priority] ?? 3;
-        const bOrder = priorityOrder[b.priority] ?? 3;
+        const aOrder = priorityOrder[a.priority || 'null'] ?? 3;
+        const bOrder = priorityOrder[b.priority || 'null'] ?? 3;
         if (aOrder !== bOrder) return aOrder - bOrder;
         // Secondary sort by date
-        const aTime = a.createdAt?.seconds || 0;
-        const bTime = b.createdAt?.seconds || 0;
+        const aTime = (a.createdAt as { seconds?: number })?.seconds || 0;
+        const bTime = (b.createdAt as { seconds?: number })?.seconds || 0;
         return bTime - aTime;
       });
       break;
@@ -180,7 +196,9 @@ function sortItems(items, sortKey) {
 /**
  * Render all wishlist items
  */
-function renderWishlistItems() {
+function renderWishlistItems(): void {
+  if (!loadingState || !emptyState || !wishlistItemsContainer || !itemCount) return;
+
   loadingState.classList.add('hidden');
 
   if (wishlistItems.length === 0) {
@@ -209,8 +227,9 @@ function renderWishlistItems() {
   // Attach event listeners using event delegation
   wishlistItemsContainer.querySelectorAll('[data-action="move"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      selectedItem = wishlistItems.find(i => i.id === btn.dataset.itemId);
-      if (selectedItem) {
+      const itemId = (btn as HTMLButtonElement).dataset.itemId;
+      selectedItem = wishlistItems.find(i => i.id === itemId) || null;
+      if (selectedItem && moveText) {
         moveText.textContent = `"${selectedItem.title}" will be added to your library.`;
         moveSheet?.open();
       }
@@ -219,8 +238,9 @@ function renderWishlistItems() {
 
   wishlistItemsContainer.querySelectorAll('[data-action="edit"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      selectedItem = wishlistItems.find(i => i.id === btn.dataset.itemId);
-      if (selectedItem) {
+      const itemId = (btn as HTMLButtonElement).dataset.itemId;
+      selectedItem = wishlistItems.find(i => i.id === itemId) || null;
+      if (selectedItem && editForm && editPrioritySelect && editNotesTextarea) {
         clearFormErrors(editForm);
         editPrioritySelect.value = selectedItem.priority || '';
         editNotesTextarea.value = selectedItem.notes || '';
@@ -238,8 +258,9 @@ function renderWishlistItems() {
 
   wishlistItemsContainer.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      selectedItem = wishlistItems.find(i => i.id === btn.dataset.itemId);
-      if (selectedItem) {
+      const itemId = (btn as HTMLButtonElement).dataset.itemId;
+      selectedItem = wishlistItems.find(i => i.id === itemId) || null;
+      if (selectedItem && deleteText) {
         deleteText.textContent = `"${selectedItem.title}" will be removed from your wishlist.`;
         deleteSheet?.open();
       }
@@ -249,8 +270,11 @@ function renderWishlistItems() {
 
 /**
  * Check if wishlist edit form has unsaved changes
+ * @returns True if form has changes
  */
-function isEditFormDirty() {
+function isEditFormDirty(): boolean {
+  if (!editPrioritySelect || !editNotesTextarea) return false;
+
   if ((editPrioritySelect.value || '') !== originalEditValues.priority) return true;
   if ((editNotesTextarea.value || '') !== originalEditValues.notes) return true;
   return false;
@@ -259,7 +283,9 @@ function isEditFormDirty() {
 /**
  * Update wishlist edit save button state based on form changes
  */
-function updateEditSaveButtonState() {
+function updateEditSaveButtonState(): void {
+  if (!saveEditBtn) return;
+
   const isDirty = isEditFormDirty();
   saveEditBtn.disabled = !isDirty;
   saveEditBtn.classList.toggle('opacity-50', !isDirty);
@@ -269,13 +295,15 @@ function updateEditSaveButtonState() {
 /**
  * Load wishlist data
  */
-async function loadWishlist() {
+async function loadWishlist(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     wishlistItems = await loadWishlistItems(currentUser.uid);
     renderWishlistItems();
   } catch (error) {
     console.error('Error loading wishlist:', error);
-    loadingState.classList.add('hidden');
+    loadingState?.classList.add('hidden');
     showToast('Failed to load wishlist. Please try again.', { type: 'error' });
   }
 }
@@ -283,8 +311,8 @@ async function loadWishlist() {
 /**
  * Handle move to library
  */
-async function handleMoveToLibrary() {
-  if (!selectedItem) return;
+async function handleMoveToLibrary(): Promise<void> {
+  if (!selectedItem || !currentUser || !confirmMoveBtn) return;
 
   confirmMoveBtn.disabled = true;
   confirmMoveBtn.textContent = 'Adding...';
@@ -307,10 +335,11 @@ async function handleMoveToLibrary() {
 
 /**
  * Handle edit save
+ * @param e - Form submit event
  */
-async function handleEditSave(e) {
+async function handleEditSave(e: Event): Promise<void> {
   e.preventDefault();
-  if (!selectedItem) return;
+  if (!selectedItem || !currentUser || !editForm || !editPrioritySelect || !editNotesTextarea || !saveEditBtn) return;
 
   clearFormErrors(editForm);
 
@@ -330,7 +359,7 @@ async function handleEditSave(e) {
 
   try {
     await updateWishlistItem(currentUser.uid, selectedItem.id, {
-      priority: validation.data.priority,
+      priority: validation.data.priority as 'high' | 'medium' | 'low' | null,
       notes: validation.data.notes,
     });
     editSheet?.close();
@@ -349,8 +378,8 @@ async function handleEditSave(e) {
 /**
  * Handle delete
  */
-async function handleDelete() {
-  if (!selectedItem) return;
+async function handleDelete(): Promise<void> {
+  if (!selectedItem || !currentUser || !confirmDeleteBtn) return;
 
   confirmDeleteBtn.disabled = true;
   confirmDeleteBtn.textContent = 'Removing...';
@@ -400,7 +429,7 @@ cancelDeleteBtn?.addEventListener('click', () => deleteSheet?.close());
 confirmDeleteBtn?.addEventListener('click', handleDelete);
 
 // Auth state listener
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     await loadWishlist();
