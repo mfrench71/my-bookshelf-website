@@ -133,7 +133,6 @@ Detailed documentation is in the `docs/` folder:
 
 - **[PROJECT.md](docs/PROJECT.md)** - Architecture, features, and roadmap
 - **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant coding guidelines
-- **[DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md)** - Coding standards and patterns
 - **[AUDITS.md](docs/AUDITS.md)** - Periodic audit checklists (security, accessibility, performance)
 - **[docs/adr/](docs/adr/)** - Architecture Decision Records
 

@@ -126,7 +126,7 @@ MyBookShelf/
 ├── docs/                       # Documentation
 │   ├── CLAUDE.md               # AI assistant instructions
 │   ├── PROJECT.md              # This file
-│   └── DEVELOPMENT_STANDARDS.md # Coding standards & roadmap
+│   └── AUDITS.md               # Periodic audit checklists
 ├── CHANGELOG.md                # Version history
 └── README.md                   # Repository overview
 ```
@@ -1359,6 +1359,48 @@ Consistent colour usage across buttons, badges, icons, and UI elements:
 | Success/create | `text-green-500` | Add new, checkmarks |
 | Series | `text-purple-600` | Series widget, badges |
 | Warning/caution | `text-amber-500` | Alerts, cleanup |
+
+### Design Patterns
+
+Patterns used throughout the codebase:
+
+**Repository Pattern** - Data access abstraction
+```javascript
+// Instead of direct Firestore access:
+const snapshot = await getDocs(collection(db, 'users', userId, 'books'));
+
+// Use repository:
+const books = await bookRepository.getAll(userId);
+```
+
+**Strategy Pattern** - Extensible filtering/sorting
+```javascript
+const filterStrategies = {
+  genre: (books, value) => books.filter(b => b.genres.includes(value)),
+  status: (books, value) => books.filter(b => b.status === value),
+};
+
+function applyFilter(books, type, value) {
+  return filterStrategies[type]?.(books, value) ?? books;
+}
+```
+
+**Observer/Event Bus Pattern** - Decoupled component communication
+```javascript
+// Publisher
+eventBus.emit('genres:changed', { selected: ['fiction', 'sci-fi'] });
+
+// Subscriber
+eventBus.on('genres:changed', ({ selected }) => {
+  updateFormState(selected);
+});
+```
+
+**Registry Pattern** - Already used for widgets
+```javascript
+widgetRegistry.register('currently-reading', CurrentlyReadingWidget);
+widgetRegistry.get('currently-reading');
+```
 
 ### Breadcrumb Navigation
 

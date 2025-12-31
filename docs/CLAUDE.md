@@ -116,6 +116,29 @@ npm run typecheck    # TypeScript check
 - Call `lucide.createIcons()` after dynamic icon insertion
 - Event bus (`eventBus`) for cache invalidation
 
+## Code Style
+
+### Naming Conventions
+- Files: `kebab-case.ts`
+- Classes: `PascalCase`
+- Functions: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Events: `namespace:action` (e.g., `books:created`)
+
+### Import Order
+1. External packages
+2. Firebase imports
+3. Repositories
+4. Utilities
+5. Components
+6. Schemas
+7. Relative imports
+
+### File Size Guidelines
+- Page scripts: <30KB (<1000 lines)
+- Components: <20KB
+- Utilities: <10KB
+
 ## Tailwind v4 Syntax
 
 ```css
