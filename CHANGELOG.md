@@ -4,6 +4,17 @@ All notable changes to MyBookShelf are documented here.
 
 ---
 
+## 2025-12-31
+
+- New picker display preference in Settings > Library:
+  - Configure whether API suggestions appear before or after your items in genre/series pickers
+  - Default: Your items shown first (more relevant for existing users)
+- Complete export/import backup:
+  - Now includes series (all series including soft-deleted)
+  - Now includes bin items (soft-deleted books)
+  - Import remaps series IDs to prevent broken references
+  - Upgrade export format to v2 (still imports v1 backups)
+
 ## 2025-12-30
 
 - Internal: Convert all UI components and domain modules to TypeScript for improved code reliability
