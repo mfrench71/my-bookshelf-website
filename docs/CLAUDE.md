@@ -129,36 +129,23 @@ npm run typecheck    # TypeScript check
 
 Manual testing required for validation changes - unit tests don't catch HTML/schema mismatches.
 
-## Audit Checklists (Periodic)
+## Audit Checklists
 
-Run `npm audit` and `npm outdated` regularly.
-
-### Quick Checks
+**Quick checks** (run before each PR):
 - [ ] Touch targets ≥44px?
 - [ ] User input escaped? (`escapeHtml`, `escapeAttr`)
 - [ ] Forms use Zod schemas?
 - [ ] Labels associated with inputs?
 - [ ] Loading states (not blank screens)?
 - [ ] Errors user-friendly (not raw messages)?
-- [ ] No sensitive data in localStorage?
-- [ ] Firestore rules restrict to own data?
 
-### Performance
-- [ ] LCP < 2.5s, CLS < 0.1, INP < 200ms?
-- [ ] Images lazy loaded?
-- [ ] Skeletons match final dimensions?
-
-### Mobile
-- [ ] No horizontal scroll?
-- [ ] Input font ≥16px (prevents iOS zoom)?
-- [ ] Safe area insets handled?
-- [ ] Swipe gestures work?
-
-### Accessibility
-- [ ] Keyboard navigable?
-- [ ] Focus visible?
-- [ ] Colour contrast WCAG AA?
-- [ ] Skip link present?
+**Comprehensive audits**: See [AUDITS.md](./AUDITS.md) for detailed periodic checklists covering:
+- Dependencies & Security
+- PWA/Service Worker
+- SEO, Mobile UX, Accessibility
+- Core Web Vitals, Performance
+- Privacy/GDPR, Browser Compatibility
+- Form Validation, Test Coverage
 
 ## Firebase
 
