@@ -270,7 +270,11 @@ function doStartOver(): void {
   duplicateCheckBypassed = false;
   apiGenreSuggestions = [];
 
-  // Reset pickers (these may trigger onChange callbacks that set formDirty)
+  // Explicitly clear fields that form.reset() may not handle
+  if (authorPicker) authorPicker.setValue('');
+  if (coverUrlInput) coverUrlInput.value = '';
+
+  // Reset pickers
   if (ratingInput) ratingInput.setValue(0);
   if (coverPicker) coverPicker.setCovers(null);
   if (genrePicker) {
