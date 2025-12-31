@@ -17,8 +17,8 @@ vi.mock('../src/js/utils.js', () => ({
   formatDate: (date) => date ? date.toLocaleDateString() : '',
   getBookStatus: (book) => {
     // Simplified logic for testing
-    if (book.readHistory?.some(h => h.finishDate)) return 'finished';
-    if (book.readHistory?.some(h => h.startDate && !h.finishDate)) return 'reading';
+    if (book.reads?.some(h => h.finishedAt)) return 'finished';
+    if (book.reads?.some(h => h.startedAt && !h.finishedAt)) return 'reading';
     return 'unread';
   }
 }));
@@ -61,8 +61,8 @@ describe('RecentlyFinishedWidget', () => {
   describe('filterAndSort', () => {
     it('should filter only finished books', () => {
       const books = [
-        { id: '1', title: 'Finished Book', readHistory: [{ finishDate: { seconds: 1000 } }] },
-        { id: '2', title: 'Reading Book', readHistory: [{ startDate: { seconds: 500 } }] },
+        { id: '1', title: 'Finished Book', reads: [{ finishedAt: { seconds: 1000 } }] },
+        { id: '2', title: 'Reading Book', reads: [{ startedAt: { seconds: 500 } }] },
         { id: '3', title: 'Unread Book' }
       ];
 
@@ -74,9 +74,9 @@ describe('RecentlyFinishedWidget', () => {
 
     it('should sort by finish date descending (most recent first)', () => {
       const books = [
-        { id: '1', title: 'Old Finish', readHistory: [{ finishDate: { seconds: 1000 } }] },
-        { id: '2', title: 'Recent Finish', readHistory: [{ finishDate: { seconds: 3000 } }] },
-        { id: '3', title: 'Middle Finish', readHistory: [{ finishDate: { seconds: 2000 } }] }
+        { id: '1', title: 'Old Finish', reads: [{ finishedAt: { seconds: 1000 } }] },
+        { id: '2', title: 'Recent Finish', reads: [{ finishedAt: { seconds: 3000 } }] },
+        { id: '3', title: 'Middle Finish', reads: [{ finishedAt: { seconds: 2000 } }] }
       ];
 
       const result = RecentlyFinishedWidget.filterAndSort(books);
@@ -91,10 +91,10 @@ describe('RecentlyFinishedWidget', () => {
       expect(result).toEqual([]);
     });
 
-    it('should handle books without readHistory', () => {
+    it('should handle books without reads', () => {
       const books = [
         { id: '1', title: 'No History' },
-        { id: '2', title: 'Has History', readHistory: [{ finishDate: { seconds: 1000 } }] }
+        { id: '2', title: 'Has History', reads: [{ finishedAt: { seconds: 1000 } }] }
       ];
 
       const result = RecentlyFinishedWidget.filterAndSort(books);
@@ -105,8 +105,8 @@ describe('RecentlyFinishedWidget', () => {
 
     it('should handle books with null finish dates', () => {
       const books = [
-        { id: '1', title: 'Finished', readHistory: [{ finishDate: { seconds: 1000 } }] },
-        { id: '2', title: 'Started Only', readHistory: [{ startDate: { seconds: 500 }, finishDate: null }] }
+        { id: '1', title: 'Finished', reads: [{ finishedAt: { seconds: 1000 } }] },
+        { id: '2', title: 'Started Only', reads: [{ startedAt: { seconds: 500 }, finishedAt: null }] }
       ];
 
       const result = RecentlyFinishedWidget.filterAndSort(books);
@@ -117,7 +117,7 @@ describe('RecentlyFinishedWidget', () => {
 
     it('should not mutate original array', () => {
       const books = [
-        { id: '1', title: 'Book', readHistory: [{ finishDate: { seconds: 1000 } }] }
+        { id: '1', title: 'Book', reads: [{ finishedAt: { seconds: 1000 } }] }
       ];
       const originalLength = books.length;
 
@@ -148,7 +148,7 @@ describe('RecentlyFinishedWidget', () => {
   describe('render', () => {
     it('should render scroll container', () => {
       const books = [
-        { id: '1', title: 'Test Book', author: 'Author', readHistory: [{ finishDate: { seconds: 1000 } }] }
+        { id: '1', title: 'Test Book', author: 'Author', reads: [{ finishedAt: { seconds: 1000 } }] }
       ];
 
       const html = RecentlyFinishedWidget.render(books, {});
@@ -158,8 +158,8 @@ describe('RecentlyFinishedWidget', () => {
 
     it('should render multiple books', () => {
       const books = [
-        { id: '1', title: 'Book 1', readHistory: [{ finishDate: { seconds: 1000 } }] },
-        { id: '2', title: 'Book 2', readHistory: [{ finishDate: { seconds: 2000 } }] }
+        { id: '1', title: 'Book 1', reads: [{ finishedAt: { seconds: 1000 } }] },
+        { id: '2', title: 'Book 2', reads: [{ finishedAt: { seconds: 2000 } }] }
       ];
 
       const html = RecentlyFinishedWidget.render(books, {});
@@ -176,7 +176,7 @@ describe('RecentlyFinishedWidget', () => {
         title: 'Test Book',
         author: 'Test Author',
         coverImageUrl: 'https://example.com/cover.jpg',
-        readHistory: [{ finishDate: { seconds: 1609459200 } }]
+        reads: [{ finishedAt: { seconds: 1609459200 } }]
       };
 
       const html = RecentlyFinishedWidget.renderBookCard(book);
@@ -216,7 +216,7 @@ describe('RecentlyFinishedWidget', () => {
       const book = {
         id: '1',
         title: 'Book',
-        readHistory: [{ finishDate: { seconds: 1609459200 } }]
+        reads: [{ finishedAt: { seconds: 1609459200 } }]
       };
 
       const html = RecentlyFinishedWidget.renderBookCard(book);

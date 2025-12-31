@@ -209,14 +209,17 @@ describe('BookRepository', () => {
   describe('softDelete', () => {
     it('should set deletedAt timestamp', async () => {
       updateDoc.mockResolvedValue();
-      const now = new Date().toISOString().slice(0, 10); // Just date part for comparison
+      const now = Date.now();
 
       await bookRepository.softDelete(userId, 'book1');
 
       expect(updateDoc).toHaveBeenCalled();
       const updateData = updateDoc.mock.calls[0][1];
       expect(updateData.deletedAt).toBeDefined();
-      expect(updateData.deletedAt.slice(0, 10)).toBe(now);
+      expect(typeof updateData.deletedAt).toBe('number');
+      // Allow 1 second tolerance for timestamp comparison
+      expect(updateData.deletedAt).toBeGreaterThanOrEqual(now - 1000);
+      expect(updateData.deletedAt).toBeLessThanOrEqual(now + 1000);
     });
   });
 
