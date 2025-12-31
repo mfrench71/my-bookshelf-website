@@ -713,8 +713,9 @@ function openAddSeriesModal(): void {
     !seriesTotalBooksInput ||
     !saveSeriesBtn ||
     !seriesForm
-  )
+  ) {
     return;
+  }
 
   editingSeriesId = null;
   seriesModalTitle.textContent = 'Add Series';
@@ -739,8 +740,9 @@ function openEditSeriesModal(seriesId: string): void {
     !seriesTotalBooksInput ||
     !saveSeriesBtn ||
     !seriesForm
-  )
+  ) {
     return;
+  }
 
   editingSeriesId = seriesId;
   seriesModalTitle.textContent = 'Edit Series';
@@ -830,8 +832,9 @@ seriesForm?.addEventListener('submit', async (e: Event) => {
     !seriesTotalBooksInput ||
     !saveSeriesBtn ||
     !currentUser
-  )
+  ) {
     return;
+  }
 
   clearFormErrors(seriesForm);
   const formData = {

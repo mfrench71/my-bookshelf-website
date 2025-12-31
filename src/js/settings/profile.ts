@@ -521,8 +521,9 @@ passwordForm?.addEventListener('submit', async (e: Event) => {
     !confirmPasswordInput ||
     !savePasswordBtn ||
     !currentUser
-  )
+  ) {
     return;
+  }
 
   clearFormErrors(passwordForm);
   const formData = {
@@ -615,8 +616,9 @@ deleteAccountForm?.addEventListener('submit', async (e: Event) => {
     !deleteConfirmTextInput ||
     !confirmDeleteAccountBtn ||
     !currentUser
-  )
+  ) {
     return;
+  }
 
   clearFormErrors(deleteAccountForm);
   const formData = {

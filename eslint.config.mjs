@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 export default [
   // Base recommended rules
@@ -18,7 +19,89 @@ export default [
     ],
   },
 
-  // Main source files
+  // Main source files (TypeScript)
+  {
+    files: ['src/js/**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parser: tseslint.parser,
+      parserOptions: {
+        project: false, // Don't require tsconfig for linting (faster)
+      },
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        Image: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        HTMLImageElement: 'readonly',
+        Element: 'readonly',
+        Event: 'readonly',
+        CustomEvent: 'readonly',
+        MutationObserver: 'readonly',
+        IntersectionObserver: 'readonly',
+        ResizeObserver: 'readonly',
+        AbortController: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        performance: 'readonly',
+        crypto: 'readonly',
+        // Lucide icons
+        lucide: 'readonly',
+        // Barcode scanner (loaded from vendor)
+        Quagga: 'readonly',
+      },
+    },
+    rules: {
+      // Error prevention
+      'no-unused-vars': 'off', // TypeScript handles this
+      'no-undef': 'off', // TypeScript handles this
+      'no-prototype-builtins': 'error',
+      'no-duplicate-imports': 'error',
+
+      // Best practices
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      'curly': ['error', 'multi-line'],
+      'no-throw-literal': 'error',
+
+      // Style
+      'no-console': 'warn',
+      'no-debugger': 'error',
+      'no-alert': 'error',
+    },
+  },
+
+  // Main source files (JavaScript - legacy, if any remain)
   {
     files: ['src/js/**/*.js'],
     languageOptions: {
@@ -97,7 +180,7 @@ export default [
 
   // Test files
   {
-    files: ['tests/**/*.js', 'e2e/**/*.js', '**/*.test.js', '**/*.spec.js'],
+    files: ['tests/**/*.ts', 'tests/**/*.js', 'e2e/**/*.js', '**/*.test.ts', '**/*.test.js', '**/*.spec.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

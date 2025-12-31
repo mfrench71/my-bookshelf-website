@@ -429,8 +429,9 @@ function renderForm(): void {
     !notesInput ||
     !loading ||
     !content
-  )
+  ) {
     return;
+  }
 
   // Render breadcrumbs
   renderBreadcrumbs(breadcrumb, Breadcrumbs.bookEdit(book.title, bookId!));
@@ -549,8 +550,9 @@ function updateReadingDatesUI(): void {
     !rereadBtn ||
     !readHistorySection ||
     !historyCount
-  )
+  ) {
     return;
+  }
 
   const currentRead = currentReads.length > 0 ? currentReads[currentReads.length - 1] : null;
 
@@ -695,8 +697,9 @@ function checkFormDirty(): boolean {
     !physicalFormatInput ||
     !pageCountInput ||
     !notesInput
-  )
+  ) {
     return false;
+  }
 
   if (titleInput.value.trim() !== originalValues.title) return true;
   if (authorPicker && authorPicker.getValue().trim() !== originalValues.author) return true;
@@ -722,8 +725,9 @@ function checkFormDirty(): boolean {
   // Check images
   const currentImages = imageGallery ? imageGallery.getImages() : originalImages;
   if (currentImages.length !== originalImages.length) return true;
-  if (JSON.stringify(currentImages.map((i: BookImage) => i.id)) !== JSON.stringify(originalImages.map(i => i.id)))
+  if (JSON.stringify(currentImages.map((i: BookImage) => i.id)) !== JSON.stringify(originalImages.map(i => i.id))) {
     return true;
+  }
 
   return false;
 }
@@ -757,8 +761,9 @@ editForm?.addEventListener('submit', async (e: Event) => {
     !currentUser ||
     !bookId ||
     !authorPickerContainer
-  )
+  ) {
     return;
+  }
 
   clearFormErrors(editForm);
 
@@ -967,8 +972,9 @@ refreshDataBtn?.addEventListener('click', async () => {
     !pageCountInput ||
     !coverUrlInput ||
     !book
-  )
+  ) {
     return;
+  }
 
   refreshDataBtn.disabled = true;
   const originalHtml = refreshDataBtn.innerHTML;

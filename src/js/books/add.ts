@@ -1315,8 +1315,9 @@ bookForm?.addEventListener('submit', async (e: Event) => {
       const authorInput = authorPickerContainer.querySelector('.author-picker-input') as HTMLInputElement | null;
       if (authorInput) showFieldError(authorInput, validation.errors.author);
     }
-    if (validation.errors.coverImageUrl && coverUrlInput)
+    if (validation.errors.coverImageUrl && coverUrlInput) {
       showFieldError(coverUrlInput, validation.errors.coverImageUrl);
+    }
     if (validation.errors.pageCount && pageCountInput) showFieldError(pageCountInput, validation.errors.pageCount);
     if (validation.errors.notes && notesInput) showFieldError(notesInput, validation.errors.notes);
     // Scroll to first error field

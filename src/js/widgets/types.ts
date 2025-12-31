@@ -1,24 +1,36 @@
 /**
  * Widget Type Definitions
+ * Re-exports common types and defines widget-specific types
  */
 
+// Re-export common types from main type definitions
+import type {
+  Book as MainBook,
+  Genre,
+  Series as MainSeries,
+  WishlistItem as MainWishlistItem,
+  BookCovers,
+  FirestoreTimestamp,
+} from '../types/index.js';
+
+// ============================================================================
+// Widget-specific Type Aliases
+// ============================================================================
+
 /** Genre lookup map */
-export interface GenreLookup {
-  [id: string]: {
+export type GenreLookup = Record<
+  string,
+  {
     id: string;
     name: string;
     color: string;
     bookCount?: number;
-  };
-}
+  }
+>;
 
-/** Series data */
-export interface Series {
-  id: string;
-  name: string;
+/** Series data for widgets */
+export interface Series extends Omit<MainSeries, 'createdAt' | 'updatedAt' | 'expectedBooks'> {
   bookCount?: number;
-  totalBooks?: number;
-  description?: string;
 }
 
 /** Series lookup map */
@@ -27,35 +39,39 @@ export type SeriesLookup = Map<string, Series>;
 /** Timestamp type - can be Date, Firestore Timestamp, string, or number */
 export type TimestampValue = Date | { toDate(): Date } | string | number;
 
-/** Book data for widgets */
+/** Book data for widgets - uses main Book type with optional fields for flexibility */
 export interface Book {
   id: string;
   title: string;
   author?: string;
   coverImageUrl?: string;
-  rating?: number;
+  rating?: number | null;
   status?: string;
   createdAt?: TimestampValue;
-  readHistory?: Array<{
-    startDate?: TimestampValue;
-    finishDate?: TimestampValue;
+  reads?: Array<{
+    startedAt?: string | null;
+    finishedAt?: string | null;
   }>;
   genres?: string[];
-  seriesId?: string;
-  seriesPosition?: number;
+  seriesId?: string | null;
+  seriesPosition?: number | null;
 }
 
-/** Wishlist item data */
+/** Wishlist item data for widgets */
 export interface WishlistItem {
   id: string;
   title?: string;
   author?: string;
-  coverImageUrl?: string;
-  priority?: 'high' | 'medium' | 'low';
+  coverImageUrl?: string | null;
+  priority?: 'high' | 'medium' | 'low' | null;
   createdAt?: TimestampValue;
-  notes?: string;
-  isbn?: string;
+  notes?: string | null;
+  isbn?: string | null;
 }
+
+// ============================================================================
+// Widget Settings Types
+// ============================================================================
 
 /** Widget settings schema item */
 export interface SettingsSchemaItem {
@@ -69,16 +85,21 @@ export interface SettingsSchemaItem {
 export interface WidgetConfig {
   id: string;
   enabled: boolean;
-  order: number;
+  order?: number;
   size: number;
-  settings: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  itemCount?: number;
 }
 
 /** Widget settings object */
 export interface WidgetSettings {
-  version: number;
+  version?: number;
   widgets: WidgetConfig[];
 }
+
+// ============================================================================
+// Widget Class Types
+// ============================================================================
 
 /** Base widget class interface (static members) */
 export interface BaseWidgetClass {
