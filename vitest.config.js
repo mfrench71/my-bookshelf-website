@@ -23,16 +23,17 @@ export default defineConfig({
         // Firebase config
         'src/js/firebase-config.js',
         'src/js/app.js',
-        // Entry point files with DOM/Firebase dependencies
-        'src/js/header.js',
-        'src/js/login.js',
-        'src/js/index.js',
-        'src/js/books/*.js',
-        'src/js/settings/*.js',
+        // Entry point files with DOM/Firebase dependencies (both .js and .ts)
+        'src/js/header.{js,ts}',
+        'src/js/login.{js,ts}',
+        'src/js/index.{js,ts}',
+        'src/js/books/*.{js,ts}',
+        'src/js/settings/*.{js,ts}',
+        'src/js/wishlist/*.{js,ts}',
         // Re-export modules
-        'src/js/utils.js',
-        'src/js/utils/index.js',
-        'src/js/schemas/index.js',
+        'src/js/utils.{js,ts}',
+        'src/js/utils/index.{js,ts}',
+        'src/js/schemas/index.{js,ts}',
         // Vendor files
         'src/js/vendor/**'
       ],
