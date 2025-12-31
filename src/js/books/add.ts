@@ -31,7 +31,7 @@ import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { wishlistRepository } from '../repositories/wishlist-repository.js';
 import { isISBN, cleanISBN, checkForDuplicate } from '../utils/duplicate-checker.js';
-import type { BookCovers, SearchResultBook } from '../types/index.js';
+import type { BookCovers, SearchResultBook, PhysicalFormat } from '../types/index.js';
 
 // Declare Quagga as a global (loaded from vendor script)
 declare const Quagga: {
@@ -1360,7 +1360,7 @@ bookForm?.addEventListener('submit', async (e: Event) => {
       genres: selectedGenres,
       publisher: publisherInput?.value.trim() || '',
       publishedDate: publishedDateInput?.value.trim() || '',
-      physicalFormat: physicalFormatInput?.value.trim() || '',
+      physicalFormat: (physicalFormatInput?.value.trim() || '') as PhysicalFormat,
       pageCount: pageCountInput?.value ? parseInt(pageCountInput.value, 10) : null,
       seriesId: selectedSeries.seriesId,
       seriesPosition: selectedSeries.position,
@@ -1390,6 +1390,12 @@ bookForm?.addEventListener('submit', async (e: Event) => {
     clearGenresCache();
     if (selectedSeries.seriesId) {
       clearSeriesCache();
+    }
+
+    // Remove beforeunload handler since we're intentionally leaving after successful save
+    if (beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadHandler = null;
     }
 
     showToast('Book added!', { type: 'success' });
