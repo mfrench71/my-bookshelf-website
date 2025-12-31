@@ -110,15 +110,15 @@ MyBookShelf/
 │   │   │   ├── preferences.js  # Sync, widgets, privacy
 │   │   │   ├── maintenance.js  # Data cleanup, cover fetch
 │   │   │   └── about.js        # Changelog accordions
-│   │   ├── genres.js           # Genre CRUD
-│   │   ├── series.js           # Series CRUD
-│   │   ├── wishlist.js         # Wishlist CRUD
+│   │   ├── genres.ts           # Genre CRUD
+│   │   ├── series.ts           # Series CRUD
+│   │   ├── repositories/       # Data access layer (TypeScript)
 │   │   ├── books/              # Book page modules
 │   │   ├── wishlist/           # Wishlist page modules
-│   │   ├── components/         # Reusable UI components
+│   │   ├── components/         # Reusable UI components (TypeScript)
 │   │   ├── schemas/            # Zod validation schemas
 │   │   ├── widgets/            # Dashboard widget system
-│   │   └── utils/              # Utility modules
+│   │   └── utils/              # Utility modules (TypeScript)
 │   └── sw.js                   # Service worker
 ├── tests/                      # Test files
 ├── e2e/                        # Playwright E2E tests
@@ -843,23 +843,25 @@ As users accumulate many genres/series, the Settings > Library page lists will n
 - [ ] Clear local cache/data
 
 ### Technical Debt
-- [x] Fix colour inconsistencies in Data Cleanup buttons (all amber) ✅
-- [x] Generate in-app changelog from CHANGELOG.md at build time (11ty data file) ✅
-- [x] Full Zod validation (remove HTML validation attributes, add novalidate) ✅
-- [x] Tree-shake Lucide icons (378KB → 14KB) ✅ (reverted - broke at runtime)
-- [x] Minify/bundle JavaScript (797KB → 259KB custom + 265KB vendor) ✅
-- [x] **E2E validation tests** - Added `e2e/validation.spec.js` with tests for empty form submit, error display, error clearing. Also added `tests/form-html-alignment.test.js` to verify HTML `name` attributes match schema field names.
-- [ ] Server-side search (Algolia/Firestore)
-- [ ] Virtualised list for 500+ books
-- [x] Event listener cleanup - Added guards to prevent duplicate listeners (header.js online/offline, books/index.js touch), fixed beforeunload stacking (add.js, edit.js), added destroy() methods to CoverPicker and RatingInput
-- [x] Repository pattern - Base, book, genre, series repositories abstract Firestore access
-- [x] TypeScript migration - Utilities, repositories, components (all 9), and domain modules (genres.ts, series.ts) converted to TypeScript with type definitions
-- [x] Event bus - Pub/sub pattern for decoupled component communication (utils/event-bus.ts)
+
+**Completed:**
+- [x] Fix colour inconsistencies in Data Cleanup buttons (all amber)
+- [x] Generate in-app changelog from CHANGELOG.md at build time
+- [x] Full Zod validation (novalidate on all forms)
+- [x] Tree-shake Lucide icons (378KB → 14KB)
+- [x] Minify/bundle JavaScript (797KB → 259KB)
+- [x] E2E validation tests + form-html-alignment tests
+- [x] Event listener cleanup with destroy() methods
+- [x] Repository pattern - All 6 repositories complete
+- [x] TypeScript migration - 100% (73 files)
+- [x] Event bus - Pub/sub for decoupled communication
+- [x] Async error handling in all Firebase operations
+- [x] Scroll to first invalid field on validation failure
+
+**Remaining:**
+- [ ] Server-side search (Algolia/Firestore) - for 500+ books
+- [ ] Virtualised list rendering - for 500+ books
 - [ ] Split large files (see File Size Review below)
-- [x] Async error handling - Added try/catch to all Firebase operations in genres.js (7 functions) and series.js (10 functions)
-- [x] Book edit: API refresh green highlight now persists until save (removed setTimeout fade)
-- [x] Audit: Check disabled buttons remain disabled until required (site-wide) - Implemented save button change tracking for genre modal, series modal, wishlist edit, password change, delete account, and book add page
-- [x] Scroll to first invalid field on validation failure - Added `scrollToFirstError()` to `validation.js`, applied to book add/edit forms. CSS `scroll-margin-top: 120px` on inputs. Focus disabled on mobile to avoid keyboard popup.
 
 ### File Size Review (Dec 2025)
 
@@ -1971,4 +1973,4 @@ StoryGraph users are frustrated with lack of author pages - this is a gap we cou
 
 **See [CHANGELOG.md](./CHANGELOG.md) for version history.**
 
-**Last Updated**: 2025-12-30
+**Last Updated**: 2025-12-31
