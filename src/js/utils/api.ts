@@ -10,12 +10,10 @@ import {
 import { getISBNCache, setISBNCache } from './cache.js';
 import { parseHierarchicalGenres } from './genre-parser.js';
 import { parseSeriesFromAPI } from './series-parser.js';
+import type { BookCovers, SearchResultBook as BaseSearchResultBook } from '../types/index.js';
 
-/** Cover image sources */
-interface CoverSources {
-  googleBooks?: string;
-  openLibrary?: string;
-}
+/** Cover image sources - alias for backwards compatibility */
+type CoverSources = BookCovers;
 
 /** ISBN lookup result */
 export interface ISBNLookupResult {
@@ -37,14 +35,11 @@ interface LookupOptions {
   skipCache?: boolean;
 }
 
-/** Search result book */
-interface SearchResultBook {
-  title: string;
-  author: string;
+/** Search result book - extends base with required fields for this module */
+interface SearchResultBook extends BaseSearchResultBook {
   cover: string;
   publisher: string;
   publishedDate: string;
-  pageCount: number | string;
   isbn: string;
   categories: string[];
 }

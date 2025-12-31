@@ -31,6 +31,7 @@ import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { wishlistRepository } from '../repositories/wishlist-repository.js';
 import { isISBN, cleanISBN, checkForDuplicate } from '../utils/duplicate-checker.js';
+import type { BookCovers, SearchResultBook } from '../types/index.js';
 
 // Declare Quagga as a global (loaded from vendor script)
 declare const Quagga: {
@@ -49,12 +50,6 @@ interface QuaggaResult {
   };
 }
 
-/** Book cover URLs */
-interface BookCovers {
-  googleBooks?: string;
-  openLibrary?: string;
-}
-
 /** Book data from API lookup */
 interface BookLookupData {
   title?: string;
@@ -68,18 +63,6 @@ interface BookLookupData {
   seriesPosition?: number;
   genres?: string[];
   source?: string;
-}
-
-/** Search result book */
-interface SearchResultBook {
-  title: string;
-  author: string;
-  cover?: string;
-  publisher?: string;
-  publishedDate?: string;
-  isbn?: string;
-  pageCount?: number;
-  categories?: string[];
 }
 
 /** Wishlist item */

@@ -8,20 +8,18 @@
 import { db } from '/js/firebase-config.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { widgetRegistry } from '../widgets/index.js';
+import type { WidgetConfig } from '../types/index.js';
 
 /** Widget settings for a single widget */
-interface WidgetSettings {
+interface WidgetItemSettings {
   count?: number;
   [key: string]: unknown;
 }
 
-/** Single widget configuration */
-interface WidgetConfig {
-  id: string;
-  enabled: boolean;
+/** Widget configuration with settings */
+interface WidgetConfigWithSettings extends Omit<WidgetConfig, 'settings'> {
   order: number;
-  size?: string;
-  settings: WidgetSettings;
+  settings: WidgetItemSettings;
 }
 
 /** Legacy home settings format */
@@ -35,7 +33,7 @@ interface LegacyHomeSettings {
 /** Widget settings document */
 interface WidgetSettingsDoc {
   version: number;
-  widgets: WidgetConfig[];
+  widgets: WidgetConfigWithSettings[];
   updatedAt?: Date;
 }
 
@@ -47,8 +45,8 @@ const LEGACY_HOME_SETTINGS_KEY = 'homeSettings';
  * Get default widget configurations from registry
  * @returns Default widget configurations
  */
-export function getDefaultWidgetConfigs(): WidgetConfig[] {
-  return widgetRegistry.getDefaultConfigs();
+export function getDefaultWidgetConfigs(): WidgetConfigWithSettings[] {
+  return widgetRegistry.getDefaultConfigs() as WidgetConfigWithSettings[];
 }
 
 /**
@@ -56,7 +54,7 @@ export function getDefaultWidgetConfigs(): WidgetConfig[] {
  * @param homeSettings - Old format: { currentlyReading: { enabled, count }, ... }
  * @returns New format: [{ id, enabled, order, size, settings }, ...]
  */
-function migrateFromHomeSettings(homeSettings: LegacyHomeSettings): WidgetConfig[] {
+function migrateFromHomeSettings(homeSettings: LegacyHomeSettings): WidgetConfigWithSettings[] {
   const defaultConfigs = getDefaultWidgetConfigs();
 
   return defaultConfigs.map((config, index) => {
@@ -261,6 +259,6 @@ export async function resetWidgetSettings(userId: string): Promise<WidgetSetting
  * @param settings - Widget settings object
  * @returns Enabled widgets sorted by order
  */
-export function getEnabledWidgets(settings: WidgetSettingsDoc): WidgetConfig[] {
+export function getEnabledWidgets(settings: WidgetSettingsDoc): WidgetConfigWithSettings[] {
   return settings.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order);
 }

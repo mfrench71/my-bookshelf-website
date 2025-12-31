@@ -26,15 +26,24 @@ export type PhysicalFormat =
   | 'Audio CD'
   | 'Ebook';
 
+/** Reading entry - dates can be string (ISO), number (timestamp), Date, or null */
 export interface BookRead {
-  startedAt: string | null;
-  finishedAt: string | null;
+  startedAt?: string | number | Date | null;
+  finishedAt?: string | number | Date | null;
 }
 
+/** Alias for BookRead for backwards compatibility */
+export type ReadEntry = BookRead;
+
+/** Cover image URLs from different sources */
 export interface BookCovers {
   googleBooks?: string;
   openLibrary?: string;
+  [key: string]: string | undefined;
 }
+
+/** Alias for BookCovers */
+export type CoverSources = BookCovers;
 
 export interface BookImage {
   id: string;
@@ -180,7 +189,9 @@ export type WidgetSize = 3 | 6 | 9 | 12;
 export interface WidgetConfig {
   id: string;
   enabled: boolean;
-  size: WidgetSize;
+  size: WidgetSize | number;
+  order?: number;
+  settings?: Record<string, unknown>;
   itemCount?: number;
 }
 
@@ -281,6 +292,18 @@ export interface ISBNLookupResult {
   pageCount?: number | null;
   coverUrl?: string;
   covers?: BookCovers;
+}
+
+/** Search result from Google Books or Open Library API */
+export interface SearchResultBook {
+  title: string;
+  author: string;
+  cover?: string;
+  publisher?: string;
+  publishedDate?: string;
+  isbn?: string;
+  pageCount?: number | string;
+  categories?: string[];
 }
 
 // ============================================================================

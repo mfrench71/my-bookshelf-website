@@ -11,7 +11,11 @@ import type {
   WishlistItem as MainWishlistItem,
   BookCovers,
   FirestoreTimestamp,
+  WidgetConfig,
 } from '../types/index.js';
+
+// Re-export WidgetConfig for consumers
+export type { WidgetConfig };
 
 // ============================================================================
 // Widget-specific Type Aliases
@@ -79,16 +83,6 @@ export interface SettingsSchemaItem {
   label: string;
   type: 'select' | 'number' | 'boolean' | 'text';
   options?: number[] | Array<{ value: string; label: string }>;
-}
-
-/** Widget configuration */
-export interface WidgetConfig {
-  id: string;
-  enabled: boolean;
-  order?: number;
-  size: number;
-  settings?: Record<string, unknown>;
-  itemCount?: number;
 }
 
 /** Widget settings object */

@@ -30,6 +30,7 @@ import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { ConfirmSheet } from '../components/modal.js';
+import type { BookCovers } from '../types/index.js';
 
 /** Read entry for tracking reading history */
 interface ReadEntry {
@@ -43,13 +44,6 @@ interface BookImage {
   url: string;
   isPrimary?: boolean;
   storagePath?: string;
-}
-
-/** Cover URLs from different sources */
-interface BookCovers {
-  googleBooks?: string;
-  openLibrary?: string;
-  [key: string]: string | undefined;
 }
 
 /** Book data structure */

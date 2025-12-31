@@ -20,18 +20,13 @@ import { formatSeriesDisplay } from '../utils/series-parser.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
 import { binRepository } from '../repositories/bin-repository.js';
+import type { BookRead as ReadEntry } from '../types/index.js';
 
 /** Book image data structure */
 interface BookImage {
   url: string;
   isPrimary?: boolean;
   storagePath?: string;
-}
-
-/** Read entry data structure */
-interface ReadEntry {
-  startedAt?: unknown;
-  finishedAt?: unknown;
 }
 
 /** Book data structure */

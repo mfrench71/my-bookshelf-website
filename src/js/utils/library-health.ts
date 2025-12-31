@@ -6,6 +6,7 @@
 import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db } from '/js/firebase-config.js';
 import { lookupISBN } from './api.js';
+import type { BookCovers as CoverSources } from '../types/index.js';
 
 /** Book data structure for health analysis */
 interface Book {
@@ -22,13 +23,6 @@ interface Book {
   deletedAt?: unknown;
   covers?: CoverSources;
   [key: string]: unknown;
-}
-
-/** Cover image sources */
-interface CoverSources {
-  googleBooks?: string;
-  openLibrary?: string;
-  [key: string]: string | undefined;
 }
 
 /** Health field configuration */

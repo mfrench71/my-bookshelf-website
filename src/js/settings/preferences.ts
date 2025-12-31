@@ -6,22 +6,19 @@ import { BottomSheet } from '../components/modal.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from '../utils/widget-settings.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 import { getWidgetInfo, WIDGET_SIZES } from '../widgets/widget-renderer.js';
+import type { WidgetConfig } from '../types/index.js';
 // Import widgets to ensure they're registered
 import '../widgets/index.js';
 
-/** Widget configuration type */
-interface WidgetConfig {
-  id: string;
-  enabled: boolean;
+/** Widget configuration with settings for this page */
+interface WidgetConfigLocal extends WidgetConfig {
   order: number;
-  size: number;
-  settings?: Record<string, unknown>;
 }
 
 /** Widget settings type */
 interface WidgetSettingsData {
   version: number;
-  widgets: WidgetConfig[];
+  widgets: WidgetConfigLocal[];
 }
 
 // Initialize icons once on load

@@ -1,10 +1,6 @@
 // Reading Utilities - Reading status and book reads management
 
-/** Single read entry */
-interface ReadEntry {
-  startedAt?: string | Date | null;
-  finishedAt?: string | Date | null;
-}
+import type { BookRead as ReadEntry } from '../types/index.js';
 
 /** Book with old format (legacy) */
 interface LegacyBook {
