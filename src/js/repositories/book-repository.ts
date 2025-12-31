@@ -128,7 +128,7 @@ class BookRepository extends BaseRepository<Book> {
    */
   async softDelete(userId: string, bookId: string): Promise<void> {
     await this.update(userId, bookId, {
-      deletedAt: new Date().toISOString(),
+      deletedAt: Date.now(),
     } as Partial<Book>);
   }
 

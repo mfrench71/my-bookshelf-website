@@ -59,8 +59,8 @@ export interface BookImage {
 
 export interface Book {
   id: string;
-  title: string;
-  author: string;
+  title?: string;
+  author?: string;
   isbn?: string;
   coverImageUrl?: string;
   publisher?: string;
@@ -68,16 +68,18 @@ export interface Book {
   physicalFormat?: PhysicalFormat;
   pageCount?: number | null;
   rating?: number | null;
-  genres: string[];
+  genres?: string[];
   seriesId?: string | null;
   seriesPosition?: number | null;
   notes?: string;
-  reads: BookRead[];
+  reads?: BookRead[];
   covers?: BookCovers;
-  images: BookImage[];
+  images?: BookImage[];
   deletedAt?: number | null;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
+  createdAt?: FirestoreTimestamp | unknown;
+  updatedAt?: FirestoreTimestamp | unknown;
+  /** Index signature for additional properties */
+  [key: string]: unknown;
 }
 
 export type BookFormData = Omit<Book, 'id' | 'createdAt' | 'updatedAt'>;
@@ -91,8 +93,14 @@ export interface Genre {
   id: string;
   name: string;
   color: string;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
+  createdAt?: FirestoreTimestamp | unknown;
+  updatedAt?: FirestoreTimestamp | unknown;
+  /** Computed property for search/filter */
+  normalizedName?: string;
+  /** Computed property for display */
+  bookCount?: number;
+  /** Index signature for additional properties */
+  [key: string]: unknown;
 }
 
 export type GenreFormData = Pick<Genre, 'name'> & { color?: string };
@@ -108,7 +116,7 @@ export interface ExpectedBook {
   title: string;
   isbn?: string | null;
   position?: number | null;
-  source: 'api' | 'manual';
+  source?: 'api' | 'manual';
 }
 
 export interface Series {
@@ -116,10 +124,16 @@ export interface Series {
   name: string;
   description?: string | null;
   totalBooks?: number | null;
-  expectedBooks: ExpectedBook[];
+  expectedBooks?: ExpectedBook[];
   deletedAt?: number | null;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
+  createdAt?: FirestoreTimestamp | unknown;
+  updatedAt?: FirestoreTimestamp | unknown;
+  /** Computed property for search/filter */
+  normalizedName?: string;
+  /** Computed property for display */
+  bookCount?: number;
+  /** Index signature for additional properties */
+  [key: string]: unknown;
 }
 
 export type SeriesFormData = Omit<Series, 'id' | 'createdAt' | 'updatedAt'>;
@@ -146,9 +160,11 @@ export interface WishlistItem {
   pageCount?: number | null;
   priority?: WishlistPriority;
   notes?: string | null;
-  addedFrom: WishlistAddedFrom;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
+  addedFrom?: WishlistAddedFrom;
+  createdAt?: FirestoreTimestamp | unknown;
+  updatedAt?: FirestoreTimestamp | unknown;
+  /** Index signature for additional properties */
+  [key: string]: unknown;
 }
 
 export type WishlistFormData = Omit<WishlistItem, 'id' | 'createdAt' | 'updatedAt'>;
@@ -178,6 +194,7 @@ export interface ChangePasswordFormData {
 export interface UserProfile {
   displayName?: string;
   photoURL?: string;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -287,11 +304,17 @@ export interface ISBNLookupResult {
   title: string;
   author: string;
   isbn?: string;
+  coverImageUrl?: string;
+  coverUrl?: string;
   publisher?: string;
   publishedDate?: string;
+  physicalFormat?: string;
   pageCount?: number | null;
-  coverUrl?: string;
+  genres?: string[];
   covers?: BookCovers;
+  seriesName?: string;
+  seriesPosition?: number | null;
+  source?: string;
 }
 
 /** Search result from Google Books or Open Library API */
@@ -330,8 +353,9 @@ export interface PaginationOptions {
 
 export interface BaseEntity {
   id: string;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
+  createdAt?: FirestoreTimestamp | unknown;
+  updatedAt?: FirestoreTimestamp | unknown;
+  [key: string]: unknown;
 }
 
 export interface SoftDeletable {

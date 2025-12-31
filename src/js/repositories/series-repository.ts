@@ -94,7 +94,7 @@ class SeriesRepository extends BaseRepository<SeriesWithCount> {
    */
   async softDelete(userId: string, seriesId: string): Promise<void> {
     await this.update(userId, seriesId, {
-      deletedAt: new Date().toISOString(),
+      deletedAt: Date.now(),
     } as Partial<SeriesWithCount>);
   }
 

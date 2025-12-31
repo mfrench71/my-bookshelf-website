@@ -22,7 +22,7 @@ export interface BinnedBook {
   genres?: string[];
   seriesId?: string | null;
   seriesPosition?: number | null;
-  images?: Array<{ storagePath: string }>;
+  images?: Array<{ storagePath?: string }>;
   [key: string]: unknown;
 }
 
@@ -157,9 +157,10 @@ class BinRepository {
    * @param book - The book data (for deleting images)
    */
   async permanentlyDelete(userId: string, bookId: string, book: BinnedBook | null = null): Promise<void> {
-    // Delete images from Storage first
-    if (book?.images?.length) {
-      await deleteImages(book.images);
+    // Delete images from Storage first (filter to only those with storagePath)
+    const imagesToDelete = book?.images?.filter((img): img is { storagePath: string } => !!img.storagePath);
+    if (imagesToDelete?.length) {
+      await deleteImages(imagesToDelete);
     }
 
     const bookRef = doc(db, 'users', userId, 'books', bookId);
@@ -178,8 +179,10 @@ class BinRepository {
   async emptyBin(userId: string, binnedBooks: BinnedBook[]): Promise<number> {
     if (binnedBooks.length === 0) return 0;
 
-    // Delete all images from Storage first
-    const allImages = binnedBooks.flatMap(book => book.images || []);
+    // Delete all images from Storage first (filter to only those with storagePath)
+    const allImages = binnedBooks
+      .flatMap(book => book.images || [])
+      .filter((img): img is { storagePath: string } => !!img.storagePath);
     if (allImages.length > 0) {
       await deleteImages(allImages);
     }
@@ -211,8 +214,10 @@ class BinRepository {
 
     if (expired.length === 0) return 0;
 
-    // Delete all images from Storage first
-    const allImages = expired.flatMap(book => book.images || []);
+    // Delete all images from Storage first (filter to only those with storagePath)
+    const allImages = expired
+      .flatMap(book => book.images || [])
+      .filter((img): img is { storagePath: string } => !!img.storagePath);
     if (allImages.length > 0) {
       await deleteImages(allImages);
     }

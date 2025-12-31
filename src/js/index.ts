@@ -41,6 +41,7 @@ interface GenreData {
   name: string;
   color: string;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Series data structure */
@@ -182,15 +183,22 @@ async function loadDashboard(): Promise<void> {
     ]);
 
     genres = genresResult;
-    genreLookup = createGenreLookup(genres);
+    genreLookup = createGenreLookup(genres as Parameters<typeof createGenreLookup>[0]);
     series = seriesResult;
-    seriesLookup = createSeriesLookup(series);
+    seriesLookup = createSeriesLookup(series as Parameters<typeof createSeriesLookup>[0]);
     books = booksResult;
     wishlistItems = wishlistResult;
 
     // Render widgets
     if (widgetContainer) {
-      renderWidgets(widgetContainer, books, widgetSettings, genreLookup, seriesLookup, wishlistItems);
+      renderWidgets(
+        widgetContainer,
+        books as unknown as Parameters<typeof renderWidgets>[1],
+        widgetSettings,
+        genreLookup as unknown as Parameters<typeof renderWidgets>[3],
+        seriesLookup as unknown as Parameters<typeof renderWidgets>[4],
+        wishlistItems as unknown as Parameters<typeof renderWidgets>[5]
+      );
     }
 
     initIcons();
@@ -242,7 +250,7 @@ async function loadWishlistData(): Promise<WishlistItemData[]> {
   if (!currentUser) return [];
 
   try {
-    return await wishlistRepository.getAll(currentUser.uid);
+    return (await wishlistRepository.getAll(currentUser.uid)) as WishlistItemData[];
   } catch (e) {
     console.error('Error loading wishlist:', e);
     return [];
@@ -284,10 +292,10 @@ async function loadBooksData(): Promise<BookData[]> {
         const data = book as BookData;
         return {
           ...data,
-          createdAt: serializeTimestamp(data.createdAt),
-          updatedAt: serializeTimestamp(data.updatedAt),
-          startedAt: serializeTimestamp(data.startedAt),
-          finishedAt: serializeTimestamp(data.finishedAt),
+          createdAt: serializeTimestamp(data.createdAt as Parameters<typeof serializeTimestamp>[0]),
+          updatedAt: serializeTimestamp(data.updatedAt as Parameters<typeof serializeTimestamp>[0]),
+          startedAt: serializeTimestamp(data.startedAt as Parameters<typeof serializeTimestamp>[0]),
+          finishedAt: serializeTimestamp(data.finishedAt as Parameters<typeof serializeTimestamp>[0]),
         } as BookData;
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books

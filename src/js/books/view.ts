@@ -32,7 +32,7 @@ interface BookImage {
 /** Book data structure */
 interface BookData {
   id: string;
-  title: string;
+  title?: string;
   author?: string;
   isbn?: string;
   coverImageUrl?: string;
@@ -58,6 +58,7 @@ interface GenreData {
   id: string;
   name: string;
   color: string;
+  [key: string]: unknown;
 }
 
 /** Series data structure */
@@ -65,6 +66,7 @@ interface SeriesData {
   id: string;
   name: string;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Genre lookup map type */
@@ -332,7 +334,7 @@ function renderBook(): void {
     bookPublished.textContent = book.publishedDate;
     publishedRow.classList.remove('hidden');
   }
-  const dateAdded = parseTimestamp(book.createdAt);
+  const dateAdded = parseTimestamp(book.createdAt as Parameters<typeof parseTimestamp>[0]);
   if (dateAdded && bookAdded && addedRow) {
     bookAdded.textContent = dateAdded.toLocaleDateString(undefined, {
       year: 'numeric',
@@ -341,7 +343,7 @@ function renderBook(): void {
     });
     addedRow.classList.remove('hidden');
   }
-  const dateModified = parseTimestamp(book.updatedAt);
+  const dateModified = parseTimestamp(book.updatedAt as Parameters<typeof parseTimestamp>[0]);
   if (dateModified && dateAdded && dateModified.getTime() !== dateAdded.getTime() && bookModified && modifiedRow) {
     bookModified.textContent = dateModified.toLocaleDateString(undefined, {
       year: 'numeric',
@@ -403,13 +405,13 @@ async function renderSeriesSection(): Promise<void> {
 
   // Load books in the same series using repository
   try {
-    const allSeriesBooks = await bookRepository.getBySeriesId(currentUser.uid, book.seriesId!);
+    const allSeriesBooks = (await bookRepository.getBySeriesId(currentUser.uid, book.seriesId!)) as BookData[];
 
     // Filter out binned (soft-deleted) books
-    const seriesBooksData = allSeriesBooks.filter((b: BookData) => !b.deletedAt);
+    const seriesBooksData = allSeriesBooks.filter(b => !b.deletedAt);
 
     // Sort by position (nulls at end)
-    seriesBooksData.sort((a: BookData, b: BookData) => {
+    seriesBooksData.sort((a, b) => {
       if (a.seriesPosition === null && b.seriesPosition === null) return 0;
       if (a.seriesPosition === null) return 1;
       if (b.seriesPosition === null) return -1;
@@ -419,7 +421,7 @@ async function renderSeriesSection(): Promise<void> {
     // Render book list
     if (seriesBooksData.length > 1) {
       const booksHtml = seriesBooksData
-        .map((b: BookData) => {
+        .map(b => {
           const isCurrent = b.id === bookId;
           const positionStr = b.seriesPosition ? `#${b.seriesPosition}` : '';
           const displayText = positionStr ? `${positionStr} ${b.title}` : b.title;

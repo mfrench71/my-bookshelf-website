@@ -25,7 +25,11 @@ import type { BaseEntity, PaginatedResult } from '../types/index.d.ts';
 type CollectionReference = ReturnType<typeof collection>;
 type DocumentReference = ReturnType<typeof doc>;
 type DocumentSnapshot = Awaited<ReturnType<typeof getDoc>>;
-type QueryConstraint = ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit>;
+type QueryConstraint =
+  | ReturnType<typeof where>
+  | ReturnType<typeof orderBy>
+  | ReturnType<typeof limit>
+  | ReturnType<typeof startAfter>;
 type WhereFilterOp = '==' | '!=' | '<' | '<=' | '>' | '>=' | 'array-contains' | 'array-contains-any' | 'in' | 'not-in';
 
 /** Options for getWithOptions method */
@@ -40,7 +44,7 @@ export interface PaginationOptions {
   orderByField?: string;
   orderDirection?: 'asc' | 'desc';
   limitCount?: number;
-  afterDoc?: DocumentSnapshot | null;
+  afterDoc?: unknown;
   fromServer?: boolean;
 }
 

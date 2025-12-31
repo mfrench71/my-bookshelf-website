@@ -9,6 +9,8 @@ export interface CoverOptions {
   googleBooks?: string;
   openLibrary?: string;
   userUpload?: string;
+  /** Index signature for compatibility with BookCovers */
+  [key: string]: string | undefined;
 }
 
 /** Options for CoverPicker constructor */

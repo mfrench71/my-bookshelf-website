@@ -30,6 +30,7 @@ export interface WishlistItem {
   addedFrom?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
+  [key: string]: unknown;
 }
 
 /** Input data for creating a wishlist item */

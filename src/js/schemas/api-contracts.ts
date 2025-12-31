@@ -118,7 +118,7 @@ export const OpenLibraryBookDataSchema = z
     subjects: z.array(OpenLibrarySubjectSchema).optional(),
     cover: OpenLibraryCoverSchema,
     url: z.string().optional(),
-    identifiers: z.record(z.array(z.string())).optional(),
+    identifiers: z.record(z.string(), z.array(z.string())).optional(),
   })
   .passthrough();
 

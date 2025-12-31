@@ -40,7 +40,7 @@ interface SetupValidationOptions {
  */
 export function validateField(schema: z.ZodObject<z.ZodRawShape>, field: string, value: unknown): string | null {
   // Extract the field schema
-  const fieldSchema = schema.shape?.[field];
+  const fieldSchema = schema.shape?.[field] as z.ZodSchema | undefined;
   if (!fieldSchema) {
     console.warn(`Field "${field}" not found in schema`);
     return null;

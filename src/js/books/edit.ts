@@ -23,27 +23,32 @@ import { RatingInput } from '../components/rating-input.js';
 import { SeriesPicker } from '../components/series-picker.js';
 import { AuthorPicker } from '../components/author-picker.js';
 import { CoverPicker } from '../components/cover-picker.js';
-import { ImageGallery } from '../components/image-gallery.js';
+import { ImageGallery, type GalleryImage } from '../components/image-gallery.js';
 import { updateGenreBookCounts, clearGenresCache } from '../genres.js';
 import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
-import { BookFormSchema } from '../schemas/book.js';
+import { BookFormSchema, BookFormData } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { ConfirmSheet } from '../components/modal.js';
-import type { BookCovers } from '../types/index.js';
+import type { BookCovers, BookRead, PhysicalFormat } from '../types/index.js';
 
-/** Read entry for tracking reading history */
+/** Read entry for tracking reading history - compatible with BookRead */
 interface ReadEntry {
-  startedAt: number | null;
-  finishedAt: number | null;
+  startedAt?: string | number | Date | null;
+  finishedAt?: string | number | Date | null;
 }
 
-/** Book image from gallery */
+/** Book image from gallery - compatible with GalleryImage */
 interface BookImage {
   id?: string;
   url: string;
-  isPrimary?: boolean;
   storagePath?: string;
+  isPrimary?: boolean;
+  uploadedAt?: number;
+  sizeBytes?: number;
+  width?: number;
+  height?: number;
+  caption?: string;
 }
 
 /** Book data structure */
@@ -327,7 +332,7 @@ function initImageGallery(): void {
 
   // Load existing images if book has any
   if (book && book.images && book.images.length > 0) {
-    imageGallery.setImages(book.images);
+    imageGallery.setImages(book.images as GalleryImage[]);
     originalImages = [...book.images];
   }
 }
@@ -391,7 +396,7 @@ async function loadBook(): Promise<void> {
   if (!currentUser || !bookId) return;
 
   try {
-    book = await bookRepository.getById(currentUser.uid, bookId);
+    book = (await bookRepository.getById(currentUser.uid, bookId)) as unknown as BookData | null;
 
     if (!book) {
       showToast('Book not found', { type: 'error' });
@@ -445,8 +450,8 @@ function renderForm(): void {
   initRatingInput(book.rating || 0);
 
   // Reading dates
-  const migratedBook = migrateBookReads(book);
-  currentReads = migratedBook.reads ? [...migratedBook.reads.map((r: ReadEntry) => ({ ...r }))] : [];
+  const migratedBook = migrateBookReads(book as Parameters<typeof migrateBookReads>[0]);
+  currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({ ...r }) as ReadEntry)] : [];
   updateReadingDatesUI();
 
   // Store original values
@@ -528,7 +533,7 @@ function initRatingInput(initialValue = 0): void {
  * @returns ISO date string or empty string
  */
 function formatDateForInput(timestamp: unknown): string {
-  const date = parseTimestamp(timestamp);
+  const date = parseTimestamp(timestamp as Parameters<typeof parseTimestamp>[0]);
   if (!date) return '';
   return date.toISOString().split('T')[0];
 }
@@ -712,7 +717,9 @@ function checkFormDirty(): boolean {
   if (!currentGenres.every((g: string) => originalValues.genres.includes(g))) return true;
 
   // Check series
-  const currentSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: originalSeriesId };
+  const currentSeries = seriesPicker
+    ? seriesPicker.getSelected()
+    : { seriesId: originalSeriesId, position: book?.seriesPosition ?? null };
   if (currentSeries.seriesId !== originalSeriesId) return true;
   if (currentSeries.seriesId && book && currentSeries.position !== book.seriesPosition) return true;
 
@@ -776,7 +783,7 @@ editForm?.addEventListener('submit', async (e: Event) => {
     notes: notesInput.value.trim(),
   };
 
-  const validation = validateForm(BookFormSchema, formData);
+  const validation = validateForm<BookFormData>(BookFormSchema, formData);
   if (!validation.success) {
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
     if (validation.errors.author) {
@@ -799,10 +806,10 @@ editForm?.addEventListener('submit', async (e: Event) => {
     title: validation.data.title,
     author: validation.data.author,
     coverImageUrl: validation.data.coverImageUrl || '',
-    covers: Object.keys(availableCovers).length > 0 ? availableCovers : null,
+    covers: Object.keys(availableCovers).length > 0 ? (availableCovers as BookCovers) : null,
     publisher: validation.data.publisher || '',
     publishedDate: validation.data.publishedDate || '',
-    physicalFormat: validation.data.physicalFormat || '',
+    physicalFormat: (validation.data.physicalFormat || '') as PhysicalFormat,
     pageCount: validation.data.pageCount || null,
     seriesId: selectedSeries.seriesId,
     seriesPosition: selectedSeries.position,
@@ -810,7 +817,7 @@ editForm?.addEventListener('submit', async (e: Event) => {
     notes: validation.data.notes || '',
     genres: selectedGenres,
     images: imageGallery ? imageGallery.getImages() : [],
-    reads: currentReads,
+    reads: currentReads as BookRead[],
   };
 
   try {

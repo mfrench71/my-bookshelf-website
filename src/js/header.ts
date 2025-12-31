@@ -48,6 +48,7 @@ interface GenreData {
   name: string;
   color: string;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Series data structure */
@@ -433,8 +434,8 @@ async function loadAllBooksForSearch(): Promise<void> {
         const data = book as BookData;
         return {
           ...data,
-          createdAt: serializeTimestamp(data.createdAt),
-          updatedAt: serializeTimestamp(data.updatedAt),
+          createdAt: serializeTimestamp(data.createdAt as Parameters<typeof serializeTimestamp>[0]),
+          updatedAt: serializeTimestamp(data.updatedAt as Parameters<typeof serializeTimestamp>[0]),
           // Pre-normalize for faster search
           _normalizedTitle: normalizeText(data.title),
           _normalizedAuthor: normalizeText(data.author),

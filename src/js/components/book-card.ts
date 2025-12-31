@@ -196,7 +196,7 @@ export function bookCard(book: Book, options: BookCardOptions = {}): string {
 
   let dateStr = '';
   if (showDate) {
-    const dateAdded = formatDate(book.createdAt);
+    const dateAdded = formatDate(book.createdAt as Parameters<typeof formatDate>[0]);
     dateStr = dateAdded ? `<p class="text-xs text-gray-400 mt-1">Added ${dateAdded}</p>` : '';
   }
 

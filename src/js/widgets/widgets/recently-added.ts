@@ -19,8 +19,8 @@ export class RecentlyAddedWidget extends BaseWidget {
 
   static override filterAndSort(books: Book[]): Book[] {
     return [...books].sort((a, b) => {
-      const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
-      const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
+      const aTime = parseTimestamp(a.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
+      const bTime = parseTimestamp(b.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
       return bTime - aTime;
     });
   }
@@ -56,7 +56,9 @@ export class RecentlyAddedWidget extends BaseWidget {
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
         </div>`;
 
-    const addedDate = book.createdAt ? formatDate(parseTimestamp(book.createdAt)) : '';
+    const addedDate = book.createdAt
+      ? formatDate(parseTimestamp(book.createdAt as Parameters<typeof parseTimestamp>[0]))
+      : '';
 
     return `
       <a href="/books/view/?id=${book.id}" class="flex-shrink-0 w-24 snap-start">

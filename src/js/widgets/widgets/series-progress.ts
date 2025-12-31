@@ -117,8 +117,10 @@ export class SeriesProgressWidget extends BaseWidget {
       switch (sortBy) {
         case 'progress': {
           // Sort by completion percentage (descending), incomplete first
-          const aProgress = a.totalBooks ? (a.bookCount || 0) / a.totalBooks : 0;
-          const bProgress = b.totalBooks ? (b.bookCount || 0) / b.totalBooks : 0;
+          const aTotalBooks = (a.totalBooks as number) || 0;
+          const bTotalBooks = (b.totalBooks as number) || 0;
+          const aProgress = aTotalBooks ? (a.bookCount || 0) / aTotalBooks : 0;
+          const bProgress = bTotalBooks ? (b.bookCount || 0) / bTotalBooks : 0;
           // Incomplete series first, then by progress
           if (aProgress < 1 && bProgress >= 1) return -1;
           if (bProgress < 1 && aProgress >= 1) return 1;
@@ -128,7 +130,7 @@ export class SeriesProgressWidget extends BaseWidget {
           return (b.bookCount || 0) - (a.bookCount || 0);
         case 'name':
         default:
-          return (a.name || '').localeCompare(b.name || '');
+          return ((a.name as string) || '').localeCompare((b.name as string) || '');
       }
     });
   }
@@ -138,8 +140,8 @@ export class SeriesProgressWidget extends BaseWidget {
    */
   static renderSeriesRow(series: Series): string {
     const owned = series.bookCount || 0;
-    const total = series.totalBooks;
-    const hasTotal = total && total > 0;
+    const total = (series.totalBooks as number) || 0;
+    const hasTotal = total > 0;
 
     // Calculate progress percentage
     const progress = hasTotal ? Math.min((owned / total) * 100, 100) : 0;
@@ -160,12 +162,12 @@ export class SeriesProgressWidget extends BaseWidget {
     }
 
     // Link to books filtered by this series (use ID for reliable filtering)
-    const filterLink = `/books/?series=${encodeURIComponent(series.id)}`;
+    const filterLink = `/books/?series=${encodeURIComponent(series.id as string)}`;
 
     return `
       <a href="${filterLink}" class="block p-3 rounded-lg hover:bg-gray-50 transition-colors -mx-1">
         <div class="flex items-center justify-between mb-1">
-          <span class="font-medium text-gray-900 truncate flex-1 mr-2">${escapeHtml(series.name)}</span>
+          <span class="font-medium text-gray-900 truncate flex-1 mr-2">${escapeHtml(series.name as string)}</span>
           ${statusText}
         </div>
         ${

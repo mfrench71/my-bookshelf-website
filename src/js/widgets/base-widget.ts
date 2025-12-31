@@ -21,12 +21,12 @@ export class BaseWidget {
 
   /**
    * Filter and sort books for this widget
-   * @param books - All user's books
+   * @param items - All user's books or wishlist items
    * @param _config - Widget configuration (optional)
-   * @returns Filtered/sorted books for this widget
+   * @returns Filtered/sorted items for this widget
    */
-  static filterAndSort(books: Book[], _config?: WidgetConfig): Book[] {
-    return books;
+  static filterAndSort(items: Book[] | WishlistItem[], _config?: WidgetConfig): Book[] | WishlistItem[] {
+    return items;
   }
 
   /**

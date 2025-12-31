@@ -52,13 +52,13 @@ export class WishlistWidget extends BaseWidget {
         const pb = b.priority ? (priorityOrder[b.priority] ?? 3) : 3;
         if (pa !== pb) return pa - pb;
         // Secondary sort by date added (newest first)
-        const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
-        const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
+        const aTime = parseTimestamp(a.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
+        const bTime = parseTimestamp(b.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
         return bTime - aTime;
       }
       if (sortBy === 'createdAt') {
-        const aTime = parseTimestamp(a.createdAt)?.getTime() || 0;
-        const bTime = parseTimestamp(b.createdAt)?.getTime() || 0;
+        const aTime = parseTimestamp(a.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
+        const bTime = parseTimestamp(b.createdAt as Parameters<typeof parseTimestamp>[0])?.getTime() || 0;
         return bTime - aTime;
       }
       // Sort by title

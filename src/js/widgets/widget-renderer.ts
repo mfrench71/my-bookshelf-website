@@ -73,7 +73,7 @@ export function renderWidgets(
   seriesLookup: SeriesLookup | null = null,
   wishlistItems: WishlistItem[] = []
 ): void {
-  const enabledWidgets = getEnabledWidgets(settings) as WidgetConfig[];
+  const enabledWidgets = getEnabledWidgets(settings as Parameters<typeof getEnabledWidgets>[0]) as WidgetConfig[];
 
   if (enabledWidgets.length === 0) {
     container.innerHTML = `

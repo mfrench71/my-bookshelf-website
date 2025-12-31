@@ -28,6 +28,8 @@ export interface ISBNLookupResult {
   covers?: CoverSources;
   seriesName?: string;
   seriesPosition?: number | null;
+  /** Which API provided the primary data */
+  source?: string;
 }
 
 /** ISBN lookup options */

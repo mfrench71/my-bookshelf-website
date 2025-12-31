@@ -18,7 +18,7 @@ export class CurrentlyReadingWidget extends BaseWidget {
   ];
 
   static override filterAndSort(books: Book[]): Book[] {
-    return books.filter(b => getBookStatus(b) === 'reading');
+    return books.filter(b => getBookStatus(b as unknown as Parameters<typeof getBookStatus>[0]) === 'reading');
   }
 
   static override getEmptyMessage(): string {

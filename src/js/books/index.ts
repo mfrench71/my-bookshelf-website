@@ -58,6 +58,7 @@ interface GenreData {
   id: string;
   name: string;
   color: string;
+  [key: string]: unknown;
 }
 
 /** Series data structure */
@@ -66,6 +67,7 @@ interface SeriesData {
   name: string;
   normalizedName?: string;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Genre lookup map type */
@@ -122,7 +124,7 @@ let currentUser: User | null = null;
 let books: BookData[] = [];
 let currentSort = 'createdAt-desc';
 let previousSort: string | null = null; // Store sort before switching to series order
-let ratingFilter: number | string = 0;
+let ratingFilter: number | 'unrated' = 0;
 let displayLimit = BOOKS_PER_PAGE;
 let lastDoc: unknown = null;
 let hasMoreFromFirebase = true;
@@ -261,11 +263,11 @@ async function loadGenres(): Promise<void> {
   if (!currentUser) return;
 
   try {
-    genres = await loadUserGenres(currentUser.uid);
-    genreLookup = createGenreLookup(genres);
+    genres = (await loadUserGenres(currentUser.uid)) as GenreData[];
+    genreLookup = createGenreLookup(genres as Parameters<typeof createGenreLookup>[0]);
     // Update filter panels if already initialized
-    if (sidebarPanel) sidebarPanel.setGenres(genres);
-    if (mobilePanel) mobilePanel.setGenres(genres);
+    if (sidebarPanel) sidebarPanel.setGenres(genres as Parameters<typeof sidebarPanel.setGenres>[0]);
+    if (mobilePanel) mobilePanel.setGenres(genres as Parameters<typeof mobilePanel.setGenres>[0]);
   } catch (error) {
     console.error('Error loading genres:', error);
     genres = [];
@@ -281,8 +283,8 @@ async function loadSeries(): Promise<void> {
   if (!currentUser) return;
 
   try {
-    series = await loadUserSeries(currentUser.uid);
-    seriesLookup = createSeriesLookup(series);
+    series = (await loadUserSeries(currentUser.uid)) as SeriesData[];
+    seriesLookup = createSeriesLookup(series as Parameters<typeof createSeriesLookup>[0]);
 
     // Handle URL param with series name (from widget links)
     // If seriesFilters has entries that are not valid series IDs, try to match by name
@@ -299,8 +301,8 @@ async function loadSeries(): Promise<void> {
     });
 
     // Update filter panels if already initialized
-    if (sidebarPanel) sidebarPanel.setSeries(series);
-    if (mobilePanel) mobilePanel.setSeries(series);
+    if (sidebarPanel) sidebarPanel.setSeries(series as Parameters<typeof sidebarPanel.setSeries>[0]);
+    if (mobilePanel) mobilePanel.setSeries(series as Parameters<typeof mobilePanel.setSeries>[0]);
   } catch (error) {
     console.error('Error loading series:', error);
     series = [];
@@ -465,19 +467,19 @@ async function fetchNextPage(): Promise<void> {
 
   try {
     // Use repository for paginated fetch with cursor support
-    const result: PaginatedResult = await bookRepository.getPaginated(currentUser.uid, {
+    const result = (await bookRepository.getPaginated(currentUser.uid, {
       orderByField: field === 'createdAt' ? 'createdAt' : field,
       orderDirection: direction === 'asc' ? 'asc' : 'desc',
       limitCount: BOOKS_PER_PAGE,
       afterDoc: lastDoc,
       fromServer: forceServerFetch,
-    });
+    })) as unknown as PaginatedResult;
 
     // Serialize timestamps for caching
     const newBooks: BookData[] = result.docs.map(book => ({
       ...book,
-      createdAt: serializeTimestamp(book.createdAt),
-      updatedAt: serializeTimestamp(book.updatedAt),
+      createdAt: serializeTimestamp(book.createdAt as Parameters<typeof serializeTimestamp>[0]),
+      updatedAt: serializeTimestamp(book.updatedAt as Parameters<typeof serializeTimestamp>[0]),
     }));
 
     // Deduplicate - filter out books already in the array
@@ -589,13 +591,13 @@ function getUniqueAuthors(): string[] {
 function getFilteredBooks(): BookData[] {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   // First filter out binned (soft-deleted) books
-  let filtered = binRepository.filterActive(books);
-  filtered = filterByRating(filtered, ratingFilter);
-  filtered = filterByGenres(filtered, genreFilters);
-  filtered = filterByStatuses(filtered, statusFilters);
-  filtered = filterBySeriesIds(filtered, seriesFilters);
-  filtered = filterByAuthor(filtered, authorFilter);
-  cachedFilteredBooks = sortBooks(filtered, currentSort);
+  let filtered = binRepository.filterActive(books) as BookData[];
+  filtered = filterByRating(filtered as Parameters<typeof filterByRating>[0], ratingFilter) as BookData[];
+  filtered = filterByGenres(filtered as Parameters<typeof filterByGenres>[0], genreFilters) as BookData[];
+  filtered = filterByStatuses(filtered as Parameters<typeof filterByStatuses>[0], statusFilters) as BookData[];
+  filtered = filterBySeriesIds(filtered as Parameters<typeof filterBySeriesIds>[0], seriesFilters) as BookData[];
+  filtered = filterByAuthor(filtered as Parameters<typeof filterByAuthor>[0], authorFilter) as BookData[];
+  cachedFilteredBooks = sortBooks(filtered as Parameters<typeof sortBooks>[0], currentSort) as BookData[];
   return cachedFilteredBooks;
 }
 
@@ -621,14 +623,20 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const activeSeriesIds = filterOverrides?.seriesIds ?? seriesFilters;
   const activeAuthor = filterOverrides?.author ?? authorFilter;
 
-  const activeBooks = binRepository.filterActive(books);
+  const activeBooks = binRepository.filterActive(books) as BookData[];
 
   // For rating counts: apply all filters EXCEPT rating
-  let booksForRating = activeBooks;
-  booksForRating = filterByGenres(booksForRating, activeGenres);
-  booksForRating = filterByStatuses(booksForRating, activeStatuses);
-  booksForRating = filterBySeriesIds(booksForRating, activeSeriesIds);
-  booksForRating = filterByAuthor(booksForRating, activeAuthor);
+  let booksForRating = activeBooks as BookData[];
+  booksForRating = filterByGenres(booksForRating as Parameters<typeof filterByGenres>[0], activeGenres) as BookData[];
+  booksForRating = filterByStatuses(
+    booksForRating as Parameters<typeof filterByStatuses>[0],
+    activeStatuses
+  ) as BookData[];
+  booksForRating = filterBySeriesIds(
+    booksForRating as Parameters<typeof filterBySeriesIds>[0],
+    activeSeriesIds
+  ) as BookData[];
+  booksForRating = filterByAuthor(booksForRating as Parameters<typeof filterByAuthor>[0], activeAuthor) as BookData[];
 
   const ratings: Record<number | 'unrated', number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unrated: 0 };
   booksForRating.forEach(b => {
@@ -643,11 +651,20 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const ratingTotal = booksForRating.length;
 
   // For genre counts: apply all filters EXCEPT genres
-  let booksForGenre = activeBooks;
-  booksForGenre = filterByRating(booksForGenre, activeRating);
-  booksForGenre = filterByStatuses(booksForGenre, activeStatuses);
-  booksForGenre = filterBySeriesIds(booksForGenre, activeSeriesIds);
-  booksForGenre = filterByAuthor(booksForGenre, activeAuthor);
+  let booksForGenre = activeBooks as BookData[];
+  booksForGenre = filterByRating(
+    booksForGenre as Parameters<typeof filterByRating>[0],
+    activeRating as number | 'unrated'
+  ) as BookData[];
+  booksForGenre = filterByStatuses(
+    booksForGenre as Parameters<typeof filterByStatuses>[0],
+    activeStatuses
+  ) as BookData[];
+  booksForGenre = filterBySeriesIds(
+    booksForGenre as Parameters<typeof filterBySeriesIds>[0],
+    activeSeriesIds
+  ) as BookData[];
+  booksForGenre = filterByAuthor(booksForGenre as Parameters<typeof filterByAuthor>[0], activeAuthor) as BookData[];
 
   const genresCounts: Record<string, number> = {};
   booksForGenre.forEach(b => {
@@ -661,11 +678,17 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const genreTotal = booksForGenre.length;
 
   // For status counts: apply all filters EXCEPT statuses
-  let booksForStatus = activeBooks;
-  booksForStatus = filterByRating(booksForStatus, activeRating);
-  booksForStatus = filterByGenres(booksForStatus, activeGenres);
-  booksForStatus = filterBySeriesIds(booksForStatus, activeSeriesIds);
-  booksForStatus = filterByAuthor(booksForStatus, activeAuthor);
+  let booksForStatus = activeBooks as BookData[];
+  booksForStatus = filterByRating(
+    booksForStatus as Parameters<typeof filterByRating>[0],
+    activeRating as number | 'unrated'
+  ) as BookData[];
+  booksForStatus = filterByGenres(booksForStatus as Parameters<typeof filterByGenres>[0], activeGenres) as BookData[];
+  booksForStatus = filterBySeriesIds(
+    booksForStatus as Parameters<typeof filterBySeriesIds>[0],
+    activeSeriesIds
+  ) as BookData[];
+  booksForStatus = filterByAuthor(booksForStatus as Parameters<typeof filterByAuthor>[0], activeAuthor) as BookData[];
 
   const statusCounts: Record<string, number> = { reading: 0, finished: 0 };
   booksForStatus.forEach(b => {
@@ -677,11 +700,17 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const statusTotal = booksForStatus.length;
 
   // For series counts: apply all filters EXCEPT series
-  let booksForSeries = activeBooks;
-  booksForSeries = filterByRating(booksForSeries, activeRating);
-  booksForSeries = filterByGenres(booksForSeries, activeGenres);
-  booksForSeries = filterByStatuses(booksForSeries, activeStatuses);
-  booksForSeries = filterByAuthor(booksForSeries, activeAuthor);
+  let booksForSeries = activeBooks as BookData[];
+  booksForSeries = filterByRating(
+    booksForSeries as Parameters<typeof filterByRating>[0],
+    activeRating as number | 'unrated'
+  ) as BookData[];
+  booksForSeries = filterByGenres(booksForSeries as Parameters<typeof filterByGenres>[0], activeGenres) as BookData[];
+  booksForSeries = filterByStatuses(
+    booksForSeries as Parameters<typeof filterByStatuses>[0],
+    activeStatuses
+  ) as BookData[];
+  booksForSeries = filterByAuthor(booksForSeries as Parameters<typeof filterByAuthor>[0], activeAuthor) as BookData[];
 
   const seriesCounts: Record<string, number> = {};
   booksForSeries.forEach(b => {
@@ -693,11 +722,20 @@ function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): 
   const seriesTotal = booksForSeries.length;
 
   // For author counts: apply all filters EXCEPT author
-  let booksForAuthor = activeBooks;
-  booksForAuthor = filterByRating(booksForAuthor, activeRating);
-  booksForAuthor = filterByGenres(booksForAuthor, activeGenres);
-  booksForAuthor = filterByStatuses(booksForAuthor, activeStatuses);
-  booksForAuthor = filterBySeriesIds(booksForAuthor, activeSeriesIds);
+  let booksForAuthor = activeBooks as BookData[];
+  booksForAuthor = filterByRating(
+    booksForAuthor as Parameters<typeof filterByRating>[0],
+    activeRating as number | 'unrated'
+  ) as BookData[];
+  booksForAuthor = filterByGenres(booksForAuthor as Parameters<typeof filterByGenres>[0], activeGenres) as BookData[];
+  booksForAuthor = filterByStatuses(
+    booksForAuthor as Parameters<typeof filterByStatuses>[0],
+    activeStatuses
+  ) as BookData[];
+  booksForAuthor = filterBySeriesIds(
+    booksForAuthor as Parameters<typeof filterBySeriesIds>[0],
+    activeSeriesIds
+  ) as BookData[];
 
   const authorCounts: Record<string, number> = {};
   booksForAuthor.forEach(b => {
@@ -890,7 +928,7 @@ async function silentRefreshBooks(): Promise<void> {
 /** Filter state from FilterPanel */
 interface PanelFilters {
   sort: string;
-  rating: number | string;
+  rating: number | 'unrated';
   genres: string[];
   statuses: string[];
   seriesIds: string[];
@@ -1098,7 +1136,7 @@ if (sortSelectMobile) {
  */
 function hasActiveFilters(): boolean {
   return (
-    (ratingFilter !== 0 && ratingFilter !== '') ||
+    ratingFilter !== 0 ||
     genreFilters.length > 0 ||
     statusFilters.length > 0 ||
     seriesFilters.length > 0 ||

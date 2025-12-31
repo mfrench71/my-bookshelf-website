@@ -52,6 +52,7 @@ interface GenreData {
   name: string;
   color: string;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Series data structure */
@@ -61,6 +62,7 @@ interface SeriesData {
   description?: string;
   totalBooks?: number;
   bookCount?: number;
+  [key: string]: unknown;
 }
 
 /** Book data structure for backup/restore */
@@ -962,8 +964,8 @@ async function loadAllBooks(): Promise<void> {
       const data = book as BookData;
       return {
         ...data,
-        createdAt: serializeTimestamp(data.createdAt),
-        updatedAt: serializeTimestamp(data.updatedAt),
+        createdAt: serializeTimestamp(data.createdAt as Parameters<typeof serializeTimestamp>[0]),
+        updatedAt: serializeTimestamp(data.updatedAt as Parameters<typeof serializeTimestamp>[0]),
       } as BookData;
     });
     allBooksLoaded = true;
@@ -984,7 +986,7 @@ async function exportBackup(): Promise<void> {
     await loadAllBooks();
     // Load wishlist for export
     try {
-      wishlist = await wishlistRepository.getAll(currentUser.uid);
+      wishlist = (await wishlistRepository.getAll(currentUser.uid)) as WishlistItemData[];
     } catch (_e) {
       console.warn('Failed to load wishlist for export');
       wishlist = [];
@@ -1063,7 +1065,7 @@ async function importBackup(file: File): Promise<void> {
     // Load existing wishlist for cross-checks
     let existingWishlist: WishlistItemData[] = [];
     try {
-      existingWishlist = await wishlistRepository.getAll(currentUser.uid);
+      existingWishlist = (await wishlistRepository.getAll(currentUser.uid)) as WishlistItemData[];
     } catch (_e) {
       console.warn('Failed to load existing wishlist');
     }
@@ -1076,14 +1078,16 @@ async function importBackup(file: File): Promise<void> {
       if (importStatus) importStatus.textContent = 'Importing genres...';
 
       for (const genre of importGenres) {
-        const existingGenre = existingGenres.find((g: GenreData) => g.name.toLowerCase() === genre.name.toLowerCase());
+        const genreName = genre.name as string;
+        const genreColor = genre.color as string;
+        const existingGenre = existingGenres.find((g: GenreData) => g.name.toLowerCase() === genreName.toLowerCase());
 
         if (existingGenre) {
-          genreIdMap.set(genre._exportId, existingGenre.id);
+          genreIdMap.set(genre._exportId as string, existingGenre.id);
           genresSkipped++;
         } else {
-          const newGenre = await createGenre(currentUser.uid, genre.name, genre.color);
-          genreIdMap.set(genre._exportId, newGenre.id);
+          const newGenre = await createGenre(currentUser.uid, genreName, genreColor);
+          genreIdMap.set(genre._exportId as string, newGenre.id);
           genresImported++;
         }
       }

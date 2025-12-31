@@ -16,9 +16,10 @@ interface BinnedBookData {
   deletedAt?: number | null;
   genres?: string[];
   seriesId?: string | null;
-  images?: Array<{ storagePath: string }>;
+  images?: Array<{ storagePath?: string }>;
   createdAt?: unknown;
   updatedAt?: unknown;
+  [key: string]: unknown;
 }
 
 // Initialize icons

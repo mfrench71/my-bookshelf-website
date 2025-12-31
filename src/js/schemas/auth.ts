@@ -78,9 +78,7 @@ export const ResetPasswordSchema = z.object({
  */
 export const DeleteAccountSchema = z.object({
   password: z.string().min(1, 'Password is required'),
-  confirmText: z.literal('DELETE', {
-    errorMap: () => ({ message: 'Please type DELETE to confirm' }),
-  }),
+  confirmText: z.literal('DELETE', { message: 'Please type DELETE to confirm' }),
 });
 
 /** Inferred types from schemas */

@@ -19,7 +19,7 @@ export interface ExpectedBook {
   title: string;
   isbn?: string | null;
   position?: number | null;
-  source?: string;
+  source?: 'api' | 'manual';
 }
 
 /** Series update fields */

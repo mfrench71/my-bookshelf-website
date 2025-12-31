@@ -19,13 +19,15 @@ export class RecentlyFinishedWidget extends BaseWidget {
 
   static override filterAndSort(books: Book[]): Book[] {
     return [...books]
-      .filter(b => getBookStatus(b) === 'finished')
+      .filter(b => getBookStatus(b as unknown as Parameters<typeof getBookStatus>[0]) === 'finished')
       .sort((a, b) => {
-        // Sort by most recent finish date
-        const aFinish = a.readHistory?.[0]?.finishDate;
-        const bFinish = b.readHistory?.[0]?.finishDate;
-        const aTime = aFinish ? parseTimestamp(aFinish)?.getTime() || 0 : 0;
-        const bTime = bFinish ? parseTimestamp(bFinish)?.getTime() || 0 : 0;
+        // Sort by most recent finish date (last entry in reads array)
+        const aReads = a.reads || [];
+        const bReads = b.reads || [];
+        const aFinish = aReads[aReads.length - 1]?.finishedAt;
+        const bFinish = bReads[bReads.length - 1]?.finishedAt;
+        const aTime = aFinish ? parseTimestamp(aFinish as Parameters<typeof parseTimestamp>[0])?.getTime() || 0 : 0;
+        const bTime = bFinish ? parseTimestamp(bFinish as Parameters<typeof parseTimestamp>[0])?.getTime() || 0 : 0;
         return bTime - aTime;
       });
   }
@@ -61,9 +63,12 @@ export class RecentlyFinishedWidget extends BaseWidget {
           <i data-lucide="book" class="w-8 h-8 text-white"></i>
         </div>`;
 
-    // Get finish date from most recent read history entry
-    const finishDate = book.readHistory?.[0]?.finishDate;
-    const formattedDate = finishDate ? formatDate(parseTimestamp(finishDate)) : '';
+    // Get finish date from most recent reads entry
+    const reads = book.reads || [];
+    const finishDate = reads[reads.length - 1]?.finishedAt;
+    const formattedDate = finishDate
+      ? formatDate(parseTimestamp(finishDate as Parameters<typeof parseTimestamp>[0]))
+      : '';
 
     return `
       <a href="/books/view/?id=${book.id}" class="flex-shrink-0 w-24 snap-start">

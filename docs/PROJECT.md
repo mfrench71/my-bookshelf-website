@@ -16,6 +16,16 @@ A mobile-friendly book tracking PWA with barcode scanning. Built with vanilla HT
 | PWA | Service worker (v4) + web manifest |
 | Testing | Vitest (unit) + Playwright (E2E) |
 
+## Branding & Domain Ideas
+
+**Favourites:**
+| Domain | Notes |
+|--------|-------|
+| myshelfcontrol.app | Pun on "my self control" - available! |
+| tsundoku.club | Japanese word for buying books you never read |
+| shelfaware.club | Pun on self-aware |
+| onemorechapter.club | The eternal reader's lie |
+
 ---
 
 ## Multi-User Architecture Assessment

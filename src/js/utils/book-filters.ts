@@ -13,6 +13,8 @@ interface Book {
   startDate?: string | Date | null;
   finishDate?: string | Date | null;
   status?: string;
+  reads?: Array<{ startedAt?: string | null; finishedAt?: string | null }>;
+  [key: string]: unknown;
 }
 
 /** Filter configuration */

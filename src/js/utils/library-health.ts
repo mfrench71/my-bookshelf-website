@@ -36,7 +36,7 @@ interface HealthFieldConfig {
 type HealthFieldsMap = Record<string, HealthFieldConfig>;
 
 /** Library health issues */
-interface HealthIssues {
+export interface HealthIssues {
   missingCover: Book[];
   missingGenres: Book[];
   missingPageCount: Book[];
@@ -44,10 +44,11 @@ interface HealthIssues {
   missingPublisher: Book[];
   missingPublishedDate: Book[];
   missingIsbn: Book[];
+  [key: string]: Book[];
 }
 
 /** Library health report */
-interface HealthReport {
+export interface HealthReport {
   totalBooks: number;
   completenessScore: number;
   totalIssues: number;

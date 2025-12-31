@@ -12,7 +12,7 @@ import {
 import { clearGenresCache, recalculateGenreBookCounts } from '../genres.js';
 import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
 import { bookRepository } from '../repositories/book-repository.js';
-import { analyzeLibraryHealth, getCompletenessRating } from '../utils/library-health.js';
+import { analyzeLibraryHealth, getCompletenessRating, HealthReport } from '../utils/library-health.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 /** Book data type for maintenance */
@@ -24,13 +24,6 @@ interface MaintenanceBook {
   deletedAt?: number | null;
   images?: Array<{ storagePath: string }>;
   [key: string]: unknown;
-}
-
-/** Health report type */
-interface HealthReport {
-  totalBooks: number;
-  completenessScore: number;
-  issues: Record<string, MaintenanceBook[]>;
 }
 
 /** Orphaned file type */
@@ -227,7 +220,7 @@ function renderIssueRows(): void {
     const issueBooks = healthReport.issues[issueType] || [];
     for (const book of issueBooks) {
       if (!booksWithIssues.has(book.id)) {
-        booksWithIssues.set(book.id, { book, missing: [] });
+        booksWithIssues.set(book.id, { book: book as MaintenanceBook, missing: [] });
       }
       booksWithIssues.get(book.id)!.missing.push({
         label: config.label,
