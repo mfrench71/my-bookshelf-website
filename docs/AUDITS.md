@@ -150,6 +150,27 @@ npm outdated
 
 ---
 
+## UI Consistency Audit
+
+### Toast Notifications
+- [ ] Settings toggles use `info` type (grey)?
+- [ ] Completed actions use `success` type (green)?
+- [ ] Failed operations use `error` type (red)?
+- [ ] Toast messages consistent in tone (e.g., "Saved" vs "Settings saved")?
+
+### Visual Styling
+- [ ] Similar components styled consistently?
+- [ ] Button colours follow semantic scheme (see CLAUDE.md)?
+- [ ] Empty states use consistent icon size and text colours?
+- [ ] Loading states (spinners/skeletons) consistent across pages?
+
+### Interaction Patterns
+- [ ] Toggle switches behave consistently (immediate save vs submit)?
+- [ ] Confirmation modals use consistent language?
+- [ ] Form error display consistent (inline + toast)?
+
+---
+
 ## Memory/Cleanup Audit
 
 - [ ] Event listeners removed when component unmounts?

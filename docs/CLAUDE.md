@@ -61,6 +61,9 @@ Guidance for Claude Code when working with this repository.
 - **Bottom Sheets**: Use `BottomSheet` class (not modals) for confirmations
 - **No native dialogs**: Never use `alert()`, `confirm()`, `prompt()`
 - **Toasts**: `showToast('message', { type: 'success' | 'error' | 'info' })`
+  - `success` (green): Completed actions (saved, deleted, created, imported)
+  - `error` (red): Failed operations, validation errors
+  - `info` (grey): Settings toggles, state changes, neutral confirmations
 - **Icons**: Lucide + `initIcons()` after dynamic insertion
 - **Empty states**: `w-12 h-12 text-gray-300` icon, `text-gray-500` message
 
