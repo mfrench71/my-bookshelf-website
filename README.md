@@ -33,13 +33,13 @@ A mobile-friendly book tracking PWA with barcode scanning.
 
 ## Tech Stack
 
-- **Frontend**: HTML, Tailwind CSS v4, vanilla JavaScript (ES6 modules)
-- **Build**: 11ty (Eleventy) + Tailwind CSS CLI
+- **Frontend**: HTML, Tailwind CSS v4, TypeScript (ES modules)
+- **Build**: 11ty (Eleventy) + esbuild + Tailwind CSS CLI
 - **Database**: Firebase Firestore (with offline persistence)
 - **Auth**: Firebase Authentication (email/password)
 - **Barcode**: Quagga2 library
 - **Book Data**: Google Books API + Open Library API fallback
-- **Testing**: Vitest with jsdom (2192 tests), Playwright E2E (46 tests)
+- **Testing**: Vitest with jsdom (2,438 tests), Playwright E2E
 - **CI/CD**: GitHub Actions + Netlify
 - **Hosting**: Netlify
 
@@ -113,14 +113,15 @@ src/
 │   ├── bin.njk       # Deleted books (/settings/bin/)
 │   └── about.njk     # About page (/settings/about/)
 ├── js/
-│   ├── index.js      # Home page logic
-│   ├── login.js      # Login/register logic
-│   ├── header.js     # Common header logic
+│   ├── index.ts      # Home page logic
+│   ├── login.ts      # Login/register logic
+│   ├── header.ts     # Common header logic
 │   ├── books/        # Book-related page logic
 │   ├── wishlist/     # Wishlist page logic
 │   ├── settings/     # Settings page logic
-│   ├── components/   # Reusable UI components
-│   ├── stores/       # State management (toast, genres, series)
+│   ├── components/   # Reusable UI components (TypeScript)
+│   ├── repositories/ # Data access layer (TypeScript)
+│   ├── utils/        # Utility modules (TypeScript)
 │   ├── widgets/      # Home dashboard widgets
 │   └── schemas/      # Zod validation schemas
 └── css/              # Tailwind CSS source
@@ -132,7 +133,9 @@ Detailed documentation is in the `docs/` folder:
 
 - **[PROJECT.md](docs/PROJECT.md)** - Architecture, features, and roadmap
 - **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant coding guidelines
-- **[DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md)** - Coding standards and implementation roadmap
+- **[DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md)** - Coding standards and patterns
+- **[AUDITS.md](docs/AUDITS.md)** - Periodic audit checklists (security, accessibility, performance)
+- **[docs/adr/](docs/adr/)** - Architecture Decision Records
 
 ## Deployment
 

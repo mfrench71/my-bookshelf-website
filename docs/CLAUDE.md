@@ -96,22 +96,25 @@ npm run typecheck    # TypeScript check
 
 ## Architecture
 
-**Build**: 11ty (HTML) + esbuild (JS/TS) + Tailwind v4 (CSS)
+**Build**: 11ty (HTML) + esbuild (TypeScript) + Tailwind v4 (CSS)
 
 **Key directories**:
-- `src/js/components/` - Reusable UI (TypeScript)
+- `src/js/components/` - Reusable UI components (TypeScript)
 - `src/js/repositories/` - Data access layer (TypeScript)
-- `src/js/utils/` - Utilities (mixed JS/TS)
+- `src/js/utils/` - Utility modules (TypeScript)
 - `src/js/schemas/` - Zod validation schemas
+- `src/js/types/` - TypeScript type definitions
 
 **Data flow**:
-- Firebase Auth via `header.js`
+- Firebase Auth via `header.ts`
 - Firestore under `/users/{userId}/` (books, genres, series, bin, wishlist)
 - 5-minute TTL caches to reduce reads
+- Repository pattern abstracts all Firestore access
 
 **Key patterns**:
 - `hideHeader: true` in frontmatter hides header
 - Call `lucide.createIcons()` after dynamic icon insertion
+- Event bus (`eventBus`) for cache invalidation
 
 ## Tailwind v4 Syntax
 
@@ -154,8 +157,14 @@ Manual testing required for validation changes - unit tests don't catch HTML/sch
 
 ## Competitor Reference
 
-| App | Focus |
-|-----|-------|
-| Goodreads | Community, crowdsourced data |
-| StoryGraph | Mood/pacing analysis, stats |
-| Hardcover | Modern UI, per-book privacy |
+| App | Focus | URL |
+|-----|-------|-----|
+| Goodreads | Largest community, crowdsourced data | [goodreads.com](https://goodreads.com) |
+| StoryGraph | Mood/pacing analysis, detailed stats | [thestorygraph.com](https://thestorygraph.com) |
+| BookTrack | iOS native, reading timer, OCR quotes | [booktrack.app](https://booktrack.app) |
+| Hardcover | Modern UI, ad-free, per-book privacy | [hardcover.app](https://hardcover.app) |
+| Literal | Quote-centric, public API | [literal.club](https://literal.club) |
+| Oku | Minimalist, beautiful design | [oku.club](https://oku.club) |
+
+Research links:
+- [StoryGraph Roadmap](https://roadmap.thestorygraph.com/) - Feature requests and plans

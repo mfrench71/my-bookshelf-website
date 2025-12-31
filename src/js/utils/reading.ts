@@ -32,8 +32,8 @@ type ReadingStatus = 'reading' | 'finished' | null;
  * @returns Book with reads array
  */
 export function migrateBookReads(book: Book): BookWithReads {
-  // Already migrated
-  if ('reads' in book && Array.isArray(book.reads)) {
+  // Already migrated (has non-empty reads array)
+  if ('reads' in book && Array.isArray(book.reads) && book.reads.length > 0) {
     return book as BookWithReads;
   }
 
