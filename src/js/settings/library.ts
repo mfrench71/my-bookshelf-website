@@ -159,7 +159,12 @@ const cancelMergeGenreBtn = document.getElementById('cancel-merge-genre');
 const confirmMergeGenreBtn = document.getElementById('confirm-merge-genre') as HTMLButtonElement | null;
 
 // DOM Elements - Picker Display
-const suggestionsFirstToggle = document.getElementById('suggestions-first-toggle') as HTMLInputElement | null;
+const genreSuggestionsFirstToggle = document.getElementById(
+  'genre-suggestions-first-toggle'
+) as HTMLInputElement | null;
+const seriesSuggestionsFirstToggle = document.getElementById(
+  'series-suggestions-first-toggle'
+) as HTMLInputElement | null;
 
 // DOM Elements - Series
 const seriesLoading = document.getElementById('series-loading');
@@ -262,16 +267,26 @@ onAuthStateChanged(auth, async (user: User | null) => {
  */
 function loadPickerDisplaySettings(): void {
   const settings = getSyncSettings();
-  if (suggestionsFirstToggle) {
-    suggestionsFirstToggle.checked = settings.suggestionsFirst;
+  if (genreSuggestionsFirstToggle) {
+    genreSuggestionsFirstToggle.checked = settings.genreSuggestionsFirst;
+  }
+  if (seriesSuggestionsFirstToggle) {
+    seriesSuggestionsFirstToggle.checked = settings.seriesSuggestionsFirst;
   }
 }
 
-// Picker display toggle event listener
-suggestionsFirstToggle?.addEventListener('change', () => {
-  const enabled = suggestionsFirstToggle.checked;
-  saveSyncSettings({ suggestionsFirst: enabled });
-  showToast(enabled ? 'API suggestions shown first' : 'Your items shown first', { type: 'info' });
+// Genre suggestions toggle event listener
+genreSuggestionsFirstToggle?.addEventListener('change', () => {
+  const enabled = genreSuggestionsFirstToggle.checked;
+  saveSyncSettings({ genreSuggestionsFirst: enabled });
+  showToast(enabled ? 'Genre suggestions shown first' : 'Your genres shown first', { type: 'info' });
+});
+
+// Series suggestions toggle event listener
+seriesSuggestionsFirstToggle?.addEventListener('change', () => {
+  const enabled = seriesSuggestionsFirstToggle.checked;
+  saveSyncSettings({ seriesSuggestionsFirst: enabled });
+  showToast(enabled ? 'Series suggestions shown first' : 'Your series shown first', { type: 'info' });
 });
 
 // ==================== Genres ====================

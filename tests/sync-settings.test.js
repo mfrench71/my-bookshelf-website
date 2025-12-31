@@ -28,7 +28,8 @@ describe('Sync Settings', () => {
         autoRefreshEnabled: true,
         hiddenThreshold: 30,
         cooldownPeriod: 300,
-        suggestionsFirst: false
+        genreSuggestionsFirst: false,
+        seriesSuggestionsFirst: false
       });
     });
 
@@ -188,19 +189,32 @@ describe('Sync Settings', () => {
       });
     });
 
-    it('should default suggestionsFirst to false', () => {
-      expect(getSyncSettings().suggestionsFirst).toBe(false);
+    it('should default genreSuggestionsFirst to false', () => {
+      expect(getSyncSettings().genreSuggestionsFirst).toBe(false);
     });
 
-    it('should support enabling suggestionsFirst', () => {
-      saveSyncSettings({ suggestionsFirst: true });
-      expect(getSyncSettings().suggestionsFirst).toBe(true);
+    it('should default seriesSuggestionsFirst to false', () => {
+      expect(getSyncSettings().seriesSuggestionsFirst).toBe(false);
     });
 
-    it('should support disabling suggestionsFirst', () => {
-      saveSyncSettings({ suggestionsFirst: true });
-      saveSyncSettings({ suggestionsFirst: false });
-      expect(getSyncSettings().suggestionsFirst).toBe(false);
+    it('should support enabling genreSuggestionsFirst', () => {
+      saveSyncSettings({ genreSuggestionsFirst: true });
+      expect(getSyncSettings().genreSuggestionsFirst).toBe(true);
+    });
+
+    it('should support enabling seriesSuggestionsFirst', () => {
+      saveSyncSettings({ seriesSuggestionsFirst: true });
+      expect(getSyncSettings().seriesSuggestionsFirst).toBe(true);
+    });
+
+    it('should support independent genre/series settings', () => {
+      saveSyncSettings({ genreSuggestionsFirst: true, seriesSuggestionsFirst: false });
+      expect(getSyncSettings().genreSuggestionsFirst).toBe(true);
+      expect(getSyncSettings().seriesSuggestionsFirst).toBe(false);
+
+      saveSyncSettings({ genreSuggestionsFirst: false, seriesSuggestionsFirst: true });
+      expect(getSyncSettings().genreSuggestionsFirst).toBe(false);
+      expect(getSyncSettings().seriesSuggestionsFirst).toBe(true);
     });
   });
 });

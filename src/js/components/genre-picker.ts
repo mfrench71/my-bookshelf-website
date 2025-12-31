@@ -220,7 +220,7 @@ export class GenrePicker {
   ): string {
     const items: string[] = [];
     let index = 0;
-    const { suggestionsFirst } = getSyncSettings();
+    const { genreSuggestionsFirst } = getSyncSettings();
 
     // Helper to render suggestions section
     const renderSuggestions = (): void => {
@@ -274,7 +274,7 @@ export class GenrePicker {
     };
 
     // Render sections in order based on preference
-    if (suggestionsFirst) {
+    if (genreSuggestionsFirst) {
       renderSuggestions();
       renderUserGenres();
     } else {

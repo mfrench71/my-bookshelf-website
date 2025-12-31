@@ -356,7 +356,7 @@ export class SeriesPicker {
   private _renderDropdownContent(filteredSeries: Series[], showSuggestion: boolean, showCreateOption: boolean): string {
     const items: string[] = [];
     let index = 0;
-    const { suggestionsFirst } = getSyncSettings();
+    const { seriesSuggestionsFirst } = getSyncSettings();
 
     // Check if suggestion exists as user series
     const normalized = normalizeSeriesName(this.suggestedName);
@@ -402,7 +402,7 @@ export class SeriesPicker {
     };
 
     // Render sections in order based on preference
-    if (suggestionsFirst) {
+    if (seriesSuggestionsFirst) {
       renderSuggestion();
       renderUserSeries();
     } else {
