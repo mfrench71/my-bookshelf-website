@@ -102,7 +102,14 @@ eventBus.on(Events.GENRES_CHANGED, () => {
 Components emitting events:
 - **GenrePicker**: Emits `GENRES_CHANGED` on selection change
 - **SeriesPicker**: Emits `SERIES_SELECTION_CHANGED` on selection change
-- **WishlistRepository**: Emits `BOOK_SAVED`, `BOOK_DELETED` on CRUD operations
+- **WishlistRepository**: Emits `WISHLIST_UPDATED` after CRUD operations
 - **BinRepository**: Emits `BOOK_DELETED`, `BOOK_RESTORED` on bin operations
 
-All emitters also call their `onChange` callback for backward compatibility.
+Cache invalidation listeners (in `cache-invalidation.ts`):
+- `BOOK_SAVED` → clears books cache
+- `BOOK_DELETED` → clears books cache
+- `BOOK_RESTORED` → clears books cache
+- `GENRE_CREATED/UPDATED/DELETED` → clears genres cache
+- `SERIES_CREATED/UPDATED/DELETED` → clears series cache
+
+Picker components still call `onChange` callback for direct parent notification.
