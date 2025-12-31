@@ -1,6 +1,6 @@
 // Books List Page Logic
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { bookRepository } from '../repositories/book-repository.js';
 import {
   showToast,
@@ -31,7 +31,85 @@ import {
 } from '../utils/book-filters.js';
 import { sortBooks } from '../utils/book-sorters.js';
 import { getBookStatus } from '../utils/reading.js';
-import { parseUrlFilters, updateUrlWithFilters as updateUrl, clearUrlFilters } from '../utils/url-state.js';
+import {
+  parseUrlFilters,
+  updateUrlWithFilters as updateUrl,
+  clearUrlFilters,
+  FilterState,
+} from '../utils/url-state.js';
+
+/** Book data structure */
+interface BookData {
+  id: string;
+  title: string;
+  author?: string;
+  rating?: number;
+  genres?: string[];
+  seriesId?: string | null;
+  seriesPosition?: number | null;
+  deletedAt?: number | null;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+/** Genre data structure */
+interface GenreData {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** Series data structure */
+interface SeriesData {
+  id: string;
+  name: string;
+  normalizedName?: string;
+  bookCount?: number;
+}
+
+/** Genre lookup map type */
+type GenreLookup = Map<string, GenreData>;
+
+/** Series lookup map type */
+type SeriesLookup = Map<string, SeriesData>;
+
+/** Cache data structure */
+interface CacheData {
+  books: BookData[];
+  timestamp: number;
+  sort: string;
+  hasMore: boolean;
+}
+
+/** Filter counts structure */
+interface FilterCounts {
+  ratingTotal: number;
+  genreTotal: number;
+  statusTotal: number;
+  seriesTotal: number;
+  ratings: Record<number | 'unrated', number>;
+  genres: Record<string, number>;
+  status: Record<string, number>;
+  series: Record<string, number>;
+  authors: Record<string, number>;
+}
+
+/** Filter overrides for count calculation */
+interface FilterOverrides {
+  rating?: number | string;
+  genres?: string[];
+  statuses?: string[];
+  seriesIds?: string[];
+  author?: string;
+}
+
+/** Paginated result from repository */
+interface PaginatedResult {
+  docs: BookData[];
+  lastDoc: unknown;
+  hasMore: boolean;
+}
 
 // Initialize icons once on load
 initIcons();
@@ -40,28 +118,28 @@ initIcons();
 const BOOKS_PER_PAGE = 20;
 
 // State
-let currentUser = null;
-let books = [];
+let currentUser: User | null = null;
+let books: BookData[] = [];
 let currentSort = 'createdAt-desc';
-let previousSort = null; // Store sort before switching to series order
-let ratingFilter = 0;
+let previousSort: string | null = null; // Store sort before switching to series order
+let ratingFilter: number | string = 0;
 let displayLimit = BOOKS_PER_PAGE;
-let lastDoc = null;
+let lastDoc: unknown = null;
 let hasMoreFromFirebase = true;
 let isLoading = false;
 let forceServerFetch = false;
-let cachedFilteredBooks = null; // Cache for filtered/sorted results
+let cachedFilteredBooks: BookData[] | null = null; // Cache for filtered/sorted results
 let isInitialLoad = true; // Flag to skip rendering during initial load (prevents double render)
 let hasTriggeredInitialFade = false; // Flag to trigger content fade-in only once
-let genres = []; // All user genres
-let genreLookup = null; // Map of genreId -> genre object
-let genreFilters = []; // Array of selected genre IDs for filtering (multi-select)
-let statusFilters = []; // Array of selected statuses for filtering (multi-select)
-let seriesFilters = []; // Array of selected series IDs for filtering (multi-select)
+let genres: GenreData[] = []; // All user genres
+let genreLookup: GenreLookup | null = null; // Map of genreId -> genre object
+let genreFilters: string[] = []; // Array of selected genre IDs for filtering (multi-select)
+let statusFilters: string[] = []; // Array of selected statuses for filtering (multi-select)
+let seriesFilters: string[] = []; // Array of selected series IDs for filtering (multi-select)
 let authorFilter = ''; // Currently selected author for filtering (URL param only)
-let series = []; // All user series
-let seriesLookup = null; // Map of seriesId -> series object
-let lastFilterCount = null; // Track previous filter count for pulse animation
+let series: SeriesData[] = []; // All user series
+let seriesLookup: SeriesLookup | null = null; // Map of seriesId -> series object
+let lastFilterCount: number | null = null; // Track previous filter count for pulse animation
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -76,7 +154,7 @@ const bookCountDesktop = document.getElementById('book-count-desktop');
 // Mobile elements
 const filterTriggerBtn = document.getElementById('filter-trigger');
 const filterCountBadge = document.getElementById('filter-count-badge');
-const sortSelectMobile = document.getElementById('sort-select-mobile');
+const sortSelectMobile = document.getElementById('sort-select-mobile') as HTMLSelectElement | null;
 const filterSheet = document.getElementById('filter-sheet');
 const filterSheetContent = document.getElementById('filter-sheet-content');
 const applyFiltersMobileBtn = document.getElementById('apply-filters-mobile');
@@ -90,14 +168,14 @@ const activeFiltersMobile = document.getElementById('active-filters-mobile');
 const activeFiltersDesktop = document.getElementById('active-filters-desktop');
 
 // FilterPanel instances
-let sidebarPanel = null;
-let mobilePanel = null;
+let sidebarPanel: FilterPanel | null = null;
+let mobilePanel: FilterPanel | null = null;
 
 /**
  * Parse URL parameters and apply filter state
  * Supports sort, rating, status, genres, series, and author filters
  */
-function applyUrlFilters() {
+function applyUrlFilters(): void {
   const urlState = parseUrlFilters(window.location.search);
 
   // Apply URL values to module state
@@ -117,9 +195,9 @@ function applyUrlFilters() {
 
 /**
  * Get current filter state as an object for URL serialization
- * @returns {import('../utils/url-state.js').FilterState} Current filter state
+ * @returns Current filter state
  */
-function getCurrentFilterState() {
+function getCurrentFilterState(): FilterState {
   return {
     sort: currentSort,
     rating: ratingFilter,
@@ -134,7 +212,7 @@ function getCurrentFilterState() {
  * Update browser URL with current filters without page reload
  * Uses replaceState to avoid adding to history
  */
-function updateUrlWithFilters() {
+function updateUrlWithFilters(): void {
   updateUrl(getCurrentFilterState());
 }
 
@@ -142,7 +220,7 @@ function updateUrlWithFilters() {
 applyUrlFilters();
 
 // Auth State
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     // Load genres, series, and books in parallel for faster initial load
@@ -178,9 +256,10 @@ onAuthStateChanged(auth, async user => {
 
 /**
  * Load user genres from Firebase and update filter panels
- * @returns {Promise<void>}
  */
-async function loadGenres() {
+async function loadGenres(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     genres = await loadUserGenres(currentUser.uid);
     genreLookup = createGenreLookup(genres);
@@ -197,9 +276,10 @@ async function loadGenres() {
 /**
  * Load user series from Firebase and update filter panels
  * Handles URL param matching by series name or ID
- * @returns {Promise<void>}
  */
-async function loadSeries() {
+async function loadSeries(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     series = await loadUserSeries(currentUser.uid);
     seriesLookup = createSeriesLookup(series);
@@ -207,7 +287,7 @@ async function loadSeries() {
     // Handle URL param with series name (from widget links)
     // If seriesFilters has entries that are not valid series IDs, try to match by name
     seriesFilters = seriesFilters.map(filterVal => {
-      if (!seriesLookup.has(filterVal)) {
+      if (!seriesLookup!.has(filterVal)) {
         const matchedSeries = series.find(
           s =>
             s.name.toLowerCase() === filterVal.toLowerCase() ||
@@ -231,14 +311,15 @@ async function loadSeries() {
 /**
  * Get cached books from localStorage
  * Returns null if cache is expired or sort order doesn't match
- * @returns {{books: Array, hasMore: boolean}|null} Cached books or null
  */
-function getCachedBooks() {
+function getCachedBooks(): { books: BookData[]; hasMore: boolean } | null {
+  if (!currentUser) return null;
+
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
     if (!cached) return null;
 
-    const { books: cachedBooks, timestamp, sort, hasMore } = JSON.parse(cached);
+    const { books: cachedBooks, timestamp, sort, hasMore } = JSON.parse(cached) as CacheData;
     const age = Date.now() - timestamp;
 
     // Return cache if fresh and same sort order
@@ -253,12 +334,14 @@ function getCachedBooks() {
 
 /**
  * Save books to localStorage cache
- * @param {Array} booksData - Array of book objects to cache
- * @param {boolean} hasMore - Whether more books exist in Firebase
+ * @param booksData - Array of book objects to cache
+ * @param hasMore - Whether more books exist in Firebase
  */
-function setCachedBooks(booksData, hasMore) {
+function setCachedBooks(booksData: BookData[], hasMore: boolean): void {
+  if (!currentUser) return;
+
   try {
-    const cacheData = {
+    const cacheData: CacheData = {
       books: booksData,
       timestamp: Date.now(),
       sort: currentSort,
@@ -273,18 +356,19 @@ function setCachedBooks(booksData, hasMore) {
 /**
  * Clear both localStorage and in-memory caches
  */
-function clearCache() {
-  clearBooksCache(currentUser.uid);
+function clearCache(): void {
+  if (currentUser) {
+    clearBooksCache(currentUser.uid);
+  }
   cachedFilteredBooks = null;
 }
 
 /**
  * Load books from cache or Firebase
  * Fetches all pages to get complete data for client-side filtering
- * @param {boolean} [forceRefresh=false] - Force reload from Firebase
- * @returns {Promise<void>}
+ * @param forceRefresh - Force reload from Firebase
  */
-async function loadBooks(forceRefresh = false) {
+async function loadBooks(forceRefresh = false): Promise<void> {
   if (isLoading) return;
 
   // Invalidate filtered cache when loading new data
@@ -299,7 +383,7 @@ async function loadBooks(forceRefresh = false) {
     books = cached.books;
     lastDoc = null;
     hasMoreFromFirebase = false;
-    loadingState.classList.add('hidden');
+    loadingState?.classList.add('hidden');
     // Skip rendering during initial load - let the main init render handle it
     // This prevents double rendering when genres/series load in parallel
     if (!isInitialLoad) renderBooks();
@@ -309,15 +393,15 @@ async function loadBooks(forceRefresh = false) {
   // If offline, use any cached data we have
   if (!navigator.onLine) {
     if (hasCachedBooks) {
-      books = cached.books;
+      books = cached!.books;
       lastDoc = null;
       hasMoreFromFirebase = false;
-      loadingState.classList.add('hidden');
+      loadingState?.classList.add('hidden');
       if (!isInitialLoad) renderBooks();
       showToast('Showing cached books (offline)', { type: 'info' });
       return;
     } else {
-      loadingState.classList.add('hidden');
+      loadingState?.classList.add('hidden');
       showToast('No cached books available offline', { type: 'error' });
       return;
     }
@@ -325,8 +409,8 @@ async function loadBooks(forceRefresh = false) {
 
   // Fetch from Firebase
   isLoading = true;
-  loadingState.classList.remove('hidden');
-  bookList.innerHTML = '';
+  loadingState?.classList.remove('hidden');
+  if (bookList) bookList.innerHTML = '';
 
   try {
     books = [];
@@ -341,23 +425,24 @@ async function loadBooks(forceRefresh = false) {
 
     forceServerFetch = false; // Reset after fetch
 
-    loadingState.classList.add('hidden');
+    loadingState?.classList.add('hidden');
     if (!isInitialLoad) renderBooks();
   } catch (error) {
     console.error('Error loading books:', error);
-    loadingState.classList.add('hidden');
+    loadingState?.classList.add('hidden');
 
     // If Firebase fails and we have cached data, use it
     if (hasCachedBooks) {
-      books = cached.books;
+      books = cached!.books;
       lastDoc = null;
       hasMoreFromFirebase = false;
       if (!isInitialLoad) renderBooks();
       showToast('Using cached books (connection error)', { type: 'info' });
     } else {
       // User-friendly error message instead of raw error
+      const firebaseError = error as { code?: string };
       const userMessage =
-        error.code === 'permission-denied'
+        firebaseError.code === 'permission-denied'
           ? 'Permission denied. Please log in again.'
           : 'Unable to load books. Please check your connection.';
       showToast(userMessage, { type: 'error' });
@@ -371,17 +456,16 @@ async function loadBooks(forceRefresh = false) {
 /**
  * Fetch next page of books from Firebase
  * Updates books array, lastDoc cursor, and hasMoreFromFirebase flag
- * @returns {Promise<void>}
  */
-async function fetchNextPage() {
-  if (!hasMoreFromFirebase) {
+async function fetchNextPage(): Promise<void> {
+  if (!hasMoreFromFirebase || !currentUser) {
     return;
   }
   const [field, direction] = currentSort.split('-');
 
   try {
     // Use repository for paginated fetch with cursor support
-    const result = await bookRepository.getPaginated(currentUser.uid, {
+    const result: PaginatedResult = await bookRepository.getPaginated(currentUser.uid, {
       orderByField: field === 'createdAt' ? 'createdAt' : field,
       orderDirection: direction === 'asc' ? 'asc' : 'desc',
       limitCount: BOOKS_PER_PAGE,
@@ -390,7 +474,7 @@ async function fetchNextPage() {
     });
 
     // Serialize timestamps for caching
-    const newBooks = result.docs.map(book => ({
+    const newBooks: BookData[] = result.docs.map(book => ({
       ...book,
       createdAt: serializeTimestamp(book.createdAt),
       updatedAt: serializeTimestamp(book.updatedAt),
@@ -420,13 +504,13 @@ async function fetchNextPage() {
 }
 
 // Intersection Observer for infinite scroll
-let scrollObserver = null;
+let scrollObserver: IntersectionObserver | null = null;
 
 /**
  * Set up IntersectionObserver for infinite scroll
  * Triggers loadMore when scroll sentinel enters viewport
  */
-function setupScrollObserver() {
+function setupScrollObserver(): void {
   if (scrollObserver) scrollObserver.disconnect();
 
   scrollObserver = new IntersectionObserver(
@@ -443,9 +527,9 @@ setupScrollObserver();
 
 /**
  * Show or hide the Series Order sort option in dropdowns
- * @param {boolean} showOption - Whether to show the option
+ * @param showOption - Whether to show the option
  */
-function updateSeriesOrderOption(showOption) {
+function updateSeriesOrderOption(showOption: boolean): void {
   // Update mobile sort select
   if (sortSelectMobile) {
     const mobileOption = sortSelectMobile.querySelector('.series-sort-option');
@@ -459,7 +543,7 @@ function updateSeriesOrderOption(showOption) {
  * Switch to series order sort
  * Stores previous sort for restoration when series filter is cleared
  */
-function switchToSeriesOrder() {
+function switchToSeriesOrder(): void {
   if (currentSort !== 'seriesPosition-asc') {
     previousSort = currentSort;
     currentSort = 'seriesPosition-asc';
@@ -475,7 +559,7 @@ function switchToSeriesOrder() {
 /**
  * Restore previous sort order after series filter is cleared
  */
-function restorePreviousSort() {
+function restorePreviousSort(): void {
   if (previousSort && currentSort === 'seriesPosition-asc') {
     currentSort = previousSort;
     if (sortSelectMobile) sortSelectMobile.value = previousSort;
@@ -490,19 +574,19 @@ function restorePreviousSort() {
 
 /**
  * Extract unique authors from books list
- * @returns {Array<string>} Sorted array of unique author names
+ * @returns Sorted array of unique author names
  */
-function getUniqueAuthors() {
-  const authorSet = new Set(books.filter(b => !b.deletedAt && b.author?.trim()).map(b => b.author.trim()));
+function getUniqueAuthors(): string[] {
+  const authorSet = new Set(books.filter(b => !b.deletedAt && b.author?.trim()).map(b => b.author!.trim()));
   return Array.from(authorSet).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 }
 
 /**
  * Get filtered and sorted books (with memoization)
  * Applies all active filters and current sort order
- * @returns {Array} Filtered and sorted books array
+ * @returns Filtered and sorted books array
  */
-function getFilteredBooks() {
+function getFilteredBooks(): BookData[] {
   if (cachedFilteredBooks) return cachedFilteredBooks;
   // First filter out binned (soft-deleted) books
   let filtered = filterActivebooks(books);
@@ -519,17 +603,17 @@ function getFilteredBooks() {
  * Invalidate filtered books cache
  * Call when filters or books data changes
  */
-function invalidateFilteredCache() {
+function invalidateFilteredCache(): void {
   cachedFilteredBooks = null;
 }
 
 /**
  * Calculate faceted filter counts for filter options
  * Each count shows books that would match if that option were selected
- * @param {Object} [filterOverrides] - Optional filter values to use instead of globals
- * @returns {Object} Counts for ratings, genres, status, series, authors
+ * @param filterOverrides - Optional filter values to use instead of globals
+ * @returns Counts for ratings, genres, status, series, authors
  */
-function calculateFilterCounts(filterOverrides = null) {
+function calculateFilterCounts(filterOverrides: FilterOverrides | null = null): FilterCounts {
   // Use overrides if provided, otherwise use global filter state
   const activeRating = filterOverrides?.rating ?? ratingFilter;
   const activeGenres = filterOverrides?.genres ?? genreFilters;
@@ -546,11 +630,11 @@ function calculateFilterCounts(filterOverrides = null) {
   booksForRating = filterBySeriesIds(booksForRating, activeSeriesIds);
   booksForRating = filterByAuthor(booksForRating, activeAuthor);
 
-  const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unrated: 0 };
+  const ratings: Record<number | 'unrated', number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, unrated: 0 };
   booksForRating.forEach(b => {
     const r = b.rating || 0;
     if (r >= 1 && r <= 5) {
-      ratings[r]++;
+      ratings[r as 1 | 2 | 3 | 4 | 5]++;
     } else {
       ratings.unrated++;
     }
@@ -565,7 +649,7 @@ function calculateFilterCounts(filterOverrides = null) {
   booksForGenre = filterBySeriesIds(booksForGenre, activeSeriesIds);
   booksForGenre = filterByAuthor(booksForGenre, activeAuthor);
 
-  const genresCounts = {};
+  const genresCounts: Record<string, number> = {};
   booksForGenre.forEach(b => {
     if (b.genres && Array.isArray(b.genres)) {
       b.genres.forEach(gId => {
@@ -583,7 +667,7 @@ function calculateFilterCounts(filterOverrides = null) {
   booksForStatus = filterBySeriesIds(booksForStatus, activeSeriesIds);
   booksForStatus = filterByAuthor(booksForStatus, activeAuthor);
 
-  const statusCounts = { reading: 0, finished: 0 };
+  const statusCounts: Record<string, number> = { reading: 0, finished: 0 };
   booksForStatus.forEach(b => {
     const status = getBookStatus(b);
     if (status === 'reading') statusCounts.reading++;
@@ -599,7 +683,7 @@ function calculateFilterCounts(filterOverrides = null) {
   booksForSeries = filterByStatuses(booksForSeries, activeStatuses);
   booksForSeries = filterByAuthor(booksForSeries, activeAuthor);
 
-  const seriesCounts = {};
+  const seriesCounts: Record<string, number> = {};
   booksForSeries.forEach(b => {
     if (b.seriesId) {
       seriesCounts[b.seriesId] = (seriesCounts[b.seriesId] || 0) + 1;
@@ -615,7 +699,7 @@ function calculateFilterCounts(filterOverrides = null) {
   booksForAuthor = filterByStatuses(booksForAuthor, activeStatuses);
   booksForAuthor = filterBySeriesIds(booksForAuthor, activeSeriesIds);
 
-  const authorCounts = {};
+  const authorCounts: Record<string, number> = {};
   booksForAuthor.forEach(b => {
     if (b.author?.trim()) {
       const author = b.author.trim();
@@ -640,7 +724,7 @@ function calculateFilterCounts(filterOverrides = null) {
  * Update filter panel counts and author list
  * Recalculates faceted counts and updates both panels
  */
-function updateFilterCounts() {
+function updateFilterCounts(): void {
   const counts = calculateFilterCounts();
   const authors = getUniqueAuthors();
   if (sidebarPanel) {
@@ -657,12 +741,12 @@ function updateFilterCounts() {
  * Update book count display in header
  * Shows filtered count vs total when filters are active
  */
-function updateBookCount() {
+function updateBookCount(): void {
   const filtered = getFilteredBooks();
   const total = filterActivebooks(books).length;
   const hasFilters = hasActiveFilters();
 
-  let countText;
+  let countText: string;
   if (hasFilters && filtered.length !== total) {
     countText = `${filtered.length} of ${total} book${total !== 1 ? 's' : ''}`;
   } else {
@@ -681,17 +765,17 @@ function updateBookCount() {
  * Render books list to DOM
  * Shows book cards, empty states, and scroll sentinel for infinite scroll
  */
-function renderBooks() {
+function renderBooks(): void {
   const filtered = getFilteredBooks();
   updateBookCount();
 
   if (filtered.length === 0) {
-    bookList.innerHTML = '';
+    if (bookList) bookList.innerHTML = '';
 
     // Check if we have books but filters don't match
     if (books.length > 0 && hasActiveFilters()) {
       // Show "no results" state with filter context
-      emptyState.classList.add('hidden');
+      emptyState?.classList.add('hidden');
       if (noResultsState) {
         noResultsState.classList.remove('hidden');
         if (noResultsTitle) {
@@ -700,35 +784,37 @@ function renderBooks() {
       }
     } else {
       // Show "no books yet" empty state
-      if (noResultsState) noResultsState.classList.add('hidden');
-      emptyState.classList.remove('hidden');
+      noResultsState?.classList.add('hidden');
+      emptyState?.classList.remove('hidden');
     }
 
     initIcons();
     return;
   }
 
-  emptyState.classList.add('hidden');
-  if (noResultsState) noResultsState.classList.add('hidden');
+  emptyState?.classList.add('hidden');
+  noResultsState?.classList.add('hidden');
   const visible = filtered.slice(0, displayLimit);
   const hasMoreToDisplay = filtered.length > displayLimit;
 
-  bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
+  if (bookList) {
+    bookList.innerHTML = visible.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
 
-  // Trigger fade-in animation on first content render
-  if (!hasTriggeredInitialFade) {
-    bookList.classList.add('content-fade-in');
-    hasTriggeredInitialFade = true;
-  }
+    // Trigger fade-in animation on first content render
+    if (!hasTriggeredInitialFade) {
+      bookList.classList.add('content-fade-in');
+      hasTriggeredInitialFade = true;
+    }
 
-  if (hasMoreToDisplay) {
-    bookList.innerHTML += `
-      <div id="scroll-sentinel" class="py-6 flex justify-center">
-        <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    `;
-    const sentinel = document.getElementById('scroll-sentinel');
-    if (sentinel) scrollObserver.observe(sentinel);
+    if (hasMoreToDisplay) {
+      bookList.innerHTML += `
+        <div id="scroll-sentinel" class="py-6 flex justify-center">
+          <div class="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      `;
+      const sentinel = document.getElementById('scroll-sentinel');
+      if (sentinel && scrollObserver) scrollObserver.observe(sentinel);
+    }
   }
 
   initIcons();
@@ -738,7 +824,7 @@ function renderBooks() {
  * Load more books for infinite scroll
  * Appends new books to the list instead of re-rendering entire list
  */
-function loadMore() {
+function loadMore(): void {
   const filtered = getFilteredBooks();
   const previousLimit = displayLimit;
 
@@ -756,11 +842,11 @@ function loadMore() {
 
     // Append new book cards
     const newCardsHtml = newBooks.map(book => bookCard(book, { showDate: true, genreLookup, seriesLookup })).join('');
-    bookList.insertAdjacentHTML('beforeend', newCardsHtml);
+    bookList?.insertAdjacentHTML('beforeend', newCardsHtml);
 
     // Add new scroll sentinel if more to load
     if (hasMoreToDisplay) {
-      bookList.insertAdjacentHTML(
+      bookList?.insertAdjacentHTML(
         'beforeend',
         `
         <div id="scroll-sentinel" class="py-6 flex justify-center">
@@ -769,7 +855,7 @@ function loadMore() {
       `
       );
       const sentinel = document.getElementById('scroll-sentinel');
-      if (sentinel) scrollObserver.observe(sentinel);
+      if (sentinel && scrollObserver) scrollObserver.observe(sentinel);
     }
 
     initIcons();
@@ -779,9 +865,8 @@ function loadMore() {
 /**
  * Refresh books from Firebase (used by pull-to-refresh)
  * Clears cache and reloads all data
- * @returns {Promise<void>}
  */
-async function refreshBooks() {
+async function refreshBooks(): Promise<void> {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
   // Reload genres, series, and books
@@ -792,9 +877,8 @@ async function refreshBooks() {
 /**
  * Silent refresh for auto-sync when tab becomes visible
  * Same as refreshBooks but with quieter notification
- * @returns {Promise<void>}
  */
-async function silentRefreshBooks() {
+async function silentRefreshBooks(): Promise<void> {
   clearCache();
   displayLimit = BOOKS_PER_PAGE;
   await Promise.all([loadGenres(), loadSeries(), loadBooks(true)]);
@@ -803,11 +887,21 @@ async function silentRefreshBooks() {
 
 // ==================== Filter Panel Initialization ====================
 
+/** Filter state from FilterPanel */
+interface PanelFilters {
+  sort: string;
+  rating: number | string;
+  genres: string[];
+  statuses: string[];
+  seriesIds: string[];
+  author: string;
+}
+
 /**
  * Initialize FilterPanel instances for desktop sidebar and mobile bottom sheet
  * Sets up both panels with initial filter state from URL params
  */
-function initializeFilterPanels() {
+function initializeFilterPanels(): void {
   // Get initial filter state from URL params (arrays for multi-select)
   const initialFilters = {
     sort: currentSort,
@@ -848,9 +942,9 @@ function initializeFilterPanels() {
       showSort: false,
       initialFilters,
       // Update counts live as user interacts, but don't apply filters until Apply button
-      onChange: filters => {
+      onChange: (filters: PanelFilters) => {
         const counts = calculateFilterCounts(filters);
-        mobilePanel.setBookCounts(counts);
+        mobilePanel!.setBookCounts(counts);
       },
     });
   }
@@ -863,10 +957,9 @@ function initializeFilterPanels() {
 
 /**
  * Handle filter changes from desktop sidebar (immediate apply)
- * @param {Object} filters - Filter state from FilterPanel
- * @returns {Promise<void>}
+ * @param filters - Filter state from FilterPanel
  */
-async function handleSidebarFilterChange(filters) {
+async function handleSidebarFilterChange(filters: PanelFilters): Promise<void> {
   const sortChanged = filters.sort !== currentSort;
   const wasSeriesFiltered = seriesFilters.length > 0;
   const hasSingleSeries = filters.seriesIds.length === 1;
@@ -914,10 +1007,9 @@ async function handleSidebarFilterChange(filters) {
 
 /**
  * Apply filters from mobile bottom sheet
- * @param {boolean} [keepSheetOpen=false] - If true, don't close the sheet (used by Reset)
- * @returns {Promise<void>}
+ * @param keepSheetOpen - If true, don't close the sheet (used by Reset)
  */
-async function applyMobileFilters(keepSheetOpen = false) {
+async function applyMobileFilters(keepSheetOpen = false): Promise<void> {
   if (!mobilePanel) return;
 
   const filters = mobilePanel.getFilters();
@@ -1002,9 +1094,9 @@ if (sortSelectMobile) {
 
 /**
  * Check if any filters are active (excluding sort)
- * @returns {boolean} True if any filter is active
+ * @returns True if any filter is active
  */
-function hasActiveFilters() {
+function hasActiveFilters(): boolean {
   return (
     (ratingFilter !== 0 && ratingFilter !== '') ||
     genreFilters.length > 0 ||
@@ -1018,7 +1110,7 @@ function hasActiveFilters() {
  * Update filter count badge on mobile trigger button
  * Shows total number of active filter selections with pulse animation on change
  */
-function updateFilterCountBadge() {
+function updateFilterCountBadge(): void {
   if (!filterCountBadge) return;
 
   // Count individual selections (not filter types)
@@ -1037,24 +1129,31 @@ function updateFilterCountBadge() {
   // Pulse animation when count changes (not on initial load)
   if (countChanged && count > 0) {
     filterCountBadge.classList.remove('badge-pulse');
-    void filterCountBadge.offsetWidth; // Force reflow to restart animation
+    void (filterCountBadge as HTMLElement).offsetWidth; // Force reflow to restart animation
     filterCountBadge.classList.add('badge-pulse');
   }
 
   lastFilterCount = count;
 }
 
+/** Filter chip data */
+interface FilterChip {
+  type: string;
+  value: string | number;
+  label: string;
+}
+
 /**
  * Render active filter chips (both mobile and desktop)
  * Supports multiple chips per filter type for multi-select
  */
-function renderActiveFilterChips() {
-  const chips = [];
+function renderActiveFilterChips(): void {
+  const chips: FilterChip[] = [];
 
   // Rating (single-select)
   if (ratingFilter === 'unrated') {
     chips.push({ type: 'rating', value: 'unrated', label: 'Unrated' });
-  } else if (ratingFilter > 0) {
+  } else if (typeof ratingFilter === 'number' && ratingFilter > 0) {
     chips.push({ type: 'rating', value: ratingFilter, label: `${ratingFilter}+ Stars` });
   }
 
@@ -1067,7 +1166,7 @@ function renderActiveFilterChips() {
   }
 
   // Statuses (multi-select)
-  const statusLabels = { reading: 'Reading', finished: 'Finished' };
+  const statusLabels: Record<string, string> = { reading: 'Reading', finished: 'Finished' };
   for (const status of statusFilters) {
     chips.push({ type: 'status', value: status, label: statusLabels[status] || status });
   }
@@ -1100,7 +1199,7 @@ function renderActiveFilterChips() {
     container.classList.remove('hidden');
 
     // Colour classes by filter type
-    const chipColours = {
+    const chipColours: Record<string, string> = {
       rating: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
       genre: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
       status: 'bg-green-100 text-green-800 hover:bg-green-200',
@@ -1114,7 +1213,7 @@ function renderActiveFilterChips() {
         const colours = chipColours[chip.type] || 'bg-gray-100 text-gray-800 hover:bg-gray-200';
         const delay = index * 50; // Stagger animation delay
         return `
-        <button data-filter-type="${escapeAttr(chip.type)}" data-filter-value="${escapeAttr(chip.value)}" class="chip-enter inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" style="animation-delay: ${delay}ms" aria-label="Remove ${escapeAttr(chip.label)} filter">
+        <button data-filter-type="${escapeAttr(chip.type)}" data-filter-value="${escapeAttr(String(chip.value))}" class="chip-enter inline-flex items-center gap-1 px-3 py-2 min-h-[44px] ${colours} rounded-full text-sm font-medium transition-colors" style="animation-delay: ${delay}ms" aria-label="Remove ${escapeAttr(chip.label)} filter">
           <span>${escapeHtml(chip.label)}</span>
           <i data-lucide="x" class="w-3.5 h-3.5" aria-hidden="true"></i>
         </button>
@@ -1138,11 +1237,10 @@ function renderActiveFilterChips() {
 
 /**
  * Clear a single filter value or all values of a filter type
- * @param {string} filterType - Filter type ('rating', 'genre', 'status', 'series', 'author', 'all')
- * @param {string} [filterValue=null] - Specific value to clear, or null to clear all of type
- * @returns {Promise<void>}
+ * @param filterType - Filter type ('rating', 'genre', 'status', 'series', 'author', 'all')
+ * @param filterValue - Specific value to clear, or null to clear all of type
  */
-async function clearFilter(filterType, filterValue = null) {
+async function clearFilter(filterType: string, filterValue: string | null = null): Promise<void> {
   switch (filterType) {
     case 'rating':
       ratingFilter = 0;
@@ -1215,10 +1313,11 @@ async function clearFilter(filterType, filterValue = null) {
 // Event delegation for filter chip clicks
 [activeFiltersMobile, activeFiltersDesktop].forEach(container => {
   if (!container) return;
-  container.addEventListener('click', e => {
-    const button = e.target.closest('button[data-filter-type]');
+  container.addEventListener('click', (e: Event) => {
+    const target = e.target as HTMLElement;
+    const button = target.closest('button[data-filter-type]') as HTMLButtonElement | null;
     if (button) {
-      clearFilter(button.dataset.filterType, button.dataset.filterValue);
+      clearFilter(button.dataset.filterType!, button.dataset.filterValue || null);
     }
   });
 });
@@ -1226,13 +1325,13 @@ async function clearFilter(filterType, filterValue = null) {
 /**
  * Get human-readable description of active filters
  * Used in no-results messages
- * @returns {string} Description like '"Fiction" and "4+ stars"'
+ * @returns Description like '"Fiction" and "4+ stars"'
  */
-function getActiveFilterDescription() {
-  const parts = [];
+function getActiveFilterDescription(): string {
+  const parts: string[] = [];
 
   // Statuses (multi-select)
-  const statusLabels = { reading: 'Reading', finished: 'Finished' };
+  const statusLabels: Record<string, string> = { reading: 'Reading', finished: 'Finished' };
   for (const status of statusFilters) {
     parts.push(statusLabels[status] || status);
   }
@@ -1271,9 +1370,8 @@ function getActiveFilterDescription() {
 /**
  * Reset all filters to default values
  * Clears URL params and refreshes books list
- * @returns {Promise<void>}
  */
-async function resetAllFilters() {
+async function resetAllFilters(): Promise<void> {
   // Check if we need to refetch (ignore seriesPosition-asc as it's client-side only)
   const needsRefetch = currentSort !== 'createdAt-desc' && currentSort !== 'seriesPosition-asc';
 
@@ -1323,7 +1421,7 @@ if (clearFiltersLink) {
  * Open the filter bottom sheet (mobile)
  * Syncs mobile panel to current filter state before opening
  */
-function openFilterSheet() {
+function openFilterSheet(): void {
   if (!filterSheet || !filterSheetContent) return;
 
   // Sync mobile panel to current filter state before opening
@@ -1355,7 +1453,7 @@ function openFilterSheet() {
  * Close the filter bottom sheet (mobile)
  * Animates out and unlocks body scroll
  */
-function closeFilterSheet() {
+function closeFilterSheet(): void {
   if (!filterSheet || !filterSheetContent) return;
 
   filterSheetContent.classList.add('translate-y-full');
@@ -1379,8 +1477,9 @@ if (applyFiltersMobileBtn) {
 // Reset button in mobile bottom sheet - apply but keep sheet open
 const mobileFilterPanel = document.getElementById('filter-panel-mobile');
 if (mobileFilterPanel) {
-  mobileFilterPanel.addEventListener('click', e => {
-    if (e.target.closest('.filter-reset')) {
+  mobileFilterPanel.addEventListener('click', (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.filter-reset')) {
       // Panel already reset via its own handler, now apply to update counts
       applyMobileFilters(true); // keepSheetOpen = true
     }
@@ -1389,7 +1488,7 @@ if (mobileFilterPanel) {
 
 // Close on backdrop click - apply filters before closing
 if (filterSheet) {
-  filterSheet.addEventListener('click', e => {
+  filterSheet.addEventListener('click', (e: Event) => {
     if (e.target === filterSheet) {
       applyMobileFilters();
     }
@@ -1406,14 +1505,14 @@ if (filterSheetContent) {
 
   filterSheetContent.addEventListener(
     'touchstart',
-    e => {
+    (e: TouchEvent) => {
       // Get the handle element
       const handle = filterSheetContent.querySelector('.bottom-sheet-handle');
-      const isHandle = handle && handle.contains(e.target);
+      const isHandle = handle && handle.contains(e.target as Node);
       const isScrolledToTop = !filterPanelMobile || filterPanelMobile.scrollTop === 0;
 
       // Only start drag from handle or if content is scrolled to top
-      if (isHandle || (filterPanelMobile?.contains(e.target) && isScrolledToTop)) {
+      if (isHandle || (filterPanelMobile?.contains(e.target as Node) && isScrolledToTop)) {
         isDragging = true;
         sheetStartY = e.touches[0].clientY;
         filterSheetContent.style.transition = 'none';
@@ -1424,7 +1523,7 @@ if (filterSheetContent) {
 
   filterSheetContent.addEventListener(
     'touchmove',
-    e => {
+    (e: TouchEvent) => {
       if (!isDragging) return;
 
       sheetCurrentY = e.touches[0].clientY;
@@ -1485,7 +1584,10 @@ if ('ontouchstart' in window && pullIndicator && mainContent && !touchListenersA
   document.addEventListener('touchend', handleTouchEnd, { passive: true });
 }
 
-function handleTouchStart(e) {
+/**
+ * Handle touch start for pull-to-refresh
+ */
+function handleTouchStart(e: TouchEvent): void {
   // Don't start pull if filter sheet is open
   if (filterSheet && !filterSheet.classList.contains('hidden')) return;
 
@@ -1497,7 +1599,9 @@ function handleTouchStart(e) {
 }
 
 // Throttled UI update for pull-to-refresh (16ms = 60fps)
-const updatePullUI = throttle(pullDistance => {
+const updatePullUI = throttle((pullDistance: number) => {
+  if (!pullIndicator || !pullIcon || !pullText) return;
+
   // Calculate display height (with resistance)
   const displayHeight = Math.min(pullDistance * 0.5, pullThreshold + 20);
 
@@ -1518,7 +1622,10 @@ const updatePullUI = throttle(pullDistance => {
   initIcons();
 }, 16);
 
-function handleTouchMove(e) {
+/**
+ * Handle touch move for pull-to-refresh
+ */
+function handleTouchMove(e: TouchEvent): void {
   if (!isPulling || isLoading) return;
 
   pullCurrentY = e.touches[0].clientY;
@@ -1533,8 +1640,11 @@ function handleTouchMove(e) {
   }
 }
 
-async function handleTouchEnd() {
-  if (!isPulling) return;
+/**
+ * Handle touch end for pull-to-refresh
+ */
+async function handleTouchEnd(): Promise<void> {
+  if (!isPulling || !pullIndicator || !pullIcon || !pullText) return;
 
   const pullDistance = pullCurrentY - pullStartY;
   isPulling = false;

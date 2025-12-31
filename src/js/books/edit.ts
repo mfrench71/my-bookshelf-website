@@ -1,6 +1,6 @@
 // Book Edit Page Logic
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { bookRepository } from '../repositories/book-repository.js';
 import {
   parseTimestamp,
@@ -31,26 +31,114 @@ import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } fro
 import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { ConfirmSheet } from '../components/modal.js';
 
+/** Read entry for tracking reading history */
+interface ReadEntry {
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
+/** Book image from gallery */
+interface BookImage {
+  id?: string;
+  url: string;
+  isPrimary?: boolean;
+  storagePath?: string;
+}
+
+/** Cover URLs from different sources */
+interface BookCovers {
+  googleBooks?: string;
+  openLibrary?: string;
+  [key: string]: string | undefined;
+}
+
+/** Book data structure */
+interface BookData {
+  id: string;
+  title: string;
+  author?: string;
+  isbn?: string;
+  coverImageUrl?: string;
+  covers?: BookCovers;
+  publisher?: string;
+  publishedDate?: string;
+  physicalFormat?: string;
+  pageCount?: number | string;
+  notes?: string;
+  rating?: number;
+  genres?: string[];
+  seriesId?: string | null;
+  seriesPosition?: number | null;
+  images?: BookImage[];
+  reads?: ReadEntry[];
+  startedAt?: unknown;
+  finishedAt?: unknown;
+  deletedAt?: number | null;
+  [key: string]: unknown;
+}
+
+/** Original form values for dirty checking */
+interface OriginalValues {
+  title: string;
+  author: string;
+  coverImageUrl: string;
+  publisher: string;
+  publishedDate: string;
+  physicalFormat: string;
+  pageCount: string | number;
+  notes: string;
+  rating: number;
+  genres: string[];
+  reads: string;
+}
+
+/** API lookup result */
+interface APILookupResult {
+  title?: string;
+  author?: string;
+  coverImageUrl?: string;
+  covers?: BookCovers;
+  publisher?: string;
+  publishedDate?: string;
+  physicalFormat?: string;
+  pageCount?: number | string;
+  seriesName?: string;
+  seriesPosition?: number;
+  genres?: string[];
+}
+
 // Initialize icons once on load
 initIcons();
 
 // State
-let currentUser = null;
-let bookId = null;
-let book = null;
-let ratingInput = null;
-let genrePicker = null;
-let seriesPicker = null;
-let authorPicker = null;
-let coverPicker = null;
-let imageGallery = null;
-let originalGenres = [];
-let originalSeriesId = null;
-let originalImages = [];
-let originalValues = {};
+let currentUser: User | null = null;
+let bookId: string | null = null;
+let book: BookData | null = null;
+let ratingInput: RatingInput | null = null;
+let genrePicker: GenrePicker | null = null;
+let seriesPicker: SeriesPicker | null = null;
+let authorPicker: AuthorPicker | null = null;
+let coverPicker: CoverPicker | null = null;
+let imageGallery: ImageGallery | null = null;
+let originalGenres: string[] = [];
+let originalSeriesId: string | null = null;
+let originalImages: BookImage[] = [];
+let originalValues: OriginalValues = {
+  title: '',
+  author: '',
+  coverImageUrl: '',
+  publisher: '',
+  publishedDate: '',
+  physicalFormat: '',
+  pageCount: '',
+  notes: '',
+  rating: 0,
+  genres: [],
+  reads: '[]',
+};
 let formDirty = false;
-let beforeUnloadHandler = null;
-let currentReads = [];
+let beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
+let currentReads: ReadEntry[] = [];
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -65,44 +153,46 @@ const loading = document.getElementById('loading');
 const content = document.getElementById('book-content');
 const pageTitle = document.getElementById('page-title');
 const breadcrumb = document.getElementById('breadcrumb');
-const cancelBtn = document.getElementById('cancel-btn');
-const editForm = document.getElementById('edit-form');
-const titleInput = document.getElementById('title');
+const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement | null;
+const editForm = document.getElementById('edit-form') as HTMLFormElement | null;
+const titleInput = document.getElementById('title') as HTMLInputElement | null;
 const authorPickerContainer = document.getElementById('author-picker-container');
-const coverUrlInput = document.getElementById('cover-url');
+const coverUrlInput = document.getElementById('cover-url') as HTMLInputElement | null;
 const coverPickerContainer = document.getElementById('cover-picker-container');
 const coverPickerHint = document.getElementById('cover-picker-hint');
-const publisherInput = document.getElementById('publisher');
-const publishedDateInput = document.getElementById('published-date');
-const physicalFormatInput = document.getElementById('physical-format');
-const pageCountInput = document.getElementById('page-count');
-const notesInput = document.getElementById('notes');
-const saveBtn = document.getElementById('save-btn');
-const refreshDataBtn = document.getElementById('refresh-data-btn');
+const publisherInput = document.getElementById('publisher') as HTMLInputElement | null;
+const publishedDateInput = document.getElementById('published-date') as HTMLInputElement | null;
+const physicalFormatInput = document.getElementById('physical-format') as HTMLInputElement | null;
+const pageCountInput = document.getElementById('page-count') as HTMLInputElement | null;
+const notesInput = document.getElementById('notes') as HTMLTextAreaElement | null;
+const saveBtn = document.getElementById('save-btn') as HTMLButtonElement | null;
+const refreshDataBtn = document.getElementById('refresh-data-btn') as HTMLButtonElement | null;
 const ratingInputContainer = document.getElementById('rating-input');
 const genrePickerContainer = document.getElementById('genre-picker-container');
 const seriesPickerContainer = document.getElementById('series-picker-container');
 const imageGalleryContainer = document.getElementById('image-gallery-container');
 
 // Reading Dates Elements
-const startedDateInput = document.getElementById('started-date');
-const finishedDateInput = document.getElementById('finished-date');
+const startedDateInput = document.getElementById('started-date') as HTMLInputElement | null;
+const finishedDateInput = document.getElementById('finished-date') as HTMLInputElement | null;
 const readingDateError = document.getElementById('reading-date-error');
-const rereadBtn = document.getElementById('reread-btn');
+const rereadBtn = document.getElementById('reread-btn') as HTMLButtonElement | null;
 const readingStatusBadge = document.getElementById('reading-status-badge');
 const readHistorySection = document.getElementById('read-history-section');
-const toggleHistoryBtn = document.getElementById('toggle-history');
-const historyChevron = document.getElementById('history-chevron');
+const toggleHistoryBtn = document.getElementById('toggle-history') as HTMLButtonElement | null;
+const historyChevron = document.getElementById('history-chevron') as HTMLElement | null;
 const historyCount = document.getElementById('history-count');
 const readHistoryList = document.getElementById('read-history-list');
 
-// Navigation - Cancel button goes back to view page
-function goToViewPage() {
+/**
+ * Navigate to the view page for this book
+ */
+function goToViewPage(): void {
   window.location.href = `/books/view/?id=${bookId}`;
 }
 
 // Cancel button - cleanup unsaved uploads before navigating
-cancelBtn.addEventListener('click', async () => {
+cancelBtn?.addEventListener('click', async () => {
   // Cleanup any newly uploaded images that weren't saved
   if (imageGallery?.hasUnsavedUploads()) {
     try {
@@ -114,13 +204,15 @@ cancelBtn.addEventListener('click', async () => {
   goToViewPage();
 });
 
-// Cover Picker Functions
-function initCoverPicker() {
-  if (coverPicker) return; // Already initialized
+/**
+ * Initialize the cover picker component
+ */
+function initCoverPicker(): void {
+  if (coverPicker || !coverPickerContainer || !coverUrlInput) return;
 
   coverPicker = new CoverPicker({
     container: coverPickerContainer,
-    onSelect: url => {
+    onSelect: (url: string) => {
       coverUrlInput.value = url;
       updateCoverPickerHint();
       updateSaveButtonState();
@@ -128,23 +220,36 @@ function initCoverPicker() {
   });
 }
 
-function setCoverPickerCovers(covers, currentUrl = null) {
+/**
+ * Set covers in the cover picker
+ * @param covers - Cover URLs from different sources
+ * @param currentUrl - Currently selected cover URL
+ */
+function setCoverPickerCovers(covers: BookCovers, currentUrl: string | null = null): void {
   if (!coverPicker) initCoverPicker();
+  if (!coverPicker || !coverUrlInput) return;
 
   const url = currentUrl !== null ? currentUrl : coverUrlInput.value;
   coverPicker.setCovers(covers, url);
   updateCoverPickerHint();
 }
 
-function updateCoverPickerHint() {
+/**
+ * Update the cover picker hint visibility
+ */
+function updateCoverPickerHint(): void {
   if (!coverPickerHint || !coverPicker) return;
   const covers = coverPicker.getCovers();
   const hasMultiple = covers.googleBooks && covers.openLibrary;
   coverPickerHint.classList.toggle('hidden', !hasMultiple);
 }
 
-// Set series suggestion from API lookup
-function setSeriesSuggestion(seriesName, seriesPosition) {
+/**
+ * Set series suggestion from API lookup
+ * @param seriesName - Series name from API
+ * @param seriesPosition - Position in series
+ */
+function setSeriesSuggestion(seriesName: string | undefined, seriesPosition: number | undefined): void {
   if (seriesPicker) {
     if (seriesName) {
       seriesPicker.setSuggestion(seriesName, seriesPosition);
@@ -154,9 +259,11 @@ function setSeriesSuggestion(seriesName, seriesPosition) {
   }
 }
 
-// Initialize Series Picker
-async function initSeriesPicker() {
-  if (seriesPicker || !seriesPickerContainer) return;
+/**
+ * Initialize the series picker component
+ */
+async function initSeriesPicker(): Promise<void> {
+  if (seriesPicker || !seriesPickerContainer || !currentUser) return;
 
   seriesPicker = new SeriesPicker({
     container: seriesPickerContainer,
@@ -176,9 +283,11 @@ async function initSeriesPicker() {
   }
 }
 
-// Initialize Author Picker
-async function initAuthorPicker() {
-  if (authorPicker || !authorPickerContainer) return;
+/**
+ * Initialize the author picker component
+ */
+async function initAuthorPicker(): Promise<void> {
+  if (authorPicker || !authorPickerContainer || !currentUser) return;
 
   authorPicker = new AuthorPicker({
     container: authorPickerContainer,
@@ -196,18 +305,20 @@ async function initAuthorPicker() {
   }
 }
 
-// Initialize Image Gallery
-function initImageGallery() {
-  if (imageGallery || !imageGalleryContainer) return;
+/**
+ * Initialize the image gallery component
+ */
+function initImageGallery(): void {
+  if (imageGallery || !imageGalleryContainer || !currentUser || !bookId) return;
 
   imageGallery = new ImageGallery({
     container: imageGalleryContainer,
     userId: currentUser.uid,
     bookId: bookId,
     maxImages: 10,
-    onPrimaryChange: (url, userInitiated) => {
+    onPrimaryChange: (url: string | null, userInitiated: boolean) => {
       // Update cover picker with primary image (or clear if null)
-      if (coverPicker) {
+      if (coverPicker && coverUrlInput) {
         coverPicker.setUserUpload(url, userInitiated);
         if (url) {
           coverUrlInput.value = url;
@@ -228,16 +339,18 @@ function initImageGallery() {
 }
 
 // Auth Check
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, (user: User | null) => {
   if (user) {
     currentUser = user;
     loadBook();
   }
 });
 
-// Initialize Genre Picker
-async function initGenrePicker() {
-  if (genrePicker) return;
+/**
+ * Initialize the genre picker component
+ */
+async function initGenrePicker(): Promise<void> {
+  if (genrePicker || !genrePickerContainer || !currentUser) return;
 
   genrePicker = new GenrePicker({
     container: genrePickerContainer,
@@ -259,7 +372,11 @@ async function initGenrePicker() {
   }
 }
 
-async function fetchGenreSuggestions(isbn) {
+/**
+ * Fetch genre suggestions from APIs
+ * @param isbn - Book ISBN
+ */
+async function fetchGenreSuggestions(isbn: string): Promise<void> {
   try {
     // Use lookupISBN which checks both Google Books and Open Library,
     // parses hierarchical genres, and normalizes variations
@@ -267,13 +384,18 @@ async function fetchGenreSuggestions(isbn) {
     if (result?.genres?.length > 0 && genrePicker) {
       genrePicker.setSuggestions(result.genres);
     }
-  } catch (e) {
-    console.warn('Genre suggestions unavailable:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Genre suggestions unavailable:', error.message);
   }
 }
 
-// Load Book
-async function loadBook() {
+/**
+ * Load book data from repository
+ */
+async function loadBook(): Promise<void> {
+  if (!currentUser || !bookId) return;
+
   try {
     book = await bookRepository.getById(currentUser.uid, bookId);
 
@@ -290,9 +412,28 @@ async function loadBook() {
   }
 }
 
-function renderForm() {
+/**
+ * Render the edit form with book data
+ */
+function renderForm(): void {
+  if (
+    !book ||
+    !breadcrumb ||
+    !pageTitle ||
+    !titleInput ||
+    !coverUrlInput ||
+    !publisherInput ||
+    !publishedDateInput ||
+    !physicalFormatInput ||
+    !pageCountInput ||
+    !notesInput ||
+    !loading ||
+    !content
+  )
+    return;
+
   // Render breadcrumbs
-  renderBreadcrumbs(breadcrumb, Breadcrumbs.bookEdit(book.title, bookId));
+  renderBreadcrumbs(breadcrumb, Breadcrumbs.bookEdit(book.title, bookId!));
 
   // Page title
   pageTitle.textContent = `Edit: ${book.title}`;
@@ -304,13 +445,13 @@ function renderForm() {
   publisherInput.value = book.publisher || '';
   publishedDateInput.value = book.publishedDate || '';
   physicalFormatInput.value = book.physicalFormat || '';
-  pageCountInput.value = book.pageCount || '';
+  pageCountInput.value = String(book.pageCount || '');
   notesInput.value = book.notes || '';
   initRatingInput(book.rating || 0);
 
   // Reading dates
   const migratedBook = migrateBookReads(book);
-  currentReads = migratedBook.reads ? [...migratedBook.reads.map(r => ({ ...r }))] : [];
+  currentReads = migratedBook.reads ? [...migratedBook.reads.map((r: ReadEntry) => ({ ...r }))] : [];
   updateReadingDatesUI();
 
   // Store original values
@@ -350,10 +491,14 @@ function renderForm() {
   }
 }
 
-async function fetchBookCovers(isbn) {
+/**
+ * Fetch book covers from APIs
+ * @param isbn - Book ISBN
+ */
+async function fetchBookCovers(isbn: string): Promise<void> {
   try {
     const result = await lookupISBN(isbn);
-    if (result && result.covers) {
+    if (result && result.covers && book) {
       setCoverPickerCovers(result.covers, book.coverImageUrl);
     }
   } catch (e) {
@@ -361,12 +506,17 @@ async function fetchBookCovers(isbn) {
   }
 }
 
-// Rating Input
-function initRatingInput(initialValue = 0) {
+/**
+ * Initialize the rating input component
+ * @param initialValue - Initial rating value
+ */
+function initRatingInput(initialValue = 0): void {
   if (ratingInput) {
     ratingInput.setValue(initialValue);
     return;
   }
+
+  if (!ratingInputContainer) return;
 
   ratingInput = new RatingInput({
     container: ratingInputContainer,
@@ -377,14 +527,31 @@ function initRatingInput(initialValue = 0) {
   });
 }
 
-// Reading Dates
-function formatDateForInput(timestamp) {
+/**
+ * Format a timestamp for date input
+ * @param timestamp - Timestamp to format
+ * @returns ISO date string or empty string
+ */
+function formatDateForInput(timestamp: unknown): string {
   const date = parseTimestamp(timestamp);
   if (!date) return '';
   return date.toISOString().split('T')[0];
 }
 
-function updateReadingDatesUI() {
+/**
+ * Update the reading dates UI based on current reads
+ */
+function updateReadingDatesUI(): void {
+  if (
+    !startedDateInput ||
+    !finishedDateInput ||
+    !readingStatusBadge ||
+    !rereadBtn ||
+    !readHistorySection ||
+    !historyCount
+  )
+    return;
+
   const currentRead = currentReads.length > 0 ? currentReads[currentReads.length - 1] : null;
 
   startedDateInput.value = currentRead ? formatDateForInput(currentRead.startedAt) : '';
@@ -408,7 +575,7 @@ function updateReadingDatesUI() {
   const previousReads = currentReads.slice(0, -1);
   if (previousReads.length > 0) {
     readHistorySection.classList.remove('hidden');
-    historyCount.textContent = previousReads.length;
+    historyCount.textContent = String(previousReads.length);
     renderReadHistory(previousReads);
   } else {
     readHistorySection.classList.add('hidden');
@@ -417,7 +584,13 @@ function updateReadingDatesUI() {
   initIcons();
 }
 
-function renderReadHistory(previousReads) {
+/**
+ * Render the read history list
+ * @param previousReads - Array of previous read entries
+ */
+function renderReadHistory(previousReads: ReadEntry[]): void {
+  if (!readHistoryList) return;
+
   const html = previousReads
     .slice()
     .reverse()
@@ -430,7 +603,9 @@ function renderReadHistory(previousReads) {
   readHistoryList.innerHTML = html;
 }
 
-startedDateInput.addEventListener('change', () => {
+startedDateInput?.addEventListener('change', () => {
+  if (!startedDateInput || !finishedDateInput || !readingDateError) return;
+
   const startedValue = startedDateInput.value;
 
   if (finishedDateInput.value && startedValue && finishedDateInput.value < startedValue) {
@@ -457,7 +632,9 @@ startedDateInput.addEventListener('change', () => {
   updateSaveButtonState();
 });
 
-finishedDateInput.addEventListener('change', () => {
+finishedDateInput?.addEventListener('change', () => {
+  if (!startedDateInput || !finishedDateInput || !readingDateError) return;
+
   const finishedValue = finishedDateInput.value;
 
   if (finishedValue && !startedDateInput.value) {
@@ -487,7 +664,7 @@ finishedDateInput.addEventListener('change', () => {
   updateSaveButtonState();
 });
 
-rereadBtn.addEventListener('click', () => {
+rereadBtn?.addEventListener('click', () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   currentReads.push({ startedAt: today.getTime(), finishedAt: null });
@@ -497,14 +674,30 @@ rereadBtn.addEventListener('click', () => {
   showToast('Started new read!', { type: 'success' });
 });
 
-toggleHistoryBtn.addEventListener('click', () => {
+toggleHistoryBtn?.addEventListener('click', () => {
+  if (!readHistoryList || !historyChevron) return;
+
   const isHidden = readHistoryList.classList.contains('hidden');
   readHistoryList.classList.toggle('hidden');
   historyChevron.style.transform = isHidden ? 'rotate(90deg)' : '';
 });
 
-// Form dirty checking
-function checkFormDirty() {
+/**
+ * Check if the form has unsaved changes
+ * @returns True if form is dirty
+ */
+function checkFormDirty(): boolean {
+  if (
+    !titleInput ||
+    !coverUrlInput ||
+    !publisherInput ||
+    !publishedDateInput ||
+    !physicalFormatInput ||
+    !pageCountInput ||
+    !notesInput
+  )
+    return false;
+
   if (titleInput.value.trim() !== originalValues.title) return true;
   if (authorPicker && authorPicker.getValue().trim() !== originalValues.author) return true;
   if (coverUrlInput.value.trim() !== originalValues.coverImageUrl) return true;
@@ -519,22 +712,28 @@ function checkFormDirty() {
 
   const currentGenres = genrePicker ? genrePicker.getSelected() : originalValues.genres;
   if (currentGenres.length !== originalValues.genres.length) return true;
-  if (!currentGenres.every(g => originalValues.genres.includes(g))) return true;
+  if (!currentGenres.every((g: string) => originalValues.genres.includes(g))) return true;
 
   // Check series
   const currentSeries = seriesPicker ? seriesPicker.getSelected() : { seriesId: originalSeriesId };
   if (currentSeries.seriesId !== originalSeriesId) return true;
-  if (currentSeries.seriesId && currentSeries.position !== book.seriesPosition) return true;
+  if (currentSeries.seriesId && book && currentSeries.position !== book.seriesPosition) return true;
 
   // Check images
   const currentImages = imageGallery ? imageGallery.getImages() : originalImages;
   if (currentImages.length !== originalImages.length) return true;
-  if (JSON.stringify(currentImages.map(i => i.id)) !== JSON.stringify(originalImages.map(i => i.id))) return true;
+  if (JSON.stringify(currentImages.map((i: BookImage) => i.id)) !== JSON.stringify(originalImages.map(i => i.id)))
+    return true;
 
   return false;
 }
 
-function updateSaveButtonState() {
+/**
+ * Update save button enabled state based on form dirty status
+ */
+function updateSaveButtonState(): void {
+  if (!saveBtn) return;
+
   formDirty = checkFormDirty();
   saveBtn.disabled = !formDirty;
   saveBtn.classList.toggle('opacity-50', !formDirty);
@@ -542,8 +741,24 @@ function updateSaveButtonState() {
 }
 
 // Save Changes
-editForm.addEventListener('submit', async e => {
+editForm?.addEventListener('submit', async (e: Event) => {
   e.preventDefault();
+
+  if (
+    !editForm ||
+    !titleInput ||
+    !coverUrlInput ||
+    !publisherInput ||
+    !publishedDateInput ||
+    !physicalFormatInput ||
+    !pageCountInput ||
+    !notesInput ||
+    !saveBtn ||
+    !currentUser ||
+    !bookId ||
+    !authorPickerContainer
+  )
+    return;
 
   clearFormErrors(editForm);
 
@@ -566,7 +781,7 @@ editForm.addEventListener('submit', async e => {
   if (!validation.success) {
     if (validation.errors.title) showFieldError(titleInput, validation.errors.title);
     if (validation.errors.author) {
-      const authorInput = authorPickerContainer.querySelector('.author-picker-input');
+      const authorInput = authorPickerContainer.querySelector('.author-picker-input') as HTMLInputElement | null;
       if (authorInput) showFieldError(authorInput, validation.errors.author);
     }
     if (validation.errors.coverImageUrl) showFieldError(coverUrlInput, validation.errors.coverImageUrl);
@@ -602,7 +817,7 @@ editForm.addEventListener('submit', async e => {
   try {
     await bookRepository.update(currentUser.uid, bookId, updates);
 
-    const addedGenres = selectedGenres.filter(g => !originalGenres.includes(g));
+    const addedGenres = selectedGenres.filter((g: string) => !originalGenres.includes(g));
     const removedGenres = originalGenres.filter(g => !selectedGenres.includes(g));
 
     if (addedGenres.length > 0 || removedGenres.length > 0) {
@@ -643,7 +858,7 @@ editForm.addEventListener('submit', async e => {
 
 // Track input changes (authorPicker handles its own onChange)
 [titleInput, publisherInput, publishedDateInput, physicalFormatInput, pageCountInput, notesInput].forEach(el => {
-  el.addEventListener('input', () => {
+  el?.addEventListener('input', () => {
     updateSaveButtonState();
   });
 });
@@ -652,7 +867,7 @@ editForm.addEventListener('submit', async e => {
 if (beforeUnloadHandler) {
   window.removeEventListener('beforeunload', beforeUnloadHandler);
 }
-beforeUnloadHandler = e => {
+beforeUnloadHandler = (e: BeforeUnloadEvent) => {
   if (formDirty) {
     e.preventDefault();
     e.returnValue = '';
@@ -665,7 +880,7 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 window.addEventListener('pagehide', () => {
   if (imageGallery?.hasUnsavedUploads()) {
     // Fire and forget - can't await during page unload
-    imageGallery.cleanupUnsavedUploads().catch(err => {
+    imageGallery.cleanupUnsavedUploads().catch((err: unknown) => {
       console.error('Failed to cleanup unsaved uploads:', err);
     });
   }
@@ -692,8 +907,18 @@ interceptNavigation({
   },
 });
 
-// Refresh Data from APIs
-async function fetchBookDataFromAPI(isbn, title, author) {
+/**
+ * Fetch book data from Google Books or Open Library APIs
+ * @param isbn - Book ISBN
+ * @param title - Book title
+ * @param author - Book author
+ * @returns API lookup result or null
+ */
+async function fetchBookDataFromAPI(
+  isbn: string | undefined,
+  title: string | undefined,
+  author: string | undefined
+): Promise<APILookupResult | null> {
   if (!isbn && !title) {
     return null;
   }
@@ -732,7 +957,19 @@ async function fetchBookDataFromAPI(isbn, title, author) {
   return null;
 }
 
-refreshDataBtn.addEventListener('click', async () => {
+refreshDataBtn?.addEventListener('click', async () => {
+  if (
+    !refreshDataBtn ||
+    !titleInput ||
+    !publisherInput ||
+    !publishedDateInput ||
+    !physicalFormatInput ||
+    !pageCountInput ||
+    !coverUrlInput ||
+    !book
+  )
+    return;
+
   refreshDataBtn.disabled = true;
   const originalHtml = refreshDataBtn.innerHTML;
   refreshDataBtn.innerHTML = `
@@ -745,9 +982,13 @@ refreshDataBtn.addEventListener('click', async () => {
   });
 
   try {
-    const changedFields = [];
+    const changedFields: string[] = [];
 
-    const normalizeField = (input, normalizeFn, fieldName) => {
+    const normalizeField = (
+      input: HTMLInputElement,
+      normalizeFn: (value: string) => string,
+      fieldName: string
+    ): void => {
       const currentValue = input.value.trim();
       if (currentValue) {
         const normalized = normalizeFn(currentValue);
@@ -761,7 +1002,7 @@ refreshDataBtn.addEventListener('click', async () => {
 
     normalizeField(titleInput, normalizeTitle, 'title');
     // Handle author normalization via AuthorPicker
-    if (authorPicker) {
+    if (authorPicker && authorPickerContainer) {
       const currentAuthor = authorPicker.getValue();
       const normalizedAuthor = normalizeAuthor(currentAuthor);
       if (currentAuthor && normalizedAuthor !== currentAuthor) {
@@ -777,9 +1018,13 @@ refreshDataBtn.addEventListener('click', async () => {
     const apiData = await fetchBookDataFromAPI(book.isbn, book.title, book.author);
 
     if (apiData) {
-      const fillEmptyField = (input, newValue, fieldName) => {
+      const fillEmptyField = (
+        input: HTMLInputElement,
+        newValue: string | number | undefined | null,
+        fieldName: string
+      ): void => {
         if (newValue != null && newValue !== '' && !input.value.trim()) {
-          input.value = newValue;
+          input.value = String(newValue);
           input.classList.add('field-changed');
           if (!changedFields.includes(fieldName)) {
             changedFields.push(fieldName);
@@ -789,7 +1034,7 @@ refreshDataBtn.addEventListener('click', async () => {
 
       fillEmptyField(titleInput, apiData.title, 'title');
       // Author uses AuthorPicker instead of standard input
-      if (authorPicker && apiData.author && !authorPicker.getValue().trim()) {
+      if (authorPicker && authorPickerContainer && apiData.author && !authorPicker.getValue().trim()) {
         authorPicker.setValue(apiData.author);
         const authorInput = authorPickerContainer.querySelector('.author-picker-input');
         if (authorInput) authorInput.classList.add('field-changed');
@@ -802,7 +1047,7 @@ refreshDataBtn.addEventListener('click', async () => {
 
       if (apiData.covers && Object.keys(apiData.covers).length > 0) {
         setCoverPickerCovers(apiData.covers, coverUrlInput.value);
-        if (!coverUrlInput.value.trim()) {
+        if (!coverUrlInput.value.trim() && coverPicker) {
           // Auto-select first available cover
           const selectedUrl = coverPicker.getSelectedUrl();
           if (selectedUrl) {

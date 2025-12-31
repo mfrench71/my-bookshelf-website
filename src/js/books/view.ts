@@ -1,6 +1,6 @@
 // Book View Page Logic (Read-only display)
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { bookRepository } from '../repositories/book-repository.js';
 import {
   parseTimestamp,
@@ -21,15 +21,72 @@ import { renderBreadcrumbs, Breadcrumbs } from '../components/breadcrumb.js';
 import { BottomSheet } from '../components/modal.js';
 import { softDeleteBook } from '../bin.js';
 
+/** Book image data structure */
+interface BookImage {
+  url: string;
+  isPrimary?: boolean;
+  storagePath?: string;
+}
+
+/** Read entry data structure */
+interface ReadEntry {
+  startedAt?: unknown;
+  finishedAt?: unknown;
+}
+
+/** Book data structure */
+interface BookData {
+  id: string;
+  title: string;
+  author?: string;
+  isbn?: string;
+  coverImageUrl?: string;
+  rating?: number;
+  genres?: string[];
+  seriesId?: string | null;
+  seriesPosition?: number | null;
+  pageCount?: number;
+  physicalFormat?: string;
+  publisher?: string;
+  publishedDate?: string;
+  notes?: string;
+  reads?: ReadEntry[];
+  images?: BookImage[];
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  deletedAt?: number | null;
+  [key: string]: unknown;
+}
+
+/** Genre data structure */
+interface GenreData {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** Series data structure */
+interface SeriesData {
+  id: string;
+  name: string;
+  bookCount?: number;
+}
+
+/** Genre lookup map type */
+type GenreLookup = Map<string, GenreData>;
+
+/** Series lookup map type */
+type SeriesLookup = Map<string, SeriesData>;
+
 // Initialize icons
 initIcons();
 
 // State
-let currentUser = null;
-let bookId = null;
-let book = null;
-let genreLookup = null;
-let seriesLookup = null;
+let currentUser: User | null = null;
+let bookId: string | null = null;
+let book: BookData | null = null;
+let genreLookup: GenreLookup | null = null;
+let seriesLookup: SeriesLookup | null = null;
 
 // Get book ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -43,13 +100,13 @@ if (!bookId) {
 const loading = document.getElementById('loading');
 const content = document.getElementById('book-content');
 const breadcrumb = document.getElementById('breadcrumb');
-const editBtn = document.getElementById('edit-btn');
+const editBtn = document.getElementById('edit-btn') as HTMLAnchorElement | null;
 const deleteBtn = document.getElementById('delete-btn');
 const deleteModal = document.getElementById('delete-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
-const confirmDeleteBtn = document.getElementById('confirm-delete');
+const confirmDeleteBtn = document.getElementById('confirm-delete') as HTMLButtonElement | null;
 const deleteSeriesOption = document.getElementById('delete-series-option');
-const deleteSeriesCheckbox = document.getElementById('delete-series-checkbox');
+const deleteSeriesCheckbox = document.getElementById('delete-series-checkbox') as HTMLInputElement | null;
 const deleteSeriesName = document.getElementById('delete-series-name');
 
 // Bottom Sheet Instance
@@ -57,12 +114,12 @@ const deleteSheet = deleteModal ? new BottomSheet({ container: deleteModal }) : 
 
 // Cover elements
 const coverPlaceholder = document.getElementById('cover-placeholder');
-const coverImage = document.getElementById('cover-image');
+const coverImage = document.getElementById('cover-image') as HTMLImageElement | null;
 const coverLoading = document.getElementById('cover-loading');
 
 // Detail elements
 const bookTitleEl = document.getElementById('book-title');
-const bookAuthorEl = document.getElementById('book-author');
+const bookAuthorEl = document.getElementById('book-author') as HTMLAnchorElement | null;
 const bookAuthorName = document.getElementById('book-author-name');
 const ratingSection = document.getElementById('rating-section');
 const ratingStars = document.getElementById('rating-stars');
@@ -73,7 +130,7 @@ const genreBadges = document.getElementById('genre-badges');
 const seriesSection = document.getElementById('series-section');
 const seriesTitle = document.getElementById('series-title');
 const seriesBooks = document.getElementById('series-books');
-const seriesViewAll = document.getElementById('series-view-all');
+const seriesViewAll = document.getElementById('series-view-all') as HTMLAnchorElement | null;
 const notesSection = document.getElementById('notes-section');
 const bookNotes = document.getElementById('book-notes');
 const readingHistorySection = document.getElementById('reading-history-section');
@@ -85,21 +142,21 @@ const imagesGallery = document.getElementById('images-gallery');
 
 // Lightbox elements
 const lightbox = document.getElementById('lightbox');
-const lightboxImage = document.getElementById('lightbox-image');
+const lightboxImage = document.getElementById('lightbox-image') as HTMLImageElement | null;
 const lightboxLoading = document.getElementById('lightbox-loading');
 const lightboxCounter = document.getElementById('lightbox-counter');
-const lightboxClose = document.getElementById('lightbox-close');
+const lightboxClose = document.getElementById('lightbox-close') as HTMLButtonElement | null;
 const lightboxPrev = document.getElementById('lightbox-prev');
 const lightboxNext = document.getElementById('lightbox-next');
-const lightboxContent = document.getElementById('lightbox-content');
+const lightboxContent = document.getElementById('lightbox-content') as HTMLElement | null;
 const lightboxAnnouncer = document.getElementById('lightbox-announcer');
 const lightboxSwipeHint = document.getElementById('lightbox-swipe-hint');
 
 // Lightbox state
-let lightboxImages = [];
+let lightboxImages: BookImage[] = [];
 let lightboxIndex = 0;
-let lightboxFocusableElements = [];
-let lightboxPreviousFocus = null;
+let lightboxFocusableElements: NodeListOf<Element> | Element[] = [];
+let lightboxPreviousFocus: Element | null = null;
 let swipeHintShown = false;
 
 // Metadata elements
@@ -119,7 +176,7 @@ const modifiedRow = document.getElementById('modified-row');
 const bookModified = document.getElementById('book-modified');
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     // Load genres and series for badge display
@@ -130,8 +187,12 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Load Book
-async function loadBook() {
+/**
+ * Load the book data from Firestore
+ */
+async function loadBook(): Promise<void> {
+  if (!currentUser || !bookId) return;
+
   try {
     book = await bookRepository.getById(currentUser.uid, bookId);
 
@@ -155,15 +216,24 @@ async function loadBook() {
   }
 }
 
-function renderBook() {
+/**
+ * Render the book details on the page
+ */
+function renderBook(): void {
+  if (!book || !bookId) return;
+
   // Render breadcrumbs
-  renderBreadcrumbs(breadcrumb, Breadcrumbs.bookView(book.title, bookId));
+  if (breadcrumb) {
+    renderBreadcrumbs(breadcrumb, Breadcrumbs.bookView(book.title, bookId));
+  }
 
   // Set edit button URL
-  editBtn.href = `/books/edit/?id=${bookId}`;
+  if (editBtn) {
+    editBtn.href = `/books/edit/?id=${bookId}`;
+  }
 
   // Cover - use the stored cover URL directly
-  if (book.coverImageUrl) {
+  if (book.coverImageUrl && coverImage && coverLoading && coverPlaceholder) {
     // Show loading spinner while image loads
     coverLoading.classList.remove('hidden');
     coverPlaceholder.classList.add('hidden');
@@ -185,19 +255,25 @@ function renderBook() {
   }
 
   // Title & Author
-  bookTitleEl.textContent = book.title;
+  if (bookTitleEl) {
+    bookTitleEl.textContent = book.title;
+  }
   const authorName = book.author || 'Unknown author';
-  bookAuthorName.textContent = authorName;
-  if (book.author) {
-    bookAuthorEl.href = `/books/?author=${encodeURIComponent(book.author)}`;
-    bookAuthorEl.classList.remove('pointer-events-none');
-  } else {
-    bookAuthorEl.removeAttribute('href');
-    bookAuthorEl.classList.add('pointer-events-none');
+  if (bookAuthorName) {
+    bookAuthorName.textContent = authorName;
+  }
+  if (bookAuthorEl) {
+    if (book.author) {
+      bookAuthorEl.href = `/books/?author=${encodeURIComponent(book.author)}`;
+      bookAuthorEl.classList.remove('pointer-events-none');
+    } else {
+      bookAuthorEl.removeAttribute('href');
+      bookAuthorEl.classList.add('pointer-events-none');
+    }
   }
 
   // Rating
-  if (book.rating) {
+  if (book.rating && ratingStars && ratingSection) {
     ratingStars.innerHTML = renderStars(book.rating);
     ratingSection.classList.remove('hidden');
   }
@@ -205,7 +281,7 @@ function renderBook() {
   // Reading Status
   const migratedBook = migrateBookReads(book);
   const status = getBookStatus(migratedBook);
-  if (status) {
+  if (status && readingStatus && statusSection) {
     if (status === 'reading') {
       readingStatus.innerHTML = '<i data-lucide="book-open" class="w-4 h-4"></i> Reading';
       readingStatus.className =
@@ -219,10 +295,10 @@ function renderBook() {
   }
 
   // Genres (clickable links to filter book list)
-  if (book.genres && book.genres.length > 0 && genreLookup) {
+  if (book.genres && book.genres.length > 0 && genreLookup && genreBadges && genresSection) {
     const html = book.genres
-      .map(gId => genreLookup.get(gId))
-      .filter(Boolean)
+      .map(gId => genreLookup!.get(gId))
+      .filter((g): g is GenreData => Boolean(g))
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(g => {
         const safeColor = isValidHexColor(g.color) ? g.color : '#6b7280';
@@ -241,28 +317,28 @@ function renderBook() {
   }
 
   // Metadata
-  if (book.isbn) {
+  if (book.isbn && bookIsbn && isbnRow) {
     bookIsbn.textContent = book.isbn;
     isbnRow.classList.remove('hidden');
   }
-  if (book.pageCount) {
-    bookPages.textContent = book.pageCount;
+  if (book.pageCount && bookPages && pagesRow) {
+    bookPages.textContent = String(book.pageCount);
     pagesRow.classList.remove('hidden');
   }
-  if (book.physicalFormat) {
+  if (book.physicalFormat && bookFormat && formatRow) {
     bookFormat.textContent = book.physicalFormat;
     formatRow.classList.remove('hidden');
   }
-  if (book.publisher) {
+  if (book.publisher && bookPublisher && publisherRow) {
     bookPublisher.textContent = book.publisher;
     publisherRow.classList.remove('hidden');
   }
-  if (book.publishedDate) {
+  if (book.publishedDate && bookPublished && publishedRow) {
     bookPublished.textContent = book.publishedDate;
     publishedRow.classList.remove('hidden');
   }
   const dateAdded = parseTimestamp(book.createdAt);
-  if (dateAdded) {
+  if (dateAdded && bookAdded && addedRow) {
     bookAdded.textContent = dateAdded.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -271,7 +347,7 @@ function renderBook() {
     addedRow.classList.remove('hidden');
   }
   const dateModified = parseTimestamp(book.updatedAt);
-  if (dateModified && dateAdded && dateModified.getTime() !== dateAdded.getTime()) {
+  if (dateModified && dateAdded && dateModified.getTime() !== dateAdded.getTime() && bookModified && modifiedRow) {
     bookModified.textContent = dateModified.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -282,11 +358,11 @@ function renderBook() {
 
   // Reading History
   const reads = migratedBook.reads || [];
-  if (reads.length > 0) {
+  if (reads.length > 0 && readingHistory && readingHistorySection) {
     const historyHtml = reads
       .slice()
       .reverse()
-      .map(read => {
+      .map((read: ReadEntry) => {
         const started = formatDate(read.startedAt) || 'Unknown';
         const finished = read.finishedAt ? formatDate(read.finishedAt) : 'In progress';
         return `
@@ -302,7 +378,7 @@ function renderBook() {
   }
 
   // Notes
-  if (book.notes && book.notes.trim()) {
+  if (book.notes && book.notes.trim() && bookNotes && notesSection) {
     bookNotes.textContent = book.notes;
     notesSection.classList.remove('hidden');
   }
@@ -311,14 +387,18 @@ function renderBook() {
   renderGallery();
 
   // Show content
-  loading.classList.add('hidden');
-  content.classList.remove('hidden');
+  loading?.classList.add('hidden');
+  content?.classList.remove('hidden');
   initIcons();
 }
 
-// Render series section with other books in the same series
-async function renderSeriesSection() {
-  const seriesObj = seriesLookup?.get(book.seriesId);
+/**
+ * Render series section with other books in the same series
+ */
+async function renderSeriesSection(): Promise<void> {
+  if (!book || !currentUser || !seriesLookup || !seriesTitle || !seriesBooks || !seriesSection) return;
+
+  const seriesObj = seriesLookup.get(book.seriesId!);
   if (!seriesObj) return;
 
   const seriesName = seriesObj.name;
@@ -328,23 +408,23 @@ async function renderSeriesSection() {
 
   // Load books in the same series using repository
   try {
-    const allSeriesBooks = await bookRepository.getBySeriesId(currentUser.uid, book.seriesId);
+    const allSeriesBooks = await bookRepository.getBySeriesId(currentUser.uid, book.seriesId!);
 
     // Filter out binned (soft-deleted) books
-    const seriesBooksData = allSeriesBooks.filter(b => !b.deletedAt);
+    const seriesBooksData = allSeriesBooks.filter((b: BookData) => !b.deletedAt);
 
     // Sort by position (nulls at end)
-    seriesBooksData.sort((a, b) => {
+    seriesBooksData.sort((a: BookData, b: BookData) => {
       if (a.seriesPosition === null && b.seriesPosition === null) return 0;
       if (a.seriesPosition === null) return 1;
       if (b.seriesPosition === null) return -1;
-      return a.seriesPosition - b.seriesPosition;
+      return (a.seriesPosition as number) - (b.seriesPosition as number);
     });
 
     // Render book list
     if (seriesBooksData.length > 1) {
       const booksHtml = seriesBooksData
-        .map(b => {
+        .map((b: BookData) => {
           const isCurrent = b.id === bookId;
           const positionStr = b.seriesPosition ? `#${b.seriesPosition}` : '';
           const displayText = positionStr ? `${positionStr} ${b.title}` : b.title;
@@ -370,17 +450,19 @@ async function renderSeriesSection() {
       seriesBooks.innerHTML = booksHtml;
 
       // Show "View all" link (use series ID for filtering)
-      seriesViewAll.href = `/books/?series=${encodeURIComponent(book.seriesId)}`;
-      seriesViewAll.classList.remove('hidden');
+      if (seriesViewAll && book.seriesId) {
+        seriesViewAll.href = `/books/?series=${encodeURIComponent(book.seriesId)}`;
+        seriesViewAll.classList.remove('hidden');
+      }
     } else {
       // Only current book in series - just show series name
       seriesBooks.innerHTML = `
         <p class="text-sm text-gray-500">
-          ${formatSeriesDisplay(seriesName, book.seriesPosition)}
+          ${formatSeriesDisplay(seriesName, book.seriesPosition ?? undefined)}
         </p>
       `;
       // Hide "View all" link when there's only one book
-      seriesViewAll.classList.add('hidden');
+      seriesViewAll?.classList.add('hidden');
     }
 
     seriesSection.classList.remove('hidden');
@@ -390,7 +472,7 @@ async function renderSeriesSection() {
     // Still show series info even if query fails
     seriesBooks.innerHTML = `
       <p class="text-sm text-gray-500">
-        ${formatSeriesDisplay(seriesName, book.seriesPosition)}
+        ${formatSeriesDisplay(seriesName, book.seriesPosition ?? undefined)}
       </p>
     `;
     seriesSection.classList.remove('hidden');
@@ -398,9 +480,11 @@ async function renderSeriesSection() {
 }
 
 // Delete handlers
-deleteBtn.addEventListener('click', () => {
+deleteBtn?.addEventListener('click', () => {
+  if (!book) return;
+
   // Check if this is the last book in a series
-  if (book.seriesId && seriesLookup) {
+  if (book.seriesId && seriesLookup && deleteSeriesOption && deleteSeriesCheckbox && deleteSeriesName) {
     const seriesObj = seriesLookup.get(book.seriesId);
     if (seriesObj && seriesObj.bookCount === 1) {
       // This is the last book in the series - show option to delete series
@@ -411,21 +495,23 @@ deleteBtn.addEventListener('click', () => {
       deleteSeriesOption.classList.add('hidden');
     }
   } else {
-    deleteSeriesOption.classList.add('hidden');
+    deleteSeriesOption?.classList.add('hidden');
   }
   deleteSheet?.open();
 });
 
-cancelDeleteBtn.addEventListener('click', () => {
+cancelDeleteBtn?.addEventListener('click', () => {
   deleteSheet?.close();
 });
 
-confirmDeleteBtn.addEventListener('click', async () => {
+confirmDeleteBtn?.addEventListener('click', async () => {
+  if (!currentUser || !bookId || !book || !confirmDeleteBtn) return;
+
   confirmDeleteBtn.disabled = true;
   confirmDeleteBtn.textContent = 'Moving...';
 
   // Check if user wants to delete the empty series too
-  const shouldDeleteSeries = deleteSeriesCheckbox.checked && book.seriesId;
+  const shouldDeleteSeries = deleteSeriesCheckbox?.checked && book.seriesId;
   const seriesIdToDelete = shouldDeleteSeries ? book.seriesId : null;
 
   try {
@@ -460,8 +546,8 @@ confirmDeleteBtn.addEventListener('click', async () => {
 /**
  * Render the images gallery section
  */
-function renderGallery() {
-  if (!book.images || book.images.length === 0) return;
+function renderGallery(): void {
+  if (!book || !book.images || book.images.length === 0 || !imagesGallery || !imagesSection) return;
 
   // Store images for lightbox
   lightboxImages = book.images;
@@ -503,7 +589,7 @@ function renderGallery() {
   // Attach click handlers
   imagesGallery.querySelectorAll('.gallery-thumb').forEach(thumb => {
     thumb.addEventListener('click', () => {
-      const index = parseInt(thumb.dataset.index, 10);
+      const index = parseInt((thumb as HTMLElement).dataset.index || '0', 10);
       openLightbox(index);
     });
   });
@@ -513,10 +599,10 @@ function renderGallery() {
 
 /**
  * Open lightbox at specified index with animations
- * @param {number} index
+ * @param index - The image index to display
  */
-function openLightbox(index) {
-  if (!lightboxImages.length) return;
+function openLightbox(index: number): void {
+  if (!lightboxImages.length || !lightbox || !lightboxImage) return;
 
   // Store previous focus for restoration
   lightboxPreviousFocus = document.activeElement;
@@ -556,7 +642,9 @@ function openLightbox(index) {
 /**
  * Close the lightbox with animations
  */
-function closeLightbox() {
+function closeLightbox(): void {
+  if (!lightbox || !lightboxImage) return;
+
   // Add exit animations
   lightbox.classList.remove('lightbox-open');
   lightbox.classList.add('lightbox-close');
@@ -576,8 +664,8 @@ function closeLightbox() {
     }
 
     // Restore focus
-    if (lightboxPreviousFocus) {
-      lightboxPreviousFocus.focus();
+    if (lightboxPreviousFocus && 'focus' in lightboxPreviousFocus) {
+      (lightboxPreviousFocus as HTMLElement).focus();
       lightboxPreviousFocus = null;
     }
   }, 150);
@@ -586,7 +674,7 @@ function closeLightbox() {
 /**
  * Navigate to previous image with crossfade
  */
-function prevImage() {
+function prevImage(): void {
   if (lightboxImages.length <= 1) return;
   lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
   updateLightboxImage(false, 'prev');
@@ -595,7 +683,7 @@ function prevImage() {
 /**
  * Navigate to next image with crossfade
  */
-function nextImage() {
+function nextImage(): void {
   if (lightboxImages.length <= 1) return;
   lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
   updateLightboxImage(false, 'next');
@@ -603,12 +691,12 @@ function nextImage() {
 
 /**
  * Update the lightbox to show current image
- * @param {boolean} isOpening - Whether this is the initial open
- * @param {string} direction - Navigation direction ('prev' or 'next')
+ * @param isOpening - Whether this is the initial open
+ * @param direction - Navigation direction ('prev' or 'next')
  */
-function updateLightboxImage(isOpening = false, direction = null) {
+function updateLightboxImage(isOpening = false, direction: string | null = null): void {
   const img = lightboxImages[lightboxIndex];
-  if (!img) return;
+  if (!img || !lightboxLoading || !lightboxImage || !lightboxCounter) return;
 
   // Show loading, hide image
   lightboxLoading.classList.remove('hidden');
@@ -622,8 +710,8 @@ function updateLightboxImage(isOpening = false, direction = null) {
 
   // Show/hide nav buttons
   const showNav = lightboxImages.length > 1;
-  lightboxPrev.classList.toggle('hidden', !showNav);
-  lightboxNext.classList.toggle('hidden', !showNav);
+  lightboxPrev?.classList.toggle('hidden', !showNav);
+  lightboxNext?.classList.toggle('hidden', !showNav);
 
   // Load image
   lightboxImage.onload = () => {
@@ -650,9 +738,9 @@ function updateLightboxImage(isOpening = false, direction = null) {
 
 /**
  * Announce message to screen readers
- * @param {string} message
+ * @param message - The message to announce
  */
-function announceToScreenReader(message) {
+function announceToScreenReader(message: string): void {
   if (!lightboxAnnouncer) return;
   lightboxAnnouncer.textContent = '';
   // Use setTimeout to ensure the change is announced
@@ -664,7 +752,7 @@ function announceToScreenReader(message) {
 /**
  * Set up focus trap within lightbox
  */
-function setupFocusTrap() {
+function setupFocusTrap(): void {
   if (!lightbox) return;
 
   // Get all focusable elements within lightbox
@@ -675,12 +763,14 @@ function setupFocusTrap() {
 
 /**
  * Handle focus trap keyboard navigation
- * @param {KeyboardEvent} e
+ * @param e - The keyboard event
  */
-function handleFocusTrap(e) {
-  if (e.key !== 'Tab' || lightbox.classList.contains('hidden')) return;
+function handleFocusTrap(e: KeyboardEvent): void {
+  if (e.key !== 'Tab' || !lightbox || lightbox.classList.contains('hidden')) return;
 
-  const focusable = Array.from(lightboxFocusableElements).filter(el => !el.classList.contains('hidden'));
+  const focusable = Array.from(lightboxFocusableElements).filter(
+    el => !el.classList.contains('hidden')
+  ) as HTMLElement[];
   if (focusable.length === 0) return;
 
   const first = focusable[0];
@@ -708,16 +798,17 @@ if (lightboxNext) {
 
 // Close on backdrop click
 if (lightbox) {
-  lightbox.addEventListener('click', e => {
-    if (e.target === lightbox || e.target.id === 'lightbox-content') {
+  lightbox.addEventListener('click', (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target === lightbox || target.id === 'lightbox-content') {
       closeLightbox();
     }
   });
 }
 
 // Keyboard navigation with focus trap
-document.addEventListener('keydown', e => {
-  if (lightbox.classList.contains('hidden')) return;
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (!lightbox || lightbox.classList.contains('hidden')) return;
 
   switch (e.key) {
     case 'Escape':
@@ -744,7 +835,7 @@ let isDragging = false;
 if (lightbox) {
   lightbox.addEventListener(
     'touchstart',
-    e => {
+    (e: TouchEvent) => {
       touchStartX = e.changedTouches[0].screenX;
       touchStartY = e.changedTouches[0].screenY;
       touchCurrentY = touchStartY;
@@ -755,7 +846,7 @@ if (lightbox) {
 
   lightbox.addEventListener(
     'touchmove',
-    e => {
+    (e: TouchEvent) => {
       const currentX = e.changedTouches[0].screenX;
       touchCurrentY = e.changedTouches[0].screenY;
       const diffY = touchCurrentY - touchStartY;
@@ -772,7 +863,7 @@ if (lightbox) {
           const translateY = Math.max(0, diffY * 0.5); // Dampen the movement
           const opacity = Math.max(0.3, 1 - diffY / 300);
           lightboxContent.style.transform = `translateY(${translateY}px)`;
-          lightboxContent.style.opacity = opacity;
+          lightboxContent.style.opacity = String(opacity);
         }
 
         // Hide swipe hint when dragging
@@ -786,7 +877,7 @@ if (lightbox) {
 
   lightbox.addEventListener(
     'touchend',
-    e => {
+    (e: TouchEvent) => {
       const endX = e.changedTouches[0].screenX;
       const endY = e.changedTouches[0].screenY;
       const diffX = endX - touchStartX;
