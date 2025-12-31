@@ -6,9 +6,10 @@ All notable changes to MyBookShelf are documented here.
 
 ## 2025-12-31
 
-- New picker display preference in Settings > Library:
-  - Configure whether API suggestions appear before or after your items in genre/series pickers
-  - Default: Your items shown first (more relevant for existing users)
+- Per-picker suggestion order settings in Settings > Library:
+  - Genre picker: Toggle in Genres section to show public source suggestions first
+  - Series picker: Toggle in Series section to show public source suggestions first
+  - Default: Your items shown first (independent settings per picker)
 - Complete export/import backup:
   - Now includes series (all series including soft-deleted)
   - Now includes bin items (soft-deleted books)
