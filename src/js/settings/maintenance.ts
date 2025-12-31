@@ -1,7 +1,6 @@
 // Maintenance Settings Page Logic
-import { auth, db, storage } from '/js/firebase-config.js';
+import { auth, storage } from '/js/firebase-config.js';
 import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   ref,
   listAll,
@@ -12,6 +11,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { clearGenresCache, recalculateGenreBookCounts } from '../genres.js';
 import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import { analyzeLibraryHealth, getCompletenessRating } from '../utils/library-health.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
@@ -80,14 +80,13 @@ onAuthStateChanged(auth, async (user: User | null) => {
 async function loadAllBooks(): Promise<void> {
   if (allBooksLoaded || !currentUser) return;
 
-  // Fetch fresh data for health analysis
+  // Fetch fresh data for health analysis via repository
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const q = query(booksRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    books = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }) as MaintenanceBook)
-      .filter(book => !book.deletedAt); // Exclude soft-deleted books
+    const fetchedBooks = await bookRepository.getWithOptions(currentUser.uid, {
+      orderByField: 'createdAt',
+      orderDirection: 'desc',
+    });
+    books = (fetchedBooks as MaintenanceBook[]).filter(book => !book.deletedAt); // Exclude soft-deleted books
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books:', error);

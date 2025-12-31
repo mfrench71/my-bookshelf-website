@@ -3,13 +3,11 @@ import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
-  query,
-  orderBy,
-  getDocs,
   doc,
   writeBatch,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import {
   loadUserGenres,
   createGenre,
@@ -953,13 +951,13 @@ async function loadAllBooks(): Promise<void> {
   }
 
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const q = query(booksRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => {
-      const data = doc.data();
+    const fetchedBooks = await bookRepository.getWithOptions(currentUser.uid, {
+      orderByField: 'createdAt',
+      orderDirection: 'desc',
+    });
+    books = fetchedBooks.map(book => {
+      const data = book as BookData;
       return {
-        id: doc.id,
         ...data,
         createdAt: serializeTimestamp(data.createdAt),
         updatedAt: serializeTimestamp(data.updatedAt),
