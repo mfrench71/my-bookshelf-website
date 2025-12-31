@@ -1,6 +1,6 @@
 // Library Settings Page Logic
 import { auth, db } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
   query,
@@ -48,6 +48,60 @@ import { BottomSheet } from '../components/modal.js';
 import { loadWishlistItems, clearWishlistCache, deleteWishlistItem } from '../wishlist.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
+/** Genre data structure */
+interface GenreData {
+  id: string;
+  name: string;
+  color: string;
+  bookCount?: number;
+}
+
+/** Series data structure */
+interface SeriesData {
+  id: string;
+  name: string;
+  description?: string;
+  totalBooks?: number;
+  bookCount?: number;
+}
+
+/** Book data structure for backup/restore */
+interface BookData {
+  id?: string;
+  title: string;
+  author?: string;
+  isbn?: string;
+  genres?: string[];
+  seriesId?: string;
+  _normalizedTitle?: string;
+  _normalizedAuthor?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+/** Wishlist item data structure */
+interface WishlistItemData {
+  id?: string;
+  title?: string;
+  author?: string;
+  isbn?: string;
+  coverImageUrl?: string;
+  priority?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+/** Export data format */
+interface ExportData {
+  version: number;
+  exportedAt: string;
+  genres: Array<Omit<GenreData, 'id'> & { _exportId: string }>;
+  books: BookData[];
+  wishlist: WishlistItemData[];
+}
+
 // Initialize icons once on load
 initIcons();
 
@@ -58,19 +112,19 @@ if (document.readyState === 'loading') {
 }
 
 // State
-let currentUser = null;
-let genres = [];
-let series = [];
-let books = [];
-let wishlist = [];
+let currentUser: User | null = null;
+let genres: GenreData[] = [];
+let series: SeriesData[] = [];
+let books: BookData[] = [];
+let wishlist: WishlistItemData[] = [];
 let allBooksLoaded = false;
-let editingGenreId = null;
-let editingSeriesId = null;
-let deletingGenreId = null;
-let deletingSeriesId = null;
-let mergingGenreId = null;
-let mergingSeriesId = null;
-let selectedColor = GENRE_COLORS[0];
+let editingGenreId: string | null = null;
+let editingSeriesId: string | null = null;
+let deletingGenreId: string | null = null;
+let deletingSeriesId: string | null = null;
+let mergingGenreId: string | null = null;
+let mergingSeriesId: string | null = null;
+let selectedColor: string = GENRE_COLORS[0];
 
 // Original values for change tracking
 let originalGenreValues = { name: '', color: '' };
@@ -83,21 +137,21 @@ const genreList = document.getElementById('genre-list');
 const addGenreBtn = document.getElementById('add-genre-btn');
 const genreModal = document.getElementById('genre-modal');
 const genreModalTitle = document.getElementById('genre-modal-title');
-const genreForm = document.getElementById('genre-form');
-const genreNameInput = document.getElementById('genre-name');
+const genreForm = document.getElementById('genre-form') as HTMLFormElement | null;
+const genreNameInput = document.getElementById('genre-name') as HTMLInputElement | null;
 const colorPickerSection = document.getElementById('color-picker-section');
 const colorPicker = document.getElementById('color-picker');
 const cancelGenreBtn = document.getElementById('cancel-genre');
-const saveGenreBtn = document.getElementById('save-genre');
+const saveGenreBtn = document.getElementById('save-genre') as HTMLButtonElement | null;
 const deleteGenreModal = document.getElementById('delete-genre-modal');
 const deleteGenreMessage = document.getElementById('delete-genre-message');
 const cancelDeleteGenreBtn = document.getElementById('cancel-delete-genre');
-const confirmDeleteGenreBtn = document.getElementById('confirm-delete-genre');
+const confirmDeleteGenreBtn = document.getElementById('confirm-delete-genre') as HTMLButtonElement | null;
 const mergeGenreModal = document.getElementById('merge-genre-modal');
 const mergeGenreSourceName = document.getElementById('merge-genre-source-name');
-const mergeGenreTargetSelect = document.getElementById('merge-genre-target-select');
+const mergeGenreTargetSelect = document.getElementById('merge-genre-target-select') as HTMLSelectElement | null;
 const cancelMergeGenreBtn = document.getElementById('cancel-merge-genre');
-const confirmMergeGenreBtn = document.getElementById('confirm-merge-genre');
+const confirmMergeGenreBtn = document.getElementById('confirm-merge-genre') as HTMLButtonElement | null;
 
 // DOM Elements - Series
 const seriesLoading = document.getElementById('series-loading');
@@ -106,28 +160,28 @@ const seriesList = document.getElementById('series-list');
 const addSeriesBtn = document.getElementById('add-series-btn');
 const seriesModal = document.getElementById('series-modal');
 const seriesModalTitle = document.getElementById('series-modal-title');
-const seriesForm = document.getElementById('series-form');
-const seriesNameInput = document.getElementById('series-name');
-const seriesDescriptionInput = document.getElementById('series-description');
-const seriesTotalBooksInput = document.getElementById('series-total-books');
+const seriesForm = document.getElementById('series-form') as HTMLFormElement | null;
+const seriesNameInput = document.getElementById('series-name') as HTMLInputElement | null;
+const seriesDescriptionInput = document.getElementById('series-description') as HTMLTextAreaElement | null;
+const seriesTotalBooksInput = document.getElementById('series-total-books') as HTMLInputElement | null;
 const cancelSeriesBtn = document.getElementById('cancel-series');
-const saveSeriesBtn = document.getElementById('save-series');
+const saveSeriesBtn = document.getElementById('save-series') as HTMLButtonElement | null;
 const deleteSeriesModal = document.getElementById('delete-series-modal');
 const deleteSeriesMessage = document.getElementById('delete-series-message');
 const cancelDeleteSeriesBtn = document.getElementById('cancel-delete-series');
-const confirmDeleteSeriesBtn = document.getElementById('confirm-delete-series');
+const confirmDeleteSeriesBtn = document.getElementById('confirm-delete-series') as HTMLButtonElement | null;
 const mergeSeriesModal = document.getElementById('merge-series-modal');
 const mergeSourceName = document.getElementById('merge-source-name');
-const mergeTargetSelect = document.getElementById('merge-target-select');
+const mergeTargetSelect = document.getElementById('merge-target-select') as HTMLSelectElement | null;
 const cancelMergeSeriesBtn = document.getElementById('cancel-merge-series');
-const confirmMergeSeriesBtn = document.getElementById('confirm-merge-series');
+const confirmMergeSeriesBtn = document.getElementById('confirm-merge-series') as HTMLButtonElement | null;
 const seriesDuplicates = document.getElementById('series-duplicates');
 const duplicateList = document.getElementById('duplicate-list');
 
 // DOM Elements - Backup & Restore
-const exportBtn = document.getElementById('export-btn');
-const importBtn = document.getElementById('import-btn');
-const importFileInput = document.getElementById('import-file');
+const exportBtn = document.getElementById('export-btn') as HTMLButtonElement | null;
+const importBtn = document.getElementById('import-btn') as HTMLButtonElement | null;
+const importFileInput = document.getElementById('import-file') as HTMLInputElement | null;
 const importProgress = document.getElementById('import-progress');
 const importStatus = document.getElementById('import-status');
 const importSummary = document.getElementById('import-summary');
@@ -143,46 +197,48 @@ const mergeSeriesSheet = mergeSeriesModal ? new BottomSheet({ container: mergeSe
 
 // Event delegation for genre list (prevents memory leaks from re-adding listeners on each render)
 if (genreList) {
-  genreList.addEventListener('click', e => {
-    const editBtn = e.target.closest('.edit-btn');
+  genreList.addEventListener('click', (e: Event) => {
+    const target = e.target as HTMLElement;
+    const editBtn = target.closest('.edit-btn') as HTMLElement | null;
     if (editBtn) {
-      openEditGenreModal(editBtn.dataset.id);
+      openEditGenreModal(editBtn.dataset.id!);
       return;
     }
-    const mergeBtn = e.target.closest('.merge-genre-btn');
+    const mergeBtn = target.closest('.merge-genre-btn') as HTMLElement | null;
     if (mergeBtn) {
-      openMergeGenreModal(mergeBtn.dataset.id, mergeBtn.dataset.name);
+      openMergeGenreModal(mergeBtn.dataset.id!, mergeBtn.dataset.name!);
       return;
     }
-    const deleteBtn = e.target.closest('.delete-btn');
+    const deleteBtn = target.closest('.delete-btn') as HTMLElement | null;
     if (deleteBtn) {
-      openDeleteGenreModal(deleteBtn.dataset.id, deleteBtn.dataset.name, parseInt(deleteBtn.dataset.count));
+      openDeleteGenreModal(deleteBtn.dataset.id!, deleteBtn.dataset.name!, parseInt(deleteBtn.dataset.count!));
     }
   });
 }
 
 // Event delegation for series list
 if (seriesList) {
-  seriesList.addEventListener('click', e => {
-    const editBtn = e.target.closest('.edit-series-btn');
+  seriesList.addEventListener('click', (e: Event) => {
+    const target = e.target as HTMLElement;
+    const editBtn = target.closest('.edit-series-btn') as HTMLElement | null;
     if (editBtn) {
-      openEditSeriesModal(editBtn.dataset.id);
+      openEditSeriesModal(editBtn.dataset.id!);
       return;
     }
-    const deleteBtn = e.target.closest('.delete-series-btn');
+    const deleteBtn = target.closest('.delete-series-btn') as HTMLElement | null;
     if (deleteBtn) {
-      openDeleteSeriesModal(deleteBtn.dataset.id, deleteBtn.dataset.name, parseInt(deleteBtn.dataset.count));
+      openDeleteSeriesModal(deleteBtn.dataset.id!, deleteBtn.dataset.name!, parseInt(deleteBtn.dataset.count!));
       return;
     }
-    const mergeBtn = e.target.closest('.merge-series-btn');
+    const mergeBtn = target.closest('.merge-series-btn') as HTMLElement | null;
     if (mergeBtn) {
-      openMergeSeriesModal(mergeBtn.dataset.id, mergeBtn.dataset.name);
+      openMergeSeriesModal(mergeBtn.dataset.id!, mergeBtn.dataset.name!);
     }
   });
 }
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     await Promise.all([loadGenres(), loadSeries()]);
@@ -192,7 +248,9 @@ onAuthStateChanged(auth, async user => {
 
 // ==================== Genres ====================
 
-async function loadGenres() {
+async function loadGenres(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     genres = await loadUserGenres(currentUser.uid, true);
     renderGenres();
@@ -202,7 +260,7 @@ async function loadGenres() {
   }
 }
 
-function renderGenres() {
+function renderGenres(): void {
   genresLoading?.classList.add('hidden');
 
   if (genres.length === 0) {
@@ -258,14 +316,16 @@ function renderGenres() {
 /**
  * Render the colour picker with only available colours (used colours are hidden)
  */
-function renderColorPicker() {
+function renderColorPicker(): void {
+  if (!colorPicker) return;
+
   const usedColors = getUsedColors(genres, editingGenreId);
 
   // Only render available colours (hide used instead of disabling)
-  const availableColors = GENRE_COLORS.filter(c => !usedColors.has(c.toLowerCase()));
+  const availableColors = GENRE_COLORS.filter((c: string) => !usedColors.has(c.toLowerCase()));
 
   colorPicker.innerHTML = availableColors
-    .map(color => {
+    .map((color: string) => {
       const isSelected = color.toLowerCase() === selectedColor?.toLowerCase();
       const textColor = getContrastColor(color);
 
@@ -278,9 +338,9 @@ function renderColorPicker() {
     })
     .join('');
 
-  colorPicker.querySelectorAll('.color-btn').forEach(btn => {
+  colorPicker.querySelectorAll<HTMLButtonElement>('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      selectedColor = btn.dataset.color;
+      selectedColor = btn.dataset.color!;
       renderColorPicker();
       updateGenreSaveButtonState();
     });
@@ -292,7 +352,9 @@ function renderColorPicker() {
 /**
  * Check if genre form has unsaved changes
  */
-function isGenreFormDirty() {
+function isGenreFormDirty(): boolean {
+  if (!genreNameInput) return false;
+
   // For add mode, form is dirty if name has content
   if (!editingGenreId) {
     return genreNameInput.value.trim().length > 0;
@@ -306,14 +368,18 @@ function isGenreFormDirty() {
 /**
  * Update genre save button state based on form changes
  */
-function updateGenreSaveButtonState() {
+function updateGenreSaveButtonState(): void {
+  if (!saveGenreBtn) return;
+
   const isDirty = isGenreFormDirty();
   saveGenreBtn.disabled = !isDirty;
   saveGenreBtn.classList.toggle('opacity-50', !isDirty);
   saveGenreBtn.classList.toggle('cursor-not-allowed', !isDirty);
 }
 
-function openAddGenreModal() {
+function openAddGenreModal(): void {
+  if (!genreModalTitle || !genreNameInput || !saveGenreBtn || !genreForm) return;
+
   editingGenreId = null;
   genreModalTitle.textContent = 'Add Genre';
   genreNameInput.value = '';
@@ -327,9 +393,9 @@ function openAddGenreModal() {
   if (!isMobile()) genreNameInput.focus();
 }
 
-function openEditGenreModal(genreId) {
+function openEditGenreModal(genreId: string): void {
   const genre = genres.find(g => g.id === genreId);
-  if (!genre) return;
+  if (!genre || !genreModalTitle || !genreNameInput || !saveGenreBtn || !genreForm) return;
 
   editingGenreId = genreId;
   genreModalTitle.textContent = 'Edit Genre';
@@ -354,12 +420,14 @@ function openEditGenreModal(genreId) {
   if (!isMobile()) genreNameInput.focus();
 }
 
-function closeGenreModal() {
+function closeGenreModal(): void {
   genreSheet?.close();
   editingGenreId = null;
 }
 
-function openDeleteGenreModal(genreId, name, bookCount) {
+function openDeleteGenreModal(genreId: string, name: string, bookCount: number): void {
+  if (!deleteGenreMessage) return;
+
   deletingGenreId = genreId;
   deleteGenreMessage.textContent =
     bookCount > 0
@@ -368,12 +436,14 @@ function openDeleteGenreModal(genreId, name, bookCount) {
   deleteGenreSheet?.open();
 }
 
-function closeDeleteGenreModal() {
+function closeDeleteGenreModal(): void {
   deleteGenreSheet?.close();
   deletingGenreId = null;
 }
 
-function openMergeGenreModal(genreId, name) {
+function openMergeGenreModal(genreId: string, name: string): void {
+  if (!mergeGenreSourceName || !mergeGenreTargetSelect || !confirmMergeGenreBtn) return;
+
   mergingGenreId = genreId;
   mergeGenreSourceName.textContent = name;
 
@@ -388,7 +458,7 @@ function openMergeGenreModal(genreId, name) {
   mergeGenreSheet?.open();
 }
 
-function closeMergeGenreModal() {
+function closeMergeGenreModal(): void {
   mergeGenreSheet?.close();
   mergingGenreId = null;
 }
@@ -403,11 +473,14 @@ cancelMergeGenreBtn?.addEventListener('click', closeMergeGenreModal);
 genreNameInput?.addEventListener('input', updateGenreSaveButtonState);
 
 mergeGenreTargetSelect?.addEventListener('change', () => {
-  confirmMergeGenreBtn.disabled = !mergeGenreTargetSelect.value;
+  if (confirmMergeGenreBtn && mergeGenreTargetSelect) {
+    confirmMergeGenreBtn.disabled = !mergeGenreTargetSelect.value;
+  }
 });
 
-genreForm?.addEventListener('submit', async e => {
+genreForm?.addEventListener('submit', async (e: Event) => {
   e.preventDefault();
+  if (!genreForm || !genreNameInput || !saveGenreBtn || !currentUser) return;
 
   clearFormErrors(genreForm);
 
@@ -464,7 +537,7 @@ genreForm?.addEventListener('submit', async e => {
 });
 
 confirmDeleteGenreBtn?.addEventListener('click', async () => {
-  if (!deletingGenreId) return;
+  if (!deletingGenreId || !confirmDeleteGenreBtn || !currentUser) return;
 
   confirmDeleteGenreBtn.disabled = true;
   confirmDeleteGenreBtn.textContent = 'Deleting...';
@@ -490,7 +563,7 @@ confirmDeleteGenreBtn?.addEventListener('click', async () => {
 });
 
 confirmMergeGenreBtn?.addEventListener('click', async () => {
-  if (!mergingGenreId || !mergeGenreTargetSelect.value) return;
+  if (!mergingGenreId || !mergeGenreTargetSelect?.value || !confirmMergeGenreBtn || !currentUser) return;
 
   confirmMergeGenreBtn.disabled = true;
   confirmMergeGenreBtn.textContent = 'Merging...';
@@ -519,7 +592,7 @@ confirmMergeGenreBtn?.addEventListener('click', async () => {
 
 // ==================== Series ====================
 
-async function loadSeries() {
+async function loadSeries(): Promise<void> {
   if (!currentUser) return;
 
   try {
@@ -531,7 +604,7 @@ async function loadSeries() {
   }
 }
 
-function renderSeries() {
+function renderSeries(): void {
   seriesLoading?.classList.add('hidden');
 
   if (series.length === 0) {
@@ -584,7 +657,7 @@ function renderSeries() {
   initIcons();
 }
 
-function renderDuplicateWarnings() {
+function renderDuplicateWarnings(): void {
   if (!seriesDuplicates || !duplicateList) return;
 
   const duplicates = findPotentialDuplicates(series);
@@ -595,7 +668,7 @@ function renderDuplicateWarnings() {
   }
 
   duplicateList.innerHTML = duplicates
-    .map(group => {
+    .map((group: SeriesData[]) => {
       const names = group.map(s => `"${escapeHtml(s.name)}"`).join(', ');
       return `<p class="text-sm text-amber-800">${names}</p>`;
     })
@@ -608,7 +681,9 @@ function renderDuplicateWarnings() {
 /**
  * Check if series form has unsaved changes
  */
-function isSeriesFormDirty() {
+function isSeriesFormDirty(): boolean {
+  if (!seriesNameInput || !seriesDescriptionInput || !seriesTotalBooksInput) return false;
+
   // For add mode, form is dirty if name has content
   if (!editingSeriesId) {
     return seriesNameInput.value.trim().length > 0;
@@ -623,14 +698,26 @@ function isSeriesFormDirty() {
 /**
  * Update series save button state based on form changes
  */
-function updateSeriesSaveButtonState() {
+function updateSeriesSaveButtonState(): void {
+  if (!saveSeriesBtn) return;
+
   const isDirty = isSeriesFormDirty();
   saveSeriesBtn.disabled = !isDirty;
   saveSeriesBtn.classList.toggle('opacity-50', !isDirty);
   saveSeriesBtn.classList.toggle('cursor-not-allowed', !isDirty);
 }
 
-function openAddSeriesModal() {
+function openAddSeriesModal(): void {
+  if (
+    !seriesModalTitle ||
+    !seriesNameInput ||
+    !seriesDescriptionInput ||
+    !seriesTotalBooksInput ||
+    !saveSeriesBtn ||
+    !seriesForm
+  )
+    return;
+
   editingSeriesId = null;
   seriesModalTitle.textContent = 'Add Series';
   seriesNameInput.value = '';
@@ -644,15 +731,24 @@ function openAddSeriesModal() {
   if (!isMobile()) seriesNameInput.focus();
 }
 
-function openEditSeriesModal(seriesId) {
+function openEditSeriesModal(seriesId: string): void {
   const s = series.find(x => x.id === seriesId);
-  if (!s) return;
+  if (
+    !s ||
+    !seriesModalTitle ||
+    !seriesNameInput ||
+    !seriesDescriptionInput ||
+    !seriesTotalBooksInput ||
+    !saveSeriesBtn ||
+    !seriesForm
+  )
+    return;
 
   editingSeriesId = seriesId;
   seriesModalTitle.textContent = 'Edit Series';
   seriesNameInput.value = s.name;
   seriesDescriptionInput.value = s.description || '';
-  seriesTotalBooksInput.value = s.totalBooks || '';
+  seriesTotalBooksInput.value = s.totalBooks ? String(s.totalBooks) : '';
   saveSeriesBtn.textContent = 'Save';
   clearFormErrors(seriesForm);
   // Store original values for change tracking
@@ -667,12 +763,14 @@ function openEditSeriesModal(seriesId) {
   if (!isMobile()) seriesNameInput.focus();
 }
 
-function closeSeriesModal() {
+function closeSeriesModal(): void {
   seriesSheet?.close();
   editingSeriesId = null;
 }
 
-function openDeleteSeriesModal(seriesId, name, bookCount) {
+function openDeleteSeriesModal(seriesId: string, name: string, bookCount: number): void {
+  if (!deleteSeriesMessage) return;
+
   deletingSeriesId = seriesId;
   deleteSeriesMessage.textContent =
     bookCount > 0
@@ -681,12 +779,14 @@ function openDeleteSeriesModal(seriesId, name, bookCount) {
   deleteSeriesSheet?.open();
 }
 
-function closeDeleteSeriesModal() {
+function closeDeleteSeriesModal(): void {
   deleteSeriesSheet?.close();
   deletingSeriesId = null;
 }
 
-function openMergeSeriesModal(seriesId, name) {
+function openMergeSeriesModal(seriesId: string, name: string): void {
+  if (!mergeSourceName || !mergeTargetSelect || !confirmMergeSeriesBtn) return;
+
   mergingSeriesId = seriesId;
   mergeSourceName.textContent = name;
 
@@ -701,7 +801,7 @@ function openMergeSeriesModal(seriesId, name) {
   mergeSeriesSheet?.open();
 }
 
-function closeMergeSeriesModal() {
+function closeMergeSeriesModal(): void {
   mergeSeriesSheet?.close();
   mergingSeriesId = null;
 }
@@ -718,11 +818,22 @@ seriesDescriptionInput?.addEventListener('input', updateSeriesSaveButtonState);
 seriesTotalBooksInput?.addEventListener('input', updateSeriesSaveButtonState);
 
 mergeTargetSelect?.addEventListener('change', () => {
-  confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;
+  if (confirmMergeSeriesBtn && mergeTargetSelect) {
+    confirmMergeSeriesBtn.disabled = !mergeTargetSelect.value;
+  }
 });
 
-seriesForm?.addEventListener('submit', async e => {
+seriesForm?.addEventListener('submit', async (e: Event) => {
   e.preventDefault();
+  if (
+    !seriesForm ||
+    !seriesNameInput ||
+    !seriesDescriptionInput ||
+    !seriesTotalBooksInput ||
+    !saveSeriesBtn ||
+    !currentUser
+  )
+    return;
 
   clearFormErrors(seriesForm);
   const formData = {
@@ -766,7 +877,7 @@ seriesForm?.addEventListener('submit', async e => {
 });
 
 confirmDeleteSeriesBtn?.addEventListener('click', async () => {
-  if (!deletingSeriesId) return;
+  if (!deletingSeriesId || !confirmDeleteSeriesBtn || !currentUser) return;
 
   confirmDeleteSeriesBtn.disabled = true;
   confirmDeleteSeriesBtn.textContent = 'Deleting...';
@@ -792,7 +903,7 @@ confirmDeleteSeriesBtn?.addEventListener('click', async () => {
 });
 
 confirmMergeSeriesBtn?.addEventListener('click', async () => {
-  if (!mergingSeriesId || !mergeTargetSelect.value) return;
+  if (!mergingSeriesId || !mergeTargetSelect?.value || !confirmMergeSeriesBtn || !currentUser) return;
 
   confirmMergeSeriesBtn.disabled = true;
   confirmMergeSeriesBtn.textContent = 'Merging...';
@@ -821,8 +932,8 @@ confirmMergeSeriesBtn?.addEventListener('click', async () => {
 
 // ==================== Backup & Restore ====================
 
-async function loadAllBooks() {
-  if (allBooksLoaded) return;
+async function loadAllBooks(): Promise<void> {
+  if (allBooksLoaded || !currentUser) return;
 
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
@@ -852,7 +963,7 @@ async function loadAllBooks() {
         ...data,
         createdAt: serializeTimestamp(data.createdAt),
         updatedAt: serializeTimestamp(data.updatedAt),
-      };
+      } as BookData;
     });
     allBooksLoaded = true;
   } catch (error) {
@@ -861,7 +972,9 @@ async function loadAllBooks() {
   }
 }
 
-async function exportBackup() {
+async function exportBackup(): Promise<void> {
+  if (!exportBtn || !currentUser) return;
+
   exportBtn.disabled = true;
   exportBtn.innerHTML =
     '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Loading...';
@@ -881,7 +994,7 @@ async function exportBackup() {
       return;
     }
 
-    const exportData = {
+    const exportData: ExportData = {
       version: 1,
       exportedAt: new Date().toISOString(),
       genres: genres.map(({ id, ...genre }) => ({ ...genre, _exportId: id })),
@@ -912,7 +1025,9 @@ async function exportBackup() {
   }
 }
 
-async function importBackup(file) {
+async function importBackup(file: File): Promise<void> {
+  if (!importBtn || !currentUser) return;
+
   importBtn.disabled = true;
   importProgress?.classList.remove('hidden');
   importSummary?.classList.add('hidden');
@@ -920,7 +1035,7 @@ async function importBackup(file) {
 
   try {
     const text = await file.text();
-    let data;
+    let data: ExportData;
 
     try {
       data = JSON.parse(text);
@@ -945,14 +1060,14 @@ async function importBackup(file) {
     const existingGenres = await loadUserGenres(currentUser.uid);
 
     // Load existing wishlist for cross-checks
-    let existingWishlist = [];
+    let existingWishlist: WishlistItemData[] = [];
     try {
       existingWishlist = await loadWishlistItems(currentUser.uid);
     } catch (_e) {
       console.warn('Failed to load existing wishlist');
     }
 
-    const genreIdMap = new Map();
+    const genreIdMap = new Map<string, string>();
     let genresImported = 0;
     let genresSkipped = 0;
 
@@ -960,7 +1075,7 @@ async function importBackup(file) {
       if (importStatus) importStatus.textContent = 'Importing genres...';
 
       for (const genre of importGenres) {
-        const existingGenre = existingGenres.find(g => g.name.toLowerCase() === genre.name.toLowerCase());
+        const existingGenre = existingGenres.find((g: GenreData) => g.name.toLowerCase() === genre.name.toLowerCase());
 
         if (existingGenre) {
           genreIdMap.set(genre._exportId, existingGenre.id);
@@ -975,13 +1090,13 @@ async function importBackup(file) {
 
     let booksImported = 0;
     let booksSkipped = 0;
-    const importedBookKeys = new Set(); // Track imported books for wishlist cross-check
+    const importedBookKeys = new Set<string>(); // Track imported books for wishlist cross-check
 
     if (importBooks.length > 0) {
       if (importStatus) importStatus.textContent = 'Importing books...';
 
       const booksRef = collection(db, 'users', currentUser.uid, 'books');
-      const booksToImport = [];
+      const booksToImport: BookData[] = [];
 
       for (const book of importBooks) {
         const isDuplicate = books.some(existing => {
@@ -1002,9 +1117,9 @@ async function importBackup(file) {
           continue;
         }
 
-        let remappedGenres = [];
+        let remappedGenres: string[] = [];
         if (book.genres && Array.isArray(book.genres)) {
-          remappedGenres = book.genres.map(oldId => genreIdMap.get(oldId)).filter(id => id);
+          remappedGenres = book.genres.map(oldId => genreIdMap.get(oldId)).filter((id): id is string => !!id);
         }
 
         const bookData = { ...book };
@@ -1051,7 +1166,7 @@ async function importBackup(file) {
     let wishlistSkippedOwned = 0;
 
     // Build lookup of all owned books (existing + just imported)
-    const ownedBooksLookup = new Set();
+    const ownedBooksLookup = new Set<string>();
     for (const book of books) {
       if (book.isbn) ownedBooksLookup.add(`isbn:${book.isbn}`);
       if (book.title) ownedBooksLookup.add(`title:${book.title.toLowerCase()}|${(book.author || '').toLowerCase()}`);
@@ -1064,7 +1179,7 @@ async function importBackup(file) {
       if (importStatus) importStatus.textContent = 'Importing wishlist...';
 
       const wishlistRef = collection(db, 'users', currentUser.uid, 'wishlist');
-      const wishlistToImport = [];
+      const wishlistToImport: WishlistItemData[] = [];
 
       for (const item of importWishlist) {
         // Check if already in wishlist
@@ -1139,7 +1254,7 @@ async function importBackup(file) {
               `title:${wishlistItem.title.toLowerCase()}|${(wishlistItem.author || '').toLowerCase()}`
             ));
 
-        if (matchesImportedBook) {
+        if (matchesImportedBook && wishlistItem.id) {
           try {
             await deleteWishlistItem(currentUser.uid, wishlistItem.id);
             wishlistAutoRemoved++;
@@ -1163,7 +1278,7 @@ async function importBackup(file) {
     importProgress?.classList.add('hidden');
 
     // Build on-page summary
-    const summaryLines = [];
+    const summaryLines: string[] = [];
 
     // Imported counts
     if (booksImported > 0) {
@@ -1242,7 +1357,8 @@ async function importBackup(file) {
 
 exportBtn?.addEventListener('click', exportBackup);
 importBtn?.addEventListener('click', () => importFileInput?.click());
-importFileInput?.addEventListener('change', e => {
-  const file = e.target.files[0];
+importFileInput?.addEventListener('change', (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
   if (file) importBackup(file);
 });

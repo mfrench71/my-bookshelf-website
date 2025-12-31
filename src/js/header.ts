@@ -1,6 +1,6 @@
 // Common Header Logic
 import { auth, db } from '/js/firebase-config.js';
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, signOut, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
   query,
@@ -28,34 +28,74 @@ import { getGravatarUrl } from './md5.js';
 import { getWishlistCount, clearWishlistCache } from './wishlist.js';
 import { getRecentSearches, saveRecentSearch, clearRecentSearches } from './utils/recent-searches.js';
 
+/** Book data structure for search */
+interface BookData {
+  id: string;
+  title?: string;
+  author?: string;
+  isbn?: string;
+  publisher?: string;
+  notes?: string;
+  seriesId?: string;
+  deletedAt?: number | null;
+  _normalizedTitle?: string;
+  _normalizedAuthor?: string;
+  _normalizedPublisher?: string;
+  _normalizedNotes?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+/** Genre data structure */
+interface GenreData {
+  id: string;
+  name: string;
+  color: string;
+  bookCount?: number;
+}
+
+/** Series data structure */
+interface SeriesData {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+/** Genre lookup map type */
+type GenreLookup = Map<string, GenreData>;
+
+/** Series lookup map type */
+type SeriesLookup = Map<string, SeriesData>;
+
 // Initialize icons once on load
 initIcons();
 
 // State
-let currentUser = null;
-let books = [];
+let currentUser: User | null = null;
+let books: BookData[] = [];
 let allBooksLoaded = false;
 let isLoadingBooks = false;
-let genres = [];
-let genreLookup = null;
-let series = [];
-let seriesLookup = null;
+let genres: GenreData[] = [];
+let genreLookup: GenreLookup | null = null;
+let series: SeriesData[] = [];
+let seriesLookup: SeriesLookup | null = null;
 let onlineListenersAttached = false;
 
 /**
  * Render recent searches section
- * @returns {string} HTML string for recent searches
+ * @returns HTML string for recent searches
  */
-function renderRecentSearches() {
+function renderRecentSearches(): string {
   const searches = getRecentSearches();
   if (searches.length === 0) return '';
 
   const searchItems = searches
     .map(
-      query => `
-    <button type="button" class="recent-search-item flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition-colors" data-query="${escapeAttr(query)}">
+      (searchQuery: string) => `
+    <button type="button" class="recent-search-item flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition-colors" data-query="${escapeAttr(searchQuery)}">
       <i data-lucide="history" class="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true"></i>
-      <span class="text-gray-700 truncate">${escapeHtml(query)}</span>
+      <span class="text-gray-700 truncate">${escapeHtml(searchQuery)}</span>
     </button>
   `
     )
@@ -75,7 +115,9 @@ function renderRecentSearches() {
 /**
  * Show recent searches in the search results area
  */
-function showRecentSearches() {
+function showRecentSearches(): void {
+  if (!searchResults) return;
+
   const html = renderRecentSearches();
   if (html) {
     searchResults.innerHTML = html;
@@ -97,14 +139,18 @@ function showRecentSearches() {
 /**
  * Attach click listeners to recent search items
  */
-function attachRecentSearchListeners() {
+function attachRecentSearchListeners(): void {
+  if (!searchResults || !searchInput) return;
+
   // Click on recent search item
-  searchResults.querySelectorAll('.recent-search-item').forEach(item => {
+  searchResults.querySelectorAll<HTMLButtonElement>('.recent-search-item').forEach(item => {
     item.addEventListener('click', () => {
-      const query = item.dataset.query;
-      searchInput.value = query;
-      if (clearSearchInputBtn) clearSearchInputBtn.classList.remove('hidden');
-      performSearch(normalizeText(query));
+      const itemQuery = item.dataset.query;
+      if (itemQuery && searchInput) {
+        searchInput.value = itemQuery;
+        if (clearSearchInputBtn) clearSearchInputBtn.classList.remove('hidden');
+        performSearch(normalizeText(itemQuery));
+      }
     });
   });
 
@@ -113,7 +159,7 @@ function attachRecentSearchListeners() {
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       clearRecentSearches();
-      searchResults.innerHTML = '';
+      if (searchResults) searchResults.innerHTML = '';
     });
   }
 }
@@ -135,7 +181,7 @@ const menuAvatar = document.getElementById('menu-avatar');
 const searchBtn = document.getElementById('search-btn');
 const searchOverlay = document.getElementById('search-overlay');
 const closeSearchBtn = document.getElementById('close-search');
-const searchInput = document.getElementById('search-input');
+const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
 const clearSearchInputBtn = document.getElementById('clear-search-input');
 const searchResults = document.getElementById('search-results');
 const searchLoading = document.getElementById('search-loading');
@@ -146,8 +192,10 @@ const offlineBanner = document.getElementById('offline-banner');
 const wishlistCountMobile = document.getElementById('wishlist-count-mobile');
 const wishlistCountDesktop = document.getElementById('wishlist-count-desktop');
 
-// Offline Detection
-function updateOnlineStatus() {
+/**
+ * Update online/offline status banner
+ */
+function updateOnlineStatus(): void {
   const isOffline = !navigator.onLine;
   if (offlineBanner) {
     offlineBanner.classList.toggle('hidden', !isOffline);
@@ -166,7 +214,7 @@ if (!onlineListenersAttached) {
 }
 
 // Auth State
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     // Set email in both mobile and desktop menus
@@ -183,16 +231,21 @@ onAuthStateChanged(auth, async user => {
 });
 
 // Update wishlist count badge in menu
-let lastWishlistCount = null;
-async function updateWishlistBadge(userId) {
+let lastWishlistCount: number | null = null;
+
+/**
+ * Update wishlist count badge
+ * @param userId - User ID
+ */
+async function updateWishlistBadge(userId: string): Promise<void> {
   try {
     const count = await getWishlistCount(userId);
-    const badges = [wishlistCountMobile, wishlistCountDesktop].filter(Boolean);
+    const badges = [wishlistCountMobile, wishlistCountDesktop].filter(Boolean) as HTMLElement[];
     const countChanged = lastWishlistCount !== null && lastWishlistCount !== count;
 
     badges.forEach(badge => {
       if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
+        badge.textContent = count > 99 ? '99+' : String(count);
         badge.classList.remove('hidden');
         // Pulse animation when count changes
         if (countChanged) {
@@ -206,8 +259,9 @@ async function updateWishlistBadge(userId) {
     });
 
     lastWishlistCount = count;
-  } catch (e) {
-    console.warn('Failed to load wishlist count:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Failed to load wishlist count:', error.message);
   }
 }
 
@@ -224,13 +278,16 @@ window.addEventListener('wishlist-updated', async () => {
   }
 });
 
-// Update menu avatar with user photo, Gravatar, or initial
-async function updateMenuAvatar(user) {
+/**
+ * Update menu avatar with user photo, Gravatar, or initial
+ * @param user - Firebase user
+ */
+async function updateMenuAvatar(user: User): Promise<void> {
   const initial = user.email ? user.email.charAt(0).toUpperCase() : '?';
-  const avatars = [menuAvatar, menuAvatarMobile].filter(Boolean);
+  const avatars = [menuAvatar, menuAvatarMobile].filter(Boolean) as HTMLElement[];
 
   // Helper to set avatar content
-  function setAvatarImage(src) {
+  function setAvatarImage(src: string): void {
     avatars.forEach(avatar => {
       const img = document.createElement('img');
       img.src = src;
@@ -241,7 +298,7 @@ async function updateMenuAvatar(user) {
     });
   }
 
-  function setAvatarInitial() {
+  function setAvatarInitial(): void {
     avatars.forEach(avatar => {
       avatar.textContent = initial;
     });
@@ -256,8 +313,9 @@ async function updateMenuAvatar(user) {
       setAvatarImage(userData.photoUrl);
       return;
     }
-  } catch (e) {
-    console.warn('Failed to load user profile photo:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Failed to load user profile photo:', error.message);
   }
 
   // Try Gravatar (with localStorage cache to avoid repeated HEAD requests)
@@ -294,23 +352,26 @@ async function updateMenuAvatar(user) {
       setAvatarImage(gravatarUrl);
       return;
     }
-  } catch (e) {
-    console.warn('Gravatar check failed:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Gravatar check failed:', error.message);
   }
 
   // Fall back to initial
   setAvatarInitial();
 }
 
-// Load all books for search - called when search opens
-async function loadAllBooksForSearch() {
-  if (allBooksLoaded || isLoadingBooks) return;
+/**
+ * Load all books for search - called when search opens
+ */
+async function loadAllBooksForSearch(): Promise<void> {
+  if (allBooksLoaded || isLoadingBooks || !currentUser) return;
 
   isLoadingBooks = true;
 
   // Load genres and series in parallel with books
   const genresPromise = loadUserGenres(currentUser.uid)
-    .then(g => {
+    .then((g: GenreData[]) => {
       genres = g;
       genreLookup = createGenreLookup(genres);
     })
@@ -321,7 +382,7 @@ async function loadAllBooksForSearch() {
     });
 
   const seriesPromise = loadUserSeries(currentUser.uid)
-    .then(s => {
+    .then((s: SeriesData[]) => {
       series = s;
       seriesLookup = createSeriesLookup(series);
     })
@@ -341,7 +402,7 @@ async function loadAllBooksForSearch() {
 
       if (cachedBooks.length > 0) {
         // Add pre-normalized fields if not present (for cached data)
-        books = cachedBooks.map(b => ({
+        books = cachedBooks.map((b: BookData) => ({
           ...b,
           _normalizedTitle: b._normalizedTitle || normalizeText(b.title),
           _normalizedAuthor: b._normalizedAuthor || normalizeText(b.author),
@@ -357,8 +418,9 @@ async function loadAllBooksForSearch() {
         }
       }
     }
-  } catch (e) {
-    console.warn('Cache read error in search:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Cache read error in search:', error.message);
   }
 
   // Fetch all from Firebase
@@ -367,10 +429,10 @@ async function loadAllBooksForSearch() {
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     books = snapshot.docs
-      .map(doc => {
-        const data = doc.data();
+      .map(docSnap => {
+        const data = docSnap.data();
         return {
-          id: doc.id,
+          id: docSnap.id,
           ...data,
           createdAt: serializeTimestamp(data.createdAt),
           updatedAt: serializeTimestamp(data.updatedAt),
@@ -379,7 +441,7 @@ async function loadAllBooksForSearch() {
           _normalizedAuthor: normalizeText(data.author),
           _normalizedPublisher: normalizeText(data.publisher),
           _normalizedNotes: normalizeText(data.notes),
-        };
+        } as BookData;
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books
     await Promise.all([genresPromise, seriesPromise]); // Wait for genres and series
@@ -395,8 +457,10 @@ async function loadAllBooksForSearch() {
   }
 }
 
-// Menu - Mobile uses bottom sheet, Desktop uses slide-out
-function isMobileViewport() {
+/**
+ * Check if viewport is mobile
+ */
+function isMobileViewport(): boolean {
   return window.matchMedia('(max-width: 767px)').matches;
 }
 
@@ -409,12 +473,15 @@ if (closeMenuBtn) {
   closeMenuBtn.addEventListener('click', closeMenu);
 }
 if (menuOverlay) {
-  menuOverlay.addEventListener('click', e => {
+  menuOverlay.addEventListener('click', (e: Event) => {
     if (e.target === menuOverlay) closeMenu();
   });
 }
 
-function openMenu() {
+/**
+ * Open menu (mobile bottom sheet or desktop slide-out)
+ */
+function openMenu(): void {
   // Show overlay with fade animation
   menuOverlay?.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
   menuOverlay?.classList.add('opacity-100', 'visible', 'pointer-events-auto');
@@ -439,12 +506,15 @@ function openMenu() {
   initIcons();
 }
 
-function closeMenu() {
+/**
+ * Close menu
+ */
+function closeMenu(): void {
   if (isMobileViewport()) {
     // Mobile: slide bottom sheet down
     menuPanelMobile?.classList.remove('translate-y-0');
     menuPanelMobile?.classList.add('translate-y-full');
-    menuPanelMobile.style.transform = ''; // Clear any inline transform from swipe
+    if (menuPanelMobile) menuPanelMobile.style.transform = ''; // Clear any inline transform from swipe
     document.body.style.overflow = '';
     // Fade out overlay after panel slides down
     setTimeout(() => {
@@ -473,7 +543,7 @@ if (menuPanelMobile) {
 
   menuPanelMobile.addEventListener(
     'touchstart',
-    e => {
+    (e: TouchEvent) => {
       startY = e.touches[0].clientY;
       currentY = startY;
       isDragging = true;
@@ -484,7 +554,7 @@ if (menuPanelMobile) {
 
   menuPanelMobile.addEventListener(
     'touchmove',
-    e => {
+    (e: TouchEvent) => {
       if (!isDragging) return;
       currentY = e.touches[0].clientY;
       const deltaY = currentY - startY;
@@ -517,8 +587,10 @@ if (menuPanelMobile) {
   );
 }
 
-// Logout (both mobile and desktop buttons)
-async function handleLogout() {
+/**
+ * Handle logout
+ */
+async function handleLogout(): Promise<void> {
   try {
     await signOut(auth);
   } catch (error) {
@@ -537,7 +609,11 @@ if (logoutBtnMobile) {
 // Search
 let currentSearchQuery = '';
 
-function performSearch(queryText) {
+/**
+ * Perform search across books
+ * @param queryText - Normalized search query
+ */
+function performSearch(queryText: string): void {
   currentSearchQuery = queryText;
 
   if (!queryText) {
@@ -582,8 +658,8 @@ function performSearch(queryText) {
     if (b.isbn && b.isbn.includes(queryText)) return true;
     // Check series name (lookup from seriesLookup)
     if (b.seriesId && seriesLookup) {
-      const series = seriesLookup.get(b.seriesId);
-      if (series && normalizeText(series.name).includes(queryText)) return true;
+      const seriesData = seriesLookup.get(b.seriesId);
+      if (seriesData && normalizeText(seriesData.name).includes(queryText)) return true;
     }
     return false;
   });
@@ -624,11 +700,13 @@ function performSearch(queryText) {
       '<p class="text-gray-400 text-center text-sm py-2"><span class="inline-block animate-spin w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full mr-1"></span>Loading more books...</p>';
   }
 
-  searchResults.innerHTML = html;
+  if (searchResults) {
+    searchResults.innerHTML = html;
+  }
   initIcons();
 
   // Save search when user clicks a result (not on every keystroke)
-  if (results.length > 0) {
+  if (results.length > 0 && searchResults) {
     searchResults.querySelectorAll('.book-card').forEach(card => {
       card.addEventListener(
         'click',
@@ -649,15 +727,15 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
   closeSearchBtn.addEventListener('click', closeSearch);
 
   // Debounced search handler
-  const debouncedSearch = debounce(queryText => performSearch(queryText), 150);
+  const debouncedSearch = debounce((queryText: string) => performSearch(queryText), 150);
 
   searchInput.addEventListener('input', () => {
-    const query = searchInput.value.trim();
+    const inputQuery = searchInput.value.trim();
     // Show/hide clear button
     if (clearSearchInputBtn) {
-      clearSearchInputBtn.classList.toggle('hidden', !query);
+      clearSearchInputBtn.classList.toggle('hidden', !inputQuery);
     }
-    debouncedSearch(normalizeText(query));
+    debouncedSearch(normalizeText(inputQuery));
   });
 
   // Clear search button
@@ -676,7 +754,12 @@ if (searchBtn && searchOverlay && closeSearchBtn && searchInput && searchResults
   }
 }
 
-async function openSearch() {
+/**
+ * Open search overlay
+ */
+async function openSearch(): Promise<void> {
+  if (!searchOverlay || !searchInput) return;
+
   // Fade in the search overlay
   searchOverlay.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
   searchOverlay.classList.add('opacity-100', 'visible', 'pointer-events-auto');
@@ -707,7 +790,12 @@ async function openSearch() {
   }
 }
 
-function closeSearch() {
+/**
+ * Close search overlay
+ */
+function closeSearch(): void {
+  if (!searchOverlay || !searchInput || !searchResults) return;
+
   // Fade out the search overlay
   searchOverlay.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
   searchOverlay.classList.add('opacity-0', 'invisible', 'pointer-events-none');

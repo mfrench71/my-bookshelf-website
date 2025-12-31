@@ -1,6 +1,6 @@
 // Preferences Settings Page Logic
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { showToast, initIcons, clearBooksCache, getSyncSettings, saveSyncSettings } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
 import { loadWidgetSettings, saveWidgetSettings, reorderWidgets } from '../utils/widget-settings.js';
@@ -8,6 +8,21 @@ import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 import { getWidgetInfo, WIDGET_SIZES } from '../widgets/widget-renderer.js';
 // Import widgets to ensure they're registered
 import '../widgets/index.js';
+
+/** Widget configuration type */
+interface WidgetConfig {
+  id: string;
+  enabled: boolean;
+  order: number;
+  size: number;
+  settings?: Record<string, unknown>;
+}
+
+/** Widget settings type */
+interface WidgetSettingsData {
+  version: number;
+  widgets: WidgetConfig[];
+}
 
 // Initialize icons once on load
 initIcons();
@@ -19,15 +34,15 @@ if (document.readyState === 'loading') {
 }
 
 // State
-let currentUser = null;
-let widgetSettings = null;
+let currentUser: User | null = null;
+let widgetSettings: WidgetSettingsData | null = null;
 
 // DOM Elements - Sync Settings
-const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
-const hiddenThresholdSelect = document.getElementById('hidden-threshold');
-const cooldownPeriodSelect = document.getElementById('cooldown-period');
+const autoRefreshToggle = document.getElementById('auto-refresh-toggle') as HTMLInputElement | null;
+const hiddenThresholdSelect = document.getElementById('hidden-threshold') as HTMLSelectElement | null;
+const cooldownPeriodSelect = document.getElementById('cooldown-period') as HTMLSelectElement | null;
 const syncOptionsDiv = document.getElementById('sync-options');
-const refreshLibraryBtn = document.getElementById('refresh-library-btn');
+const refreshLibraryBtn = document.getElementById('refresh-library-btn') as HTMLButtonElement | null;
 
 // DOM Elements - Widget Settings
 const widgetsLoading = document.getElementById('widgets-loading');
@@ -37,7 +52,7 @@ const widgetSettingsList = document.getElementById('widget-settings-list');
 const clearCacheBtn = document.getElementById('clear-cache-btn');
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     loadSyncSettingsUI();
@@ -48,7 +63,7 @@ onAuthStateChanged(auth, async user => {
 
 // ==================== Sync Settings ====================
 
-function loadSyncSettingsUI() {
+function loadSyncSettingsUI(): void {
   const settings = getSyncSettings();
 
   if (autoRefreshToggle) {
@@ -66,7 +81,7 @@ function loadSyncSettingsUI() {
   updateSyncOptionsVisibility(settings.autoRefreshEnabled);
 }
 
-function updateSyncOptionsVisibility(enabled) {
+function updateSyncOptionsVisibility(enabled: boolean): void {
   if (syncOptionsDiv) {
     syncOptionsDiv.classList.toggle('opacity-50', !enabled);
     syncOptionsDiv.classList.toggle('pointer-events-none', !enabled);
@@ -118,7 +133,7 @@ refreshLibraryBtn?.addEventListener('click', async () => {
 
 // ==================== Widget Settings ====================
 
-async function loadAndRenderWidgetSettings() {
+async function loadAndRenderWidgetSettings(): Promise<void> {
   if (!currentUser || !widgetSettingsList) return;
 
   try {
@@ -130,7 +145,7 @@ async function loadAndRenderWidgetSettings() {
   }
 }
 
-function renderWidgetSettings() {
+function renderWidgetSettings(): void {
   if (!widgetSettings || !widgetSettingsList) return;
 
   const widgetInfo = getWidgetInfo();
@@ -206,52 +221,70 @@ function renderWidgetSettings() {
   initIcons();
 }
 
-function attachWidgetSettingsListeners() {
+function attachWidgetSettingsListeners(): void {
+  if (!widgetSettingsList) return;
+
   // Toggle listeners
-  widgetSettingsList.querySelectorAll('.widget-toggle').forEach(toggle => {
+  widgetSettingsList.querySelectorAll<HTMLInputElement>('.widget-toggle').forEach(toggle => {
     toggle.addEventListener('change', async e => {
-      const widgetId = e.target.dataset.id;
-      const enabled = e.target.checked;
-      await updateWidgetSetting(widgetId, { enabled });
+      const target = e.target as HTMLInputElement;
+      const widgetId = target.dataset.id;
+      const enabled = target.checked;
+      if (widgetId) {
+        await updateWidgetSetting(widgetId, { enabled });
+      }
     });
   });
 
   // Count select listeners
-  widgetSettingsList.querySelectorAll('.widget-count').forEach(select => {
+  widgetSettingsList.querySelectorAll<HTMLSelectElement>('.widget-count').forEach(select => {
     select.addEventListener('change', async e => {
-      const widgetId = e.target.dataset.id;
-      const count = parseInt(e.target.value, 10);
-      await updateWidgetSetting(widgetId, { settings: { count } });
+      const target = e.target as HTMLSelectElement;
+      const widgetId = target.dataset.id;
+      const count = parseInt(target.value, 10);
+      if (widgetId) {
+        await updateWidgetSetting(widgetId, { settings: { count } });
+      }
     });
   });
 
   // Size select listeners
-  widgetSettingsList.querySelectorAll('.widget-size').forEach(select => {
+  widgetSettingsList.querySelectorAll<HTMLSelectElement>('.widget-size').forEach(select => {
     select.addEventListener('change', async e => {
-      const widgetId = e.target.dataset.id;
-      const size = parseInt(e.target.value, 10);
-      await updateWidgetSetting(widgetId, { size });
+      const target = e.target as HTMLSelectElement;
+      const widgetId = target.dataset.id;
+      const size = parseInt(target.value, 10);
+      if (widgetId) {
+        await updateWidgetSetting(widgetId, { size });
+      }
     });
   });
 
   // Move up listeners
-  widgetSettingsList.querySelectorAll('.move-up-btn:not([disabled])').forEach(btn => {
+  widgetSettingsList.querySelectorAll<HTMLButtonElement>('.move-up-btn:not([disabled])').forEach(btn => {
     btn.addEventListener('click', async () => {
       const widgetId = btn.dataset.id;
-      await moveWidget(widgetId, -1);
+      if (widgetId) {
+        await moveWidget(widgetId, -1);
+      }
     });
   });
 
   // Move down listeners
-  widgetSettingsList.querySelectorAll('.move-down-btn:not([disabled])').forEach(btn => {
+  widgetSettingsList.querySelectorAll<HTMLButtonElement>('.move-down-btn:not([disabled])').forEach(btn => {
     btn.addEventListener('click', async () => {
       const widgetId = btn.dataset.id;
-      await moveWidget(widgetId, 1);
+      if (widgetId) {
+        await moveWidget(widgetId, 1);
+      }
     });
   });
 }
 
-async function updateWidgetSetting(widgetId, updates) {
+async function updateWidgetSetting(
+  widgetId: string,
+  updates: Partial<WidgetConfig> & { settings?: Record<string, unknown> }
+): Promise<void> {
   if (!widgetSettings || !currentUser) return;
 
   const widgetIndex = widgetSettings.widgets.findIndex(w => w.id === widgetId);
@@ -275,7 +308,7 @@ async function updateWidgetSetting(widgetId, updates) {
   }
 }
 
-async function moveWidget(widgetId, direction) {
+async function moveWidget(widgetId: string, direction: number): Promise<void> {
   if (!widgetSettings || !currentUser) return;
 
   const sortedWidgets = [...widgetSettings.widgets].sort((a, b) => a.order - b.order);
@@ -314,7 +347,7 @@ document.getElementById('cancel-clear-cache')?.addEventListener('click', () => {
 document.getElementById('confirm-clear-cache')?.addEventListener('click', () => {
   try {
     // Get all localStorage keys that belong to this app
-    const keysToRemove = [];
+    const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (

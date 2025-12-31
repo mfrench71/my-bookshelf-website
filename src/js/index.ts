@@ -1,6 +1,10 @@
 // Home Page Logic
 import { auth, db } from '/js/firebase-config.js';
-import { onAuthStateChanged, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  onAuthStateChanged,
+  sendEmailVerification,
+  User,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   initIcons,
@@ -18,29 +22,71 @@ import { loadWishlistItems } from './wishlist.js';
 // Import widgets to ensure they're registered
 import './widgets/index.js';
 
+/** Book data structure */
+interface BookData {
+  id: string;
+  title: string;
+  author?: string;
+  deletedAt?: number | null;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  startedAt?: unknown;
+  finishedAt?: unknown;
+  [key: string]: unknown;
+}
+
+/** Genre data structure */
+interface GenreData {
+  id: string;
+  name: string;
+  color: string;
+  bookCount?: number;
+}
+
+/** Series data structure */
+interface SeriesData {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+/** Wishlist item data structure */
+interface WishlistItemData {
+  id: string;
+  title?: string;
+  author?: string;
+  [key: string]: unknown;
+}
+
+/** Genre lookup map type */
+type GenreLookup = Map<string, GenreData>;
+
+/** Series lookup map type */
+type SeriesLookup = Map<string, SeriesData>;
+
 // Initialize icons
 initIcons();
 
 // State
-let currentUser = null;
-let books = [];
-let genres = [];
-let genreLookup = null;
-let series = [];
-let seriesLookup = null;
-let wishlistItems = [];
+let currentUser: User | null = null;
+let books: BookData[] = [];
+let genres: GenreData[] = [];
+let genreLookup: GenreLookup | null = null;
+let series: SeriesData[] = [];
+let seriesLookup: SeriesLookup | null = null;
+let wishlistItems: WishlistItemData[] = [];
 
 // DOM Elements
 const widgetContainer = document.getElementById('widget-container');
 
 // Email Verification Elements
 const verifyEmailBanner = document.getElementById('verify-email-banner');
-const resendVerificationBtn = document.getElementById('resend-verification-btn');
+const resendVerificationBtn = document.getElementById('resend-verification-btn') as HTMLButtonElement | null;
 const dismissVerifyBanner = document.getElementById('dismiss-verify-banner');
 const VERIFY_BANNER_DISMISSED_KEY = 'verifyBannerDismissed';
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     checkEmailVerification();
@@ -54,14 +100,18 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Silent refresh for auto-sync on tab focus
-async function silentRefreshDashboard() {
+/**
+ * Silent refresh for auto-sync on tab focus
+ */
+async function silentRefreshDashboard(): Promise<void> {
   await loadDashboard();
   showToast('Library synced', { type: 'info' });
 }
 
-// Email Verification Banner
-function checkEmailVerification() {
+/**
+ * Check email verification status and show banner if needed
+ */
+function checkEmailVerification(): void {
   if (!currentUser || !verifyEmailBanner) return;
 
   // Check if email is verified or banner was dismissed this session
@@ -78,12 +128,12 @@ function checkEmailVerification() {
 // Dismiss banner (for this session only)
 dismissVerifyBanner?.addEventListener('click', () => {
   sessionStorage.setItem(VERIFY_BANNER_DISMISSED_KEY, 'true');
-  verifyEmailBanner.classList.add('hidden');
+  verifyEmailBanner?.classList.add('hidden');
 });
 
 // Resend verification email
 resendVerificationBtn?.addEventListener('click', async () => {
-  if (!currentUser) return;
+  if (!currentUser || !resendVerificationBtn) return;
 
   resendVerificationBtn.disabled = true;
   resendVerificationBtn.textContent = 'Sending...';
@@ -95,9 +145,10 @@ resendVerificationBtn?.addEventListener('click', async () => {
       resendVerificationBtn.textContent = 'Resend verification email';
       resendVerificationBtn.disabled = false;
     }, 3000);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error sending verification email:', error);
-    if (error.code === 'auth/too-many-requests') {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === 'auth/too-many-requests') {
       resendVerificationBtn.textContent = 'Please wait before resending';
     } else {
       resendVerificationBtn.textContent = 'Error sending email';
@@ -109,8 +160,12 @@ resendVerificationBtn?.addEventListener('click', async () => {
   }
 });
 
-// Load all user data
-async function loadDashboard() {
+/**
+ * Load all user data for dashboard
+ */
+async function loadDashboard(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     // Show skeleton loading state
     if (widgetContainer) {
@@ -152,8 +207,12 @@ async function loadDashboard() {
   }
 }
 
-// Load genres
-async function loadGenresData() {
+/**
+ * Load genres data
+ */
+async function loadGenresData(): Promise<GenreData[]> {
+  if (!currentUser) return [];
+
   try {
     return await loadUserGenres(currentUser.uid);
   } catch (e) {
@@ -162,8 +221,12 @@ async function loadGenresData() {
   }
 }
 
-// Load series
-async function loadSeriesData() {
+/**
+ * Load series data
+ */
+async function loadSeriesData(): Promise<SeriesData[]> {
+  if (!currentUser) return [];
+
   try {
     return await loadUserSeries(currentUser.uid);
   } catch (e) {
@@ -172,8 +235,12 @@ async function loadSeriesData() {
   }
 }
 
-// Load wishlist items
-async function loadWishlistData() {
+/**
+ * Load wishlist items
+ */
+async function loadWishlistData(): Promise<WishlistItemData[]> {
+  if (!currentUser) return [];
+
   try {
     return await loadWishlistItems(currentUser.uid);
   } catch (e) {
@@ -182,8 +249,12 @@ async function loadWishlistData() {
   }
 }
 
-// Load books (from cache or Firebase)
-async function loadBooksData() {
+/**
+ * Load books (from cache or Firebase)
+ */
+async function loadBooksData(): Promise<BookData[]> {
+  if (!currentUser) return [];
+
   // Try cache first
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${currentUser.uid}`);
@@ -196,8 +267,9 @@ async function loadBooksData() {
         return cachedBooks;
       }
     }
-  } catch (e) {
-    console.warn('Cache read error on home page:', e.message);
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.warn('Cache read error on home page:', error.message);
   }
 
   // Fetch from Firebase
@@ -216,7 +288,7 @@ async function loadBooksData() {
           updatedAt: serializeTimestamp(data.updatedAt),
           startedAt: serializeTimestamp(data.startedAt),
           finishedAt: serializeTimestamp(data.finishedAt),
-        };
+        } as BookData;
       })
       .filter(book => !book.deletedAt); // Exclude soft-deleted books
   } catch (error) {

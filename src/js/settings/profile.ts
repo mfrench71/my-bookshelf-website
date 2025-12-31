@@ -7,6 +7,7 @@ import {
   EmailAuthProvider,
   deleteUser,
   sendEmailVerification,
+  User,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
   collection,
@@ -32,6 +33,18 @@ import { BottomSheet } from '../components/modal.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 import { deleteImages } from '../utils/image-upload.js';
 
+/** User profile data structure */
+interface UserProfileData {
+  photoUrl?: string | null;
+  [key: string]: unknown;
+}
+
+/** Book image data */
+interface BookImage {
+  storagePath: string;
+  [key: string]: unknown;
+}
+
 // Initialize icons once on load
 initIcons();
 
@@ -43,8 +56,8 @@ if (document.readyState === 'loading') {
 }
 
 // State
-let currentUser = null;
-let userProfileData = null;
+let currentUser: User | null = null;
+let userProfileData: UserProfileData | null = null;
 
 // DOM Elements - Profile
 const profileLoading = document.getElementById('profile-loading');
@@ -60,24 +73,24 @@ const deleteAccountBtn = document.getElementById('delete-account-btn');
 const emailVerificationSection = document.getElementById('email-verification-section');
 const verificationIcon = document.getElementById('verification-icon');
 const verificationStatus = document.getElementById('verification-status');
-const resendVerificationBtn = document.getElementById('resend-verification-btn');
+const resendVerificationBtn = document.getElementById('resend-verification-btn') as HTMLButtonElement | null;
 
 // DOM Elements - Photo Modal
 const photoModal = document.getElementById('photo-modal');
 const photoPreview = document.getElementById('photo-preview');
-const photoInput = document.getElementById('photo-input');
-const uploadPhotoBtn = document.getElementById('upload-photo-btn');
-const removePhotoBtn = document.getElementById('remove-photo-btn');
+const photoInput = document.getElementById('photo-input') as HTMLInputElement | null;
+const uploadPhotoBtn = document.getElementById('upload-photo-btn') as HTMLButtonElement | null;
+const removePhotoBtn = document.getElementById('remove-photo-btn') as HTMLButtonElement | null;
 const closePhotoModalBtn = document.getElementById('close-photo-modal');
 
 // DOM Elements - Password Modal
 const passwordModal = document.getElementById('password-modal');
-const passwordForm = document.getElementById('password-form');
-const currentPasswordInput = document.getElementById('current-password');
-const newPasswordInput = document.getElementById('new-password');
-const confirmPasswordInput = document.getElementById('confirm-password');
+const passwordForm = document.getElementById('password-form') as HTMLFormElement | null;
+const currentPasswordInput = document.getElementById('current-password') as HTMLInputElement | null;
+const newPasswordInput = document.getElementById('new-password') as HTMLInputElement | null;
+const confirmPasswordInput = document.getElementById('confirm-password') as HTMLInputElement | null;
 const cancelPasswordBtn = document.getElementById('cancel-password');
-const savePasswordBtn = document.getElementById('save-password');
+const savePasswordBtn = document.getElementById('save-password') as HTMLButtonElement | null;
 
 // Password strength elements
 const newPasswordStrength = document.getElementById('new-password-strength');
@@ -94,11 +107,11 @@ const newReqNumber = document.getElementById('new-req-number');
 
 // DOM Elements - Delete Account Modal
 const deleteAccountModal = document.getElementById('delete-account-modal');
-const deleteAccountForm = document.getElementById('delete-account-form');
-const deleteConfirmPasswordInput = document.getElementById('delete-confirm-password');
-const deleteConfirmTextInput = document.getElementById('delete-confirm-text');
+const deleteAccountForm = document.getElementById('delete-account-form') as HTMLFormElement | null;
+const deleteConfirmPasswordInput = document.getElementById('delete-confirm-password') as HTMLInputElement | null;
+const deleteConfirmTextInput = document.getElementById('delete-confirm-text') as HTMLInputElement | null;
 const cancelDeleteAccountBtn = document.getElementById('cancel-delete-account');
-const confirmDeleteAccountBtn = document.getElementById('confirm-delete-account');
+const confirmDeleteAccountBtn = document.getElementById('confirm-delete-account') as HTMLButtonElement | null;
 
 // Photo upload constants
 const MAX_FILE_SIZE = 500 * 1024; // 500KB
@@ -110,7 +123,7 @@ const passwordSheet = passwordModal ? new BottomSheet({ container: passwordModal
 const deleteAccountSheet = deleteAccountModal ? new BottomSheet({ container: deleteAccountModal }) : null;
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     await loadProfileInfo();
@@ -120,8 +133,8 @@ onAuthStateChanged(auth, async user => {
 
 // ==================== Profile ====================
 
-async function loadProfileInfo() {
-  if (!currentUser) return;
+async function loadProfileInfo(): Promise<void> {
+  if (!currentUser || !profileEmail || !profileCreated) return;
 
   // Display email
   profileEmail.textContent = currentUser.email;
@@ -142,7 +155,7 @@ async function loadProfileInfo() {
   // Load user profile data from Firestore (with caching)
   try {
     userProfileData = await getCachedUserProfile(async () => {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const userDoc = await getDoc(doc(db, 'users', currentUser!.uid));
       return userDoc.exists() ? userDoc.data() : {};
     }, currentUser.uid);
   } catch (_e) {
@@ -160,8 +173,8 @@ async function loadProfileInfo() {
   profileContent?.classList.remove('hidden');
 }
 
-function updateVerificationStatus() {
-  if (!emailVerificationSection) return;
+function updateVerificationStatus(): void {
+  if (!emailVerificationSection || !currentUser || !verificationIcon || !verificationStatus) return;
 
   emailVerificationSection.classList.remove('hidden');
 
@@ -181,7 +194,7 @@ function updateVerificationStatus() {
 
 // Resend verification email
 resendVerificationBtn?.addEventListener('click', async () => {
-  if (!currentUser) return;
+  if (!currentUser || !resendVerificationBtn) return;
 
   const btnText = resendVerificationBtn.querySelector('span');
   resendVerificationBtn.disabled = true;
@@ -195,9 +208,10 @@ resendVerificationBtn?.addEventListener('click', async () => {
       if (btnText) btnText.textContent = 'Resend';
       resendVerificationBtn.disabled = false;
     }, 3000);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error sending verification email:', error);
-    if (error.code === 'auth/too-many-requests') {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === 'auth/too-many-requests') {
       showToast('Please wait before resending', { type: 'error' });
     } else {
       showToast('Error sending email', { type: 'error' });
@@ -207,11 +221,13 @@ resendVerificationBtn?.addEventListener('click', async () => {
   }
 });
 
-async function updateAvatarDisplay() {
+async function updateAvatarDisplay(): Promise<void> {
+  if (!currentUser || !profileAvatar) return;
+
   const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : '?';
 
   // Helper to safely set avatar image
-  const setAvatarImage = (container, url, alt) => {
+  const setAvatarImage = (container: HTMLElement, url: string, alt: string): void => {
     const img = document.createElement('img');
     img.src = url;
     img.alt = alt;
@@ -244,17 +260,19 @@ async function updateAvatarDisplay() {
 
 // ==================== Photo Modal ====================
 
-function openPhotoModal() {
+function openPhotoModal(): void {
   updatePhotoPreview();
   photoSheet?.open();
 }
 
-function closePhotoModal() {
+function closePhotoModal(): void {
   photoSheet?.close();
 }
 
-function updatePhotoPreview() {
-  const setPreviewImage = (url, alt) => {
+function updatePhotoPreview(): void {
+  if (!photoPreview || !currentUser) return;
+
+  const setPreviewImage = (url: string, alt: string): void => {
     const img = document.createElement('img');
     img.src = url;
     img.alt = alt;
@@ -266,7 +284,7 @@ function updatePhotoPreview() {
   if (userProfileData?.photoUrl) {
     setPreviewImage(userProfileData.photoUrl, 'Profile');
     removePhotoBtn?.classList.remove('hidden');
-  } else if (currentUser) {
+  } else {
     const gravatarUrl = getGravatarUrl(currentUser.email, 160);
     fetch(gravatarUrl, { method: 'HEAD' })
       .then(response => {
@@ -287,7 +305,7 @@ function updatePhotoPreview() {
 
 editAvatarBtn?.addEventListener('click', openPhotoModal);
 closePhotoModalBtn?.addEventListener('click', closePhotoModal);
-photoModal?.addEventListener('click', e => {
+photoModal?.addEventListener('click', (e: Event) => {
   if (e.target === photoModal) closePhotoModal();
 });
 
@@ -296,21 +314,22 @@ uploadPhotoBtn?.addEventListener('click', () => {
   photoInput?.click();
 });
 
-photoInput?.addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
+photoInput?.addEventListener('change', async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file || !uploadPhotoBtn || !currentUser) return;
 
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
     showToast('Please select a JPG, PNG, or WebP image', { type: 'error' });
-    photoInput.value = '';
+    if (photoInput) photoInput.value = '';
     return;
   }
 
   // Validate file size
   if (file.size > MAX_FILE_SIZE) {
     showToast('Image must be less than 500KB', { type: 'error' });
-    photoInput.value = '';
+    if (photoInput) photoInput.value = '';
     return;
   }
 
@@ -345,11 +364,13 @@ photoInput?.addEventListener('change', async e => {
     uploadPhotoBtn.disabled = false;
     uploadPhotoBtn.innerHTML = '<i data-lucide="upload" class="w-4 h-4"></i><span>Upload Photo</span>';
     initIcons();
-    photoInput.value = '';
+    if (photoInput) photoInput.value = '';
   }
 });
 
 removePhotoBtn?.addEventListener('click', async () => {
+  if (!removePhotoBtn || !currentUser) return;
+
   removePhotoBtn.disabled = true;
   removePhotoBtn.innerHTML =
     '<span class="inline-block animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></span>';
@@ -379,10 +400,10 @@ removePhotoBtn?.addEventListener('click', async () => {
   }
 });
 
-function fileToBase64(file) {
+function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -393,7 +414,8 @@ function fileToBase64(file) {
 /**
  * Check if password form has all required fields filled
  */
-function isPasswordFormComplete() {
+function isPasswordFormComplete(): boolean {
+  if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) return false;
   if (!currentPasswordInput.value.trim()) return false;
   if (!newPasswordInput.value) return false;
   if (!confirmPasswordInput.value) return false;
@@ -403,7 +425,9 @@ function isPasswordFormComplete() {
 /**
  * Update password save button state based on form completeness
  */
-function updatePasswordSaveButtonState() {
+function updatePasswordSaveButtonState(): void {
+  if (!savePasswordBtn) return;
+
   const isComplete = isPasswordFormComplete();
   savePasswordBtn.disabled = !isComplete;
   savePasswordBtn.classList.toggle('opacity-50', !isComplete);
@@ -411,6 +435,8 @@ function updatePasswordSaveButtonState() {
 }
 
 changePasswordBtn?.addEventListener('click', () => {
+  if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput || !passwordForm) return;
+
   currentPasswordInput.value = '';
   newPasswordInput.value = '';
   confirmPasswordInput.value = '';
@@ -431,8 +457,8 @@ currentPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
 newPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
 confirmPasswordInput?.addEventListener('input', updatePasswordSaveButtonState);
 
-function updateNewPasswordUI(password) {
-  if (!newPasswordStrength) return;
+function updateNewPasswordUI(password: string): void {
+  if (!newPasswordStrength || !newStrengthText) return;
 
   if (password.length === 0) {
     newPasswordStrength.classList.add('hidden');
@@ -453,6 +479,7 @@ function updateNewPasswordUI(password) {
   const labels = ['Weak', 'Fair', 'Good', 'Strong'];
 
   newStrengthBars.forEach((bar, index) => {
+    if (!bar) return;
     bar.className = 'h-1 flex-1 rounded-full';
     if (index < score) {
       bar.classList.add(colors[Math.min(score - 1, 3)]);
@@ -469,7 +496,7 @@ function updateNewPasswordUI(password) {
   else if (score === 4) newStrengthText.classList.add('text-green-500');
 }
 
-function updateRequirement(element, met) {
+function updateRequirement(element: HTMLElement | null, met: boolean): void {
   if (!element) return;
   if (met) {
     element.classList.remove('text-gray-400');
@@ -480,12 +507,22 @@ function updateRequirement(element, met) {
   }
 }
 
-newPasswordInput?.addEventListener('input', e => {
-  updateNewPasswordUI(e.target.value);
+newPasswordInput?.addEventListener('input', (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  updateNewPasswordUI(target.value);
 });
 
-passwordForm?.addEventListener('submit', async e => {
+passwordForm?.addEventListener('submit', async (e: Event) => {
   e.preventDefault();
+  if (
+    !passwordForm ||
+    !currentPasswordInput ||
+    !newPasswordInput ||
+    !confirmPasswordInput ||
+    !savePasswordBtn ||
+    !currentUser
+  )
+    return;
 
   clearFormErrors(passwordForm);
   const formData = {
@@ -504,16 +541,17 @@ passwordForm?.addEventListener('submit', async e => {
   savePasswordBtn.textContent = 'Updating...';
 
   try {
-    const credential = EmailAuthProvider.credential(currentUser.email, result.data.currentPassword);
+    const credential = EmailAuthProvider.credential(currentUser.email!, result.data.currentPassword);
     await reauthenticateWithCredential(currentUser, credential);
     await updatePassword(currentUser, result.data.newPassword);
 
     showToast('Password updated successfully!', { type: 'success' });
     passwordSheet?.close();
-  } catch (error) {
-    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+  } catch (error: unknown) {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
       showToast('Current password is incorrect', { type: 'error' });
-    } else if (error.code === 'auth/weak-password') {
+    } else if (firebaseError.code === 'auth/weak-password') {
       showToast('New password is too weak', { type: 'error' });
     } else {
       console.error('Error updating password:', error);
@@ -530,7 +568,8 @@ passwordForm?.addEventListener('submit', async e => {
 /**
  * Check if delete account form has all required fields filled
  */
-function isDeleteFormComplete() {
+function isDeleteFormComplete(): boolean {
+  if (!deleteConfirmPasswordInput || !deleteConfirmTextInput) return false;
   if (!deleteConfirmPasswordInput.value.trim()) return false;
   if (!deleteConfirmTextInput.value.trim()) return false;
   return true;
@@ -539,7 +578,9 @@ function isDeleteFormComplete() {
 /**
  * Update delete account button state based on form completeness
  */
-function updateDeleteButtonState() {
+function updateDeleteButtonState(): void {
+  if (!confirmDeleteAccountBtn) return;
+
   const isComplete = isDeleteFormComplete();
   confirmDeleteAccountBtn.disabled = !isComplete;
   confirmDeleteAccountBtn.classList.toggle('opacity-50', !isComplete);
@@ -547,6 +588,8 @@ function updateDeleteButtonState() {
 }
 
 deleteAccountBtn?.addEventListener('click', () => {
+  if (!deleteConfirmPasswordInput || !deleteConfirmTextInput || !deleteAccountForm) return;
+
   deleteConfirmPasswordInput.value = '';
   deleteConfirmTextInput.value = '';
   clearFormErrors(deleteAccountForm);
@@ -564,8 +607,16 @@ cancelDeleteAccountBtn?.addEventListener('click', () => {
 deleteConfirmPasswordInput?.addEventListener('input', updateDeleteButtonState);
 deleteConfirmTextInput?.addEventListener('input', updateDeleteButtonState);
 
-deleteAccountForm?.addEventListener('submit', async e => {
+deleteAccountForm?.addEventListener('submit', async (e: Event) => {
   e.preventDefault();
+  if (
+    !deleteAccountForm ||
+    !deleteConfirmPasswordInput ||
+    !deleteConfirmTextInput ||
+    !confirmDeleteAccountBtn ||
+    !currentUser
+  )
+    return;
 
   clearFormErrors(deleteAccountForm);
   const formData = {
@@ -584,7 +635,7 @@ deleteAccountForm?.addEventListener('submit', async e => {
 
   try {
     // Re-authenticate user
-    const credential = EmailAuthProvider.credential(currentUser.email, result.data.password);
+    const credential = EmailAuthProvider.credential(currentUser.email!, result.data.password);
     await reauthenticateWithCredential(currentUser, credential);
 
     const userId = currentUser.uid;
@@ -594,7 +645,7 @@ deleteAccountForm?.addEventListener('submit', async e => {
     const booksSnapshot = await getDocs(booksRef);
 
     // Delete all book images from Storage first
-    const allImages = booksSnapshot.docs.flatMap(bookDoc => bookDoc.data().images || []);
+    const allImages: BookImage[] = booksSnapshot.docs.flatMap(bookDoc => bookDoc.data().images || []);
     if (allImages.length > 0) {
       await deleteImages(allImages);
     }
@@ -660,8 +711,9 @@ deleteAccountForm?.addEventListener('submit', async e => {
     setTimeout(() => {
       window.location.href = '/login/';
     }, 1500);
-  } catch (error) {
-    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+  } catch (error: unknown) {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
       showToast('Incorrect password', { type: 'error' });
       // Clear password field so user knows to re-enter
       deleteConfirmPasswordInput.value = '';

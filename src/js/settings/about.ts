@@ -1,6 +1,6 @@
 // About Settings Page Logic
 import { auth } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initIcons } from '../utils.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
@@ -14,7 +14,7 @@ if (document.readyState === 'loading') {
 }
 
 // Auth Check (for settings indicators)
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, (user: User | null) => {
   if (user) {
     updateSettingsIndicators(user.uid);
   }
@@ -22,13 +22,13 @@ onAuthStateChanged(auth, user => {
 
 // ==================== Changelog Accordions ====================
 
-function initChangelogAccordions() {
-  const changelogBtns = document.querySelectorAll('.changelog-date-btn');
+function initChangelogAccordions(): void {
+  const changelogBtns = document.querySelectorAll<HTMLButtonElement>('.changelog-date-btn');
 
   changelogBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const content = btn.nextElementSibling;
-      const chevron = btn.querySelector('.changelog-chevron');
+      const content = btn.nextElementSibling as HTMLElement | null;
+      const chevron = btn.querySelector<HTMLElement>('.changelog-chevron');
 
       if (!content) return;
 

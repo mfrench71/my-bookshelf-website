@@ -1,24 +1,55 @@
 // Maintenance Settings Page Logic
 import { auth, db, storage } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { ref, listAll, deleteObject, getMetadata } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+import {
+  ref,
+  listAll,
+  deleteObject,
+  getMetadata,
+  StorageReference,
+  FullMetadata,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { clearGenresCache, recalculateGenreBookCounts } from '../genres.js';
 import { showToast, initIcons, clearBooksCache, escapeHtml } from '../utils.js';
 import { analyzeLibraryHealth, getCompletenessRating } from '../utils/library-health.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
+/** Book data type for maintenance */
+interface MaintenanceBook {
+  id: string;
+  title?: string;
+  author?: string;
+  coverImageUrl?: string;
+  deletedAt?: number | null;
+  images?: Array<{ storagePath: string }>;
+  [key: string]: unknown;
+}
+
+/** Health report type */
+interface HealthReport {
+  totalBooks: number;
+  completenessScore: number;
+  issues: Record<string, MaintenanceBook[]>;
+}
+
+/** Orphaned file type */
+interface OrphanedFile {
+  ref: StorageReference;
+  metadata: FullMetadata;
+}
+
 // Initialize icons on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initIcons);
 
 // State
-let currentUser = null;
-let books = [];
+let currentUser: User | null = null;
+let books: MaintenanceBook[] = [];
 let allBooksLoaded = false;
-let healthReport = null;
+let healthReport: HealthReport | null = null;
 
 // DOM Elements - Genre Counts
-const recountGenresBtn = document.getElementById('recount-genres-btn');
+const recountGenresBtn = document.getElementById('recount-genres-btn') as HTMLButtonElement | null;
 const recountResults = document.getElementById('recount-results');
 const recountResultsText = document.getElementById('recount-results-text');
 
@@ -26,7 +57,7 @@ const recountResultsText = document.getElementById('recount-results-text');
 const healthLoading = document.getElementById('health-loading');
 const healthSummary = document.getElementById('health-summary');
 const healthScore = document.getElementById('health-score');
-const healthProgressBar = document.getElementById('health-progress-bar');
+const healthProgressBar = document.getElementById('health-progress-bar') as HTMLElement | null;
 const healthRating = document.getElementById('health-rating');
 const healthTotalBooks = document.getElementById('health-total-books');
 const healthIssuesCount = document.getElementById('health-issues-count');
@@ -36,7 +67,7 @@ const healthRefreshBtn = document.getElementById('health-refresh-btn');
 const healthActions = document.getElementById('health-actions');
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     await updateLibraryHealth();
@@ -46,15 +77,17 @@ onAuthStateChanged(auth, async user => {
 
 // ==================== Load Books ====================
 
-async function loadAllBooks() {
-  if (allBooksLoaded) return;
+async function loadAllBooks(): Promise<void> {
+  if (allBooksLoaded || !currentUser) return;
 
   // Fetch fresh data for health analysis
   try {
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const q = query(booksRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(book => !book.deletedAt); // Exclude soft-deleted books
+    books = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }) as MaintenanceBook)
+      .filter(book => !book.deletedAt); // Exclude soft-deleted books
     allBooksLoaded = true;
   } catch (error) {
     console.error('Error loading books:', error);
@@ -64,7 +97,9 @@ async function loadAllBooks() {
 
 // ==================== Genre Counts ====================
 
-async function runRecountGenres() {
+async function runRecountGenres(): Promise<void> {
+  if (!recountGenresBtn || !currentUser) return;
+
   recountGenresBtn.disabled = true;
   recountGenresBtn.innerHTML =
     '<span class="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Counting...';
@@ -106,7 +141,7 @@ recountGenresBtn?.addEventListener('click', runRecountGenres);
 /**
  * Issue type configuration for rendering badges
  */
-const ISSUE_CONFIG = {
+const ISSUE_CONFIG: Record<string, { icon: string; label: string }> = {
   missingCover: { icon: 'image', label: 'Cover' },
   missingGenres: { icon: 'tags', label: 'Genres' },
   missingPageCount: { icon: 'hash', label: 'Pages' },
@@ -119,7 +154,7 @@ const ISSUE_CONFIG = {
 /**
  * Update the Library Health dashboard
  */
-async function updateLibraryHealth() {
+async function updateLibraryHealth(): Promise<void> {
   if (!healthLoading || !healthSummary) return;
 
   try {
@@ -145,7 +180,7 @@ async function updateLibraryHealth() {
     if (healthRating) healthRating.textContent = rating.label;
 
     // Calculate unique books with issues
-    const booksWithIssuesSet = new Set();
+    const booksWithIssuesSet = new Set<string>();
     for (const issueType of Object.keys(ISSUE_CONFIG)) {
       const issueBooks = healthReport.issues[issueType] || [];
       for (const book of issueBooks) {
@@ -155,8 +190,8 @@ async function updateLibraryHealth() {
     const uniqueBooksWithIssues = booksWithIssuesSet.size;
 
     // Update stats
-    if (healthTotalBooks) healthTotalBooks.textContent = healthReport.totalBooks;
-    if (healthIssuesCount) healthIssuesCount.textContent = uniqueBooksWithIssues;
+    if (healthTotalBooks) healthTotalBooks.textContent = String(healthReport.totalBooks);
+    if (healthIssuesCount) healthIssuesCount.textContent = String(uniqueBooksWithIssues);
 
     // Render issue rows
     renderIssueRows();
@@ -183,11 +218,11 @@ async function updateLibraryHealth() {
 /**
  * Render books with issues (grouped by book, sorted by most issues first)
  */
-function renderIssueRows() {
+function renderIssueRows(): void {
   if (!healthIssues || !healthReport) return;
 
   // Get all books with any issue
-  const booksWithIssues = new Map();
+  const booksWithIssues = new Map<string, { book: MaintenanceBook; missing: Array<{ label: string; icon: string }> }>();
 
   for (const [issueType, config] of Object.entries(ISSUE_CONFIG)) {
     const issueBooks = healthReport.issues[issueType] || [];
@@ -195,7 +230,7 @@ function renderIssueRows() {
       if (!booksWithIssues.has(book.id)) {
         booksWithIssues.set(book.id, { book, missing: [] });
       }
-      booksWithIssues.get(book.id).missing.push({
+      booksWithIssues.get(book.id)!.missing.push({
         label: config.label,
         icon: config.icon,
       });
@@ -257,6 +292,7 @@ function renderIssueRows() {
 
 // Event listeners for Library Health
 healthRefreshBtn?.addEventListener('click', async () => {
+  if (!currentUser) return;
   healthLoading?.classList.remove('hidden');
   healthSummary?.classList.add('hidden');
   allBooksLoaded = false;
@@ -267,8 +303,8 @@ healthRefreshBtn?.addEventListener('click', async () => {
 // ==================== Orphaned Images ====================
 
 // DOM Elements - Orphaned Images
-const scanOrphansBtn = document.getElementById('scan-orphans-btn');
-const deleteOrphansBtn = document.getElementById('delete-orphans-btn');
+const scanOrphansBtn = document.getElementById('scan-orphans-btn') as HTMLButtonElement | null;
+const deleteOrphansBtn = document.getElementById('delete-orphans-btn') as HTMLButtonElement | null;
 const orphanResults = document.getElementById('orphan-results');
 const orphanLoading = document.getElementById('orphan-loading');
 const orphanFound = document.getElementById('orphan-found');
@@ -279,14 +315,14 @@ const orphanSize = document.getElementById('orphan-size');
 const orphanDeletedCount = document.getElementById('orphan-deleted-count');
 
 // Store orphaned images for deletion
-let orphanedImages = [];
+let orphanedImages: OrphanedFile[] = [];
 
 /**
  * Format bytes to human-readable size
- * @param {number} bytes
- * @returns {string}
+ * @param bytes - Number of bytes
+ * @returns Formatted size string
  */
-function formatBytes(bytes) {
+function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -296,11 +332,11 @@ function formatBytes(bytes) {
 
 /**
  * Recursively list all files in a storage folder
- * @param {StorageReference} folderRef
- * @returns {Promise<Array>} Array of {ref, metadata}
+ * @param folderRef - Storage reference to folder
+ * @returns Array of file references with metadata
  */
-async function listAllFilesRecursively(folderRef) {
-  const files = [];
+async function listAllFilesRecursively(folderRef: StorageReference): Promise<OrphanedFile[]> {
+  const files: OrphanedFile[] = [];
 
   try {
     const result = await listAll(folderRef);
@@ -322,7 +358,7 @@ async function listAllFilesRecursively(folderRef) {
     }
   } catch (error) {
     // Folder might not exist, which is fine
-    console.log('Could not list folder:', folderRef.fullPath, error.code);
+    console.log('Could not list folder:', folderRef.fullPath, (error as { code?: string }).code);
   }
 
   return files;
@@ -331,8 +367,8 @@ async function listAllFilesRecursively(folderRef) {
 /**
  * Scan for orphaned images in Firebase Storage
  */
-async function scanForOrphanedImages() {
-  if (!currentUser) return;
+async function scanForOrphanedImages(): Promise<void> {
+  if (!currentUser || !scanOrphansBtn) return;
 
   // Reset UI
   orphanResults?.classList.remove('hidden');
@@ -350,7 +386,7 @@ async function scanForOrphanedImages() {
     await loadAllBooks();
 
     // Collect all image storage paths from books
-    const referencedPaths = new Set();
+    const referencedPaths = new Set<string>();
     for (const book of books) {
       if (book.images && Array.isArray(book.images)) {
         for (const img of book.images) {
@@ -376,7 +412,7 @@ async function scanForOrphanedImages() {
 
     if (orphanedImages.length > 0) {
       orphanFound?.classList.remove('hidden');
-      if (orphanCount) orphanCount.textContent = orphanedImages.length;
+      if (orphanCount) orphanCount.textContent = String(orphanedImages.length);
       if (orphanSize) orphanSize.textContent = formatBytes(totalSize);
       initIcons();
     } else {
@@ -398,8 +434,8 @@ async function scanForOrphanedImages() {
 /**
  * Delete all orphaned images
  */
-async function deleteOrphanedImages() {
-  if (!orphanedImages.length) return;
+async function deleteOrphanedImages(): Promise<void> {
+  if (!orphanedImages.length || !deleteOrphansBtn) return;
 
   deleteOrphansBtn.disabled = true;
   deleteOrphansBtn.innerHTML =
@@ -420,7 +456,7 @@ async function deleteOrphanedImages() {
     // Update UI
     orphanFound?.classList.add('hidden');
     orphanDeleted?.classList.remove('hidden');
-    if (orphanDeletedCount) orphanDeletedCount.textContent = deletedCount;
+    if (orphanDeletedCount) orphanDeletedCount.textContent = String(deletedCount);
     initIcons();
 
     showToast(`Deleted ${deletedCount} orphaned image${deletedCount !== 1 ? 's' : ''}`, { type: 'success' });

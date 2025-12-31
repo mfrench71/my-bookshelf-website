@@ -1,6 +1,6 @@
 // Settings Bin Page - Manage deleted books
 import { auth, db } from '/js/firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { showToast, initIcons, escapeHtml, isValidImageUrl, serializeTimestamp } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
@@ -14,13 +14,27 @@ import {
 } from '../bin.js';
 import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
 
+/** Book data with bin fields */
+interface BinnedBookData {
+  id: string;
+  title: string;
+  author?: string;
+  coverImageUrl?: string;
+  deletedAt?: number | null;
+  genres?: string[];
+  seriesId?: string | null;
+  images?: Array<{ storagePath: string }>;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
 // Initialize icons
 initIcons();
 
 // State
-let currentUser = null;
-let binnedBooks = [];
-let selectedBook = null;
+let currentUser: User | null = null;
+let binnedBooks: BinnedBookData[] = [];
+let selectedBook: BinnedBookData | null = null;
 let hasTriggeredInitialFade = false;
 
 // DOM Elements
@@ -41,7 +55,7 @@ const deleteSheet = deleteModal ? new BottomSheet({ container: deleteModal }) : 
 const emptyBinSheet = emptyBinModal ? new BottomSheet({ container: emptyBinModal }) : null;
 
 // Auth Check
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
     await loadBinnedBooks();
@@ -50,17 +64,19 @@ onAuthStateChanged(auth, async user => {
 });
 
 // Load binned books
-async function loadBinnedBooks() {
+async function loadBinnedBooks(): Promise<void> {
+  if (!currentUser) return;
+
   try {
     // Fetch all books
     const booksRef = collection(db, 'users', currentUser.uid, 'books');
     const snapshot = await getDocs(booksRef);
-    const allBooks = snapshot.docs.map(doc => ({
+    const allBooks: BinnedBookData[] = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       createdAt: serializeTimestamp(doc.data().createdAt),
       updatedAt: serializeTimestamp(doc.data().updatedAt),
-    }));
+    })) as BinnedBookData[];
 
     // Filter to binned books only
     binnedBooks = filterBinnedBooks(allBooks);
@@ -74,68 +90,72 @@ async function loadBinnedBooks() {
     }
 
     // Sort by deletedAt (most recent first)
-    binnedBooks.sort((a, b) => b.deletedAt - a.deletedAt);
+    binnedBooks.sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
 
     renderBinnedBooks();
   } catch (error) {
     console.error('Error loading binned books:', error);
     showToast('Error loading bin', { type: 'error' });
-    loadingState.classList.add('hidden');
+    loadingState?.classList.add('hidden');
   }
 }
 
 // Render binned books
-function renderBinnedBooks() {
-  loadingState.classList.add('hidden');
+function renderBinnedBooks(): void {
+  loadingState?.classList.add('hidden');
 
   if (binnedBooks.length === 0) {
-    emptyState.classList.remove('hidden');
-    bookList.classList.add('hidden');
-    emptyBinBtn.classList.add('hidden');
-    binCount.classList.add('hidden');
+    emptyState?.classList.remove('hidden');
+    bookList?.classList.add('hidden');
+    emptyBinBtn?.classList.add('hidden');
+    binCount?.classList.add('hidden');
     initIcons();
     return;
   }
 
-  emptyState.classList.add('hidden');
-  bookList.classList.remove('hidden');
-  emptyBinBtn.classList.remove('hidden');
+  emptyState?.classList.add('hidden');
+  bookList?.classList.remove('hidden');
+  emptyBinBtn?.classList.remove('hidden');
 
   // Update count
-  binCount.textContent = `${binnedBooks.length} book${binnedBooks.length > 1 ? 's' : ''}`;
-  binCount.classList.remove('hidden');
-
-  // Render book cards
-  bookList.innerHTML = binnedBooks.map(book => renderBinBookCard(book)).join('');
-
-  // Trigger fade-in animation on first content render
-  if (!hasTriggeredInitialFade) {
-    bookList.classList.add('content-fade-in');
-    hasTriggeredInitialFade = true;
+  if (binCount) {
+    binCount.textContent = `${binnedBooks.length} book${binnedBooks.length > 1 ? 's' : ''}`;
+    binCount.classList.remove('hidden');
   }
 
-  initIcons();
+  // Render book cards
+  if (bookList) {
+    bookList.innerHTML = binnedBooks.map(book => renderBinBookCard(book)).join('');
 
-  // Attach event listeners to buttons
-  bookList.querySelectorAll('[data-action="restore"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId);
-      restoreSheet?.open();
-    });
-  });
+    // Trigger fade-in animation on first content render
+    if (!hasTriggeredInitialFade) {
+      bookList.classList.add('content-fade-in');
+      hasTriggeredInitialFade = true;
+    }
 
-  bookList.querySelectorAll('[data-action="delete"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId);
-      deleteSheet?.open();
+    initIcons();
+
+    // Attach event listeners to buttons
+    bookList.querySelectorAll<HTMLButtonElement>('[data-action="restore"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId) || null;
+        restoreSheet?.open();
+      });
     });
-  });
+
+    bookList.querySelectorAll<HTMLButtonElement>('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        selectedBook = binnedBooks.find(b => b.id === btn.dataset.bookId) || null;
+        deleteSheet?.open();
+      });
+    });
+  }
 }
 
 // Render a single binned book card
-function renderBinBookCard(book) {
+function renderBinBookCard(book: BinnedBookData): string {
   const daysRemaining = getDaysRemaining(book.deletedAt);
   const isUrgent = daysRemaining <= 7;
 
@@ -184,17 +204,19 @@ document.getElementById('cancel-restore')?.addEventListener('click', () => {
 });
 
 document.getElementById('confirm-restore')?.addEventListener('click', async () => {
-  if (!selectedBook) return;
+  if (!selectedBook || !currentUser) return;
 
-  const confirmBtn = document.getElementById('confirm-restore');
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Restoring...';
+  const confirmBtn = document.getElementById('confirm-restore') as HTMLButtonElement | null;
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Restoring...';
+  }
 
   try {
     const result = await restoreBook(currentUser.uid, selectedBook.id, selectedBook);
 
     // Remove from local list
-    binnedBooks = binnedBooks.filter(b => b.id !== selectedBook.id);
+    binnedBooks = binnedBooks.filter(b => b.id !== selectedBook?.id);
 
     restoreSheet?.close();
 
@@ -215,8 +237,10 @@ document.getElementById('confirm-restore')?.addEventListener('click', async () =
     console.error('Error restoring book:', error);
     showToast('Error restoring book', { type: 'error' });
   } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Restore';
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Restore';
+    }
   }
 });
 
@@ -227,17 +251,19 @@ document.getElementById('cancel-delete')?.addEventListener('click', () => {
 });
 
 document.getElementById('confirm-delete')?.addEventListener('click', async () => {
-  if (!selectedBook) return;
+  if (!selectedBook || !currentUser) return;
 
-  const confirmBtn = document.getElementById('confirm-delete');
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Deleting...';
+  const confirmBtn = document.getElementById('confirm-delete') as HTMLButtonElement | null;
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Deleting...';
+  }
 
   try {
     await permanentlyDeleteBook(currentUser.uid, selectedBook.id, selectedBook);
 
     // Remove from local list
-    binnedBooks = binnedBooks.filter(b => b.id !== selectedBook.id);
+    binnedBooks = binnedBooks.filter(b => b.id !== selectedBook?.id);
 
     deleteSheet?.close();
     showToast('Book permanently deleted', { type: 'success' });
@@ -250,8 +276,10 @@ document.getElementById('confirm-delete')?.addEventListener('click', async () =>
     console.error('Error deleting book:', error);
     showToast('Error deleting book', { type: 'error' });
   } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Delete Forever';
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Delete Forever';
+    }
   }
 });
 
@@ -269,9 +297,13 @@ document.getElementById('cancel-empty-bin')?.addEventListener('click', () => {
 });
 
 document.getElementById('confirm-empty-bin')?.addEventListener('click', async () => {
-  const confirmBtn = document.getElementById('confirm-empty-bin');
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Emptying...';
+  if (!currentUser) return;
+
+  const confirmBtn = document.getElementById('confirm-empty-bin') as HTMLButtonElement | null;
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Emptying...';
+  }
 
   try {
     const count = await emptyBin(currentUser.uid, binnedBooks);
@@ -287,7 +319,9 @@ document.getElementById('confirm-empty-bin')?.addEventListener('click', async ()
     console.error('Error emptying bin:', error);
     showToast('Error emptying bin', { type: 'error' });
   } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Empty Bin';
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Empty Bin';
+    }
   }
 });
