@@ -404,6 +404,7 @@ if (isDuplicate) {
 - [x] Barcode scanner: Add visual feedback/progress indicator while scanning (can take time)
 - [x] Barcode scanner: Add audio beep fallback for iOS (Web Vibration API not supported on any iOS browser - all use WebKit)
 - [ ] Camera photo upload: Allow users to take a photo directly from device camera to add as book image (counts towards image limit)
+- [ ] User image export: Download all uploaded book images as a zip file (for backup/migration)
 
 ### Image Loading UX Improvements
 Current image loading shows spinners indefinitely until the image loads or fails. This creates poor UX when images are slow to load or the server is unresponsive (e.g., Open Library 502 errors).
