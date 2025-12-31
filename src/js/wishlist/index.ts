@@ -1,7 +1,7 @@
 // Wishlist Page
 import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { loadWishlistItems, updateWishlistItem, deleteWishlistItem, moveToLibrary, WishlistItem } from '../wishlist.js';
+import { wishlistRepository, type WishlistItem } from '../repositories/wishlist-repository.js';
 import { clearBooksCache } from '../utils/cache.js';
 import { showToast, initIcons, escapeHtml, isValidImageUrl } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
@@ -299,7 +299,7 @@ async function loadWishlist(): Promise<void> {
   if (!currentUser) return;
 
   try {
-    wishlistItems = await loadWishlistItems(currentUser.uid);
+    wishlistItems = await wishlistRepository.getAll(currentUser.uid);
     renderWishlistItems();
   } catch (error) {
     console.error('Error loading wishlist:', error);
@@ -318,7 +318,7 @@ async function handleMoveToLibrary(): Promise<void> {
   confirmMoveBtn.textContent = 'Adding...';
 
   try {
-    await moveToLibrary(currentUser.uid, selectedItem.id);
+    await wishlistRepository.moveToLibrary(currentUser.uid, selectedItem.id);
     clearBooksCache(currentUser.uid);
     moveSheet?.close();
     showToast(`"${selectedItem.title}" added to your library!`, { type: 'success' });
@@ -358,7 +358,7 @@ async function handleEditSave(e: Event): Promise<void> {
   saveEditBtn.textContent = 'Saving...';
 
   try {
-    await updateWishlistItem(currentUser.uid, selectedItem.id, {
+    await wishlistRepository.updateItem(currentUser.uid, selectedItem.id, {
       priority: validation.data.priority as 'high' | 'medium' | 'low' | null,
       notes: validation.data.notes,
     });
@@ -385,7 +385,7 @@ async function handleDelete(): Promise<void> {
   confirmDeleteBtn.textContent = 'Removing...';
 
   try {
-    await deleteWishlistItem(currentUser.uid, selectedItem.id);
+    await wishlistRepository.remove(currentUser.uid, selectedItem.id);
     deleteSheet?.close();
     showToast('Removed from wishlist', { type: 'success' });
     await loadWishlist();

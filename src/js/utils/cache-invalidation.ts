@@ -5,7 +5,7 @@ import { eventBus, Events } from './event-bus.js';
 import { clearBooksCache } from './cache.js';
 import { clearGenresCache } from '../genres.js';
 import { clearSeriesCache } from '../series.js';
-import { clearWishlistCache } from '../wishlist.js';
+import { wishlistRepository } from '../repositories/wishlist-repository.js';
 
 let initialized = false;
 
@@ -69,7 +69,7 @@ export function clearAllCaches(userId?: string): void {
   }
   clearGenresCache();
   clearSeriesCache();
-  clearWishlistCache();
+  wishlistRepository.clearCache();
 }
 
 /**

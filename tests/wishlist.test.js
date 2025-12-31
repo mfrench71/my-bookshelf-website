@@ -1,15 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  loadWishlistItems,
-  getWishlistCount,
-  checkWishlistDuplicate,
-  addWishlistItem,
-  updateWishlistItem,
-  deleteWishlistItem,
-  moveToLibrary,
-  clearWishlistCache,
-  createWishlistLookup
-} from '../src/js/wishlist.js';
+import { wishlistRepository } from '../src/js/repositories/wishlist-repository.js';
 
 // Mock Firebase
 vi.mock('../src/js/firebase-config.js', () => ({
@@ -44,15 +34,15 @@ vi.mock('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js', () =>
   serverTimestamp: vi.fn(() => 'timestamp')
 }));
 
-describe('clearWishlistCache', () => {
+describe('clearCache', () => {
   it('should clear cache without error', () => {
-    expect(() => clearWishlistCache()).not.toThrow();
+    expect(() => wishlistRepository.clearCache()).not.toThrow();
   });
 });
 
 describe('loadWishlistItems', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockGetDocs.mockReset();
   });
 
@@ -64,7 +54,7 @@ describe('loadWishlistItems', () => {
       ]
     });
 
-    const items = await loadWishlistItems('user123');
+    const items = await wishlistRepository.getAll('user123');
 
     expect(mockGetDocs).toHaveBeenCalledTimes(1);
     expect(items).toHaveLength(2);
@@ -79,8 +69,8 @@ describe('loadWishlistItems', () => {
       ]
     });
 
-    await loadWishlistItems('user123');
-    await loadWishlistItems('user123');
+    await wishlistRepository.getAll('user123');
+    await wishlistRepository.getAll('user123');
 
     expect(mockGetDocs).toHaveBeenCalledTimes(1);
   });
@@ -92,8 +82,8 @@ describe('loadWishlistItems', () => {
       ]
     });
 
-    await loadWishlistItems('user123');
-    await loadWishlistItems('user123', true);
+    await wishlistRepository.getAll('user123');
+    await wishlistRepository.getAll('user123', true);
 
     expect(mockGetDocs).toHaveBeenCalledTimes(2);
   });
@@ -103,8 +93,8 @@ describe('loadWishlistItems', () => {
       docs: []
     });
 
-    await loadWishlistItems('user123');
-    await loadWishlistItems('user456');
+    await wishlistRepository.getAll('user123');
+    await wishlistRepository.getAll('user456');
 
     expect(mockGetDocs).toHaveBeenCalledTimes(2);
   });
@@ -112,7 +102,7 @@ describe('loadWishlistItems', () => {
 
 describe('getWishlistCount', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockGetDocs.mockReset();
   });
 
@@ -125,7 +115,7 @@ describe('getWishlistCount', () => {
       ]
     });
 
-    const count = await getWishlistCount('user123');
+    const count = await wishlistRepository.getCount('user123');
 
     expect(count).toBe(3);
   });
@@ -135,7 +125,7 @@ describe('getWishlistCount', () => {
       docs: []
     });
 
-    const count = await getWishlistCount('user123');
+    const count = await wishlistRepository.getCount('user123');
 
     expect(count).toBe(0);
   });
@@ -143,7 +133,7 @@ describe('getWishlistCount', () => {
   it('should return 0 on error', async () => {
     mockGetDocs.mockRejectedValueOnce(new Error('Firestore error'));
 
-    const count = await getWishlistCount('user123');
+    const count = await wishlistRepository.getCount('user123');
 
     expect(count).toBe(0);
   });
@@ -151,7 +141,7 @@ describe('getWishlistCount', () => {
 
 describe('checkWishlistDuplicate', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockGetDocs.mockReset();
   });
 
@@ -162,7 +152,7 @@ describe('checkWishlistDuplicate', () => {
       ]
     });
 
-    const duplicate = await checkWishlistDuplicate('user123', '1234567890', 'Different Title', 'Different Author');
+    const duplicate = await wishlistRepository.checkDuplicate('user123', '1234567890', 'Different Title', 'Different Author');
 
     expect(duplicate).not.toBeNull();
     expect(duplicate.isbn).toBe('1234567890');
@@ -175,7 +165,7 @@ describe('checkWishlistDuplicate', () => {
       ]
     });
 
-    const duplicate = await checkWishlistDuplicate('user123', null, 'The Great Book', 'John Smith');
+    const duplicate = await wishlistRepository.checkDuplicate('user123', null, 'The Great Book', 'John Smith');
 
     expect(duplicate).not.toBeNull();
     expect(duplicate.title).toBe('The Great Book');
@@ -188,7 +178,7 @@ describe('checkWishlistDuplicate', () => {
       ]
     });
 
-    const duplicate = await checkWishlistDuplicate('user123', '0987654321', 'New Book', 'New Author');
+    const duplicate = await wishlistRepository.checkDuplicate('user123', '0987654321', 'New Book', 'New Author');
 
     expect(duplicate).toBeNull();
   });
@@ -196,7 +186,7 @@ describe('checkWishlistDuplicate', () => {
 
 describe('addWishlistItem', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockGetDocs.mockReset();
     mockAddDoc.mockReset();
   });
@@ -205,7 +195,7 @@ describe('addWishlistItem', () => {
     mockGetDocs.mockResolvedValueOnce({ docs: [] });
     mockAddDoc.mockResolvedValueOnce({ id: 'new-id' });
 
-    const result = await addWishlistItem('user123', {
+    const result = await wishlistRepository.add('user123', {
       title: 'New Book',
       author: 'New Author',
       isbn: '1234567890',
@@ -225,7 +215,7 @@ describe('addWishlistItem', () => {
       ]
     });
 
-    await expect(addWishlistItem('user123', {
+    await expect(wishlistRepository.add('user123', {
       title: 'Different Title',
       author: 'Different Author',
       isbn: '1234567890'
@@ -236,7 +226,7 @@ describe('addWishlistItem', () => {
     mockGetDocs.mockResolvedValueOnce({ docs: [] });
     mockAddDoc.mockResolvedValueOnce({ id: 'new-id' });
 
-    const result = await addWishlistItem('user123', {
+    const result = await wishlistRepository.add('user123', {
       title: 'Book',
       author: 'Author'
     });
@@ -256,7 +246,7 @@ describe('updateWishlistItem', () => {
   it('should update allowed fields', async () => {
     mockUpdateDoc.mockResolvedValueOnce();
 
-    const result = await updateWishlistItem('user123', 'item-id', {
+    const result = await wishlistRepository.updateItem('user123', 'item-id', {
       priority: 'low',
       notes: 'Updated notes'
     });
@@ -269,7 +259,7 @@ describe('updateWishlistItem', () => {
   it('should not update disallowed fields', async () => {
     mockUpdateDoc.mockResolvedValueOnce();
 
-    const result = await updateWishlistItem('user123', 'item-id', {
+    const result = await wishlistRepository.updateItem('user123', 'item-id', {
       title: 'New Title', // Not allowed
       priority: 'high'
     });
@@ -281,14 +271,14 @@ describe('updateWishlistItem', () => {
 
 describe('deleteWishlistItem', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockDeleteDoc.mockReset();
   });
 
   it('should delete a wishlist item', async () => {
     mockDeleteDoc.mockResolvedValueOnce();
 
-    await deleteWishlistItem('user123', 'item-id');
+    await wishlistRepository.remove('user123', 'item-id');
 
     expect(mockDeleteDoc).toHaveBeenCalledTimes(1);
   });
@@ -296,7 +286,7 @@ describe('deleteWishlistItem', () => {
 
 describe('moveToLibrary', () => {
   beforeEach(() => {
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     mockGetDoc.mockReset();
     mockAddDoc.mockReset();
     mockDeleteDoc.mockReset();
@@ -321,7 +311,7 @@ describe('moveToLibrary', () => {
     mockAddDoc.mockResolvedValueOnce({ id: 'book-id' });
     mockDeleteDoc.mockResolvedValueOnce();
 
-    const result = await moveToLibrary('user123', 'wishlist-item-id');
+    const result = await wishlistRepository.moveToLibrary('user123', 'wishlist-item-id');
 
     expect(mockAddDoc).toHaveBeenCalledTimes(1);
     expect(mockDeleteDoc).toHaveBeenCalledTimes(1);
@@ -357,7 +347,7 @@ describe('moveToLibrary', () => {
     mockAddDoc.mockResolvedValueOnce({ id: 'book-id' });
     mockDeleteDoc.mockResolvedValueOnce();
 
-    const result = await moveToLibrary('user123', 'wishlist-item-id');
+    const result = await wishlistRepository.moveToLibrary('user123', 'wishlist-item-id');
 
     expect(mockLookupISBN).toHaveBeenCalledWith('1234567890');
     expect(result.coverImageUrl).toBe('http://better-cover.jpg');
@@ -385,7 +375,7 @@ describe('moveToLibrary', () => {
     mockAddDoc.mockResolvedValueOnce({ id: 'book-id' });
     mockDeleteDoc.mockResolvedValueOnce();
 
-    const result = await moveToLibrary('user123', 'wishlist-item-id');
+    const result = await wishlistRepository.moveToLibrary('user123', 'wishlist-item-id');
 
     expect(result.coverImageUrl).toBe('http://original-cover.jpg');
     expect(result.publisher).toBe('Original Publisher');
@@ -396,7 +386,7 @@ describe('moveToLibrary', () => {
       exists: () => false
     });
 
-    await expect(moveToLibrary('user123', 'non-existent-id'))
+    await expect(wishlistRepository.moveToLibrary('user123', 'non-existent-id'))
       .rejects.toThrow('Wishlist item not found');
   });
 });
@@ -409,7 +399,7 @@ describe('createWishlistLookup', () => {
       { id: 'w3', title: 'Book 3', isbn: null }
     ];
 
-    const lookup = createWishlistLookup(items);
+    const lookup = wishlistRepository.createLookup(items);
 
     expect(lookup.size).toBe(2);
     expect(lookup.get('1111111111').title).toBe('Book 1');
@@ -418,7 +408,7 @@ describe('createWishlistLookup', () => {
   });
 
   it('should return empty map for empty array', () => {
-    const lookup = createWishlistLookup([]);
+    const lookup = wishlistRepository.createLookup([]);
 
     expect(lookup.size).toBe(0);
   });

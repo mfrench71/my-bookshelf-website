@@ -119,11 +119,16 @@ class WishlistRepository extends BaseRepository<WishlistItem> {
   /**
    * Get wishlist item count
    * @param userId - The user's ID
-   * @returns Number of items
+   * @returns Number of items (0 on error)
    */
   async getCount(userId: string): Promise<number> {
-    const items = await this.getAll(userId);
-    return items.length;
+    try {
+      const items = await this.getAll(userId);
+      return items.length;
+    } catch (error) {
+      console.error('Error getting wishlist count:', error);
+      return 0;
+    }
   }
 
   /**
@@ -200,8 +205,13 @@ class WishlistRepository extends BaseRepository<WishlistItem> {
    * @param userId - The user's ID
    * @param itemId - The item ID
    * @param updates - Fields to update
+   * @returns Object with id and updated fields
    */
-  async updateItem(userId: string, itemId: string, updates: WishlistItemUpdate): Promise<void> {
+  async updateItem(
+    userId: string,
+    itemId: string,
+    updates: WishlistItemUpdate
+  ): Promise<{ id: string; [key: string]: unknown }> {
     const allowedFields: (keyof WishlistItemUpdate)[] = ['priority', 'notes', 'coverImageUrl'];
     const filteredUpdates: Partial<WishlistItem> = {};
 
@@ -213,6 +223,15 @@ class WishlistRepository extends BaseRepository<WishlistItem> {
 
     await this.update(userId, itemId, filteredUpdates);
     this.clearCache();
+
+    // Return the result with id and updated fields
+    const result: { id: string; [key: string]: unknown } = { id: itemId };
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        result[field] = updates[field];
+      }
+    }
+    return result;
   }
 
   /**
