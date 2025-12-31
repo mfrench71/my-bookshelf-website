@@ -298,7 +298,7 @@ async function updateWidgetSetting(
 
   try {
     await saveWidgetSettings(currentUser.uid, widgetSettings as Parameters<typeof saveWidgetSettings>[1]);
-    showToast('Settings saved', { type: 'success' });
+    showToast('Setting saved', { type: 'info' });
   } catch (error) {
     console.error('Error saving widget settings:', error);
     showToast('Error saving settings', { type: 'error' });
