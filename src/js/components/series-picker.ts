@@ -7,6 +7,7 @@ import { loadUserSeries, createSeries, clearSeriesCache } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 import { escapeHtml, debounce, showToast, initIcons } from '../utils.js';
 import { eventBus, Events } from '../utils/event-bus.js';
+import { getSyncSettings } from '../utils/sync-settings.js';
 import type { Series } from '../types/index.d.ts';
 
 /** Options for SeriesPicker constructor */
@@ -355,27 +356,33 @@ export class SeriesPicker {
   private _renderDropdownContent(filteredSeries: Series[], showSuggestion: boolean, showCreateOption: boolean): string {
     const items: string[] = [];
     let index = 0;
+    const { suggestionsFirst } = getSyncSettings();
 
-    // API Suggestion
-    if (showSuggestion) {
-      const normalized = normalizeSeriesName(this.suggestedName);
-      const existingMatch = this.series.find((s: Series) => s.normalizedName === normalized);
+    // Check if suggestion exists as user series
+    const normalized = normalizeSeriesName(this.suggestedName);
+    const existingMatch = this.series.find((s: Series) => s.normalizedName === normalized);
+    const canShowSuggestion = showSuggestion && !existingMatch;
 
-      if (!existingMatch) {
-        items.push(`<div class="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50">Suggested from book</div>`);
-        const isFocused = this.focusedIndex === index;
-        items.push(`
-          <button type="button" class="series-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-suggestion data-index="${index}">
-            <i data-lucide="plus" class="w-4 h-4 text-green-500"></i>
-            <span>${escapeHtml(this.suggestedName)}${this.suggestedPosition ? ` <span class="text-gray-400">#${this.suggestedPosition}</span>` : ''}</span>
-          </button>
-        `);
-        index++;
+    // Helper to render API suggestion
+    const renderSuggestion = (): void => {
+      if (!canShowSuggestion) return;
+      if (items.length > 0) {
+        items.push(`<div class="border-t border-gray-100"></div>`);
       }
-    }
+      items.push(`<div class="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50">Suggested from book</div>`);
+      const isFocused = this.focusedIndex === index;
+      items.push(`
+        <button type="button" class="series-picker-item w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${isFocused ? 'bg-gray-100' : ''}" data-suggestion data-index="${index}">
+          <i data-lucide="plus" class="w-4 h-4 text-green-500"></i>
+          <span>${escapeHtml(this.suggestedName)}${this.suggestedPosition ? ` <span class="text-gray-400">#${this.suggestedPosition}</span>` : ''}</span>
+        </button>
+      `);
+      index++;
+    };
 
-    // Existing series
-    if (filteredSeries.length > 0) {
+    // Helper to render user series
+    const renderUserSeries = (): void => {
+      if (filteredSeries.length === 0) return;
       if (items.length > 0) {
         items.push(`<div class="border-t border-gray-100"></div>`);
       }
@@ -392,6 +399,15 @@ export class SeriesPicker {
         `);
         index++;
       });
+    };
+
+    // Render sections in order based on preference
+    if (suggestionsFirst) {
+      renderSuggestion();
+      renderUserSeries();
+    } else {
+      renderUserSeries();
+      renderSuggestion();
     }
 
     // Create new option

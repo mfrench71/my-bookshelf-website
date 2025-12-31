@@ -8,6 +8,8 @@ export interface SyncSettingsData {
   hiddenThreshold: number;
   /** Minimum time between refreshes in seconds */
   cooldownPeriod: number;
+  /** Show API suggestions before user items in pickers (default: false - user items first) */
+  suggestionsFirst: boolean;
 }
 
 const SYNC_SETTINGS_KEY = 'mybookshelf_sync_settings';
@@ -16,6 +18,7 @@ const DEFAULT_SETTINGS: SyncSettingsData = {
   autoRefreshEnabled: true,
   hiddenThreshold: 30, // seconds - min hidden time before refresh
   cooldownPeriod: 300, // seconds - min time between refreshes (5 min)
+  suggestionsFirst: false, // user items shown first by default
 };
 
 /**

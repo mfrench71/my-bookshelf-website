@@ -27,7 +27,9 @@ import {
   mergeSeries,
   clearSeriesCache,
   findPotentialDuplicates,
+  updateSeriesBookCounts,
 } from '../series.js';
+import { seriesRepository } from '../repositories/series-repository.js';
 import {
   showToast,
   initIcons,
@@ -45,6 +47,7 @@ import { SeriesFormSchema } from '../schemas/series.js';
 import { BottomSheet } from '../components/modal.js';
 import { wishlistRepository } from '../repositories/wishlist-repository.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
+import { getSyncSettings, saveSyncSettings } from '../utils/sync-settings.js';
 
 /** Genre data structure */
 interface GenreData {
@@ -98,8 +101,10 @@ interface ExportData {
   version: number;
   exportedAt: string;
   genres: Array<Omit<GenreData, 'id'> & { _exportId: string }>;
+  series: Array<Omit<SeriesData, 'id'> & { _exportId: string }>;
   books: BookData[];
   wishlist: WishlistItemData[];
+  bin: BookData[];
 }
 
 // Initialize icons once on load
@@ -152,6 +157,9 @@ const mergeGenreSourceName = document.getElementById('merge-genre-source-name');
 const mergeGenreTargetSelect = document.getElementById('merge-genre-target-select') as HTMLSelectElement | null;
 const cancelMergeGenreBtn = document.getElementById('cancel-merge-genre');
 const confirmMergeGenreBtn = document.getElementById('confirm-merge-genre') as HTMLButtonElement | null;
+
+// DOM Elements - Picker Display
+const suggestionsFirstToggle = document.getElementById('suggestions-first-toggle') as HTMLInputElement | null;
 
 // DOM Elements - Series
 const seriesLoading = document.getElementById('series-loading');
@@ -241,9 +249,29 @@ if (seriesList) {
 onAuthStateChanged(auth, async (user: User | null) => {
   if (user) {
     currentUser = user;
+    loadPickerDisplaySettings();
     await Promise.all([loadGenres(), loadSeries()]);
     updateSettingsIndicators(user.uid);
   }
+});
+
+// ==================== Picker Display ====================
+
+/**
+ * Load picker display settings from localStorage
+ */
+function loadPickerDisplaySettings(): void {
+  const settings = getSyncSettings();
+  if (suggestionsFirstToggle) {
+    suggestionsFirstToggle.checked = settings.suggestionsFirst;
+  }
+}
+
+// Picker display toggle event listener
+suggestionsFirstToggle?.addEventListener('change', () => {
+  const enabled = suggestionsFirstToggle.checked;
+  saveSyncSettings({ suggestionsFirst: enabled });
+  showToast(enabled ? 'API suggestions shown first' : 'Your items shown first', { type: 'info' });
 });
 
 // ==================== Genres ====================
@@ -984,6 +1012,15 @@ async function exportBackup(): Promise<void> {
 
   try {
     await loadAllBooks();
+
+    // Load all series (including soft-deleted)
+    let allSeries: SeriesData[] = [];
+    try {
+      allSeries = await seriesRepository.getAllSorted(currentUser.uid);
+    } catch (_e) {
+      console.warn('Failed to load series for export');
+    }
+
     // Load wishlist for export
     try {
       wishlist = (await wishlistRepository.getAll(currentUser.uid)) as WishlistItemData[];
@@ -992,17 +1029,49 @@ async function exportBackup(): Promise<void> {
       wishlist = [];
     }
 
-    if (books.length === 0 && genres.length === 0 && wishlist.length === 0) {
+    // Load all books including binned (soft-deleted)
+    let allBooks: BookData[] = [];
+    try {
+      const fetchedBooks = await bookRepository.getWithOptions(currentUser.uid, {
+        orderByField: 'createdAt',
+        orderDirection: 'desc',
+      });
+      allBooks = fetchedBooks.map(book => {
+        const data = book as BookData;
+        return {
+          ...data,
+          createdAt: serializeTimestamp(data.createdAt as Parameters<typeof serializeTimestamp>[0]),
+          updatedAt: serializeTimestamp(data.updatedAt as Parameters<typeof serializeTimestamp>[0]),
+        } as BookData;
+      });
+    } catch (_e) {
+      console.warn('Failed to load all books for export');
+      allBooks = books;
+    }
+
+    // Separate active books from binned books
+    const activeBooks = allBooks.filter(book => !(book as Record<string, unknown>).deletedAt);
+    const binnedBooks = allBooks.filter(book => (book as Record<string, unknown>).deletedAt);
+
+    if (
+      activeBooks.length === 0 &&
+      genres.length === 0 &&
+      wishlist.length === 0 &&
+      allSeries.length === 0 &&
+      binnedBooks.length === 0
+    ) {
       showToast('No data to export', { type: 'error' });
       return;
     }
 
     const exportData: ExportData = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       genres: genres.map(({ id, ...genre }) => ({ ...genre, _exportId: id })),
-      books: books.map(({ id: _id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
+      series: allSeries.map(({ id, ...s }) => ({ ...s, _exportId: id })),
+      books: activeBooks.map(({ id: _id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
       wishlist: wishlist.map(({ id: _id, ...item }) => item),
+      bin: binnedBooks.map(({ id: _id, _normalizedTitle, _normalizedAuthor, ...book }) => book),
     };
 
     const json = JSON.stringify(exportData, null, 2);
@@ -1015,8 +1084,10 @@ async function exportBackup(): Promise<void> {
     a.click();
 
     URL.revokeObjectURL(url);
-    const parts = [`${books.length} books`, `${genres.length} genres`];
+    const parts = [`${activeBooks.length} books`, `${genres.length} genres`];
+    if (allSeries.length > 0) parts.push(`${allSeries.length} series`);
     if (wishlist.length > 0) parts.push(`${wishlist.length} wishlist items`);
+    if (binnedBooks.length > 0) parts.push(`${binnedBooks.length} binned`);
     showToast(`Exported ${parts.join(', ')}`, { type: 'success' });
   } catch (error) {
     console.error('Error exporting backup:', error);
@@ -1046,15 +1117,30 @@ async function importBackup(file: File): Promise<void> {
       throw new Error('Invalid JSON file');
     }
 
-    if (!data.version || data.version !== 1) {
+    // Support both v1 and v2 formats
+    if (!data.version || (data.version !== 1 && data.version !== 2)) {
       throw new Error('Unrecognized backup format');
     }
 
+    // Migrate v1 to v2 format (add empty series/bin)
+    if (data.version === 1) {
+      data.series = [];
+      data.bin = [];
+    }
+
     const importGenres = data.genres || [];
+    const importSeries = data.series || [];
     const importBooks = data.books || [];
     const importWishlist = data.wishlist || [];
+    const importBin = data.bin || [];
 
-    if (importBooks.length === 0 && importGenres.length === 0 && importWishlist.length === 0) {
+    if (
+      importBooks.length === 0 &&
+      importGenres.length === 0 &&
+      importWishlist.length === 0 &&
+      importSeries.length === 0 &&
+      importBin.length === 0
+    ) {
       throw new Error('Backup file is empty');
     }
 
@@ -1093,6 +1179,37 @@ async function importBackup(file: File): Promise<void> {
       }
     }
 
+    // Import series
+    const seriesIdMap = new Map<string, string>();
+    let seriesImported = 0;
+    let seriesSkipped = 0;
+
+    if (importSeries.length > 0) {
+      if (importStatus) importStatus.textContent = 'Importing series...';
+      const existingSeries = await seriesRepository.getAllSorted(currentUser.uid);
+
+      for (const s of importSeries) {
+        const seriesName = s.name as string;
+        const existingSeriesItem = existingSeries.find(
+          (es: SeriesData) => es.name.toLowerCase() === seriesName.toLowerCase()
+        );
+
+        if (existingSeriesItem) {
+          seriesIdMap.set(s._exportId as string, existingSeriesItem.id);
+          seriesSkipped++;
+        } else {
+          const newSeries = await createSeries(
+            currentUser.uid,
+            seriesName,
+            (s.description as string) || null,
+            (s.totalBooks as number) || null
+          );
+          seriesIdMap.set(s._exportId as string, newSeries.id);
+          seriesImported++;
+        }
+      }
+    }
+
     let booksImported = 0;
     let booksSkipped = 0;
     const importedBookKeys = new Set<string>(); // Track imported books for wishlist cross-check
@@ -1127,6 +1244,12 @@ async function importBackup(file: File): Promise<void> {
           remappedGenres = book.genres.map(oldId => genreIdMap.get(oldId)).filter((id): id is string => !!id);
         }
 
+        // Remap seriesId if present
+        let remappedSeriesId: string | null = null;
+        if (book.seriesId && typeof book.seriesId === 'string') {
+          remappedSeriesId = seriesIdMap.get(book.seriesId) || null;
+        }
+
         const bookData = { ...book };
         delete bookData.createdAt;
         delete bookData.updatedAt;
@@ -1134,6 +1257,7 @@ async function importBackup(file: File): Promise<void> {
         booksToImport.push({
           ...bookData,
           genres: remappedGenres,
+          seriesId: remappedSeriesId,
         });
 
         // Track for wishlist cross-check
@@ -1270,13 +1394,101 @@ async function importBackup(file: File): Promise<void> {
       }
     }
 
+    // Import bin items (soft-deleted books)
+    let binImported = 0;
+    let binSkipped = 0;
+
+    if (importBin.length > 0) {
+      if (importStatus) importStatus.textContent = 'Importing bin items...';
+
+      const booksRef = collection(db, 'users', currentUser.uid, 'books');
+      const binToImport: BookData[] = [];
+
+      // Get all existing books including binned for duplicate check
+      const allExistingBooks = await bookRepository.getWithOptions(currentUser.uid, {
+        orderByField: 'createdAt',
+        orderDirection: 'desc',
+      });
+
+      for (const binBook of importBin) {
+        // Check for duplicates against ALL existing books (active + binned)
+        const isDuplicate = allExistingBooks.some(existing => {
+          if (binBook.isbn && existing.isbn && binBook.isbn === existing.isbn) return true;
+          if (
+            binBook.title &&
+            existing.title &&
+            binBook.title.toLowerCase() === existing.title.toLowerCase() &&
+            (binBook.author || '').toLowerCase() === (existing.author || '').toLowerCase()
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        if (isDuplicate) {
+          binSkipped++;
+          continue;
+        }
+
+        // Remap genres and seriesId
+        let remappedGenres: string[] = [];
+        if (binBook.genres && Array.isArray(binBook.genres)) {
+          remappedGenres = (binBook.genres as string[])
+            .map(oldId => genreIdMap.get(oldId))
+            .filter((id): id is string => !!id);
+        }
+
+        let remappedSeriesId: string | null = null;
+        if (binBook.seriesId && typeof binBook.seriesId === 'string') {
+          remappedSeriesId = seriesIdMap.get(binBook.seriesId) || null;
+        }
+
+        const bookData = { ...binBook };
+        delete bookData.createdAt;
+        delete bookData.updatedAt;
+
+        binToImport.push({
+          ...bookData,
+          genres: remappedGenres,
+          seriesId: remappedSeriesId,
+          deletedAt: (binBook as Record<string, unknown>).deletedAt || Date.now(), // Preserve deletedAt or set to now
+        });
+      }
+
+      // Batch write bin items
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < binToImport.length; i += BATCH_SIZE) {
+        const batchBooks = binToImport.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+
+        for (const bookData of batchBooks) {
+          const docRef = doc(booksRef);
+          batch.set(docRef, {
+            ...bookData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        await batch.commit();
+        binImported += batchBooks.length;
+        if (importStatus) importStatus.textContent = `Importing bin items... ${binImported}/${binToImport.length}`;
+      }
+    }
+
     clearBooksCache(currentUser.uid);
     clearGenresCache();
+    clearSeriesCache();
     wishlistRepository.clearCache();
 
     if (genresImported > 0 || booksImported > 0) {
-      if (importStatus) importStatus.textContent = 'Updating genre counts...';
+      if (importStatus) importStatus.textContent = 'Updating counts...';
       await recalculateGenreBookCounts(currentUser.uid);
+    }
+
+    // Update series book counts if series were imported
+    if (seriesImported > 0 || booksImported > 0) {
+      await updateSeriesBookCounts(currentUser.uid);
     }
 
     // Hide progress spinner
@@ -1296,9 +1508,19 @@ async function importBackup(file: File): Promise<void> {
         `<div class="flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-green-600"></i>${genresImported} genre${genresImported !== 1 ? 's' : ''} created</div>`
       );
     }
+    if (seriesImported > 0) {
+      summaryLines.push(
+        `<div class="flex items-center gap-2"><i data-lucide="library" class="w-4 h-4 text-green-600"></i>${seriesImported} series created</div>`
+      );
+    }
     if (wishlistImported > 0) {
       summaryLines.push(
         `<div class="flex items-center gap-2"><i data-lucide="heart" class="w-4 h-4 text-green-600"></i>${wishlistImported} wishlist item${wishlistImported !== 1 ? 's' : ''} added</div>`
+      );
+    }
+    if (binImported > 0) {
+      summaryLines.push(
+        `<div class="flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4 text-green-600"></i>${binImported} bin item${binImported !== 1 ? 's' : ''} restored</div>`
       );
     }
 
@@ -1313,6 +1535,11 @@ async function importBackup(file: File): Promise<void> {
         `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${genresSkipped} existing genre${genresSkipped !== 1 ? 's' : ''} skipped</div>`
       );
     }
+    if (seriesSkipped > 0) {
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${seriesSkipped} existing series skipped</div>`
+      );
+    }
     if (wishlistSkipped > 0) {
       summaryLines.push(
         `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${wishlistSkipped} duplicate wishlist item${wishlistSkipped !== 1 ? 's' : ''} skipped</div>`
@@ -1321,6 +1548,11 @@ async function importBackup(file: File): Promise<void> {
     if (wishlistSkippedOwned > 0) {
       summaryLines.push(
         `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="check-circle" class="w-4 h-4"></i>${wishlistSkippedOwned} wishlist item${wishlistSkippedOwned !== 1 ? 's' : ''} skipped (already owned)</div>`
+      );
+    }
+    if (binSkipped > 0) {
+      summaryLines.push(
+        `<div class="flex items-center gap-2 text-gray-500"><i data-lucide="minus-circle" class="w-4 h-4"></i>${binSkipped} duplicate bin item${binSkipped !== 1 ? 's' : ''} skipped</div>`
       );
     }
 
@@ -1332,7 +1564,13 @@ async function importBackup(file: File): Promise<void> {
     }
 
     // Nothing imported
-    if (booksImported === 0 && genresImported === 0 && wishlistImported === 0) {
+    if (
+      booksImported === 0 &&
+      genresImported === 0 &&
+      seriesImported === 0 &&
+      wishlistImported === 0 &&
+      binImported === 0
+    ) {
       summaryLines.push(`<div class="text-gray-500">No new items to import (all duplicates or already owned)</div>`);
     }
 
@@ -1344,7 +1582,7 @@ async function importBackup(file: File): Promise<void> {
     initIcons();
 
     // Brief toast
-    const totalImported = booksImported + genresImported + wishlistImported;
+    const totalImported = booksImported + genresImported + seriesImported + wishlistImported + binImported;
     if (totalImported > 0) {
       showToast('Import complete', { type: 'success' });
     } else {

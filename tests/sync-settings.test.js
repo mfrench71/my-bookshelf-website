@@ -27,7 +27,8 @@ describe('Sync Settings', () => {
       expect(defaults).toEqual({
         autoRefreshEnabled: true,
         hiddenThreshold: 30,
-        cooldownPeriod: 300
+        cooldownPeriod: 300,
+        suggestionsFirst: false
       });
     });
 
@@ -185,6 +186,21 @@ describe('Sync Settings', () => {
         saveSyncSettings({ cooldownPeriod: period });
         expect(getSyncSettings().cooldownPeriod).toBe(period);
       });
+    });
+
+    it('should default suggestionsFirst to false', () => {
+      expect(getSyncSettings().suggestionsFirst).toBe(false);
+    });
+
+    it('should support enabling suggestionsFirst', () => {
+      saveSyncSettings({ suggestionsFirst: true });
+      expect(getSyncSettings().suggestionsFirst).toBe(true);
+    });
+
+    it('should support disabling suggestionsFirst', () => {
+      saveSyncSettings({ suggestionsFirst: true });
+      saveSyncSettings({ suggestionsFirst: false });
+      expect(getSyncSettings().suggestionsFirst).toBe(false);
     });
   });
 });

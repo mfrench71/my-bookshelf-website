@@ -4,6 +4,7 @@
 import { loadUserGenres, createGenre } from '../genres.js';
 import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from '../utils.js';
 import { eventBus, Events } from '../utils/event-bus.js';
+import { getSyncSettings } from '../utils/sync-settings.js';
 import type { Genre } from '../types/index.d.ts';
 
 /** Options for GenrePicker constructor */
@@ -219,9 +220,14 @@ export class GenrePicker {
   ): string {
     const items: string[] = [];
     let index = 0;
+    const { suggestionsFirst } = getSyncSettings();
 
-    // API Suggestions section
-    if (filteredSuggestions.length > 0) {
+    // Helper to render suggestions section
+    const renderSuggestions = (): void => {
+      if (filteredSuggestions.length === 0) return;
+      if (items.length > 0) {
+        items.push(`<div class="border-t border-gray-100"></div>`);
+      }
       items.push(`<div class="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50">Suggested from book</div>`);
       filteredSuggestions.forEach(name => {
         const isFocused = this.focusedIndex === index;
@@ -235,11 +241,12 @@ export class GenrePicker {
         `);
         index++;
       });
-    }
+    };
 
-    // Your genres section
-    if (filteredGenres.length > 0) {
-      if (filteredSuggestions.length > 0) {
+    // Helper to render user genres section
+    const renderUserGenres = (): void => {
+      if (filteredGenres.length === 0) return;
+      if (items.length > 0) {
         items.push(`<div class="border-t border-gray-100"></div>`);
       }
       items.push(`<div class="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50">Your genres</div>`);
@@ -264,6 +271,15 @@ export class GenrePicker {
         `);
         index++;
       });
+    };
+
+    // Render sections in order based on preference
+    if (suggestionsFirst) {
+      renderSuggestions();
+      renderUserGenres();
+    } else {
+      renderUserGenres();
+      renderSuggestions();
     }
 
     // Create new option
