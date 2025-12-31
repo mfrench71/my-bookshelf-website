@@ -3,6 +3,7 @@
 
 import { loadUserGenres, createGenre } from '../genres.js';
 import { getContrastColor, normalizeGenreName, escapeHtml, debounce, showToast } from '../utils.js';
+import { eventBus, Events } from '../utils/event-bus.js';
 import type { Genre } from '../types/index.d.ts';
 
 /** Options for GenrePicker constructor */
@@ -514,13 +515,21 @@ export class GenrePicker {
 
     this.searchQuery = '';
     this.focusedIndex = -1;
-    this.onChange(this.selected);
+    this._notifyChange();
 
     // Refocus input
     setTimeout(() => {
       const input = this.container.querySelector('.genre-picker-input') as HTMLInputElement | null;
       if (input) input.focus();
     }, 0);
+  }
+
+  /**
+   * Notify listeners of selection change (callback + event bus)
+   */
+  private _notifyChange(): void {
+    this.onChange(this.selected);
+    eventBus.emit(Events.GENRES_CHANGED, { selected: this.selected, picker: this });
   }
 
   /**
@@ -594,7 +603,7 @@ export class GenrePicker {
     if (index !== -1) {
       this.selected.splice(index, 1);
       this.render();
-      this.onChange(this.selected);
+      this._notifyChange();
     }
   }
 
@@ -616,7 +625,7 @@ export class GenrePicker {
       this.searchQuery = '';
       this.focusedIndex = -1;
       this.render();
-      this.onChange(this.selected);
+      this._notifyChange();
     } catch (error) {
       console.error('Error adding suggestion:', error);
       showToast('Failed to add genre. Please try again.', { type: 'error' });
@@ -634,7 +643,7 @@ export class GenrePicker {
       this.searchQuery = '';
       this.focusedIndex = -1;
       this.render();
-      this.onChange(this.selected);
+      this._notifyChange();
     } catch (error) {
       console.error('Error creating genre:', error);
       showToast('Failed to create genre. Please try again.', { type: 'error' });

@@ -183,6 +183,7 @@ export const Events = {
   SERIES_CREATED: 'series:created',
   SERIES_UPDATED: 'series:updated',
   SERIES_DELETED: 'series:deleted',
+  SERIES_SELECTION_CHANGED: 'series:selectionChanged',
 
   // Form events
   FORM_DIRTY: 'form:dirty',

@@ -6,6 +6,7 @@ import { collection, query, where, getDocs } from 'https://www.gstatic.com/fireb
 import { loadUserSeries, createSeries, clearSeriesCache } from '../series.js';
 import { normalizeSeriesName } from '../utils/series-parser.js';
 import { escapeHtml, debounce, showToast, initIcons } from '../utils.js';
+import { eventBus, Events } from '../utils/event-bus.js';
 import type { Series } from '../types/index.d.ts';
 
 /** Options for SeriesPicker constructor */
@@ -152,6 +153,15 @@ export class SeriesPicker {
   }
 
   /**
+   * Notify listeners of selection change (callback + event bus)
+   */
+  private _notifyChange(): void {
+    const selected = this.getSelected();
+    this.onChange(selected);
+    eventBus.emit(Events.SERIES_SELECTION_CHANGED, { selected, picker: this });
+  }
+
+  /**
    * Set API suggestion (series name and position from book lookup)
    * @param name - Series name from API
    * @param position - Position from API
@@ -168,7 +178,7 @@ export class SeriesPicker {
         this.selectedId = match.id;
         this.selectedName = match.name;
         this.position = this.suggestedPosition;
-        this.onChange(this.getSelected());
+        this._notifyChange();
       }
     }
 
@@ -187,7 +197,7 @@ export class SeriesPicker {
     this.searchQuery = '';
     this.positionConflict = null;
     this.render();
-    this.onChange(this.getSelected());
+    this._notifyChange();
   }
 
   /**
@@ -502,7 +512,7 @@ export class SeriesPicker {
         // Check for position conflict (debounced)
         this._checkPositionConflictDebounced();
 
-        this.onChange(this.getSelected());
+        this._notifyChange();
       });
     }
 
@@ -649,7 +659,7 @@ export class SeriesPicker {
     this.searchQuery = '';
     this.focusedIndex = -1;
     this.render();
-    this.onChange(this.getSelected());
+    this._notifyChange();
 
     // Check for conflict with new series/position
     if (this.position) {
@@ -685,7 +695,7 @@ export class SeriesPicker {
       this.searchQuery = '';
       this.focusedIndex = -1;
       this.render();
-      this.onChange(this.getSelected());
+      this._notifyChange();
     } catch (error) {
       console.error('Error adding suggestion:', error);
       showToast('Failed to add series', { type: 'error' });
@@ -707,7 +717,7 @@ export class SeriesPicker {
       this.searchQuery = '';
       this.focusedIndex = -1;
       this.render();
-      this.onChange(this.getSelected());
+      this._notifyChange();
     } catch (error) {
       console.error('Error creating series:', error);
       showToast('Failed to create series. Please try again.', { type: 'error' });
