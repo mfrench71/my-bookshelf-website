@@ -1,9 +1,8 @@
 // Author Picker Component
 // A reusable single-select component for picking an author with library suggestions
 
-import { db } from '/js/firebase-config.js';
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { escapeHtml, debounce, CACHE_KEY, CACHE_TTL } from '../utils.js';
+import { bookRepository } from '../repositories/book-repository.js';
 
 /** Options for AuthorPicker constructor */
 export interface AuthorPickerOptions {
@@ -167,11 +166,9 @@ export class AuthorPicker {
       }
     }
 
-    // Fetch from Firestore if no valid cache
+    // Fetch via repository if no valid cache
     if (books.length === 0) {
-      const booksRef = collection(db, 'users', this.userId, 'books');
-      const snapshot = await getDocs(booksRef);
-      books = snapshot.docs.map(doc => doc.data() as { author?: string; deletedAt?: unknown });
+      books = (await bookRepository.getAll(this.userId)) as Array<{ author?: string; deletedAt?: unknown }>;
     }
 
     // Extract unique authors with counts (exclude deleted books)

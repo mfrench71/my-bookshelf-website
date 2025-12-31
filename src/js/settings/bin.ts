@@ -1,17 +1,10 @@
 // Settings Bin Page - Manage deleted books
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import { onAuthStateChanged, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { showToast, initIcons, escapeHtml, isValidImageUrl, serializeTimestamp } from '../utils.js';
+import { showToast, initIcons, escapeHtml, isValidImageUrl } from '../utils.js';
 import { BottomSheet } from '../components/modal.js';
-import {
-  filterBinnedBooks,
-  getDaysRemaining,
-  restoreBook,
-  permanentlyDeleteBook,
-  emptyBin,
-  purgeExpiredBooks,
-} from '../bin.js';
+import { binRepository } from '../repositories/bin-repository.js';
+import { bookRepository } from '../repositories/book-repository.js';
 import { updateSettingsIndicators, clearIndicatorsCache } from '../utils/settings-indicators.js';
 
 /** Book data with bin fields */
@@ -68,25 +61,18 @@ async function loadBinnedBooks(): Promise<void> {
   if (!currentUser) return;
 
   try {
-    // Fetch all books
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const snapshot = await getDocs(booksRef);
-    const allBooks: BinnedBookData[] = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: serializeTimestamp(doc.data().createdAt),
-      updatedAt: serializeTimestamp(doc.data().updatedAt),
-    })) as BinnedBookData[];
+    // Fetch all books via repository
+    const allBooks = (await bookRepository.getAll(currentUser.uid)) as BinnedBookData[];
 
     // Filter to binned books only
-    binnedBooks = filterBinnedBooks(allBooks);
+    binnedBooks = binRepository.filterBinned(allBooks);
 
     // Auto-purge expired books
-    const purgedCount = await purgeExpiredBooks(currentUser.uid, binnedBooks);
+    const purgedCount = await binRepository.purgeExpired(currentUser.uid, binnedBooks);
     if (purgedCount > 0) {
       showToast(`${purgedCount} expired book${purgedCount > 1 ? 's' : ''} permanently deleted`, { type: 'info' });
       // Re-filter after purge
-      binnedBooks = binnedBooks.filter(b => getDaysRemaining(b.deletedAt) > 0);
+      binnedBooks = binnedBooks.filter(b => binRepository.getDaysRemaining(b.deletedAt) > 0);
     }
 
     // Sort by deletedAt (most recent first)
@@ -156,7 +142,7 @@ function renderBinnedBooks(): void {
 
 // Render a single binned book card
 function renderBinBookCard(book: BinnedBookData): string {
-  const daysRemaining = getDaysRemaining(book.deletedAt);
+  const daysRemaining = binRepository.getDaysRemaining(book.deletedAt);
   const isUrgent = daysRemaining <= 7;
 
   const cover =
@@ -213,7 +199,7 @@ document.getElementById('confirm-restore')?.addEventListener('click', async () =
   }
 
   try {
-    const result = await restoreBook(currentUser.uid, selectedBook.id, selectedBook);
+    const result = await binRepository.restore(currentUser.uid, selectedBook.id, selectedBook);
 
     // Remove from local list
     binnedBooks = binnedBooks.filter(b => b.id !== selectedBook?.id);
@@ -260,7 +246,7 @@ document.getElementById('confirm-delete')?.addEventListener('click', async () =>
   }
 
   try {
-    await permanentlyDeleteBook(currentUser.uid, selectedBook.id, selectedBook);
+    await binRepository.permanentlyDelete(currentUser.uid, selectedBook.id, selectedBook);
 
     // Remove from local list
     binnedBooks = binnedBooks.filter(b => b.id !== selectedBook?.id);
@@ -306,7 +292,7 @@ document.getElementById('confirm-empty-bin')?.addEventListener('click', async ()
   }
 
   try {
-    const count = await emptyBin(currentUser.uid, binnedBooks);
+    const count = await binRepository.emptyBin(currentUser.uid, binnedBooks);
 
     binnedBooks = [];
     emptyBinSheet?.close();

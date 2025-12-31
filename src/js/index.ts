@@ -1,11 +1,10 @@
 // Home Page Logic
-import { auth, db } from '/js/firebase-config.js';
+import { auth } from '/js/firebase-config.js';
 import {
   onAuthStateChanged,
   sendEmailVerification,
   User,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, query, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   initIcons,
   CACHE_KEY,
@@ -18,7 +17,8 @@ import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { loadWidgetSettings } from './utils/widget-settings.js';
 import { renderWidgets, renderWidgetSkeletons } from './widgets/widget-renderer.js';
-import { loadWishlistItems } from './wishlist.js';
+import { wishlistRepository } from './repositories/wishlist-repository.js';
+import { bookRepository } from './repositories/book-repository.js';
 // Import widgets to ensure they're registered
 import './widgets/index.js';
 
@@ -242,7 +242,7 @@ async function loadWishlistData(): Promise<WishlistItemData[]> {
   if (!currentUser) return [];
 
   try {
-    return await loadWishlistItems(currentUser.uid);
+    return await wishlistRepository.getAll(currentUser.uid);
   } catch (e) {
     console.error('Error loading wishlist:', e);
     return [];
@@ -250,7 +250,7 @@ async function loadWishlistData(): Promise<WishlistItemData[]> {
 }
 
 /**
- * Load books (from cache or Firebase)
+ * Load books (from cache or repository)
  */
 async function loadBooksData(): Promise<BookData[]> {
   if (!currentUser) return [];
@@ -272,17 +272,17 @@ async function loadBooksData(): Promise<BookData[]> {
     console.warn('Cache read error on home page:', error.message);
   }
 
-  // Fetch from Firebase
+  // Fetch via repository
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const q = query(booksRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const fetchedBooks = await bookRepository.getWithOptions(currentUser.uid, {
+      orderByField: 'createdAt',
+      orderDirection: 'desc',
+    });
 
-    return snapshot.docs
-      .map(doc => {
-        const data = doc.data();
+    return fetchedBooks
+      .map(book => {
+        const data = book as BookData;
         return {
-          id: doc.id,
           ...data,
           createdAt: serializeTimestamp(data.createdAt),
           updatedAt: serializeTimestamp(data.updatedAt),

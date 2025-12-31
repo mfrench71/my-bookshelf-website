@@ -45,7 +45,7 @@ import { validateForm, showFormErrors, clearFormErrors } from '../utils/validati
 import { GenreSchema, validateGenreUniqueness, validateColourUniqueness } from '../schemas/genre.js';
 import { SeriesFormSchema } from '../schemas/series.js';
 import { BottomSheet } from '../components/modal.js';
-import { loadWishlistItems, clearWishlistCache, deleteWishlistItem } from '../wishlist.js';
+import { wishlistRepository } from '../repositories/wishlist-repository.js';
 import { updateSettingsIndicators } from '../utils/settings-indicators.js';
 
 /** Genre data structure */
@@ -983,7 +983,7 @@ async function exportBackup(): Promise<void> {
     await loadAllBooks();
     // Load wishlist for export
     try {
-      wishlist = await loadWishlistItems(currentUser.uid);
+      wishlist = await wishlistRepository.getAll(currentUser.uid);
     } catch (_e) {
       console.warn('Failed to load wishlist for export');
       wishlist = [];
@@ -1062,7 +1062,7 @@ async function importBackup(file: File): Promise<void> {
     // Load existing wishlist for cross-checks
     let existingWishlist: WishlistItemData[] = [];
     try {
-      existingWishlist = await loadWishlistItems(currentUser.uid);
+      existingWishlist = await wishlistRepository.getAll(currentUser.uid);
     } catch (_e) {
       console.warn('Failed to load existing wishlist');
     }
@@ -1256,7 +1256,7 @@ async function importBackup(file: File): Promise<void> {
 
         if (matchesImportedBook && wishlistItem.id) {
           try {
-            await deleteWishlistItem(currentUser.uid, wishlistItem.id);
+            await wishlistRepository.remove(currentUser.uid, wishlistItem.id);
             wishlistAutoRemoved++;
           } catch (_e) {
             console.warn('Failed to auto-remove wishlist item');
@@ -1267,7 +1267,7 @@ async function importBackup(file: File): Promise<void> {
 
     clearBooksCache(currentUser.uid);
     clearGenresCache();
-    clearWishlistCache();
+    wishlistRepository.clearCache();
 
     if (genresImported > 0 || booksImported > 0) {
       if (importStatus) importStatus.textContent = 'Updating genre counts...';

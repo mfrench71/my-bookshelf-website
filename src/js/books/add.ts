@@ -29,7 +29,7 @@ import { updateSeriesBookCounts, clearSeriesCache } from '../series.js';
 import { ConfirmSheet } from '../components/modal.js';
 import { BookFormSchema } from '../schemas/book.js';
 import { validateForm, showFieldError, clearFormErrors, scrollToFirstError } from '../utils/validation.js';
-import { addWishlistItem, checkWishlistDuplicate, loadWishlistItems, createWishlistLookup } from '../wishlist.js';
+import { wishlistRepository } from '../repositories/wishlist-repository.js';
 import { isISBN, cleanISBN, checkForDuplicate } from '../utils/duplicate-checker.js';
 
 // Declare Quagga as a global (loaded from vendor script)
@@ -340,8 +340,8 @@ onAuthStateChanged(auth, async (user: User | null) => {
     initAuthorPicker();
     // Load wishlist for pre-checking search results
     try {
-      const wishlistItems = await loadWishlistItems(user.uid);
-      wishlistLookup = createWishlistLookup(wishlistItems);
+      const wishlistItems = await wishlistRepository.getAll(user.uid);
+      wishlistLookup = wishlistRepository.createLookup(wishlistItems);
     } catch (_e) {
       console.warn('Wishlist load failed');
       wishlistLookup = new Map();
@@ -950,14 +950,14 @@ async function handleAddToWishlist(resultEl: HTMLElement, btn: HTMLButtonElement
 
   try {
     // Check for duplicates first
-    const existing = await checkWishlistDuplicate(currentUser.uid, isbn || null, title || '', author || '');
+    const existing = await wishlistRepository.checkDuplicate(currentUser.uid, isbn || null, title || '', author || '');
     if (existing) {
       showToast(`"${existing.title}" is already in your wishlist`, { type: 'error' });
       return;
     }
 
     // Add to wishlist
-    await addWishlistItem(currentUser.uid, {
+    await wishlistRepository.add(currentUser.uid, {
       title: title || '',
       author: author || '',
       isbn: isbn || null,

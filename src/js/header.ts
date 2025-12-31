@@ -1,14 +1,7 @@
 // Common Header Logic
 import { auth, db } from '/js/firebase-config.js';
 import { onAuthStateChanged, signOut, User } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import {
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  doc,
-  getDoc,
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   normalizeText,
   showToast,
@@ -25,7 +18,8 @@ import { bookCard } from './components/book-card.js';
 import { loadUserGenres, createGenreLookup } from './genres.js';
 import { loadUserSeries, createSeriesLookup } from './series.js';
 import { getGravatarUrl } from './md5.js';
-import { getWishlistCount, clearWishlistCache } from './wishlist.js';
+import { wishlistRepository } from './repositories/wishlist-repository.js';
+import { bookRepository } from './repositories/book-repository.js';
 import { getRecentSearches, saveRecentSearch, clearRecentSearches } from './utils/recent-searches.js';
 import { initCacheInvalidation, clearAllCaches } from './utils/cache-invalidation.js';
 
@@ -244,7 +238,7 @@ let lastWishlistCount: number | null = null;
  */
 async function updateWishlistBadge(userId: string): Promise<void> {
   try {
-    const count = await getWishlistCount(userId);
+    const count = await wishlistRepository.getCount(userId);
     const badges = [wishlistCountMobile, wishlistCountDesktop].filter(Boolean) as HTMLElement[];
     const countChanged = lastWishlistCount !== null && lastWishlistCount !== count;
 
@@ -274,7 +268,7 @@ async function updateWishlistBadge(userId: string): Promise<void> {
 window.addEventListener('wishlist-updated', async () => {
   if (currentUser) {
     // Clear local cache (each bundle has its own copy)
-    clearWishlistCache();
+    wishlistRepository.clearCache();
     try {
       await updateWishlistBadge(currentUser.uid);
     } catch (e) {
@@ -428,16 +422,16 @@ async function loadAllBooksForSearch(): Promise<void> {
     console.warn('Cache read error in search:', error.message);
   }
 
-  // Fetch all from Firebase
+  // Fetch all via repository
   try {
-    const booksRef = collection(db, 'users', currentUser.uid, 'books');
-    const q = query(booksRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    books = snapshot.docs
-      .map(docSnap => {
-        const data = docSnap.data();
+    const fetchedBooks = await bookRepository.getWithOptions(currentUser.uid, {
+      orderByField: 'createdAt',
+      orderDirection: 'desc',
+    });
+    books = fetchedBooks
+      .map(book => {
+        const data = book as BookData;
         return {
-          id: docSnap.id,
           ...data,
           createdAt: serializeTimestamp(data.createdAt),
           updatedAt: serializeTimestamp(data.updatedAt),
