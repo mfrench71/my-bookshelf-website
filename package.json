@@ -74,8 +74,8 @@
   },
   "dependencies": {
     "@ericblade/quagga2": "^1.12.1",
-    "lucide": "^0.562.0",
-    "zod": "^4.2.1"
+    "lucide": "^0.563.0",
+    "zod": "^4.3.6"
   },
   "lint-staged": {
     "src/**/*.{js,ts}": [
